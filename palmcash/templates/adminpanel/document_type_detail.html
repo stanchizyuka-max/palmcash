@@ -1,0 +1,68 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}{{ document_type.name }} - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-secondary-900">{{ document_type.name }}</h1>
+            <a href="{% url 'adminpanel:document_type_list' %}" class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to List
+            </a>
+        </div>
+
+        <!-- Details Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-8">
+            <div class="mb-6 flex space-x-2">
+                {% if document_type.is_required %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-danger-100 text-danger-800">
+                    Required
+                </span>
+                {% endif %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium
+                    {% if document_type.is_active %}bg-success-100 text-success-800{% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                    {% if document_type.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+
+            <div class="space-y-6">
+                {% if document_type.description %}
+                <div>
+                    <h3 class="text-sm font-medium text-secondary-500 mb-2">Description</h3>
+                    <p class="text-secondary-900">{{ document_type.description }}</p>
+                </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Maximum File Size</h3>
+                        <p class="text-2xl font-bold text-primary-600">{{ document_type.max_file_size_mb }} MB</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Required Document</h3>
+                        <p class="text-lg font-semibold text-secondary-900">
+                            {% if document_type.is_required %}
+                            <span class="text-danger-600">Yes</span>
+                            {% else %}
+                            <span class="text-secondary-600">No</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-medium text-secondary-500 mb-2">Allowed File Extensions</h3>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% for ext in document_type.get_allowed_extensions_list %}
+                        <span class="px-3 py-2 bg-secondary-100 text-secondary-700 rounded-lg text-sm font-medium">.{{ ext }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

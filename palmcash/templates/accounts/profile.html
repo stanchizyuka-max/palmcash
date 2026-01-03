@@ -1,0 +1,173 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}My Profile - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">My Profile</h1>
+                <p class="text-secondary-600 mt-2">View and manage your personal information</p>
+            </div>
+            <a href="{% url 'accounts:edit_profile' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-edit"></i>
+                Edit Profile
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Profile Card -->
+            <div class="lg:col-span-1">
+                <!-- Profile Picture Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 text-center mb-6">
+                    {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-primary-200 shadow-lg mx-auto mb-4">
+                    {% else %}
+                    <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center mx-auto mb-4 text-white text-4xl font-bold shadow-lg">
+                        {{ user.first_name.0|default:user.username.0|upper }}{{ user.last_name.0|default:""|upper }}
+                    </div>
+                    {% endif %}
+                    
+                    <h3 class="text-xl font-bold text-secondary-900">{{ user.full_name|default:user.username }}</h3>
+                    <p class="text-secondary-600 mt-1">{{ user.get_role_display }}</p>
+                    
+                    <div class="mt-4">
+                        {% if user.is_verified %}
+                        <span class="px-4 py-2 rounded-full text-sm font-medium bg-success-100 text-success-800 inline-flex items-center">
+                            <i class="fas fa-check-circle mr-2"></i>Verified
+                        </span>
+                        {% else %}
+                        <span class="px-4 py-2 rounded-full text-sm font-medium bg-warning-100 text-warning-800 inline-flex items-center">
+                            <i class="fas fa-clock mr-2"></i>Pending Verification
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Quick Actions (for borrowers) -->
+                {% if user.role == 'borrower' %}
+                <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                    <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <a href="{% url 'loans:apply' %}" class="flex items-center gap-3 p-3 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors duration-200">
+                            <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <span class="font-medium text-secondary-900">Apply for Loan</span>
+                        </a>
+                        <a href="{% url 'loans:list' %}" class="flex items-center gap-3 p-3 bg-success-50 hover:bg-success-100 rounded-lg transition-colors duration-200">
+                            <div class="w-10 h-10 bg-success-600 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <span class="font-medium text-secondary-900">My Loans</span>
+                        </a>
+                        <a href="{% url 'documents:list' %}" class="flex items-center gap-3 p-3 bg-info-50 hover:bg-info-100 rounded-lg transition-colors duration-200">
+                            <div class="w-10 h-10 bg-info-600 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <span class="font-medium text-secondary-900">My Documents</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right Column - Information Cards -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Personal Information -->
+                <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                    <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-user text-primary-600"></i>
+                        Personal Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Username</p>
+                            <p class="font-medium text-secondary-900">{{ user.username }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Email</p>
+                            <p class="font-medium text-secondary-900">{{ user.email|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">First Name</p>
+                            <p class="font-medium text-secondary-900">{{ user.first_name|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Last Name</p>
+                            <p class="font-medium text-secondary-900">{{ user.last_name|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Phone Number</p>
+                            <p class="font-medium text-secondary-900">{{ user.phone_number|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Date of Birth</p>
+                            <p class="font-medium text-secondary-900">{{ user.date_of_birth|date:"M d, Y"|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">National ID</p>
+                            <p class="font-medium text-secondary-900">{{ user.national_id|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Role</p>
+                            <p class="font-medium text-secondary-900">{{ user.get_role_display }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Member Since</p>
+                            <p class="font-medium text-secondary-900">{{ user.date_joined|date:"M d, Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-secondary-600 mb-1">Last Login</p>
+                            <p class="font-medium text-secondary-900">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if user.address %}
+                    <div class="mt-6 pt-6 border-t border-secondary-200">
+                        <p class="text-sm text-secondary-600 mb-1">Address</p>
+                        <p class="font-medium text-secondary-900">{{ user.address }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Loan Summary (for borrowers) -->
+                {% if user.role == 'borrower' %}
+                <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                    <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-line text-success-600"></i>
+                        Loan Summary
+                    </h3>
+                    
+                    {% with user.loans.all as user_loans %}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-4 bg-primary-50 rounded-lg text-center">
+                            <p class="text-3xl font-bold text-primary-600">{{ user_loans.count }}</p>
+                            <p class="text-sm text-secondary-600 mt-1">Total Applications</p>
+                        </div>
+                        <div class="p-4 bg-success-50 rounded-lg text-center">
+                            <p class="text-3xl font-bold text-success-600">{{ user_loans|length }}</p>
+                            <p class="text-sm text-secondary-600 mt-1">Active Loans</p>
+                        </div>
+                        <div class="p-4 bg-warning-50 rounded-lg text-center">
+                            <p class="text-3xl font-bold text-warning-600">{{ user_loans|length }}</p>
+                            <p class="text-sm text-secondary-600 mt-1">Pending</p>
+                        </div>
+                        <div class="p-4 bg-info-50 rounded-lg text-center">
+                            <p class="text-3xl font-bold text-info-600">K0</p>
+                            <p class="text-sm text-secondary-600 mt-1">Total Borrowed</p>
+                        </div>
+                    </div>
+                    {% endwith %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

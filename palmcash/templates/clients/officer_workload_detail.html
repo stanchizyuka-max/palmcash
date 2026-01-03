@@ -1,0 +1,291 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}{{ officer.get_full_name }}'s Workload - PalmCash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center mb-4">
+                <a href="{% url 'clients:officer_workload' %}" class="text-blue-600 hover:text-blue-900 mr-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-4xl font-bold text-gray-900">{{ officer.get_full_name }}'s Workload</h1>
+            </div>
+            <p class="text-gray-600">Detailed workload and capacity information</p>
+        </div>
+
+        <!-- Capacity Warnings -->
+        {% if capacity_warnings %}
+        <div class="mb-6 space-y-3">
+            {% for warning in capacity_warnings %}
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                <p class="text-sm text-red-800">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    {{ warning }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Workload Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Groups Workload -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Groups Managed</h3>
+                    <i class="fas fa-users text-blue-500 text-2xl"></i>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Capacity Usage</span>
+                        <span class="text-lg font-bold text-gray-900">{{ workload_breakdown.groups_count }}/{{ workload_breakdown.groups_max }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div class="bg-blue-600 h-4 rounded-full" style="width: {{ workload_breakdown.groups_percentage }}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">{{ workload_breakdown.groups_percentage|floatformat:0 }}% utilized</p>
+                </div>
+                
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Active Groups:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.groups_count }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Maximum Capacity:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.groups_max }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Available Slots:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.groups_max|add:workload_breakdown.groups_count|stringformat:"-d" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clients Workload -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Individual Clients</h3>
+                    <i class="fas fa-user-tie text-green-500 text-2xl"></i>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Capacity Usage</span>
+                        <span class="text-lg font-bold text-gray-900">{{ workload_breakdown.clients_count }}/{{ workload_breakdown.clients_max }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div class="bg-green-600 h-4 rounded-full" style="width: {{ workload_breakdown.clients_percentage }}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">{{ workload_breakdown.clients_percentage|floatformat:0 }}% utilized</p>
+                </div>
+                
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Assigned Clients:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.clients_count }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Maximum Capacity:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.clients_max }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Available Slots:</span>
+                        <span class="font-semibold text-gray-900">{{ workload_breakdown.clients_max|add:workload_breakdown.clients_count|stringformat:"-d" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Workload -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Overall Workload</h3>
+            
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">Total Capacity Usage</span>
+                    <span class="text-2xl font-bold {% if workload_breakdown.overall_percentage >= 80 %}text-red-600{% elif workload_breakdown.overall_percentage >= 50 %}text-yellow-600{% else %}text-green-600{% endif %}">
+                        {{ workload_breakdown.overall_percentage|floatformat:0 }}%
+                    </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-6">
+                    <div class="{% if workload_breakdown.overall_percentage >= 80 %}bg-red-600{% elif workload_breakdown.overall_percentage >= 50 %}bg-yellow-600{% else %}bg-green-600{% endif %} h-6 rounded-full transition-all duration-300" style="width: {{ workload_breakdown.overall_percentage }}%"></div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <p class="text-2xl font-bold text-blue-600">{{ workload_breakdown.groups_count }}</p>
+                    <p class="text-xs text-gray-600 mt-1">Groups</p>
+                </div>
+                <div class="p-3 bg-green-50 rounded-lg">
+                    <p class="text-2xl font-bold text-green-600">{{ workload_breakdown.clients_count }}</p>
+                    <p class="text-xs text-gray-600 mt-1">Clients</p>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-lg">
+                    <p class="text-2xl font-bold text-purple-600">{{ workload_breakdown.groups_count|add:workload_breakdown.clients_count }}</p>
+                    <p class="text-xs text-gray-600 mt-1">Total</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capacity Settings -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Capacity Settings</h3>
+            
+            <form method="post" action="{% url 'clients:update_officer_capacity' officer.pk %}" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="max_groups" class="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Groups (minimum: 15)
+                        </label>
+                        <input type="number" name="max_groups" id="max_groups" value="{{ assignment.max_groups }}" min="15"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Current: {{ workload_breakdown.groups_count }} groups</p>
+                    </div>
+                    <div>
+                        <label for="max_clients" class="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Individual Clients (minimum: 1)
+                        </label>
+                        <input type="number" name="max_clients" id="max_clients" value="{{ assignment.max_clients }}" min="1"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Current: {{ workload_breakdown.clients_count }} clients</p>
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        {% if assignment.is_accepting_assignments %}
+                        <strong>Status:</strong> Officer is accepting new assignments
+                        {% else %}
+                        <strong>Status:</strong> Officer is NOT accepting new assignments
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors">
+                        <i class="fas fa-save mr-2"></i>Update Capacity
+                    </button>
+                    <a href="{% url 'clients:officer_workload' %}" class="px-6 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 font-medium transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Groups List -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-users mr-2"></i>Managed Groups ({{ groups.count }})
+                </h3>
+            </div>
+            
+            {% if groups %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Group Name</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Members</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Branch</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        {% for group in groups %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <a href="{% url 'clients:group_detail' group.pk %}" class="font-medium text-blue-600 hover:text-blue-900">
+                                    {{ group.name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ group.active_member_count }}{% if group.max_members %}/{{ group.max_members }}{% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ group.branch|default:"N/A" }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Active
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-users text-gray-300 text-4xl mb-3"></i>
+                <p class="text-gray-600">No groups assigned to this officer</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Clients List -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-user-tie mr-2"></i>Individual Clients ({{ clients.count }})
+                </h3>
+            </div>
+            
+            {% if clients %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Active Loans</th>
+                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        {% for client in clients %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <a href="{% url 'accounts:user_detail' client.pk %}" class="font-medium text-blue-600 hover:text-blue-900">
+                                    {{ client.get_full_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ client.email }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ client.phone_number|default:"N/A" }}</td>
+                            <td class="px-6 py-4">
+                                {% with active_loans=client.get_outstanding_loans.count %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if active_loans > 0 %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ active_loans }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <a href="{% url 'accounts:user_detail' client.pk %}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-user-tie text-gray-300 text-4xl mb-3"></i>
+                <p class="text-gray-600">No individual clients assigned to this officer</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

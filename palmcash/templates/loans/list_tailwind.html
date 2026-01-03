@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Loans - LoanVista{% endblock %}
+
+{% block extra_css %}
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: {
+                        50: '#eff6ff',
+                        500: '#3b82f6',
+                        600: '#2563eb',
+                        700: '#1d4ed8',
+                        900: '#1e3a8a'
+                    },
+                    success: {
+                        50: '#f0fdf4',
+                        500: '#22c55e',
+                        600: '#16a34a',
+                        700: '#15803d'
+                    },
+                    warning: {
+                        50: '#fffbeb',
+                        500: '#f59e0b',
+                        600: '#d97706',
+                        700: '#b45309'
+                    },
+                    danger: {
+                        50: '#fef2f2',
+                        500: '#ef4444',
+                        600: '#dc2626',
+                        700: '#b91c1c'
+                    }
+                }
+            }
+        }
+    }
+</script>
+<style>
+    .loan-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .loan-card:hover {
+        transform: translateY(-4px);
+    }
+    
+    .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .status-badge {
+        transition: all 0.2s ease;
+    }
+    
+    .status-badge:hover {
+        transform: scale(1.05);
+    }
+    
+    .glass-effect {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.8s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header Section -->
+    <div class="gradient-bg text-white py-12 mb-8 rounded-2xl mx-4">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex-1 mb-6 lg:mb-0">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-money-bill-wave text-4xl mr-4"></i>
+                        <h1 class="text-4xl lg:text-5xl font-bold">
+                            {% if user.role == 'borrower' %}My Loans{% else %}All Loans{% endif %}
+                        </h1>
+                    </div>
+                    <p class="text-xl opacity-90">
+                        {% if user.role == 'borrower' %}
+                            Manage your loan applications and track payment schedules
+                        {% else %}
+                            Monitor and manage all loan applications in the system
+                        {% endif %}
+                    </p>
+                </div>
+                
+                {% if user.role == 'borrower' %}
+                <div class="flex-shrink-0">
+                    {% if user.can_apply_for_loan %}
+                    <a href="{% url 'loans:apply' %}" class="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-2xl hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-plus mr-3 text-xl"></i>
+                        Apply for Loan
+                    </a>
+                    {% else %}
+                    <button disabled class="inline-flex items-center px-8 py-4 bg-gray-300 text-gray-500 font-semibold rounded-2xl cursor-not-allowed opacity-60" title="Complete your current loan before applying for a new one">
+                        <i class="fas fa-lock mr-3 text-xl"></i>
+                        Apply for Loan
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Loan Notice -->
+    {% if user.role == 'borrower' and user.has_outstanding_loans %}
+    <div class="max-w-7xl mx-auto px-6 mb-8">
+        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-yellow-400 rounded-xl p-6 shadow-lg animate-fade-in">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-2xl text-yellow-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-yellow-800 mb-2">Outstanding Loan Notice</h3>
+                    <p class="text-yellow-700">
+                        You have active loans that must be completed before you can apply for a new loan. 
+                        Please make your payments to complete your current loan(s).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Loans Content -->
+    <div class="max-w-7xl mx-auto px-6 pb-12">
+        {% if loans %}
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-fade-in">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-file-contract text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Applications</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ loans|length }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Approved</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {{ loans|length }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pending</p>
+                        <p class="text-2xl font-bold text-gray-900">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 animate-fade-in" style="animation-delay: 0.3s;">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Amount</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            K{% for loan in loans %}{{ loan.principal_amount|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loans Grid/List -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="px-8 py-6 bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-list mr-3 text-blue-600"></i>
+                    Loan Applications
+                </h2>
+            </div>
+            
+            <!-- Desktop Table View -->
+            <div class="hidden lg:block overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application #</th>
+                            {% if user.role != 'borrower' %}
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
+                            {% endif %}
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for loan in loans %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-200 animate-slide-in" style="animation-delay: {{ forloop.counter0|add:4|floatformat:1 }}s;">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ loan.application_number }}</div>
+                            </td>
+                            {% if user.role != 'borrower' %}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm mr-3">
+                                        {{ loan.borrower.full_name|first }}
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-900">{{ loan.borrower.full_name }}</div>
+                                </div>
+                            </td>
+                            {% endif %}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ loan.loan_type.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-gray-900">K{{ loan.principal_amount|floatformat:0|intcomma }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge inline-flex px-3 py-1 text-xs font-semibold rounded-full 
+                                    {% if loan.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
+                                    {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
+                                    {% elif loan.status == 'completed' %}bg-gray-100 text-gray-800
+                                    {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ loan.application_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'loans:detail' loan.pk %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 transform hover:scale-105">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Mobile Card View -->
+            <div class="lg:hidden p-6 space-y-4">
+                {% for loan in loans %}
+                <div class="loan-card bg-gray-50 rounded-xl p-6 border border-gray-200 animate-fade-in" style="animation-delay: {{ forloop.counter0|floatformat:1 }}s;">
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ loan.application_number }}</h3>
+                            {% if user.role != 'borrower' %}
+                            <p class="text-sm text-gray-600">{{ loan.borrower.full_name }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="status-badge inline-flex px-3 py-1 text-xs font-semibold rounded-full 
+                            {% if loan.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
+                            {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
+                            {% elif loan.status == 'completed' %}bg-gray-100 text-gray-800
+                            {% else %}bg-purple-100 text-purple-800{% endif %}">
+                            {{ loan.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Loan Type</p>
+                            <p class="text-sm font-medium text-gray-900">{{ loan.loan_type.name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Amount</p>
+                            <p class="text-sm font-semibold text-gray-900">K{{ loan.principal_amount|floatformat:0|intcomma }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-gray-500">{{ loan.application_date|date:"M d, Y" }}</p>
+                        <a href="{% url 'loans:detail' loan.pk %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            <i class="fas fa-eye mr-2"></i>
+                            View Details
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center animate-fade-in">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-money-bill-wave text-4xl text-gray-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">No loans found</h3>
+            {% if user.role == 'borrower' %}
+            <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                You haven't applied for any loans yet. Get started by applying for your first loan today.
+            </p>
+            <a href="{% url 'loans:apply' %}" class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <i class="fas fa-plus mr-3"></i>
+                Apply for Your First Loan
+            </a>
+            {% else %}
+            <p class="text-gray-600 max-w-md mx-auto">
+                No loan applications in the system yet. Applications will appear here as borrowers submit them.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate elements on scroll
+    const animateOnScroll = () => {
+        const elements = document.querySelectorAll('.animate-fade-in, .animate-slide-in');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0) translateX(0)';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+        
+        elements.forEach(element => {
+            observer.observe(element);
+        });
+    };
+    
+    // Initialize animations
+    animateOnScroll();
+    
+    // Add hover effects to loan cards
+    const loanCards = document.querySelectorAll('.loan-card');
+    loanCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.02)';
+            this.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+        });
+    });
+    
+    // Add ripple effect to buttons
+    const buttons = document.querySelectorAll('a[class*="bg-"], button[class*="bg-"]');
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+            `;
+            
+            this.style.position = 'relative';
+            this.style.overflow = 'hidden';
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // Add CSS animation for ripple effect
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}

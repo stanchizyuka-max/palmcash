@@ -1,0 +1,193 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Payments - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900 flex items-center gap-2">
+                    <i class="fas fa-credit-card text-primary-600"></i>
+                    {% if user.role == 'borrower' %}My Payments{% else %}All Payments{% endif %}
+                </h1>
+                <p class="text-secondary-600 mt-1">View and manage payment transactions</p>
+            </div>
+            
+            {% if user.role != 'borrower' %}
+            <div class="bg-warning-100 text-warning-800 px-4 py-2 rounded-lg font-semibold shadow-sm">
+                <i class="fas fa-clock mr-2"></i>
+                {{ pending_count|default:0 }} Pending Review
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment Workflow Info (Staff Only) -->
+        {% if user.role != 'borrower' %}
+        <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i>
+                    Payment Processing Workflow
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="text-center p-4 bg-primary-50 rounded-lg">
+                        <div class="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-user text-3xl text-primary-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-secondary-900 mb-2">1. Borrower Submits</h3>
+                        <p class="text-sm text-secondary-600">Borrowers submit payments through their dashboard or payment schedule</p>
+                    </div>
+                    <div class="text-center p-4 bg-warning-50 rounded-lg">
+                        <div class="bg-warning-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-eye text-3xl text-warning-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-secondary-900 mb-2">2. Staff Reviews</h3>
+                        <p class="text-sm text-secondary-600">Loan officers verify payment details and reference numbers</p>
+                    </div>
+                    <div class="text-center p-4 bg-success-50 rounded-lg">
+                        <div class="bg-success-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-check text-3xl text-success-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-secondary-900 mb-2">3. Confirm/Reject</h3>
+                        <p class="text-sm text-secondary-600">Staff confirms valid payments or rejects with reason</p>
+                    </div>
+                </div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mr-3 mt-0.5"></i>
+                        <div class="text-sm text-yellow-800">
+                            <strong>Important:</strong> Administrators cannot create payments on behalf of borrowers. This ensures proper audit trails and prevents fraud.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Payments Table -->
+        <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Payment Transactions</h2>
+            </div>
+            
+            <div class="p-6">
+                {% if payments %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-secondary-200">
+                        <thead class="bg-secondary-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Payment #</th>
+                                {% if user.role != 'borrower' %}
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Borrower</th>
+                                {% endif %}
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Loan</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Payment Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-secondary-200">
+                            {% for payment in payments %}
+                            <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="font-semibold text-secondary-900">{{ payment.payment_number }}</span>
+                                </td>
+                                {% if user.role != 'borrower' %}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="bg-primary-100 w-8 h-8 rounded-full flex items-center justify-center mr-2">
+                                            <i class="fas fa-user text-primary-600 text-xs"></i>
+                                        </div>
+                                        <span class="text-sm text-secondary-900">{{ payment.loan.borrower.full_name }}</span>
+                                    </div>
+                                </td>
+                                {% endif %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
+                                    {{ payment.loan.application_number }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm font-bold text-success-600">K{{ payment.amount|floatformat:0|intcomma }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
+                                    {{ payment.payment_date|date:"M d, Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
+                                    {{ payment.get_payment_method_display }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                        {% if payment.status == 'completed' %}bg-success-100 text-success-800
+                                        {% elif payment.status == 'pending' %}bg-warning-100 text-warning-800
+                                        {% elif payment.status == 'failed' %}bg-danger-100 text-danger-800
+                                        {% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                                        {{ payment.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <a href="{% url 'payments:detail' payment.pk %}" 
+                                       class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors duration-150 font-medium">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="mt-6 flex justify-center">
+                    <nav class="flex items-center gap-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" 
+                           class="px-4 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50 transition-colors duration-200">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        <span class="px-4 py-2 text-secondary-700">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" 
+                           class="px-4 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50 transition-colors duration-200">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-12">
+                    <div class="bg-secondary-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-credit-card text-5xl text-secondary-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-secondary-900 mb-2">No payments found</h3>
+                    {% if user.role == 'borrower' %}
+                    <p class="text-secondary-600 mb-6">You haven't made any payments yet.</p>
+                    <a href="{% url 'loans:list' %}" 
+                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 font-medium shadow-lg transition-all duration-200">
+                        <i class="fas fa-money-bill-wave mr-2"></i>View My Loans
+                    </a>
+                    {% else %}
+                    <p class="text-secondary-600">No payments have been recorded in the system.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

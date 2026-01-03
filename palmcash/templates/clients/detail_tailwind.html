@@ -1,0 +1,600 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}{{ client.get_full_name|default:client.username }} - Client Details{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'clients:group_list' %}" 
+                   class="bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-secondary-600 hover:text-primary-600">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">
+                        {{ client.get_full_name|default:client.username }}
+                    </h1>
+                    <p class="text-secondary-600 mt-1">Client Profile & Information</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                {% if client.is_verified %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-success-100 text-success-800 shadow-sm">
+                    <i class="fas fa-check-circle mr-2"></i>Verified Client
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-warning-100 text-warning-800 shadow-sm">
+                    <i class="fas fa-clock mr-2"></i>Pending Verification
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Sidebar -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Profile Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 h-24"></div>
+                    <div class="px-6 pb-6 -mt-12 text-center">
+                        {% if client.profile_picture %}
+                        <img src="{{ client.profile_picture.url }}" 
+                             alt="Profile" 
+                             class="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-4 border-white shadow-lg">
+                        {% else %}
+                        <div class="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg border-4 border-white">
+                            <span class="text-white text-3xl font-bold">{{ client.get_full_name|default:client.username|slice:":1"|upper }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <h3 class="text-xl font-bold text-secondary-900 mb-1">{{ client.get_full_name|default:client.username }}</h3>
+                        <p class="text-secondary-600 mb-2 font-medium">{{ client.get_role_display }}</p>
+                        <p class="text-sm text-secondary-500 flex items-center justify-center gap-2">
+                            <i class="fas fa-calendar-alt"></i>
+                            Member since {{ client.date_joined|date:"M Y" }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 p-6">
+                    <h4 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-bar text-primary-600"></i>
+                        Quick Stats
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg">
+                            <div class="text-3xl font-bold text-primary-600">{{ total_loans_count|default:0 }}</div>
+                            <div class="text-xs text-secondary-600 mt-1 font-medium">Total Loans</div>
+                        </div>
+                        <div class="text-center p-4 bg-gradient-to-br from-success-50 to-success-100 rounded-lg">
+                            <div class="text-3xl font-bold text-success-600">{{ active_loans_count|default:0 }}</div>
+                            <div class="text-xs text-secondary-600 mt-1 font-medium">Active Loans</div>
+                        </div>
+                        <div class="text-center p-4 bg-gradient-to-br from-warning-50 to-warning-100 rounded-lg">
+                            <div class="text-3xl font-bold text-warning-600">{{ pending_loans_count|default:0 }}</div>
+                            <div class="text-xs text-secondary-600 mt-1 font-medium">Pending</div>
+                        </div>
+                        <div class="text-center p-4 bg-gradient-to-br from-info-50 to-info-100 rounded-lg">
+                            <div class="text-3xl font-bold text-info-600">{{ total_loans_count|default:0 }}</div>
+                            <div class="text-xs text-secondary-600 mt-1 font-medium">All Time</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Status -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 p-6">
+                    <h4 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-primary-600"></i>
+                        Account Status
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">Verification</span>
+                            {% if client.is_verified %}
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-800">
+                                <i class="fas fa-check-circle mr-1"></i>Verified
+                            </span>
+                            {% else %}
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-warning-100 text-warning-800">
+                                <i class="fas fa-clock mr-1"></i>Pending
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">Account</span>
+                            {% if client.is_active %}
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-800">
+                                <i class="fas fa-check mr-1"></i>Active
+                            </span>
+                            {% else %}
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-danger-100 text-danger-800">
+                                <i class="fas fa-times mr-1"></i>Inactive
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">Last Login</span>
+                            <span class="text-sm text-secondary-900 font-medium">
+                                {{ client.last_login|date:"M d, Y"|default:"Never" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assigned Loan Officer -->
+                {% if user.role == 'admin' or user.role == 'manager' or user.is_superuser %}
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 p-6">
+                    <h4 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-user-tie text-primary-600"></i>
+                        Assigned Loan Officer
+                    </h4>
+                    
+                    {% if client.assigned_officer %}
+                    <div class="mb-4 p-4 bg-success-50 rounded-lg border border-success-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-success-900">{{ client.assigned_officer.get_full_name }}</p>
+                                <p class="text-sm text-success-700">{{ client.assigned_officer.email }}</p>
+                            </div>
+                            <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-4 p-4 bg-warning-50 rounded-lg border border-warning-200">
+                        <p class="text-sm text-warning-800">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            No loan officer assigned
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'clients:assign_client' client.pk %}" class="space-y-3" id="assignOfficerForm">
+                        {% csrf_token %}
+                        <div>
+                            <label for="officer_id" class="block text-sm font-medium text-secondary-700 mb-2">
+                                Select Loan Officer
+                            </label>
+                            <select name="officer_id" id="officer_id" 
+                                    class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                    onchange="updateCapacityWarning()">
+                                <option value="">-- Choose an officer --</option>
+                                {% for officer in loan_officers %}
+                                <option value="{{ officer.pk }}" data-capacity="{{ officer.officer_assignment.get_workload_percentage }}" data-current="{{ officer.officer_assignment.current_client_count }}" data-max="{{ officer.officer_assignment.max_clients }}" {% if client.assigned_officer.pk == officer.pk %}selected{% endif %}>
+                                    {{ officer.get_full_name }} ({{ officer.assigned_clients.count }} clients)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Capacity Warning -->
+                        <div id="capacityWarning" class="hidden p-4 bg-warning-50 border border-warning-200 rounded-lg">
+                            <p class="text-sm text-warning-800">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <span id="warningText"></span>
+                            </p>
+                        </div>
+                        
+                        <!-- Reassignment Confirmation -->
+                        {% if client.assigned_officer %}
+                        <div class="p-4 bg-info-50 border border-info-200 rounded-lg">
+                            <p class="text-sm text-info-800">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                This will reassign the client from <strong>{{ client.assigned_officer.get_full_name }}</strong> to the selected officer.
+                            </p>
+                        </div>
+                        {% endif %}
+                        
+                        <button type="submit" 
+                                class="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+                            <i class="fas fa-user-check mr-2"></i>
+                            {% if client.assigned_officer %}Reassign Officer{% else %}Assign Officer{% endif %}
+                        </button>
+                    </form>
+                    
+                    {% if client.assigned_officer and user.role == 'admin' %}
+                    <form method="post" action="{% url 'clients:unassign_client' client.pk %}" class="mt-3" onsubmit="return confirm('Are you sure you want to unassign this client from {{ client.assigned_officer.get_full_name }}?');">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="w-full bg-danger-600 hover:bg-danger-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200">
+                            <i class="fas fa-user-slash mr-2"></i>Unassign Officer
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Personal Information -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-user"></i>
+                            Personal Information
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Username</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.username }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Email</label>
+                                    <p class="text-secondary-900 font-medium mt-1 flex items-center gap-2">
+                                        <i class="fas fa-envelope text-secondary-400"></i>
+                                        {{ client.email|default:"Not provided" }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Phone</label>
+                                    <p class="text-secondary-900 font-medium mt-1 flex items-center gap-2">
+                                        <i class="fas fa-phone text-secondary-400"></i>
+                                        {{ client.phone_number|default:"Not provided" }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Date of Birth</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.date_of_birth|date:"M d, Y"|default:"Not provided" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">National ID</label>
+                                    <p class="text-secondary-900 font-medium mt-1 flex items-center gap-2">
+                                        <i class="fas fa-id-card text-secondary-400"></i>
+                                        {{ client.national_id|default:"Not provided" }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Member Since</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.date_joined|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if client.address %}
+                        <div class="mt-6 pt-6 border-t border-secondary-200">
+                            <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Address</label>
+                            <p class="text-secondary-900 font-medium mt-1 flex items-start gap-2">
+                                <i class="fas fa-map-marker-alt text-secondary-400 mt-1"></i>
+                                {{ client.address }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Financial Profile -->
+                {% if client.client_profile %}
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-wallet"></i>
+                            Financial Profile
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Employment Status</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.client_profile.get_employment_status_display|default:"Not provided" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Employer</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.client_profile.employer_name|default:"Not provided" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Job Title</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ client.client_profile.job_title|default:"Not provided" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Monthly Income</label>
+                                    <p class="text-success-600 font-bold mt-1 text-lg">
+                                        {% if client.client_profile.monthly_income %}
+                                            K{{ client.client_profile.monthly_income|floatformat:0|intcomma }}
+                                        {% else %}
+                                            Not provided
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Monthly Expenses</label>
+                                    <p class="text-danger-600 font-bold mt-1 text-lg">
+                                        {% if client.client_profile.monthly_expenses %}
+                                            K{{ client.client_profile.monthly_expenses|floatformat:0|intcomma }}
+                                        {% else %}
+                                            Not provided
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Other Income</label>
+                                    <p class="text-secondary-900 font-medium mt-1">K{{ client.client_profile.other_income|floatformat:0|intcomma|default:"0" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Existing Loans</label>
+                                    <p class="text-secondary-900 font-medium mt-1">K{{ client.client_profile.existing_loans|floatformat:0|intcomma|default:"0" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Net Monthly Income</label>
+                                    <p class="text-primary-600 font-bold mt-1 text-lg">
+                                        {% if client.client_profile.net_monthly_income %}
+                                            K{{ client.client_profile.net_monthly_income|floatformat:0|intcomma }}
+                                        {% else %}
+                                            Not calculated
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if client.client_profile.emergency_contact_name %}
+                        <div class="mt-6 pt-6 border-t border-secondary-200">
+                            <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide mb-2 block">Emergency Contact</label>
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <p class="text-secondary-900 font-medium">
+                                    <i class="fas fa-user text-blue-500 mr-2"></i>
+                                    {{ client.client_profile.emergency_contact_name }} 
+                                    <span class="text-secondary-600">({{ client.client_profile.emergency_contact_relationship }})</span>
+                                </p>
+                                <p class="text-secondary-700 mt-1">
+                                    <i class="fas fa-phone text-blue-500 mr-2"></i>
+                                    {{ client.client_profile.emergency_contact_phone }}
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Recent Loans -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Recent Loan Applications
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        {% with client.loans.all|slice:":5" as recent_loans %}
+                        {% if recent_loans %}
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-secondary-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">Application #</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">Amount</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">Date</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-600 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-secondary-200">
+                                    {% for loan in recent_loans %}
+                                    <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                                        <td class="px-4 py-3 text-sm font-medium text-secondary-900">{{ loan.application_number }}</td>
+                                        <td class="px-4 py-3 text-sm font-bold text-primary-600">K{{ loan.principal_amount|floatformat:0|intcomma }}</td>
+                                        <td class="px-4 py-3">
+                                            <span class="px-3 py-1 rounded-full text-xs font-semibold
+                                                {% if loan.status == 'approved' %}bg-success-100 text-success-800
+                                                {% elif loan.status == 'active' %}bg-primary-100 text-primary-800
+                                                {% elif loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                                {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                                {% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                                                {{ loan.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-secondary-600">{{ loan.application_date|date:"M d, Y" }}</td>
+                                        <td class="px-4 py-3">
+                                            <a href="{% url 'loans:detail' loan.pk %}" 
+                                               class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors duration-150 text-sm font-medium">
+                                                <i class="fas fa-eye mr-1"></i>View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-12">
+                            <div class="bg-secondary-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-money-bill-wave text-4xl text-secondary-400"></i>
+                            </div>
+                            <p class="text-secondary-600 font-medium">No loan applications yet</p>
+                            <p class="text-secondary-500 text-sm mt-1">This client hasn't applied for any loans</p>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                {% if user.role in 'admin,loan_officer' or user.is_superuser %}
+                <div class="flex flex-col sm:flex-row justify-end gap-3">
+                    {% if not client.is_verified %}
+                    <button onclick="openVerifyModal()" 
+                            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-check mr-2"></i>Verify Client
+                    </button>
+                    {% else %}
+                    <button onclick="openUnverifyModal()" 
+                            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-warning-500 to-warning-600 text-white rounded-lg hover:from-warning-600 hover:to-warning-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Unverify Client
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'clients:edit' client.pk %}" 
+                       class="inline-flex items-center justify-center px-6 py-3 border-2 border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 font-medium transition-all duration-200">
+                        <i class="fas fa-edit mr-2"></i>Edit Client
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verify Modal -->
+<div id="verifyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4 rounded-t-xl">
+            <h3 class="text-xl font-semibold text-white">Verify Client</h3>
+        </div>
+        <form method="post" action="{% url 'clients:verify' client.pk %}">
+            {% csrf_token %}
+            <div class="p-6">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4">
+                    <p class="text-sm text-blue-800 font-medium mb-2">Client Verification Checklist:</p>
+                    <ul class="text-sm text-blue-700 space-y-1 ml-4 list-disc">
+                        <li>Identity documents reviewed and valid</li>
+                        <li>Contact information verified</li>
+                        <li>Financial information accurate</li>
+                        <li>Meets eligibility requirements</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="verification_notes" class="block text-sm font-medium text-secondary-700 mb-2">
+                        Verification Notes
+                    </label>
+                    <textarea name="verification_notes" id="verification_notes" rows="3"
+                              class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-transparent"
+                              placeholder="Add any notes about the verification process..."></textarea>
+                </div>
+                
+                <div class="flex items-start">
+                    <input type="checkbox" id="confirm_verification" required
+                           class="mt-1 h-4 w-4 text-success-600 focus:ring-success-500 border-secondary-300 rounded">
+                    <label for="confirm_verification" class="ml-2 text-sm text-secondary-700">
+                        I confirm that I have reviewed all client information and documents
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-secondary-50 rounded-b-xl flex justify-end gap-3">
+                <button type="button" onclick="closeVerifyModal()"
+                        class="px-4 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 font-medium transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg transition-all duration-200">
+                    <i class="fas fa-check mr-2"></i>Verify Client
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Unverify Modal -->
+<div id="unverifyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4 rounded-t-xl">
+            <h3 class="text-xl font-semibold text-white">Unverify Client</h3>
+        </div>
+        <form method="post" action="{% url 'clients:unverify' client.pk %}">
+            {% csrf_token %}
+            <div class="p-6">
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg mb-4">
+                    <p class="text-sm text-yellow-800 font-medium mb-2">Warning: This action will:</p>
+                    <ul class="text-sm text-yellow-700 space-y-1 ml-4 list-disc">
+                        <li>Remove their verified status</li>
+                        <li>May affect their loan eligibility</li>
+                        <li>Require re-verification for future applications</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="unverify_reason" class="block text-sm font-medium text-secondary-700 mb-2">
+                        Reason for Unverification <span class="text-danger-500">*</span>
+                    </label>
+                    <textarea name="unverify_reason" id="unverify_reason" rows="3" required
+                              class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-transparent"
+                              placeholder="Please provide a reason for removing verification..."></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-secondary-50 rounded-b-xl flex justify-end gap-3">
+                <button type="button" onclick="closeUnverifyModal()"
+                        class="px-4 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 font-medium transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-gradient-to-r from-warning-500 to-warning-600 text-white rounded-lg hover:from-warning-600 hover:to-warning-700 font-medium shadow-lg transition-all duration-200">
+                    <i class="fas fa-times mr-2"></i>Unverify Client
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openVerifyModal() {
+    document.getElementById('verifyModal').classList.remove('hidden');
+}
+
+function closeVerifyModal() {
+    document.getElementById('verifyModal').classList.add('hidden');
+}
+
+function openUnverifyModal() {
+    document.getElementById('unverifyModal').classList.remove('hidden');
+}
+
+function closeUnverifyModal() {
+    document.getElementById('unverifyModal').classList.add('hidden');
+}
+
+// Close modals when clicking outside
+document.getElementById('verifyModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeVerifyModal();
+});
+
+document.getElementById('unverifyModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeUnverifyModal();
+});
+
+// Update capacity warning when officer selection changes
+function updateCapacityWarning() {
+    const select = document.getElementById('officer_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const warningDiv = document.getElementById('capacityWarning');
+    const warningText = document.getElementById('warningText');
+    
+    if (!selectedOption.value) {
+        warningDiv.classList.add('hidden');
+        return;
+    }
+    
+    const capacity = parseFloat(selectedOption.dataset.capacity);
+    const current = parseInt(selectedOption.dataset.current);
+    const max = parseInt(selectedOption.dataset.max);
+    
+    if (capacity >= 80) {
+        warningDiv.classList.remove('hidden');
+        if (capacity >= 100) {
+            warningText.textContent = `This officer is at maximum capacity (${current}/${max} clients). Assignment may not be possible.`;
+        } else {
+            warningText.textContent = `This officer is near capacity (${current}/${max} clients, ${capacity.toFixed(0)}% utilized).`;
+        }
+    } else {
+        warningDiv.classList.add('hidden');
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Message Threads - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-comments text-primary-600 text-3xl"></i>
+                <div>
+                    <h1 class="text-4xl font-bold text-secondary-900">Message Threads</h1>
+                    <p class="text-secondary-600 mt-1">Group conversations</p>
+                </div>
+            </div>
+            <a href="{% url 'internal_messages:compose' %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <i class="fas fa-plus mr-2"></i>New Thread
+            </a>
+        </div>
+
+        <!-- Threads List -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-lg font-bold text-white flex items-center">
+                    <i class="fas fa-list mr-3"></i>Active Threads
+                </h2>
+            </div>
+
+            {% if threads %}
+            <div class="divide-y divide-secondary-200">
+                {% for thread in threads %}
+                <a href="{% url 'internal_messages:thread_detail' thread.id %}" class="block p-6 hover:bg-secondary-50 transition-colors border-b border-secondary-200 last:border-b-0">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-secondary-900 mb-2">{{ thread.subject }}</h3>
+                            <div class="flex items-center gap-4 text-sm text-secondary-600 mb-3">
+                                <span>
+                                    <i class="fas fa-users mr-1"></i>
+                                    {{ thread.participants.count }} participants
+                                </span>
+                                <span>
+                                    <i class="fas fa-comments mr-1"></i>
+                                    {{ thread.thread_messages.count }} messages
+                                </span>
+                                <span>
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    {{ thread.updated_at|date:"M d, Y H:i" }}
+                                </span>
+                            </div>
+                            {% if thread.last_message %}
+                            <p class="text-sm text-secondary-600 italic">
+                                Last: {{ thread.last_message.sender.get_full_name }} - "{{ thread.last_message.body|truncatewords:10 }}"
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4 flex-shrink-0">
+                            {% if thread.loan %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-info-100 text-info-800 mb-2">
+                                <i class="fas fa-link mr-1"></i>Loan #{{ thread.loan.id }}
+                            </span>
+                            {% endif %}
+                            <div class="text-right">
+                                <i class="fas fa-chevron-right text-primary-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="bg-secondary-50 px-6 py-4 border-t border-secondary-200 flex items-center justify-between">
+                <div class="text-sm text-secondary-600">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1" class="px-3 py-1 bg-white border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-white border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Previous</a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-white border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 bg-white border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Last</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="p-12 text-center">
+                <i class="fas fa-comments text-4xl text-secondary-300 mb-4"></i>
+                <p class="text-secondary-600 mb-4">No message threads yet</p>
+                <a href="{% url 'internal_messages:compose' %}" class="text-primary-600 hover:text-primary-700 font-medium">
+                    Create your first thread <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Links -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{% url 'internal_messages:inbox' %}" class="flex items-center gap-3 p-4 bg-white rounded-lg border border-secondary-200 hover:border-primary-300 hover:shadow-lg transition-all">
+                <div class="bg-primary-100 rounded-full p-3">
+                    <i class="fas fa-inbox text-primary-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-secondary-900">Inbox</p>
+                    <p class="text-xs text-secondary-600">View received messages</p>
+                </div>
+            </a>
+
+            <a href="{% url 'internal_messages:sent' %}" class="flex items-center gap-3 p-4 bg-white rounded-lg border border-secondary-200 hover:border-primary-300 hover:shadow-lg transition-all">
+                <div class="bg-info-100 rounded-full p-3">
+                    <i class="fas fa-paper-plane text-info-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-secondary-900">Sent</p>
+                    <p class="text-xs text-secondary-600">Messages you sent</p>
+                </div>
+            </a>
+
+            <a href="{% url 'internal_messages:compose' %}" class="flex items-center gap-3 p-4 bg-white rounded-lg border border-secondary-200 hover:border-primary-300 hover:shadow-lg transition-all">
+                <div class="bg-success-100 rounded-full p-3">
+                    <i class="fas fa-pen-to-square text-success-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-secondary-900">Compose</p>
+                    <p class="text-xs text-secondary-600">Send new message</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

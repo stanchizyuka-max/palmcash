@@ -1,0 +1,111 @@
+{% extends 'emails/base_email.html' %}
+{% load humanize %}
+
+{% block title %}Loan Disbursed - LoanVista{% endblock %}
+{% block header_subtitle %}Loan Disbursement Confirmation{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    🎉 Great News{% if borrower.first_name %}, {{ borrower.first_name }}{% endif %}!
+</h2>
+
+<div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #065f46; margin: 0; font-size: 16px; font-weight: bold;">
+        ✅ Your loan has been disbursed successfully!
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    Your loan <strong>#{{ loan.application_number }}</strong> has been disbursed and the funds should be available in your account shortly.
+</p>
+
+<!-- Loan Summary -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 0 0 30px 0;">
+    <tr>
+        <td colspan="2" style="color: #1f2937; font-size: 16px; font-weight: bold; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+            💰 Loan Summary
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Disbursed Amount:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>K{{ loan.principal_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Disbursement Date:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ loan.disbursement_date|date:"M d, Y" }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Loan Term:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ loan.term_months }} months
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Monthly Payment:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            K{{ loan.monthly_payment|floatformat:2|intcomma }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            First Payment Due:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ loan.next_payment_due|date:"M d, Y"|default:"30 days from disbursement" }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px;">
+            <strong>Total Repayment:</strong>
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right;">
+            <strong>K{{ loan.total_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+</table>
+
+<!-- Important Information -->
+<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #92400e; margin: 0 0 10px 0; font-weight: bold; font-size: 14px;">
+        ⚠️ Important Reminders:
+    </p>
+    <ul style="color: #92400e; margin: 0; padding-left: 20px; font-size: 14px;">
+        <li>Your first payment is due 30 days from today</li>
+        <li>Late payments may incur penalty charges</li>
+        <li>You can make payments anytime through your dashboard</li>
+        <li>Keep track of your payment schedule</li>
+    </ul>
+</div>
+
+<!-- Action Buttons -->
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/payments/schedule/{{ loan.id }}/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin: 0 5px;">
+                View Payment Schedule
+            </a>
+            <a href="{{ site_url }}/loans/{{ loan.id }}/" 
+               style="display: inline-block; padding: 15px 40px; background: #ffffff; color: #667eea; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; border: 2px solid #667eea; margin: 0 5px;">
+                View Loan Details
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    Thank you for choosing LoanVista. We're here to support you throughout your loan journey!
+</p>
+{% endblock %}

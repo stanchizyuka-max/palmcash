@@ -1,0 +1,434 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}{{ document.title }} - Document Details{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{% url 'documents:list' %}" 
+                   class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <i class="fas fa-arrow-left text-secondary-600"></i>
+                </a>
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold text-secondary-900 flex items-center gap-3">
+                        <i class="fas fa-file-alt text-primary-600"></i>
+                        {{ document.title }}
+                    </h1>
+                    <p class="text-secondary-600 mt-1">Document Details and Information</p>
+                </div>
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-lg
+                    {% if document.status == 'approved' %}bg-gradient-to-r from-success-100 to-success-200 text-success-800 border-2 border-success-300
+                    {% elif document.status == 'pending' %}bg-gradient-to-r from-warning-100 to-warning-200 text-warning-800 border-2 border-warning-300
+                    {% elif document.status == 'rejected' %}bg-gradient-to-r from-danger-100 to-danger-200 text-danger-800 border-2 border-danger-300
+                    {% else %}bg-gradient-to-r from-secondary-100 to-secondary-200 text-secondary-800 border-2 border-secondary-300{% endif %}">
+                    <i class="fas fa-circle text-xs mr-2"></i>
+                    {{ document.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Document Information Card -->
+                <div class="bg-white rounded-2xl shadow-xl border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-info-circle mr-3"></i>
+                            Document Information
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Left Column -->
+                            <div class="space-y-4">
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-heading text-primary-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Title</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.title }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-info-100 to-info-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-tag text-info-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Document Type</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.document_type.name }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-success-100 to-success-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-user text-success-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Owner</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.user.full_name }}</p>
+                                        <p class="text-xs text-secondary-500">{{ document.user.email }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-warning-100 to-warning-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-calendar text-warning-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Upload Date</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.uploaded_at|date:"M d, Y" }}</p>
+                                        <p class="text-xs text-secondary-500">{{ document.uploaded_at|date:"g:i A" }}</p>
+                                    </div>
+                                </div>
+
+                                {% if document.file_size %}
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-file-archive text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">File Size</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.file_size|filesizeformat }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Right Column -->
+                            <div class="space-y-4">
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-info-circle text-secondary-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Status</p>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold mt-1
+                                            {% if document.status == 'approved' %}bg-success-100 text-success-800
+                                            {% elif document.status == 'pending' %}bg-warning-100 text-warning-800
+                                            {% elif document.status == 'rejected' %}bg-danger-100 text-danger-800
+                                            {% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                                            {{ document.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {% if document.document_number %}
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-hashtag text-indigo-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Document Number</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.document_number }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if document.issue_date %}
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-teal-100 to-teal-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-calendar-check text-teal-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Issue Date</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.issue_date|date:"M d, Y" }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if document.expiry_date %}
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-calendar-times text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Expiry Date</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.expiry_date|date:"M d, Y" }}</p>
+                                        {% if document.is_expired %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-danger-100 text-danger-800 mt-1">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Expired
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if document.reviewed_by %}
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                                        <i class="fas fa-user-check text-cyan-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-secondary-500 font-medium uppercase">Reviewed By</p>
+                                        <p class="text-sm font-semibold text-secondary-900">{{ document.reviewed_by.full_name }}</p>
+                                        {% if document.review_date %}
+                                        <p class="text-xs text-secondary-500">{{ document.review_date|date:"M d, Y g:i A" }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if document.description %}
+                        <div class="mt-6 pt-6 border-t border-secondary-200">
+                            <h3 class="text-sm font-bold text-secondary-900 uppercase mb-3 flex items-center">
+                                <i class="fas fa-align-left mr-2 text-primary-600"></i>
+                                Description
+                            </h3>
+                            <p class="text-sm text-secondary-700 leading-relaxed">{{ document.description }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if document.review_notes %}
+                        <div class="mt-6 pt-6 border-t border-secondary-200">
+                            <h3 class="text-sm font-bold text-secondary-900 uppercase mb-3 flex items-center">
+                                <i class="fas fa-comment-alt mr-2 text-primary-600"></i>
+                                Review Notes
+                            </h3>
+                            <div class="p-4 rounded-xl border-l-4
+                                {% if document.status == 'approved' %}bg-success-50 border-success-500 text-success-900
+                                {% elif document.status == 'rejected' %}bg-danger-50 border-danger-500 text-danger-900
+                                {% else %}bg-info-50 border-info-500 text-info-900{% endif %}">
+                                <p class="text-sm leading-relaxed">{{ document.review_notes }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Document Preview Card -->
+                <div class="bg-white rounded-2xl shadow-xl border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-secondary-700 to-secondary-800 px-6 py-4">
+                        <h2 class="text-lg font-bold text-white flex items-center">
+                            <i class="fas fa-eye mr-2"></i>
+                            Preview
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6 text-center">
+                        {% if document.file_extension == 'pdf' %}
+                        <div class="w-24 h-24 bg-gradient-to-br from-danger-100 to-danger-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <i class="fas fa-file-pdf text-danger-600 text-5xl"></i>
+                        </div>
+                        <p class="text-sm font-medium text-secondary-700">PDF Document</p>
+                        {% elif document.file_extension in 'jpg,jpeg,png,gif' %}
+                        <img src="{{ document.file.url }}" alt="{{ document.title }}" 
+                             class="w-full h-48 object-cover rounded-xl mb-4 shadow-lg">
+                        <p class="text-sm font-medium text-secondary-700">Image File</p>
+                        {% else %}
+                        <div class="w-24 h-24 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <i class="fas fa-file text-secondary-600 text-5xl"></i>
+                        </div>
+                        <p class="text-sm font-medium text-secondary-700">{{ document.file_extension|upper }} File</p>
+                        {% endif %}
+                        
+                        <div class="mt-6 space-y-3">
+                            {% if document.file %}
+                            <a href="{{ document.file.url }}" target="_blank" 
+                               class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 shadow-md hover:shadow-lg transition-all duration-200">
+                                <i class="fas fa-eye mr-2"></i>View Document
+                            </a>
+                            <a href="{{ document.file.url }}" download 
+                               class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-info-500 to-info-600 text-white font-semibold rounded-xl hover:from-info-600 hover:to-info-700 shadow-md hover:shadow-lg transition-all duration-200">
+                                <i class="fas fa-download mr-2"></i>Download
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Actions Card (Staff Only) -->
+                {% if user.role != 'borrower' and document.status == 'pending' %}
+                <div class="bg-white rounded-2xl shadow-xl border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                        <h2 class="text-lg font-bold text-white flex items-center">
+                            <i class="fas fa-tasks mr-2"></i>
+                            Review Actions
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6 space-y-3">
+                        <button onclick="openApproveModal()" 
+                                class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 shadow-md hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-check mr-2"></i>Approve Document
+                        </button>
+                        
+                        <button onclick="openRejectModal()" 
+                                class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white font-semibold rounded-xl hover:from-danger-600 hover:to-danger-700 shadow-md hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-times mr-2"></i>Reject Document
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Delete Action (Borrower - Pending Only) -->
+                {% if user.role == 'borrower' and document.status == 'pending' %}
+                <div class="bg-white rounded-2xl shadow-xl border border-danger-200 overflow-hidden">
+                    <div class="p-6">
+                        <button onclick="confirmDelete({{ document.pk }}, '{{ document.title|escapejs }}')" 
+                                class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white font-semibold rounded-xl hover:from-danger-600 hover:to-danger-700 shadow-md hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-trash mr-2"></i>Delete Document
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="w-16 h-16 bg-gradient-to-br from-success-100 to-success-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-success-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-secondary-900 text-center mb-2">Approve Document</h3>
+            <p class="text-secondary-600 text-center mb-6">Are you sure you want to approve this document?</p>
+            
+            <form method="POST" action="{% url 'documents:approve' document.pk %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Review Notes (Optional)</label>
+                    <textarea name="notes" rows="3" 
+                              class="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-success-500 focus:border-transparent" 
+                              placeholder="Add any notes about the approval..."></textarea>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeApproveModal()" 
+                            class="flex-1 px-6 py-3 border-2 border-secondary-300 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-50 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 shadow-md hover:shadow-lg transition-all duration-200">
+                        Approve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="w-16 h-16 bg-gradient-to-br from-danger-100 to-danger-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-times text-danger-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-secondary-900 text-center mb-2">Reject Document</h3>
+            <p class="text-secondary-600 text-center mb-6">Please provide a reason for rejecting this document</p>
+            
+            <form method="POST" action="{% url 'documents:reject' document.pk %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Reason for Rejection *</label>
+                    <textarea name="reason" rows="4" required
+                              class="w-full px-4 py-3 border border-secondary-300 rounded-xl focus:ring-2 focus:ring-danger-500 focus:border-transparent" 
+                              placeholder="Please provide a clear reason for rejecting this document..."></textarea>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeRejectModal()" 
+                            class="flex-1 px-6 py-3 border-2 border-secondary-300 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-50 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white font-semibold rounded-xl hover:from-danger-600 hover:to-danger-700 shadow-md hover:shadow-lg transition-all duration-200">
+                        Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="w-16 h-16 bg-gradient-to-br from-danger-100 to-danger-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-danger-600 text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-secondary-900 text-center mb-2">Delete Document?</h3>
+            <p class="text-secondary-600 text-center mb-6">
+                Are you sure you want to delete "<span id="documentTitle" class="font-semibold"></span>"? This action cannot be undone.
+            </p>
+            
+            <form id="deleteForm" method="POST" action="">
+                {% csrf_token %}
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeDeleteModal()" 
+                            class="flex-1 px-6 py-3 border-2 border-secondary-300 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-50 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white font-semibold rounded-xl hover:from-danger-600 hover:to-danger-700 shadow-md hover:shadow-lg transition-all duration-200">
+                        Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openApproveModal() {
+    document.getElementById('approveModal').classList.remove('hidden');
+}
+
+function closeApproveModal() {
+    document.getElementById('approveModal').classList.add('hidden');
+}
+
+function openRejectModal() {
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+
+function confirmDelete(documentId, documentTitle) {
+    document.getElementById('documentTitle').textContent = documentTitle;
+    document.getElementById('deleteForm').action = `/documents/${documentId}/delete/`;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+
+// Close modals when clicking outside
+['approveModal', 'rejectModal', 'deleteModal'].forEach(modalId => {
+    document.getElementById(modalId).addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.add('hidden');
+        }
+    });
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeApproveModal();
+        closeRejectModal();
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

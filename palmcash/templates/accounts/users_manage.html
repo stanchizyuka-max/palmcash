@@ -1,0 +1,297 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Users - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">User Management</h1>
+                <p class="text-secondary-600 mt-2">Manage all system users and their roles</p>
+            </div>
+            <a href="/admin/accounts/user/add/" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-user-plus"></i>
+                Add New User
+            </a>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Users</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Borrowers</p>
+                        <p class="text-3xl font-bold text-primary-600 mt-2">{{ borrowers_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Loan Officers</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ officers_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-briefcase text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Managers</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ managers_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-tie text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Users</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ active_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-check text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-6">
+            <div class="flex flex-wrap border-b border-secondary-200">
+                <a href="?role=all" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                    All Users ({{ total_users }})
+                </a>
+                <a href="?role=borrower" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'borrower' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                    Borrowers ({{ borrowers_count }})
+                </a>
+                <a href="?role=loan_officer" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'loan_officer' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                    Loan Officers ({{ officers_count }})
+                </a>
+                <a href="?role=manager" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'manager' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                    Managers ({{ managers_count }})
+                </a>
+                <a href="?role=admin" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'admin' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                    Admins ({{ admins_count }})
+                </a>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">Users</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Contact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Joined</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center mr-3 text-white font-bold">
+                                        {{ user.first_name.0|default:user.username.0|upper }}{{ user.last_name.0|default:""|upper }}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-secondary-900">{{ user.get_full_name|default:user.username }}</p>
+                                        <p class="text-xs text-secondary-500">@{{ user.username }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm">
+                                    {% if user.email %}
+                                    <p class="text-secondary-900">
+                                        <i class="fas fa-envelope text-secondary-400 mr-1"></i>{{ user.email }}
+                                    </p>
+                                    {% endif %}
+                                    {% if user.phone_number %}
+                                    <p class="text-secondary-600 mt-1">
+                                        <i class="fas fa-phone text-secondary-400 mr-1"></i>{{ user.phone_number }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if user.role == 'admin' %}bg-danger-100 text-danger-800
+                                    {% elif user.role == 'manager' %}bg-warning-100 text-warning-800
+                                    {% elif user.role == 'loan_officer' %}bg-success-100 text-success-800
+                                    {% else %}bg-primary-100 text-primary-800
+                                    {% endif %}">
+                                    {{ user.get_role_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-sm text-secondary-900">{{ user.date_joined|date:"M d, Y" }}</p>
+                                <p class="text-xs text-secondary-500">{{ user.date_joined|timesince }} ago</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-1">
+                                    {% if user.is_active %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800 inline-flex items-center">
+                                        <i class="fas fa-check-circle mr-1"></i>Active
+                                    </span>
+                                    {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800 inline-flex items-center">
+                                        <i class="fas fa-times-circle mr-1"></i>Inactive
+                                    </span>
+                                    {% endif %}
+                                    {% if user.is_verified %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-info-100 text-info-800 inline-flex items-center">
+                                        <i class="fas fa-shield-check mr-1"></i>Verified
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <a href="{% url 'accounts:edit_user' user.id %}" class="text-primary-600 hover:text-primary-800 p-2 hover:bg-primary-50 rounded transition-colors duration-150" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if user.role == 'borrower' %}
+                                    <a href="{% url 'loans:list' %}?borrower={{ user.id }}" class="text-success-600 hover:text-success-800 p-2 hover:bg-success-50 rounded transition-colors duration-150" title="View Loans">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </a>
+                                    {% endif %}
+                                    <a href="/admin/accounts/user/{{ user.id }}/change/" class="text-info-600 hover:text-info-800 p-2 hover:bg-info-50 rounded transition-colors duration-150" title="Django Admin">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
+                                    {% if not user.is_superuser %}
+                                    <button onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|yesno:'true,false' }})" class="text-warning-600 hover:text-warning-800 p-2 hover:bg-warning-50 rounded transition-colors duration-150" title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        <i class="fas fa-{% if user.is_active %}user-slash{% else %}user-check{% endif %}"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-secondary-500">
+                                <i class="fas fa-users text-4xl mb-4 text-secondary-300"></i>
+                                <p>No users found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="px-6 py-4 border-t border-secondary-200 flex items-center justify-between">
+                <div class="text-sm text-secondary-600">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} users
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Previous</a>
+                    {% endif %}
+                    
+                    <span class="px-3 py-2 bg-primary-600 text-white rounded-lg">{{ page_obj.number }}</span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Next</a>
+                    <a href="?page={{ paginator.num_pages }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Last</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8">
+            <a href="{% url 'dashboard:admin' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div id="userDetailsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-secondary-200">
+            <h3 class="text-xl font-bold text-secondary-900">User Details</h3>
+        </div>
+        
+        <div id="userDetailsContent" class="p-6">
+            <!-- Content will be loaded dynamically -->
+            <div class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-4xl text-primary-600"></i>
+                <p class="text-secondary-600 mt-4">Loading user details...</p>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-secondary-200 flex justify-end">
+            <button onclick="closeUserDetailsModal()" class="px-6 py-2 border border-secondary-300 text-secondary-700 rounded-lg hover:bg-secondary-50 transition-colors duration-200">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewUserDetails(userId) {
+    document.getElementById('userDetailsModal').classList.remove('hidden');
+    // TODO: Implement AJAX call to fetch user details
+    console.log('View details for user:', userId);
+}
+
+function closeUserDetailsModal() {
+    document.getElementById('userDetailsModal').classList.add('hidden');
+}
+
+function toggleUserStatus(userId, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+        // TODO: Implement AJAX call to toggle user status
+        window.location.reload();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('userDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeUserDetailsModal();
+    }
+});
+</script>
+{% endblock %}

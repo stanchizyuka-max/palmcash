@@ -1,0 +1,216 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Loans - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Manage Loans</h1>
+                <p class="text-secondary-600 mt-2">System loan management and oversight</p>
+            </div>
+            <a href="{% url 'dashboard:admin' %}" class="btn-outline-primary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Loan Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Loans</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-invoice-dollar text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ status_stats.pending }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ status_stats.active }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Completed</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ status_stats.completed }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-flag-checkered text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Rejected</p>
+                        <p class="text-3xl font-bold text-danger-600 mt-2">{{ status_stats.rejected }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-danger-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-times-circle text-danger-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Disbursed</h3>
+                    <i class="fas fa-money-bill-wave text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">K {{ financial_stats.total_disbursed|floatformat:2 }}</p>
+                <p class="text-primary-100 text-sm mt-2">All-time disbursements</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Outstanding Amount</h3>
+                    <i class="fas fa-exclamation-triangle text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">K {{ financial_stats.total_outstanding|floatformat:2 }}</p>
+                <p class="text-warning-100 text-sm mt-2">Currently active loans</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="{% url 'loans:apply' %}" class="flex flex-col items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors duration-200">
+                    <i class="fas fa-plus-circle text-primary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-primary-900">New Loan</span>
+                </a>
+                <a href="{% url 'loans:list' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-list text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">All Loans</span>
+                </a>
+                <a href="/admin/loans/loan/" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-edit text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">Edit Loans</span>
+                </a>
+                <a href="{% url 'dashboard:analytics' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-chart-bar text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">Analytics</span>
+                </a>
+                <a href="{% url 'adminpanel:loan_type_list' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200">
+                    <i class="fas fa-tags text-purple-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-purple-900">Loan Types</span>
+                </a>
+                <a href="{% url 'adminpanel:loan_document_list' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200">
+                    <i class="fas fa-file-contract text-indigo-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-indigo-900">Loan Documents</span>
+                </a>
+                <a href="{% url 'adminpanel:user_document_list' %}" class="flex flex-col items-center p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors duration-200">
+                    <i class="fas fa-id-card text-pink-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-pink-900">User Documents</span>
+                </a>
+                <a href="{% url 'adminpanel:document_type_list' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors duration-200">
+                    <i class="fas fa-folder-open text-teal-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-teal-900">Document Types</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Loans Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">Recent Loans (Latest 50)</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Loan ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Borrower</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Officer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for loan in loans %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
+                                #{{ loan.id }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-secondary-900">{{ loan.borrower.get_full_name }}</div>
+                                <div class="text-sm text-secondary-500">{{ loan.borrower.email }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                K {{ loan.principal_amount|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                    {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+                                    {% elif loan.status == 'active' %}bg-info-100 text-info-800
+                                    {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                    {% elif loan.status == 'completed' %}bg-secondary-100 text-secondary-800
+                                    {% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {% if loan.loan_officer %}
+                                    {{ loan.loan_officer.get_full_name }}
+                                {% else %}
+                                    <span class="text-secondary-400">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {{ loan.application_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <a href="{% url 'loans:detail' loan.id %}" class="text-primary-600 hover:text-primary-900 mr-3">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="/admin/loans/loan/{{ loan.id }}/change/" class="text-info-600 hover:text-info-900">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-8 text-center text-secondary-500">
+                                No loans found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

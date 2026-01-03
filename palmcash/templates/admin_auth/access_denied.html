@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Access Denied - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+        <!-- Card -->
+        <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-600 to-orange-600 px-6 py-8">
+                <div class="text-4xl mb-2">🔒</div>
+                <h1 class="text-2xl font-bold text-white">Access Denied</h1>
+            </div>
+
+            <!-- Content -->
+            <div class="px-6 py-8">
+                <p class="text-gray-700 mb-4">
+                    You do not have permission to access the Django admin dashboard.
+                </p>
+
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                    <p class="text-orange-800 text-sm">
+                        <span class="font-semibold">Your Role:</span> {{ user_role }}
+                    </p>
+                    <p class="text-orange-700 text-xs mt-2">
+                        Only administrators can access the admin dashboard.
+                    </p>
+                </div>
+
+                <p class="text-gray-600 text-sm mb-6">
+                    If you believe this is an error or need admin access, please contact your system administrator.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="space-y-3">
+                    <a
+                        href="{% url 'dashboard:home' %}"
+                        class="block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 text-center"
+                    >
+                        Go to Dashboard
+                    </a>
+                    <a
+                        href="{% url 'accounts:logout' %}"
+                        class="block w-full bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-200 text-center"
+                    >
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

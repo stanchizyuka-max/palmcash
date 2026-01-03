@@ -1,0 +1,342 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Loan Reports - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <div class="mb-4 sm:mb-0">
+                <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
+                    <i class="fas fa-chart-line mr-3 text-primary-600"></i>
+                    Loan Portfolio Report
+                </h1>
+                <p class="text-secondary-600 mt-2">Comprehensive overview of your loan portfolio</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="window.print()" class="btn-outline-primary">
+                    <i class="fas fa-print mr-2"></i>Print Report
+                </button>
+                <button onclick="exportToCSV()" class="btn-success">
+                    <i class="fas fa-download mr-2"></i>Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-primary-100 text-sm font-medium">Total Loans</p>
+                        <p class="text-3xl font-bold">{{ total_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-money-bill-wave text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-success-100 text-sm font-medium">Total Disbursed</p>
+                        <p class="text-3xl font-bold">K{{ total_disbursed|floatformat:0|intcomma }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-warning-100 text-sm font-medium">Pending Applications</p>
+                        <p class="text-3xl font-bold">{{ pending_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-danger-500 to-danger-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-danger-100 text-sm font-medium">Overdue Loans</p>
+                        <p class="text-3xl font-bold">{{ overdue_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                    <h3 class="text-lg font-semibold text-white">Loan Status Distribution</h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                    <h3 class="text-lg font-semibold text-white">Loan Types Distribution</h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="typeChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Disbursement Trend -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 card-hover">
+            <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white">Monthly Disbursement Trend (Last 12 Months)</h3>
+            </div>
+            <div class="p-6">
+                <canvas id="disbursementChart" width="800" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Loan Performance Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 card-hover">
+            <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white">Loan Performance by Type</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-secondary-200">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Loan Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Total Count</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Total Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Average Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Approval Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Default Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for type_stat in loan_type_stats %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">{{ type_stat.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ type_stat.count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">K{{ type_stat.total_amount|floatformat:0|intcomma }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">K{{ type_stat.avg_amount|floatformat:0|intcomma }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {% if type_stat.approval_rate >= 80 %}status-approved{% elif type_stat.approval_rate >= 60 %}status-pending{% else %}status-rejected{% endif %}">
+                                    {{ type_stat.approval_rate|floatformat:1 }}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {% if type_stat.default_rate <= 5 %}status-approved{% elif type_stat.default_rate <= 15 %}status-pending{% else %}status-rejected{% endif %}">
+                                    {{ type_stat.default_rate|floatformat:1 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-secondary-500">No loan data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Loans -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-secondary-600 to-secondary-700 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white">Recent Loan Applications (Last 30 Days)</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-secondary-200">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Application #</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Borrower</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Officer</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for loan in recent_loans %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{% url 'loans:detail' loan.pk %}" class="text-primary-600 hover:text-primary-800 font-medium">
+                                    {{ loan.application_number }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">{{ loan.borrower.full_name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ loan.loan_type.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">K{{ loan.principal_amount|floatformat:0|intcomma }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {% if loan.status == 'approved' %}status-approved{% elif loan.status == 'pending' %}status-pending{% elif loan.status == 'rejected' %}status-rejected{% elif loan.status == 'disbursed' %}status-disbursed{% else %}status-active{% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ loan.application_date|date:"M d, Y" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ loan.loan_officer.full_name|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-secondary-500">No recent loans</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Status Distribution Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ status_labels|safe }},
+        datasets: [{
+            data: {{ status_data|safe }},
+            backgroundColor: [
+                '#28a745', // approved - green
+                '#ffc107', // pending - yellow
+                '#dc3545', // rejected - red
+                '#007bff', // active - blue
+                '#6c757d'  // completed - gray
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Loan Types Chart
+const typeCtx = document.getElementById('typeChart').getContext('2d');
+new Chart(typeCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ type_labels|safe }},
+        datasets: [{
+            data: {{ type_data|safe }},
+            backgroundColor: [
+                '#007bff',
+                '#28a745',
+                '#ffc107',
+                '#dc3545',
+                '#17a2b8'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Monthly Disbursement Chart
+const disbursementCtx = document.getElementById('disbursementChart').getContext('2d');
+new Chart(disbursementCtx, {
+    type: 'line',
+    data: {
+        labels: {{ monthly_labels|safe }},
+        datasets: [{
+            label: 'Disbursement Amount (K)',
+            data: {{ monthly_data|safe }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'K' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Amount: K' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+function exportToCSV() {
+    window.location.href = '{% url "reports:loans_export" %}';
+}
+</script>
+
+<style>
+@media print {
+    .print\\:hidden {
+        display: none !important;
+    }
+    .bg-white {
+        border: 1px solid #e5e7eb !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+    .bg-gray-50 {
+        background-color: white !important;
+    }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Hover effects */
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+</style>
+{% endblock %}

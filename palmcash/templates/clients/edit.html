@@ -1,0 +1,158 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Edit Client - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="bg-primary-100 p-3 rounded-lg">
+                    <i class="fas fa-user-edit text-primary-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">Edit Client Information</h1>
+                    <p class="text-secondary-600 mt-1">Update basic information for {{ object.full_name }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Client Details</h2>
+            </div>
+            
+            <div class="p-8">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-r-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-danger-500 text-xl mr-3"></i>
+                            <div class="text-sm text-danger-800">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Name Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                First Name <span class="text-danger-500">*</span>
+                            </label>
+                            {{ form.first_name|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.first_name.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.first_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                Last Name <span class="text-danger-500">*</span>
+                            </label>
+                            {{ form.last_name|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.last_name.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.last_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-envelope text-secondary-400 mr-1"></i>
+                                Email Address
+                            </label>
+                            {{ form.email|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.email.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-phone text-secondary-400 mr-1"></i>
+                                Phone Number
+                            </label>
+                            {{ form.phone_number|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.phone_number.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.phone_number.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Personal Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-calendar text-secondary-400 mr-1"></i>
+                                Date of Birth
+                            </label>
+                            {{ form.date_of_birth|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.date_of_birth.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.date_of_birth.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.national_id.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-id-card text-secondary-400 mr-1"></i>
+                                National ID
+                            </label>
+                            {{ form.national_id|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.national_id.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.national_id.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Address -->
+                    <div class="mb-6">
+                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-map-marker-alt text-secondary-400 mr-1"></i>
+                            Address
+                        </label>
+                        {{ form.address|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                        {% if form.address.errors %}
+                        <p class="mt-2 text-sm text-danger-600">{{ form.address.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Info Alert -->
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-500 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-blue-800">
+                                <strong>Note:</strong> Changes to client information will be logged for audit purposes.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-secondary-200">
+                        <a href="{% url 'clients:detail' object.pk %}" 
+                           class="inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

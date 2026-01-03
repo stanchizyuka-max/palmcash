@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Home | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <!-- Dashboard Navigation Banner -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; margin-bottom: 30px; color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="margin: 0 0 10px 0; color: white;">Welcome to Palm Cash Admin</h2>
+                <p style="margin: 0; opacity: 0.9;">Manage your loan management system</p>
+            </div>
+            <a href="{{ dashboard_url }}" style="
+                background: white;
+                color: #667eea;
+                padding: 12px 24px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.2)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.15)';">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    {{ block.super }}
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'emails/base_email.html' %}
+{% load humanize %}
+
+{% block title %}Loan Approved - LoanVista{% endblock %}
+{% block header_subtitle %}Loan Application Approved{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    🎉 Congratulations{% if borrower.first_name %}, {{ borrower.first_name }}{% endif %}!
+</h2>
+
+<div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #065f46; margin: 0; font-size: 16px; font-weight: bold;">
+        ✅ Your loan application has been approved!
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    We're pleased to inform you that your loan application <strong>#{{ loan.application_number }}</strong> has been approved.
+</p>
+
+<!-- Loan Details -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 0 0 30px 0;">
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            <strong>Loan Amount:</strong>
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>K{{ loan.principal_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Interest Rate:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ loan.interest_rate }}% per annum
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Loan Term:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ loan.term_months }} months
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Monthly Payment:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            K{{ loan.monthly_payment|floatformat:2|intcomma }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px;">
+            <strong>Total Repayment:</strong>
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right;">
+            <strong>K{{ loan.total_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+</table>
+
+<!-- Next Steps -->
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">📋 Next Steps:</h3>
+<ol style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 0; padding-left: 20px;">
+    <li>Your loan will be disbursed within 1-2 business days</li>
+    <li>You'll receive a payment schedule via email</li>
+    <li>First payment will be due 30 days after disbursement</li>
+    <li>You can track your loan status in your dashboard</li>
+</ol>
+
+<!-- Action Button -->
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/loans/{{ loan.id }}/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                View Loan Details
+            </a>
+        </td>
+    </tr>
+</table>
+
+{% if loan.approval_notes %}
+<div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+    <p style="color: #1e40af; margin: 0 0 5px 0; font-weight: bold; font-size: 14px;">
+        Note from Loan Officer:
+    </p>
+    <p style="color: #1e40af; margin: 0; font-size: 14px;">
+        {{ loan.approval_notes }}
+    </p>
+</div>
+{% endif %}
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    If you have any questions, please don't hesitate to contact our support team.
+</p>
+{% endblock %}

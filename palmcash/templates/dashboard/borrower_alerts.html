@@ -1,0 +1,112 @@
+{% load humanize %}
+
+<!-- Document Verification Alert -->
+{% if not has_verified_documents %}
+<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800">
+                Document Verification Required
+            </h3>
+            <div class="mt-2 text-sm text-yellow-700">
+                <p>
+                    You must upload and have at least one document verified by an administrator before you can apply for a loan.
+                </p>
+            </div>
+            <div class="mt-4">
+                <div class="-mx-2 -my-1.5 flex">
+                    <a href="{% url 'documents:list' %}" class="bg-yellow-50 px-3 py-2 rounded-md text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-yellow-50 focus:ring-yellow-600">
+                        <i class="fas fa-upload mr-2"></i>Upload Documents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Rejected Loans Alert -->
+{% if rejected_loans %}
+<div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-r-lg">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-times-circle text-red-400 text-xl"></i>
+        </div>
+        <div class="ml-3 flex-1">
+            <h3 class="text-sm font-medium text-red-800">
+                Loan Application{{ rejected_loans.count|pluralize }} Rejected
+            </h3>
+            <div class="mt-2 text-sm text-red-700">
+                <p class="mb-3">
+                    You have {{ rejected_loans.count }} rejected loan application{{ rejected_loans.count|pluralize }}. Please review the rejection reason{{ rejected_loans.count|pluralize }} below:
+                </p>
+                <div class="space-y-3">
+                    {% for loan in rejected_loans %}
+                    <div class="bg-white border border-red-200 rounded-lg p-3">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <p class="font-semibold text-red-900">Loan #{{ loan.application_number }}</p>
+                                <p class="text-xs text-red-600">Applied: {{ loan.application_date|date:"M d, Y" }}</p>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Rejected
+                            </span>
+                        </div>
+                        <div class="mt-2 p-2 bg-red-50 rounded border-l-2 border-red-300">
+                            <p class="text-xs font-medium text-red-800 mb-1">Rejection Reason:</p>
+                            <p class="text-sm text-red-700">{{ loan.rejection_reason }}</p>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{% url 'loans:detail' loan.pk %}" class="text-xs text-red-600 hover:text-red-800 font-medium">
+                                View Full Details <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="-mx-2 -my-1.5 flex">
+                    {% if has_verified_documents and not user.has_outstanding_loans %}
+                    <a href="{% url 'loans:apply' %}" class="bg-red-50 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600">
+                        <i class="fas fa-redo mr-2"></i>Apply Again
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Outstanding Loans Alert -->
+{% if user.has_outstanding_loans %}
+<div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">
+                Outstanding Loan Notice
+            </h3>
+            <div class="mt-2 text-sm text-blue-700">
+                <p>
+                    You have active loans that must be completed before you can apply for a new loan. 
+                    Please make your payments to complete your current loan(s).
+                </p>
+            </div>
+            <div class="mt-4">
+                <div class="-mx-2 -my-1.5 flex">
+                    <a href="{% url 'loans:list' %}" class="bg-blue-50 px-3 py-2 rounded-md text-sm font-medium text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-50 focus:ring-blue-600">
+                        <i class="fas fa-eye mr-2"></i>View My Loans
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

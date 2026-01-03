@@ -1,0 +1,417 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Payment Details - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'payments:list' %}" 
+                   class="bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-secondary-600 hover:text-primary-600">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900 flex items-center gap-2">
+                        <i class="fas fa-credit-card text-primary-600"></i>
+                        Payment {{ payment.payment_number }}
+                    </h1>
+                    <p class="text-secondary-600 mt-1">Payment transaction details</p>
+                </div>
+            </div>
+            
+            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold shadow-sm
+                {% if payment.status == 'completed' %}bg-success-100 text-success-800
+                {% elif payment.status == 'pending' %}bg-warning-100 text-warning-800
+                {% elif payment.status == 'failed' %}bg-danger-100 text-danger-800
+                {% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                {{ payment.get_status_display }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Payment Information -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Payment Information</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Payment Number</label>
+                                    <p class="text-secondary-900 font-semibold mt-1">{{ payment.payment_number }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Loan</label>
+                                    <p class="mt-1">
+                                        <a href="{% url 'loans:detail' payment.loan.id %}" 
+                                           class="text-primary-600 hover:text-primary-700 font-semibold">
+                                            {{ payment.loan.application_number }}
+                                        </a>
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Borrower</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.loan.borrower.full_name }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Amount</label>
+                                    <p class="text-3xl font-bold text-success-600 mt-1">K{{ payment.amount|floatformat:0|intcomma }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Payment Method</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.get_payment_method_display }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Payment Date</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.payment_date|date:"M d, Y H:i" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Status</label>
+                                    <p class="mt-1">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                            {% if payment.status == 'completed' %}bg-success-100 text-success-800
+                                            {% elif payment.status == 'pending' %}bg-warning-100 text-warning-800
+                                            {% elif payment.status == 'failed' %}bg-danger-100 text-danger-800
+                                            {% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                                            {{ payment.get_status_display }}
+                                        </span>
+                                    </p>
+                                </div>
+                                {% if payment.reference_number %}
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Reference Number</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.reference_number }}</p>
+                                </div>
+                                {% endif %}
+                                {% if payment.processed_by %}
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Processed By</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.processed_by.full_name }}</p>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Created</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.created_at|date:"M d, Y H:i" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if payment.notes %}
+                        <div class="mt-6 pt-6 border-t border-secondary-200">
+                            <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Notes</label>
+                            <p class="text-secondary-700 mt-2 bg-secondary-50 p-4 rounded-lg">{{ payment.notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Related Payment Schedule -->
+                {% if payment.payment_schedule %}
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Related Payment Schedule</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Installment Number</label>
+                                    <p class="text-secondary-900 font-semibold mt-1">{{ payment.payment_schedule.installment_number }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Due Date</label>
+                                    <p class="text-secondary-900 font-medium mt-1">{{ payment.payment_schedule.due_date|date:"M d, Y" }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Scheduled Amount</label>
+                                    <p class="text-xl font-bold text-primary-600 mt-1">K{{ payment.payment_schedule.total_amount|floatformat:0|intcomma }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Principal</label>
+                                    <p class="text-secondary-900 font-medium mt-1">K{{ payment.payment_schedule.principal_amount|floatformat:0|intcomma }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Interest</label>
+                                    <p class="text-secondary-900 font-medium mt-1">K{{ payment.payment_schedule.interest_amount|floatformat:0|intcomma }}</p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-secondary-500 uppercase tracking-wide">Status</label>
+                                    <p class="mt-1">
+                                        {% if payment.payment_schedule.is_paid %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-800">
+                                            <i class="fas fa-check mr-1"></i>Paid
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-warning-100 text-warning-800">
+                                            <i class="fas fa-clock mr-1"></i>Pending
+                                        </span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Payment Receipt -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Payment Receipt</h2>
+                    </div>
+                    <div class="p-6 text-center">
+                        <div class="mb-6">
+                            <div class="bg-success-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-receipt text-4xl text-success-600"></i>
+                            </div>
+                            <h3 class="font-semibold text-secondary-900">Payment Confirmation</h3>
+                        </div>
+                        
+                        <div class="border-2 border-secondary-200 rounded-lg p-4 mb-6 bg-secondary-50">
+                            <div class="mb-3">
+                                <h4 class="font-bold text-secondary-900">LoanVista</h4>
+                                <p class="text-xs text-secondary-600">Payment Receipt</p>
+                            </div>
+                            <hr class="border-secondary-300 my-3">
+                            <div class="text-left text-sm space-y-1">
+                                <p><strong>Payment #:</strong> {{ payment.payment_number }}</p>
+                                <p><strong>Date:</strong> {{ payment.payment_date|date:"M d, Y" }}</p>
+                                <p><strong>Amount:</strong> K{{ payment.amount|floatformat:0|intcomma }}</p>
+                                <p><strong>Method:</strong> {{ payment.get_payment_method_display }}</p>
+                                {% if payment.reference_number %}
+                                <p><strong>Ref:</strong> {{ payment.reference_number }}</p>
+                                {% endif %}
+                                <p><strong>Status:</strong> {{ payment.get_status_display }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <button onclick="window.print()" 
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 font-medium transition-colors duration-200">
+                                <i class="fas fa-print mr-2"></i>Print Receipt
+                            </button>
+                            <button onclick="downloadReceipt()" 
+                                    class="w-full inline-flex items-center justify-center px-4 py-2 border border-secondary-300 text-secondary-700 rounded-lg hover:bg-secondary-50 font-medium transition-colors duration-200">
+                                <i class="fas fa-download mr-2"></i>Download CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Admin Actions -->
+                {% if user.role != 'borrower' and payment.status == 'pending' %}
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Admin Actions</h2>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <form method="post" action="{% url 'payments:confirm' payment.pk %}" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    onclick="return confirm('Are you sure you want to confirm this payment?')"
+                                    class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg transition-all duration-200">
+                                <i class="fas fa-check mr-2"></i>Confirm Payment
+                            </button>
+                        </form>
+                        
+                        <button type="button" onclick="openRejectModal()"
+                                class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-lg hover:from-danger-600 hover:to-danger-700 font-medium shadow-lg transition-all duration-200">
+                            <i class="fas fa-times mr-2"></i>Reject Payment
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Quick Links -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-secondary-700 to-secondary-800 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Quick Links</h2>
+                    </div>
+                    <div class="p-6 space-y-3">
+                        <a href="{% url 'payments:schedule' payment.loan.id %}" 
+                           class="w-full inline-flex items-center justify-center px-4 py-2 border border-info-500 text-info-600 rounded-lg hover:bg-info-50 font-medium transition-colors duration-200">
+                            <i class="fas fa-calendar-alt mr-2"></i>View Schedule
+                        </a>
+                        <a href="{% url 'loans:detail' payment.loan.id %}" 
+                           class="w-full inline-flex items-center justify-center px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 font-medium transition-colors duration-200">
+                            <i class="fas fa-eye mr-2"></i>View Loan
+                        </a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Reject Payment Modal -->
+<div id="rejectPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-danger-500 to-danger-600 px-8 py-6 rounded-t-2xl">
+            <div class="flex items-center gap-3">
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Reject Payment</h3>
+                    <p class="text-danger-100 text-sm mt-1">This action will notify the borrower</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'payments:reject' payment.pk %}">
+            {% csrf_token %}
+            <div class="p-8">
+                <!-- Warning Section -->
+                <div class="bg-danger-50 border-l-4 border-danger-500 p-6 rounded-lg mb-8">
+                    <div class="flex gap-4">
+                        <i class="fas fa-info-circle text-danger-600 text-xl flex-shrink-0 mt-1"></i>
+                        <div>
+                            <p class="text-sm font-semibold text-danger-900 mb-3">Warning: Rejecting this payment will:</p>
+                            <ul class="text-sm text-danger-800 space-y-2 ml-4 list-disc">
+                                <li>Mark the payment as <strong>failed</strong></li>
+                                <li>Send a <strong>notification</strong> to the borrower</li>
+                                <li>Require the borrower to <strong>resubmit payment</strong></li>
+                                <li>Update the payment schedule status</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details Section -->
+                <div class="bg-secondary-50 border border-secondary-200 p-6 rounded-lg mb-8">
+                    <h4 class="text-sm font-bold text-secondary-900 uppercase tracking-wide mb-4">
+                        <i class="fas fa-credit-card mr-2 text-primary-600"></i>Payment Details
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-secondary-600 font-medium uppercase">Payment #</p>
+                            <p class="text-lg font-semibold text-secondary-900 mt-1">{{ payment.payment_number }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-secondary-600 font-medium uppercase">Amount</p>
+                            <p class="text-lg font-semibold text-danger-600 mt-1">K{{ payment.amount|floatformat:0|intcomma }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-secondary-600 font-medium uppercase">Method</p>
+                            <p class="text-sm font-medium text-secondary-900 mt-1">{{ payment.get_payment_method_display }}</p>
+                        </div>
+                        {% if payment.reference_number %}
+                        <div>
+                            <p class="text-xs text-secondary-600 font-medium uppercase">Reference</p>
+                            <p class="text-sm font-medium text-secondary-900 mt-1">{{ payment.reference_number }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Reason Section -->
+                <div class="mb-8">
+                    <label for="reason" class="block text-sm font-bold text-secondary-900 uppercase tracking-wide mb-3">
+                        <i class="fas fa-comment-dots mr-2 text-danger-600"></i>Reason for Rejection <span class="text-danger-600">*</span>
+                    </label>
+                    <textarea name="reason" id="reason" rows="5" required
+                              class="w-full px-4 py-3 border-2 border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-danger-500 focus:border-transparent resize-none"
+                              placeholder="Please provide a clear and detailed reason for rejecting this payment. This will be sent to the borrower."></textarea>
+                    <p class="text-xs text-secondary-600 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>The borrower will receive this reason in their notification
+                    </p>
+                </div>
+
+                <!-- Borrower Info -->
+                <div class="bg-info-50 border border-info-200 p-4 rounded-lg mb-8">
+                    <p class="text-sm text-info-900">
+                        <i class="fas fa-user-circle mr-2 text-info-600"></i>
+                        <strong>Borrower:</strong> {{ payment.loan.borrower.full_name }}
+                    </p>
+                    <p class="text-sm text-info-900 mt-2">
+                        <i class="fas fa-envelope mr-2 text-info-600"></i>
+                        <strong>Email:</strong> {{ payment.loan.borrower.email }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-6 bg-secondary-50 rounded-b-2xl border-t border-secondary-200 flex justify-end gap-3">
+                <button type="button" onclick="closeRejectModal()"
+                        class="inline-flex items-center px-6 py-3 border-2 border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 font-semibold transition-all duration-200 transform hover:scale-105">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-lg hover:from-danger-600 hover:to-danger-700 font-semibold shadow-lg transition-all duration-200 transform hover:scale-105">
+                    <i class="fas fa-times-circle mr-2"></i>Reject Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRejectModal() {
+    document.getElementById('rejectPaymentModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectPaymentModal').classList.add('hidden');
+}
+
+document.getElementById('rejectPaymentModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+
+function downloadReceipt() {
+    const paymentData = [
+        ['LoanVista Payment Receipt'],
+        ['Payment Number', '{{ payment.payment_number }}'],
+        ['Loan Number', '{{ payment.loan.application_number }}'],
+        ['Borrower', '{{ payment.loan.borrower.full_name }}'],
+        ['Amount', 'K{{ payment.amount|floatformat:2 }}'],
+        ['Payment Method', '{{ payment.get_payment_method_display }}'],
+        ['Payment Date', '{{ payment.payment_date|date:"M d, Y H:i" }}'],
+        ['Status', '{{ payment.get_status_display }}'],
+        {% if payment.reference_number %}['Reference', '{{ payment.reference_number }}'],{% endif %}
+        ['Generated', new Date().toLocaleString()]
+    ];
+    
+    const csvContent = paymentData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'payment_receipt_{{ payment.payment_number }}.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
+<style>
+@media print {
+    .inline-flex, button, a[href*="url"], .bg-gradient-to-r {
+        display: none !important;
+    }
+    .bg-white {
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

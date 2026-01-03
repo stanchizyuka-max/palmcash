@@ -1,0 +1,80 @@
+/* Palm Cash Custom Styles - Dark Green Theme */
+:root {
+    --palm-green-50: #e8f5e8;
+    --palm-green-100: #c8e6c8;
+    --palm-green-200: #a5d6a5;
+    --palm-green-300: #81c681;
+    --palm-green-400: #66ba66;
+    --palm-green-500: #4caf4c;
+    --palm-green-600: #3d8b3d;
+    --palm-green-700: #2d672d;
+    --palm-green-800: #1d431d;
+    --palm-green-900: #103901;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.navbar-dark.bg-primary {
+    background-color: var(--palm-green-600) !important;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn {
+    border-radius: 0.375rem;
+}
+
+.btn-primary {
+    background-color: var(--palm-green-600);
+    border-color: var(--palm-green-600);
+}
+
+.btn-primary:hover {
+    background-color: var(--palm-green-700);
+    border-color: var(--palm-green-700);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Dashboard specific styles */
+.dashboard-card {
+    transition: transform 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Form styles */
+.form-control:focus {
+    border-color: var(--palm-green-500);
+    box-shadow: 0 0 0 0.2rem rgba(90, 122, 79, 0.25);
+}
+
+/* Status badges */
+.status-pending { background-color: #ffc107; }
+.status-approved { background-color: var(--palm-green-900); color: white; }
+.status-rejected { background-color: #dc3545; }
+.status-active { background-color: var(--palm-green-800); color: white; }
+.status-completed { background-color: #6c757d; }
+
+/* Palm tree accent */
+.palm-accent {
+    color: var(--palm-green-600);
+}

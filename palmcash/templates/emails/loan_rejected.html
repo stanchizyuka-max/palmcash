@@ -1,0 +1,61 @@
+{% extends 'emails/base_email.html' %}
+{% load humanize %}
+
+{% block title %}Loan Application Update - LoanVista{% endblock %}
+{% block header_subtitle %}Loan Application Status{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    Hello{% if borrower.first_name %} {{ borrower.first_name }}{% endif %},
+</h2>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    Thank you for your interest in LoanVista and for submitting your loan application <strong>#{{ loan.application_number }}</strong>.
+</p>
+
+<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #991b1b; margin: 0; font-weight: bold; font-size: 16px;">
+        ⚠️ Application Status: Not Approved at This Time
+    </p>
+</div>
+
+{% if rejection_reason %}
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">📋 Reason for Decision:</h3>
+<div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 0 0 30px 0;">
+    <p style="color: #4b5563; margin: 0; line-height: 1.6;">
+        {{ rejection_reason }}
+    </p>
+</div>
+{% endif %}
+
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">💡 Next Steps:</h3>
+<ul style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 0; padding-left: 20px;">
+    <li>Review the reason provided above carefully</li>
+    <li>Address any issues or requirements mentioned</li>
+    <li>Ensure all required documents are verified</li>
+    <li>You may reapply once requirements are met</li>
+    <li>Contact our support team if you need clarification</li>
+</ul>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/loans/apply/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Apply Again
+            </a>
+        </td>
+    </tr>
+</table>
+
+<div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+    <p style="color: #1e40af; margin: 0; font-size: 14px;">
+        <strong>💬 Need Help?</strong><br>
+        Our team is here to assist you. Contact us if you have questions about your application or need guidance on reapplying.
+    </p>
+</div>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    We appreciate your interest in LoanVista and hope to serve you in the future.
+</p>
+{% endblock %}

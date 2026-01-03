@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Financial Reports - LoanVista{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-chart-area me-2"></i>Financial Performance Report
+            </h1>
+            <div>
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print Report
+                </button>
+                <button class="btn btn-outline-success" onclick="exportToCSV()">
+                    <i class="fas fa-download me-2"></i>Export CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h4>K{{ total_portfolio|floatformat:0|intcomma }}</h4>
+                <p class="mb-0">Total Portfolio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <h4>K{{ total_revenue|floatformat:0|intcomma }}</h4>
+                <p class="mb-0">Total Revenue</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h4>{{ avg_interest_rate|floatformat:1 }}%</h4>
+                <p class="mb-0">Avg Interest Rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h4>K{{ at_risk_amount|floatformat:0|intcomma }}</h4>
+                <p class="mb-0">Amount at Risk</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue and Profitability -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Monthly Revenue Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" width="600" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Portfolio Health</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Performing Loans</span>
+                        <span class="text-success">{{ performing_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" style="width: {{ performing_rate }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>At Risk (30+ days)</span>
+                        <span class="text-warning">{{ at_risk_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" style="width: {{ at_risk_rate }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Non-Performing</span>
+                        <span class="text-danger">{{ non_performing_rate|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-danger" style="width: {{ non_performing_rate }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profitability Analysis -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Revenue Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueBreakdownChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Key Financial Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Return on Assets (ROA):</strong></td>
+                            <td class="text-end">
+                                <span class="badge bg-{% if roa >= 2 %}success{% elif roa >= 1 %}warning{% else %}danger{% endif %}">
+                                    {{ roa|floatformat:2 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Net Interest Margin:</strong></td>
+                            <td class="text-end">
+                                <span class="badge bg-{% if net_interest_margin >= 10 %}success{% elif net_interest_margin >= 5 %}warning{% else %}danger{% endif %}">
+                                    {{ net_interest_margin|floatformat:2 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cost of Risk:</strong></td>
+                            <td class="text-end">
+                                <span class="badge bg-{% if cost_of_risk <= 3 %}success{% elif cost_of_risk <= 7 %}warning{% else %}danger{% endif %}">
+                                    {{ cost_of_risk|floatformat:2 }}%
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Portfolio Yield:</strong></td>
+                            <td class="text-end">
+                                <span class="badge bg-primary">{{ portfolio_yield|floatformat:2 }}%</span>
+                            </td>
+                        </tr>
+                        <tr class="border-top">
+                            <td><strong>Operating Efficiency:</strong></td>
+                            <td class="text-end">
+                                <span class="badge bg-{% if operating_efficiency <= 40 %}success{% elif operating_efficiency <= 60 %}warning{% else %}danger{% endif %}">
+                                    {{ operating_efficiency|floatformat:1 }}%
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loan Performance by Amount Range -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Loan Performance by Amount Range</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Amount Range</th>
+                                <th>Count</th>
+                                <th>Total Amount</th>
+                                <th>Avg Amount</th>
+                                <th>Default Rate</th>
+                                <th>Revenue</th>
+                                <th>Profitability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for range_stat in amount_ranges %}
+                            <tr>
+                                <td>{{ range_stat.range }}</td>
+                                <td>{{ range_stat.count }}</td>
+                                <td>K{{ range_stat.total_amount|floatformat:0|intcomma }}</td>
+                                <td>K{{ range_stat.avg_amount|floatformat:0|intcomma }}</td>
+                                <td>
+                                    <span class="badge bg-{% if range_stat.default_rate <= 5 %}success{% elif range_stat.default_rate <= 15 %}warning{% else %}danger{% endif %}">
+                                        {{ range_stat.default_rate|floatformat:1 }}%
+                                    </span>
+                                </td>
+                                <td>K{{ range_stat.revenue|floatformat:0|intcomma }}</td>
+                                <td>
+                                    <span class="badge bg-{% if range_stat.profitability >= 15 %}success{% elif range_stat.profitability >= 10 %}warning{% else %}danger{% endif %}">
+                                        {{ range_stat.profitability|floatformat:1 }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cash Flow Analysis -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Cash Flow Analysis (Last 12 Months)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="cashFlowChart" width="800" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Revenue Trend Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: {{ revenue_months|safe }},
+        datasets: [{
+            label: 'Revenue (K)',
+            data: {{ revenue_data|safe }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'K' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Revenue Breakdown Chart
+const breakdownCtx = document.getElementById('revenueBreakdownChart').getContext('2d');
+new Chart(breakdownCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Interest Income', 'Fees', 'Penalties', 'Other'],
+        datasets: [{
+            data: {{ revenue_breakdown|safe }},
+            backgroundColor: [
+                '#007bff',
+                '#28a745',
+                '#ffc107',
+                '#dc3545'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Cash Flow Chart
+const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+new Chart(cashFlowCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ cashflow_months|safe }},
+        datasets: [{
+            label: 'Disbursements',
+            data: {{ disbursement_data|safe }},
+            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            borderColor: 'rgba(220, 53, 69, 1)',
+            borderWidth: 1
+        }, {
+            label: 'Collections',
+            data: {{ collection_data|safe }},
+            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'K' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+function exportToCSV() {
+    window.location.href = '{% url "reports:financial_export" %}';
+}
+</script>
+
+<style>
+@media print {
+    .btn, .d-flex.justify-content-between {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}

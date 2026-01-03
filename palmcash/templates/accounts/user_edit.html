@@ -1,0 +1,206 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Edit User - {{ user_to_edit.get_full_name|default:user_to_edit.username }} - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{% url 'accounts:manage_users' %}" class="text-secondary-600 hover:text-secondary-900">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">Edit User</h1>
+                    <p class="text-secondary-600 mt-2">Update user information and settings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Info Card -->
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-2xl font-bold">
+                    {{ user_to_edit.first_name.0|default:user_to_edit.username.0|upper }}{{ user_to_edit.last_name.0|default:""|upper }}
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold">{{ user_to_edit.get_full_name|default:user_to_edit.username }}</h2>
+                    <p class="text-primary-100">@{{ user_to_edit.username }} • {{ user_to_edit.get_role_display }}</p>
+                    <p class="text-primary-100 text-sm mt-1">
+                        <i class="fas fa-calendar mr-1"></i>Joined {{ user_to_edit.date_joined|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Personal Information -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-user text-primary-600"></i>
+                    Personal Information
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Username *</label>
+                        <input type="text" name="username" value="{{ user_to_edit.username }}" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Email *</label>
+                        <input type="email" name="email" value="{{ user_to_edit.email }}" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">First Name *</label>
+                        <input type="text" name="first_name" value="{{ user_to_edit.first_name }}" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Last Name *</label>
+                        <input type="text" name="last_name" value="{{ user_to_edit.last_name }}" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Phone Number</label>
+                        <input type="tel" name="phone_number" value="{{ user_to_edit.phone_number }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="+260...">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Date of Birth</label>
+                        <input type="date" name="date_of_birth" value="{{ user_to_edit.date_of_birth|date:'Y-m-d' }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">National ID</label>
+                        <input type="text" name="national_id" value="{{ user_to_edit.national_id }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Role *</label>
+                        <select name="role" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="borrower" {% if user_to_edit.role == 'borrower' %}selected{% endif %}>Borrower</option>
+                            <option value="loan_officer" {% if user_to_edit.role == 'loan_officer' %}selected{% endif %}>Loan Officer</option>
+                            <option value="manager" {% if user_to_edit.role == 'manager' %}selected{% endif %}>Manager</option>
+                            <option value="admin" {% if user_to_edit.role == 'admin' %}selected{% endif %}>Administrator</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Address</label>
+                        <textarea name="address" rows="3" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">{{ user_to_edit.address }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Status -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-success-600"></i>
+                    Account Status
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-secondary-900">Active Account</p>
+                            <p class="text-sm text-secondary-600">User can log in and access the system</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_active" {% if user_to_edit.is_active %}checked{% endif %} class="sr-only peer">
+                            <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-secondary-900">Verified User</p>
+                            <p class="text-sm text-secondary-600">User identity has been verified</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_verified" {% if user_to_edit.is_verified %}checked{% endif %} class="sr-only peer">
+                            <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-info-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-info-600"></div>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-secondary-900">Staff Status</p>
+                            <p class="text-sm text-secondary-600">User can access admin interface</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_staff" {% if user_to_edit.is_staff %}checked{% endif %} class="sr-only peer">
+                            <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-warning-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-warning-600"></div>
+                        </label>
+                    </div>
+
+                    {% if not user_to_edit.is_superuser %}
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-secondary-900">Superuser Status</p>
+                            <p class="text-sm text-secondary-600">User has all permissions</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_superuser" {% if user_to_edit.is_superuser %}checked{% endif %} class="sr-only peer">
+                            <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-danger-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-danger-600"></div>
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- User Statistics (Read-only) -->
+            {% if user_to_edit.role == 'borrower' %}
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-chart-line text-info-600"></i>
+                    Borrower Statistics
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 bg-primary-50 rounded-lg">
+                        <p class="text-sm text-secondary-600">Total Loans</p>
+                        <p class="text-2xl font-bold text-primary-600">{{ user_loans.count }}</p>
+                    </div>
+                    <div class="p-4 bg-success-50 rounded-lg">
+                        <p class="text-sm text-secondary-600">Active Loans</p>
+                        <p class="text-2xl font-bold text-success-600">{{ active_loans }}</p>
+                    </div>
+                    <div class="p-4 bg-info-50 rounded-lg">
+                        <p class="text-sm text-secondary-600">Completed Loans</p>
+                        <p class="text-2xl font-bold text-info-600">{{ completed_loans }}</p>
+                    </div>
+                </div>
+
+                {% if user_loans %}
+                <div class="mt-4">
+                    <a href="{% url 'loans:list' %}?borrower={{ user_to_edit.id }}" class="text-primary-600 hover:text-primary-800 font-medium text-sm">
+                        View all loans <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center gap-4">
+                <a href="{% url 'accounts:manage_users' %}" class="px-6 py-3 border border-secondary-300 text-secondary-700 rounded-lg hover:bg-secondary-50 transition-colors duration-200">
+                    Cancel
+                </a>
+                <div class="flex gap-4">
+                    <a href="/admin/accounts/user/{{ user_to_edit.id }}/change/" class="px-6 py-3 border border-info-300 text-info-700 rounded-lg hover:bg-info-50 transition-colors duration-200">
+                        <i class="fas fa-cog mr-2"></i>Django Admin
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

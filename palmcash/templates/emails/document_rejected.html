@@ -1,0 +1,88 @@
+{% extends 'emails/base_email.html' %}
+
+{% block title %}Document Requires Attention - LoanVista{% endblock %}
+{% block header_subtitle %}Document Review Update{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    Hello{% if user.first_name %} {{ user.first_name }}{% endif %},
+</h2>
+
+<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
+        ⚠️ Document Requires Attention
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    We've reviewed your document "<strong>{{ document.title }}</strong>" and it requires some attention before we can approve it.
+</p>
+
+<!-- Document Details -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 0 0 30px 0;">
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Document Title:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>{{ document.title }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Document Type:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ document.document_type.name }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px;">
+            Status:
+        </td>
+        <td style="color: #ef4444; font-size: 14px; text-align: right;">
+            <strong>✗ Needs Revision</strong>
+        </td>
+    </tr>
+</table>
+
+{% if document.review_notes %}
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">📋 Feedback from Reviewer:</h3>
+<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 0 0 30px 0;">
+    <p style="color: #92400e; margin: 0; line-height: 1.6; font-size: 14px;">
+        {{ document.review_notes }}
+    </p>
+</div>
+{% endif %}
+
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">💡 Next Steps:</h3>
+<ul style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 0; padding-left: 20px;">
+    <li>Review the feedback provided above</li>
+    <li>Address the issues mentioned</li>
+    <li>Upload a new version of the document</li>
+    <li>Ensure the document is clear and legible</li>
+    <li>Contact support if you need clarification</li>
+</ul>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/documents/upload/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Upload New Document
+            </a>
+        </td>
+    </tr>
+</table>
+
+<div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+    <p style="color: #1e40af; margin: 0; font-size: 14px;">
+        <strong>💬 Need Help?</strong><br>
+        If you're unsure about the requirements or need assistance, please contact our support team. We're here to help!
+    </p>
+</div>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    We appreciate your cooperation and look forward to reviewing your updated document.
+</p>
+{% endblock %}

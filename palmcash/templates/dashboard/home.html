@@ -1,0 +1,221 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
+                <i class="fas fa-tachometer-alt mr-3 text-primary-600"></i>
+                Dashboard
+            </h1>
+            <p class="text-secondary-600 mt-2">Welcome back, {{ user.full_name|default:user.username }}</p>
+        </div>
+
+        {% if user.role == 'borrower' %}
+        <!-- Borrower Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-primary-100 text-sm font-medium">Active Loans</p>
+                        <p class="text-3xl font-bold">{{ active_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-money-bill-wave text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-success-100 text-sm font-medium">Total Borrowed</p>
+                        <p class="text-3xl font-bold">K{{ total_borrowed|floatformat:0|intcomma }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-dollar-sign text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-warning-100 text-sm font-medium">Pending Applications</p>
+                        <p class="text-3xl font-bold">{{ pending_applications }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-info-500 to-info-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <a href="{% url 'loans:calculator' %}" class="block text-center">
+                    <div class="bg-white bg-opacity-20 rounded-full p-3 mx-auto mb-3 w-fit">
+                        <i class="fas fa-calculator text-2xl"></i>
+                    </div>
+                    <p class="text-info-100 text-sm font-medium">Loan Calculator</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center card-hover">
+                <a href="{% url 'loans:apply' %}" class="btn-primary text-lg px-8 py-4">
+                    <i class="fas fa-plus-circle mr-2"></i>Apply for New Loan
+                </a>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center card-hover">
+                <a href="{% url 'loans:calculator' %}" class="btn-outline-primary text-lg px-8 py-4">
+                    <i class="fas fa-calculator mr-2"></i>Calculate Loan Payments
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Loans -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white">My Loans</h3>
+            </div>
+            <div class="p-6">
+                {% if user_loans %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-secondary-200">
+                        <thead class="bg-secondary-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Application #</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Application Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-secondary-200">
+                            {% for loan in user_loans %}
+                            <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">{{ loan.application_number }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">K{{ loan.principal_amount|floatformat:0|intcomma }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {% if loan.status == 'approved' %}status-approved{% elif loan.status == 'pending' %}status-pending{% elif loan.status == 'rejected' %}status-rejected{% elif loan.status == 'disbursed' %}status-disbursed{% else %}status-active{% endif %}">
+                                        {{ loan.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ loan.application_date|date:"M d, Y" }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <a href="{% url 'loans:detail' loan.pk %}" class="btn-outline-primary text-sm px-3 py-1">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-money-bill-wave text-6xl text-secondary-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-secondary-900 mb-2">No loans yet</h3>
+                    <p class="text-secondary-500 mb-6">Ready to get started? Apply for your first loan.</p>
+                    <a href="{% url 'loans:apply' %}" class="btn-primary">Apply Now</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Staff Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-primary-100 text-sm font-medium">Total Loans</p>
+                        <p class="text-3xl font-bold">{{ total_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-money-bill-wave text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-success-100 text-sm font-medium">Active Loans</p>
+                        <p class="text-3xl font-bold">{{ active_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-warning-100 text-sm font-medium">Pending Review</p>
+                        <p class="text-3xl font-bold">{{ pending_loans }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-danger-500 to-danger-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-danger-100 text-sm font-medium">Overdue Payments</p>
+                        <p class="text-3xl font-bold">{{ overdue_payments }}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-full p-3">
+                        <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-secondary-600 to-secondary-700 px-6 py-4">
+                    <h3 class="text-lg font-semibold text-white">Quick Actions</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <a href="{% url 'loans:list' %}" class="btn-outline-primary w-full flex items-center justify-center">
+                            <i class="fas fa-list mr-2"></i>View All Loans
+                        </a>
+                        <a href="{% url 'clients:group_list' %}" class="btn-outline-success w-full flex items-center justify-center">
+                            <i class="fas fa-users mr-2"></i>Manage Clients
+                        </a>
+                        <a href="{% url 'reports:list' %}" class="btn-outline-info w-full flex items-center justify-center">
+                            <i class="fas fa-chart-bar mr-2"></i>Generate Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                    <h3 class="text-lg font-semibold text-white">Financial Overview</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-6 text-center">
+                        <div>
+                            <p class="text-3xl font-bold text-success-600">K{{ total_disbursed|floatformat:0|intcomma }}</p>
+                            <p class="text-secondary-500 text-sm">Total Disbursed</p>
+                        </div>
+                        <div>
+                            <p class="text-3xl font-bold text-info-600">{{ recent_applications }}</p>
+                            <p class="text-secondary-500 text-sm">Recent Applications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

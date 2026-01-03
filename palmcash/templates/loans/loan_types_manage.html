@@ -1,0 +1,327 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Loan Types - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Manage Loan Types</h1>
+                <p class="text-secondary-600 mt-2">Configure loan products, interest rates, and terms</p>
+            </div>
+            <button onclick="openAddModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-plus"></i>
+                Add Loan Type
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Loan Types</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ loan_types.count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-tags text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Types</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Inactive Types</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ inactive_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-pause-circle text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Avg Interest Rate</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ avg_interest_rate|floatformat:1 }}%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-percentage text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Types Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">All Loan Types</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Interest Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Amount Range</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Term Range</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for loan_type in loan_types %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div>
+                                    <p class="font-medium text-secondary-900">{{ loan_type.name }}</p>
+                                    <p class="text-sm text-secondary-500">{{ loan_type.description|truncatewords:10 }}</p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-lg font-semibold text-primary-600">{{ loan_type.interest_rate }}%</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm">
+                                    <p class="text-secondary-900">K {{ loan_type.min_amount|floatformat:0 }} - K {{ loan_type.max_amount|floatformat:0 }}</p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                                        {% if loan_type.repayment_frequency == 'daily' %}bg-info-100 text-info-800
+                                        {% else %}bg-success-100 text-success-800{% endif %} mr-2">
+                                        {{ loan_type.get_repayment_frequency_display }}
+                                    </span>
+                                    <p class="text-secondary-900 mt-1">{{ loan_type.get_term_display }}</p>
+                                </div>
+                            </td>                            <td class="px-6 py-4">
+                                {% if loan_type.is_active %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">Active</span>
+                                {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openEditModal({{ loan_type.id }})" class="text-primary-600 hover:text-primary-800 p-2 hover:bg-primary-50 rounded transition-colors duration-150" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="toggleStatus({{ loan_type.id }}, {{ loan_type.is_active|yesno:'true,false' }})" class="text-warning-600 hover:text-warning-800 p-2 hover:bg-warning-50 rounded transition-colors duration-150" title="{% if loan_type.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        <i class="fas fa-{% if loan_type.is_active %}pause{% else %}play{% endif %}"></i>
+                                    </button>
+                                    <a href="/admin/loans/loantype/{{ loan_type.id }}/change/" class="text-info-600 hover:text-info-800 p-2 hover:bg-info-50 rounded transition-colors duration-150" title="Django Admin">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-secondary-500">
+                                <i class="fas fa-tags text-4xl mb-4 text-secondary-300"></i>
+                                <p>No loan types configured yet.</p>
+                                <button onclick="openAddModal()" class="mt-4 text-primary-600 hover:text-primary-800 font-medium">
+                                    Add your first loan type
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8">
+            <a href="{% url 'dashboard:admin' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="loanTypeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-secondary-200">
+            <h3 id="modalTitle" class="text-xl font-bold text-secondary-900">Add Loan Type</h3>
+        </div>
+        
+        <form id="loanTypeForm" method="POST" class="p-6">
+            {% csrf_token %}
+            <input type="hidden" id="loanTypeId" name="loan_type_id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Loan Type Name *</label>
+                    <input type="text" name="name" id="name" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., Personal Loan">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Description *</label>
+                    <textarea name="description" id="description" required rows="3" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Describe this loan type..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Interest Rate (%) *</label>
+                        <input type="number" name="interest_rate" id="interest_rate" required step="0.01" min="0" max="100" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 15.00">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Status</label>
+                        <select name="is_active" id="is_active" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Minimum Amount (K) *</label>
+                        <input type="number" name="min_amount" id="min_amount" required step="0.01" min="0" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 1000">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Maximum Amount (K) *</label>
+                        <input type="number" name="max_amount" id="max_amount" required step="0.01" min="0" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 50000">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Repayment Frequency *</label>
+                    <select name="repayment_frequency" id="repayment_frequency" required onchange="updateTermFields()" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Select frequency...</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                </div>
+
+                <div id="dailyTerms" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Minimum Term (days) *</label>
+                        <input type="number" name="min_term_days" id="min_term_days" min="1" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 7">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Maximum Term (days) *</label>
+                        <input type="number" name="max_term_days" id="max_term_days" min="1" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 90">
+                    </div>
+                </div>
+
+                <div id="weeklyTerms" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Minimum Term (weeks) *</label>
+                        <input type="number" name="min_term_weeks" id="min_term_weeks" min="1" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 4">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Maximum Term (weeks) *</label>
+                        <input type="number" name="max_term_weeks" id="max_term_weeks" min="1" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 52">
+                    </div>
+                </div>            </div>
+
+            <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-secondary-200">
+                <button type="button" onclick="closeModal()" class="px-6 py-2 border border-secondary-300 text-secondary-700 rounded-lg hover:bg-secondary-50 transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                    Save Loan Type
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Add Loan Type';
+    document.getElementById('loanTypeForm').reset();
+    document.getElementById('loanTypeId').value = '';
+    document.getElementById('interest_rate').value = '45.00'; // Default to 45%
+    document.getElementById('loanTypeModal').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+    // In a real implementation, fetch loan type data via AJAX
+    document.getElementById('modalTitle').textContent = 'Edit Loan Type';
+    document.getElementById('loanTypeId').value = id;
+    document.getElementById('loanTypeModal').classList.remove('hidden');
+    // TODO: Populate form fields with existing data
+}
+
+function closeModal() {
+    document.getElementById('loanTypeModal').classList.add('hidden');
+    document.getElementById('dailyTerms').classList.add('hidden');
+    document.getElementById('weeklyTerms').classList.add('hidden');
+}
+
+function updateTermFields() {
+    const frequency = document.getElementById('repayment_frequency').value;
+    const dailyTerms = document.getElementById('dailyTerms');
+    const weeklyTerms = document.getElementById('weeklyTerms');
+    
+    // Hide both
+    dailyTerms.classList.add('hidden');
+    weeklyTerms.classList.add('hidden');
+    
+    // Clear all term fields
+    document.getElementById('min_term_days').value = '';
+    document.getElementById('max_term_days').value = '';
+    document.getElementById('min_term_weeks').value = '';
+    document.getElementById('max_term_weeks').value = '';
+    
+    // Remove required from all
+    document.getElementById('min_term_days').removeAttribute('required');
+    document.getElementById('max_term_days').removeAttribute('required');
+    document.getElementById('min_term_weeks').removeAttribute('required');
+    document.getElementById('max_term_weeks').removeAttribute('required');
+    
+    // Show and require appropriate fields
+    if (frequency === 'daily') {
+        dailyTerms.classList.remove('hidden');
+        document.getElementById('min_term_days').setAttribute('required', 'required');
+        document.getElementById('max_term_days').setAttribute('required', 'required');
+    } else if (frequency === 'weekly') {
+        weeklyTerms.classList.remove('hidden');
+        document.getElementById('min_term_weeks').setAttribute('required', 'required');
+        document.getElementById('max_term_weeks').setAttribute('required', 'required');
+    }
+}
+
+function toggleStatus(id, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this loan type?`)) {
+        // TODO: Implement AJAX call to toggle status
+        window.location.reload();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('loanTypeModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

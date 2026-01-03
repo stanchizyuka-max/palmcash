@@ -1,0 +1,321 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Loan Calculator - LoanVista{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8 text-center">
+        <h1 class="text-4xl font-bold text-secondary-900 mb-3">
+            <i class="fas fa-calculator text-primary-600 mr-3"></i>
+            Loan Calculator
+        </h1>
+        <p class="text-lg text-secondary-600">Calculate your daily or weekly loan repayments at 45% interest</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Calculator Input -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-secondary-900 mb-6">Calculate Your Loan</h2>
+            
+            <div class="space-y-6">
+                <!-- Loan Type -->
+                <div>
+                    <label for="calc-loan-type" class="block text-sm font-medium text-secondary-700 mb-2">
+                        <i class="fas fa-tag text-secondary-400 mr-1"></i>
+                        Loan Type
+                    </label>
+                    <select id="calc-loan-type" 
+                            class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200">
+                        <option value="">Select loan type</option>
+                        {% for loan_type in loan_types %}
+                        <option value="{{ loan_type.id }}" 
+                                data-rate="{{ loan_type.interest_rate }}"
+                                data-frequency="{{ loan_type.repayment_frequency }}"
+                                data-min-amount="{{ loan_type.min_amount }}"
+                                data-max-amount="{{ loan_type.max_amount }}"
+                                data-min-days="{{ loan_type.min_term_days|default:'' }}"
+                                data-max-days="{{ loan_type.max_term_days|default:'' }}"
+                                data-min-weeks="{{ loan_type.min_term_weeks|default:'' }}"
+                                data-max-weeks="{{ loan_type.max_term_weeks|default:'' }}">
+                            {{ loan_type.name }} - {{ loan_type.get_repayment_frequency_display }} ({{ loan_type.interest_rate }}%)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Loan Amount -->
+                <div>
+                    <label for="calc-amount" class="block text-sm font-medium text-secondary-700 mb-2">
+                        <i class="fas fa-money-bill-wave text-secondary-400 mr-1"></i>
+                        Loan Amount (K)
+                    </label>
+                    <input type="number" id="calc-amount" 
+                           class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" 
+                           placeholder="Enter loan amount" min="500" step="100">
+                    <p class="mt-1 text-xs text-secondary-500" id="amount-range-text"></p>
+                </div>
+                
+                <!-- Loan Term -->
+                <div>
+                    <label for="calc-term" class="block text-sm font-medium text-secondary-700 mb-2">
+                        <i class="fas fa-calendar-alt text-secondary-400 mr-1"></i>
+                        <span id="term-label">Loan Term</span>
+                    </label>
+                    <input type="number" id="calc-term" 
+                           class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" 
+                           placeholder="Enter loan term" min="1">
+                    <p class="mt-1 text-xs text-secondary-500" id="term-range-text"></p>
+                </div>
+                
+                <!-- Interest Rate (Read-only) -->
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">
+                        <i class="fas fa-percent text-secondary-400 mr-1"></i>
+                        Interest Rate
+                    </label>
+                    <input type="text" id="calc-rate-display" 
+                           class="w-full px-4 py-3 border border-secondary-300 rounded-lg bg-secondary-50 text-secondary-700" 
+                           readonly value="45% (Flat Rate)" placeholder="Select loan type first">
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="space-y-3 pt-4">
+                    <button type="button" id="calculate-btn" onclick="performCalculation()"
+                            class="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-calculator mr-2"></i>Calculate
+                    </button>
+                    <button type="button" id="reset-btn" onclick="resetCalculator()"
+                            class="w-full inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
+                        <i class="fas fa-redo mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Results -->
+        <div class="p-8 bg-gradient-to-br from-success-50 to-primary-50">
+            <h2 class="text-2xl font-bold text-secondary-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-chart-line text-success-600"></i>
+                Calculation Results
+            </h2>
+            
+            <!-- Results Display -->
+            <div id="calculation-results" class="hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                    <div class="flex justify-between items-center pb-4 border-b border-secondary-200">
+                        <span class="text-secondary-700 font-medium">Principal Amount:</span>
+                        <span class="text-xl font-bold text-secondary-900" id="result-principal">K0</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pb-4 border-b border-secondary-200">
+                        <span class="text-secondary-700 font-medium" id="payment-label">Payment Amount:</span>
+                        <span class="text-2xl font-bold text-primary-600" id="result-payment">K0</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pb-4 border-b border-secondary-200">
+                        <span class="text-secondary-700 font-medium">Total Interest (45%):</span>
+                        <span class="text-xl font-bold text-warning-600" id="result-interest">K0</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pb-4 border-b-2 border-secondary-300">
+                        <span class="text-secondary-700 font-medium">Loan Term:</span>
+                        <span class="text-lg font-semibold text-secondary-900" id="result-term">0</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="text-lg font-bold text-secondary-900">Total Repayment:</span>
+                        <span class="text-3xl font-bold text-success-600" id="result-total">K0</span>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mt-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 text-xl mr-3 mt-0.5"></i>
+                        <div class="text-sm text-blue-800">
+                            <strong>Ready to apply?</strong> These calculations are estimates. 
+                            <a href="{% url 'loans:apply' %}" class="underline hover:text-blue-900 font-semibold">Apply for this loan now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- No Results Placeholder -->
+            <div id="no-results" class="text-center py-12">
+                <div class="bg-secondary-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-calculator text-5xl text-secondary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-secondary-900 mb-2">Enter loan details to see calculations</h3>
+                <p class="text-secondary-600">Fill in the loan type, amount, and term to calculate your repayment schedule.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loan Types Comparison -->
+    <div class="mt-8 bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-secondary-700 to-secondary-800 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i>
+                Available Loan Types
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-secondary-200">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Loan Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Frequency</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Interest Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Amount Range</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Term Range</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for loan_type in loan_types %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div>
+                                    <p class="font-semibold text-secondary-900">{{ loan_type.name }}</p>
+                                    <p class="text-sm text-secondary-600">{{ loan_type.description|truncatewords:10 }}</p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold 
+                                    {% if loan_type.repayment_frequency == 'daily' %}bg-info-100 text-info-800
+                                    {% else %}bg-success-100 text-success-800{% endif %}">
+                                    {{ loan_type.get_repayment_frequency_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-800">
+                                    {{ loan_type.interest_rate }}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                K{{ loan_type.min_amount|floatformat:0 }} - K{{ loan_type.max_amount|floatformat:0 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                {{ loan_type.get_term_display }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loanTypeSelect = document.getElementById('calc-loan-type');
+    const amountField = document.getElementById('calc-amount');
+    const termField = document.getElementById('calc-term');
+    const rateDisplay = document.getElementById('calc-rate-display');
+    const amountRangeText = document.getElementById('amount-range-text');
+    const termRangeText = document.getElementById('term-range-text');
+    const termLabel = document.getElementById('term-label');
+    
+    loanTypeSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const rate = selectedOption.dataset.rate;
+            const frequency = selectedOption.dataset.frequency;
+            const minAmount = parseInt(selectedOption.dataset.minAmount);
+            const maxAmount = parseInt(selectedOption.dataset.maxAmount);
+            
+            rateDisplay.value = rate + '% (Flat Rate)';
+            amountRangeText.textContent = `Range: K${minAmount.toLocaleString()} - K${maxAmount.toLocaleString()}`;
+            
+            // Set field limits
+            amountField.min = minAmount;
+            amountField.max = maxAmount;
+            
+            if (frequency === 'daily') {
+                const minDays = parseInt(selectedOption.dataset.minDays);
+                const maxDays = parseInt(selectedOption.dataset.maxDays);
+                termLabel.textContent = 'Loan Term (Days)';
+                termField.placeholder = 'Enter number of days';
+                termRangeText.textContent = `Range: ${minDays} - ${maxDays} days`;
+                termField.min = minDays;
+                termField.max = maxDays;
+            } else {
+                const minWeeks = parseInt(selectedOption.dataset.minWeeks);
+                const maxWeeks = parseInt(selectedOption.dataset.maxWeeks);
+                termLabel.textContent = 'Loan Term (Weeks)';
+                termField.placeholder = 'Enter number of weeks';
+                termRangeText.textContent = `Range: ${minWeeks} - ${maxWeeks} weeks`;
+                termField.min = minWeeks;
+                termField.max = maxWeeks;
+            }
+        } else {
+            rateDisplay.value = '45% (Flat Rate)';
+            amountRangeText.textContent = '';
+            termRangeText.textContent = '';
+            termLabel.textContent = 'Loan Term';
+        }
+    });
+});
+
+function performCalculation() {
+    const loanTypeSelect = document.getElementById('calc-loan-type');
+    const amount = parseFloat(document.getElementById('calc-amount').value);
+    const term = parseInt(document.getElementById('calc-term').value);
+    
+    if (!loanTypeSelect.value) {
+        alert('Please select a loan type');
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid loan amount');
+        return;
+    }
+    
+    if (!term || term <= 0) {
+        alert('Please enter a valid loan term');
+        return;
+    }
+    
+    const selectedOption = loanTypeSelect.options[loanTypeSelect.selectedIndex];
+    const rate = 45; // Fixed 45% interest
+    const frequency = selectedOption.dataset.frequency;
+    
+    // Calculate with flat interest rate
+    const interestAmount = amount * (rate / 100);
+    const totalRepayment = amount + interestAmount;
+    const paymentAmount = totalRepayment / term;
+    
+    // Display results
+    document.getElementById('result-principal').textContent = `K${amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('result-payment').textContent = `K${paymentAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('result-interest').textContent = `K${interestAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('result-total').textContent = `K${totalRepayment.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    
+    if (frequency === 'daily') {
+        document.getElementById('result-term').textContent = `${term} days`;
+        document.getElementById('payment-label').textContent = 'Daily Payment:';
+    } else {
+        document.getElementById('result-term').textContent = `${term} weeks`;
+        document.getElementById('payment-label').textContent = 'Weekly Payment:';
+    }
+    
+    document.getElementById('calculation-results').classList.remove('hidden');
+    document.getElementById('no-results').classList.add('hidden');
+}
+
+function resetCalculator() {
+    document.getElementById('calc-loan-type').value = '';
+    document.getElementById('calc-amount').value = '';
+    document.getElementById('calc-term').value = '';
+    document.getElementById('calc-rate-display').value = '45% (Flat Rate)';
+    document.getElementById('amount-range-text').textContent = '';
+    document.getElementById('term-range-text').textContent = '';
+    document.getElementById('term-label').textContent = 'Loan Term';
+    
+    document.getElementById('calculation-results').classList.add('hidden');
+    document.getElementById('no-results').classList.remove('hidden');
+}
+</script>
+{% endblock %}

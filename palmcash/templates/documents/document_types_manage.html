@@ -1,0 +1,273 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Document Types - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Manage Document Types</h1>
+                <p class="text-secondary-600 mt-2">Configure document types, requirements, and validation rules</p>
+            </div>
+            <button onclick="openAddModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-plus"></i>
+                Add Document Type
+            </button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Types</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ document_types.count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-list text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Types</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Required Types</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ required_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Inactive Types</p>
+                        <p class="text-3xl font-bold text-secondary-600 mt-2">{{ inactive_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-secondary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-pause-circle text-secondary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Types Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">All Document Types</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Description</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Max Size</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Allowed Extensions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for doc_type in document_types %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-file-alt text-primary-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-secondary-900">{{ doc_type.name }}</p>
+                                        {% if doc_type.is_required %}
+                                        <span class="text-xs text-warning-600 font-medium">
+                                            <i class="fas fa-exclamation-circle"></i> Required
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-sm text-secondary-700">{{ doc_type.description|truncatewords:15 }}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-sm font-medium text-secondary-900">{{ doc_type.max_file_size_mb }} MB</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for ext in doc_type.get_allowed_extensions_list %}
+                                    <span class="px-2 py-1 rounded text-xs font-medium bg-info-100 text-info-800">.{{ ext }}</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if doc_type.is_active %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">Active</span>
+                                {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <button onclick='openEditModal({{ doc_type.id }}, "{{ doc_type.name|escapejs }}", "{{ doc_type.description|escapejs }}", {{ doc_type.max_file_size_mb }}, "{{ doc_type.allowed_extensions }}", {{ doc_type.is_required|yesno:"true,false" }}, {{ doc_type.is_active|yesno:"true,false" }})' class="text-primary-600 hover:text-primary-800 p-2 hover:bg-primary-50 rounded transition-colors duration-150" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="toggleStatus({{ doc_type.id }}, {{ doc_type.is_active|yesno:'true,false' }})" class="text-warning-600 hover:text-warning-800 p-2 hover:bg-warning-50 rounded transition-colors duration-150" title="{% if doc_type.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        <i class="fas fa-{% if doc_type.is_active %}pause{% else %}play{% endif %}"></i>
+                                    </button>
+                                    <a href="/admin/documents/documenttype/{{ doc_type.id }}/change/" class="text-info-600 hover:text-info-800 p-2 hover:bg-info-50 rounded transition-colors duration-150" title="Django Admin">
+                                        <i class="fas fa-cog"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-secondary-500">
+                                <i class="fas fa-list text-4xl mb-4 text-secondary-300"></i>
+                                <p>No document types configured yet.</p>
+                                <button onclick="openAddModal()" class="mt-4 text-primary-600 hover:text-primary-800 font-medium">
+                                    Add your first document type
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8">
+            <a href="{% url 'dashboard:admin' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="docTypeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-secondary-200">
+            <h3 id="modalTitle" class="text-xl font-bold text-secondary-900">Add Document Type</h3>
+        </div>
+        
+        <form id="docTypeForm" method="POST" class="p-6">
+            {% csrf_token %}
+            <input type="hidden" id="docTypeId" name="doc_type_id">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Document Type Name *</label>
+                    <input type="text" name="name" id="name" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., National ID">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Description *</label>
+                    <textarea name="description" id="description" required rows="3" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Describe this document type..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Max File Size (MB) *</label>
+                        <input type="number" name="max_file_size_mb" id="max_file_size_mb" required min="1" max="50" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., 5">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">Allowed Extensions *</label>
+                        <input type="text" name="allowed_extensions" id="allowed_extensions" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="e.g., pdf,jpg,png">
+                        <p class="text-xs text-secondary-500 mt-1">Comma-separated list</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="is_required" id="is_required" class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500">
+                            <span class="text-sm font-medium text-secondary-700">Required Document</span>
+                        </label>
+                        <p class="text-xs text-secondary-500 mt-1 ml-6">Users must upload this document</p>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="is_active" id="is_active" checked class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500">
+                            <span class="text-sm font-medium text-secondary-700">Active</span>
+                        </label>
+                        <p class="text-xs text-secondary-500 mt-1 ml-6">Available for users to upload</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6 pt-6 border-t border-secondary-200">
+                <button type="button" onclick="closeModal()" class="px-6 py-2 border border-secondary-300 text-secondary-700 rounded-lg hover:bg-secondary-50 transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                    Save Document Type
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Add Document Type';
+    document.getElementById('docTypeForm').reset();
+    document.getElementById('docTypeId').value = '';
+    document.getElementById('is_active').checked = true;
+    document.getElementById('docTypeModal').classList.remove('hidden');
+}
+
+function openEditModal(id, name, description, maxSize, extensions, isRequired, isActive) {
+    document.getElementById('modalTitle').textContent = 'Edit Document Type';
+    document.getElementById('docTypeId').value = id;
+    document.getElementById('name').value = name;
+    document.getElementById('description').value = description;
+    document.getElementById('max_file_size_mb').value = maxSize;
+    document.getElementById('allowed_extensions').value = extensions;
+    document.getElementById('is_required').checked = isRequired;
+    document.getElementById('is_active').checked = isActive;
+    document.getElementById('docTypeModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('docTypeModal').classList.add('hidden');
+}
+
+function toggleStatus(id, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this document type?`)) {
+        // TODO: Implement AJAX call to toggle status
+        window.location.reload();
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('docTypeModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

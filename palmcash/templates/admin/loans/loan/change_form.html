@@ -1,0 +1,168 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Custom styling for loan form */
+    .form-row {
+        border-bottom: 1px solid #e8f5e8;
+        padding: 15px 0;
+    }
+    
+    .form-row:last-child {
+        border-bottom: none;
+    }
+    
+    fieldset.module {
+        background: white;
+        border: 2px solid #e8f5e8;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    fieldset.module h2 {
+        background: linear-gradient(135deg, #103901, #1d431d);
+        color: white;
+        padding: 12px 20px;
+        margin: -20px -20px 20px -20px;
+        border-radius: 10px 10px 0 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .field-box label {
+        color: #103901;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    input[type="text"], input[type="number"], input[type="email"], 
+    input[type="date"], input[type="datetime-local"], 
+    select, textarea {
+        border: 2px solid #e8f5e8;
+        border-radius: 6px;
+        padding: 8px 12px;
+        width: 100%;
+        transition: border-color 0.3s;
+    }
+    
+    input[type="text"]:focus, input[type="number"]:focus, 
+    input[type="email"]:focus, input[type="date"]:focus, 
+    input[type="datetime-local"]:focus, select:focus, textarea:focus {
+        border-color: #103901;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(16, 57, 1, 0.1);
+    }
+    
+    .help {
+        color: #64748b;
+        font-size: 12px;
+        font-style: italic;
+        margin-top: 5px;
+    }
+    
+    /* Status display */
+    .readonly {
+        background: #f8fafc;
+        padding: 10px;
+        border-radius: 6px;
+        border-left: 4px solid #103901;
+    }
+    
+    /* Submit row */
+    .submit-row {
+        background: #f8fafc;
+        border-top: 2px solid #e8f5e8;
+        padding: 15px 20px;
+        border-radius: 0 0 12px 12px;
+    }
+    
+    /* Info boxes */
+    .aligned .vDateField, .aligned .vTimeField {
+        width: auto;
+    }
+    
+    /* Custom loan info display */
+    .loan-info-box {
+        background: linear-gradient(135deg, #e8f5e8, #c8e6c8);
+        border-left: 4px solid #103901;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    .loan-info-box h3 {
+        color: #103901;
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .loan-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+    }
+    
+    .loan-info-item {
+        background: white;
+        padding: 10px;
+        border-radius: 6px;
+    }
+    
+    .loan-info-label {
+        font-size: 11px;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .loan-info-value {
+        font-size: 18px;
+        color: #103901;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block field_sets %}
+{% if original %}
+<div class="loan-info-box">
+    <h3><i class="fas fa-info-circle"></i> Loan Summary</h3>
+    <div class="loan-info-grid">
+        <div class="loan-info-item">
+            <div class="loan-info-label">Application Number</div>
+            <div class="loan-info-value">{{ original.application_number }}</div>
+        </div>
+        <div class="loan-info-item">
+            <div class="loan-info-label">Status</div>
+            <div class="loan-info-value">
+                <span class="loan-status status-{{ original.status }}">{{ original.get_status_display }}</span>
+            </div>
+        </div>
+        <div class="loan-info-item">
+            <div class="loan-info-label">Principal Amount</div>
+            <div class="loan-info-value">K{{ original.principal_amount|floatformat:2 }}</div>
+        </div>
+        <div class="loan-info-item">
+            <div class="loan-info-label">Monthly Payment</div>
+            <div class="loan-info-value">K{{ original.monthly_payment|floatformat:2 }}</div>
+        </div>
+        <div class="loan-info-item">
+            <div class="loan-info-label">Total Amount</div>
+            <div class="loan-info-value">K{{ original.total_amount|floatformat:2 }}</div>
+        </div>
+        <div class="loan-info-item">
+            <div class="loan-info-label">Balance Remaining</div>
+            <div class="loan-info-value">K{{ original.balance_remaining|floatformat:2 }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

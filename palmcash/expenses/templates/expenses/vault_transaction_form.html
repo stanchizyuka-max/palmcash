@@ -1,0 +1,184 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Record Vault Transaction - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-vault text-primary-600 text-3xl"></i>
+                <h1 class="text-4xl font-bold text-secondary-900">Record Vault Transaction</h1>
+            </div>
+            <p class="text-secondary-600">Document cash movements and vault operations</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-8 py-6">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-exchange-alt mr-3"></i>
+                    Transaction Details
+                </h2>
+            </div>
+
+            <form method="post" class="p-8">
+                {% csrf_token %}
+                
+                <!-- Non-field Errors -->
+                {% if form.non_field_errors %}
+                <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle text-danger-500 mt-1 mr-3"></i>
+                        <div>
+                            {% for error in form.non_field_errors %}
+                            <p class="text-danger-800 text-sm">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Transaction Type and Branch Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-list text-primary-600 mr-2"></i>Transaction Type
+                        </label>
+                        {{ form.transaction_type|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.transaction_type.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.transaction_type.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-map-marker-alt text-primary-600 mr-2"></i>Branch
+                        </label>
+                        {{ form.branch|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.branch.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.branch.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Amount and Date Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-money-bill-wave text-primary-600 mr-2"></i>Amount (K)
+                        </label>
+                        {{ form.amount|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.amount.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.amount.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-calendar text-primary-600 mr-2"></i>Transaction Date
+                        </label>
+                        {{ form.transaction_date|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.transaction_date.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.transaction_date.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Reference Number -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-hashtag text-primary-600 mr-2"></i>Reference Number
+                    </label>
+                    {{ form.reference_number|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                    {% if form.reference_number.errors %}
+                    <p class="text-danger-600 text-sm mt-2 flex items-center">
+                        <i class="fas fa-times-circle mr-1"></i>{{ form.reference_number.errors.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-align-left text-primary-600 mr-2"></i>Description
+                    </label>
+                    {{ form.description|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                    {% if form.description.errors %}
+                    <p class="text-danger-600 text-sm mt-2 flex items-center">
+                        <i class="fas fa-times-circle mr-1"></i>{{ form.description.errors.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Related Records Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-file-invoice-dollar text-primary-600 mr-2"></i>Related Loan (Optional)
+                        </label>
+                        {{ form.loan|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.loan.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.loan.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                            <i class="fas fa-credit-card text-primary-600 mr-2"></i>Related Payment (Optional)
+                        </label>
+                        {{ form.payment|add_class:"w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" }}
+                        {% if form.payment.errors %}
+                        <p class="text-danger-600 text-sm mt-2 flex items-center">
+                            <i class="fas fa-times-circle mr-1"></i>{{ form.payment.errors.0 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 pt-6 border-t border-secondary-200">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-check-circle mr-3"></i>
+                        Record Transaction
+                    </button>
+                    <a href="{% url 'expenses:vault-transactions' %}" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-secondary-100 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-200 transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-times mr-3"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-info-50 border border-info-200 rounded-xl p-6">
+            <div class="flex gap-4">
+                <i class="fas fa-info-circle text-info-600 text-xl flex-shrink-0 mt-1"></i>
+                <div>
+                    <h3 class="font-semibold text-info-900 mb-2">Transaction Recording Guidelines</h3>
+                    <ul class="text-info-800 text-sm space-y-1">
+                        <li>• Select the appropriate transaction type (deposit, withdrawal, etc.)</li>
+                        <li>• Specify the branch where the transaction occurred</li>
+                        <li>• Enter the exact amount in Kwacha (K)</li>
+                        <li>• Use a reference number for tracking and reconciliation</li>
+                        <li>• Link to related loans or payments when applicable</li>
+                        <li>• Provide clear description for audit purposes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

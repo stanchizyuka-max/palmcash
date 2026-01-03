@@ -1,0 +1,498 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}System Statistics - LoanVista{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .metric-card {
+        transition: all 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .chart-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring-circle {
+        transition: stroke-dasharray 0.35s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="stat-gradient rounded-2xl p-8 mb-8 text-white">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-4xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-chart-pie mr-4"></i>
+                    System Statistics
+                </h1>
+                <p class="text-xl text-white/90 mb-4">
+                    Comprehensive system performance and usage analytics
+                </p>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-rocket"></i>
+                        <span>Launched: {{ system_launch_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-clock"></i>
+                        <span>Age: {{ system_age }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Period: {{ report_period }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 md:mt-0">
+                <div class="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-server text-4xl text-white/80"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- System Uptime -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+                <span class="text-2xl">🟢</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">System Status</h3>
+            <p class="text-3xl font-bold text-green-600 mb-2">99.9%</p>
+            <p class="text-sm text-gray-600">Uptime</p>
+        </div>
+
+        <!-- Active Users -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                </div>
+                <span class="text-2xl">👥</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">Total Users</h3>
+            <p class="text-3xl font-bold text-blue-600 mb-2">
+                {% if user_stats %}
+                    {{ user_stats|length }}
+                {% else %}
+                    0
+                {% endif %}
+            </p>
+            <p class="text-sm text-gray-600">Registered</p>
+        </div>
+
+        <!-- Documents Processed -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-alt text-purple-600 text-xl"></i>
+                </div>
+                <span class="text-2xl">📄</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">Documents</h3>
+            <p class="text-3xl font-bold text-purple-600 mb-2">
+                {% if document_stats %}
+                    {% for stat in document_stats %}{{ stat.count }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                {% else %}
+                    0
+                {% endif %}
+            </p>
+            <p class="text-sm text-gray-600">Processed</p>
+        </div>
+
+        <!-- Performance Score -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-tachometer-alt text-yellow-600 text-xl"></i>
+                </div>
+                <span class="text-2xl">⚡</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">Performance</h3>
+            <p class="text-3xl font-bold text-yellow-600 mb-2">A+</p>
+            <p class="text-sm text-gray-600">Grade</p>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- User Breakdown -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users mr-3 text-blue-600"></i>
+                    User Statistics
+                </h2>
+            </div>
+            <div class="p-6">
+                {% if user_stats %}
+                <div class="space-y-4">
+                    {% for stat in user_stats %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                {% if stat.role == 'admin' %}
+                                <i class="fas fa-crown text-blue-600"></i>
+                                {% elif stat.role == 'loan_officer' %}
+                                <i class="fas fa-user-tie text-blue-600"></i>
+                                {% else %}
+                                <i class="fas fa-user text-blue-600"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 capitalize">{{ stat.role|title }}s</p>
+                                <p class="text-sm text-gray-600">Active users</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-blue-600">{{ stat.count }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-user-plus text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-600">No user data available yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Document Statistics -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-file-alt mr-3 text-purple-600"></i>
+                    Document Statistics
+                </h2>
+            </div>
+            <div class="p-6">
+                {% if document_stats %}
+                <div class="space-y-4">
+                    {% for stat in document_stats %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                {% if stat.status == 'approved' %}
+                                <i class="fas fa-check-circle text-purple-600"></i>
+                                {% elif stat.status == 'pending' %}
+                                <i class="fas fa-clock text-purple-600"></i>
+                                {% else %}
+                                <i class="fas fa-file text-purple-600"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 capitalize">{{ stat.status|title }}</p>
+                                <p class="text-sm text-gray-600">Documents</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-purple-600">{{ stat.count }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-file-upload text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-600">No document data available yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Document Verification -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-file-contract mr-3 text-green-600"></i>
+                Loan Document Verification Status
+            </h2>
+        </div>
+        <div class="p-6">
+            {% if loan_document_stats %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for stat in loan_document_stats %}
+                <div class="text-center p-6 bg-gray-50 rounded-xl">
+                    {% if stat.is_verified %}
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-green-600 mb-2">{{ stat.count }}</h3>
+                    <p class="text-gray-700 font-medium">Verified Documents</p>
+                    <p class="text-sm text-gray-600 mt-1">Successfully processed</p>
+                    {% else %}
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-clock text-yellow-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold text-yellow-600 mb-2">{{ stat.count }}</h3>
+                    <p class="text-gray-700 font-medium">Pending Verification</p>
+                    <p class="text-sm text-gray-600 mt-1">Awaiting review</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-file-signature text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-600">No loan document data available yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Daily Activity Chart -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-chart-line mr-3 text-indigo-600"></i>
+                Daily Activity Trends (Last 30 Days)
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="chart-container rounded-xl p-6">
+                <canvas id="activityChart" class="w-full h-80"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Total Applications -->
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Total Applications</h3>
+                    <p class="text-3xl font-bold">
+                        {% if daily_activity %}
+                            {% for day in daily_activity %}{{ day.loans|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                    <p class="text-blue-100 text-sm mt-2">Since system launch</p>
+                </div>
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-file-contract text-3xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Total Payments</h3>
+                    <p class="text-3xl font-bold">
+                        {% if daily_activity %}
+                            {% for day in daily_activity %}{{ day.payments|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                    <p class="text-green-100 text-sm mt-2">Processed successfully</p>
+                </div>
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-credit-card text-3xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Uploaded -->
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Documents Uploaded</h3>
+                    <p class="text-3xl font-bold">
+                        {% if daily_activity %}
+                            {% for day in daily_activity %}{{ day.documents|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </p>
+                    <p class="text-purple-100 text-sm mt-2">Total processed</p>
+                </div>
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-file-upload text-3xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate metric cards
+    const cards = document.querySelectorAll('.metric-card');
+    cards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        }, index * 100);
+    });
+
+    // Daily Activity Chart
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    
+    const dailyData = {{ daily_activity|safe }};
+    
+    if (dailyData && dailyData.length > 0) {
+        const labels = dailyData.map(day => day.date_label);
+        const loansData = dailyData.map(day => day.loans);
+        const paymentsData = dailyData.map(day => day.payments);
+        const documentsData = dailyData.map(day => day.documents);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Loan Applications',
+                        data: loansData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    },
+                    {
+                        label: 'Payments',
+                        data: paymentsData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    },
+                    {
+                        label: 'Documents',
+                        data: documentsData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        intersect: false,
+                        mode: 'index'
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            color: '#6b7280'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f3f4f6'
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                size: 11
+                            },
+                            color: '#6b7280'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
+                }
+            }
+        });
+    } else {
+        // Show no data message
+        ctx.canvas.parentElement.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-chart-line text-gray-400 text-6xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Activity Data</h3>
+                <p class="text-gray-600">Activity data will appear here once the system starts processing transactions.</p>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

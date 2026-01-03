@@ -1,0 +1,170 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Groups & Permissions - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Groups & Permissions</h1>
+                <p class="text-secondary-600 mt-2">Manage user groups and system permissions</p>
+            </div>
+            <a href="{% url 'dashboard:admin' %}" class="btn-outline-primary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="{% url 'dashboard:add_group' %}" class="flex flex-col items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors duration-200">
+                    <i class="fas fa-plus-circle text-primary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-primary-900">Add Group</span>
+                </a>
+                <a href="{% url 'dashboard:manage_groups' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-users-cog text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">Manage Groups</span>
+                </a>
+                <a href="/admin/auth/permission/" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-key text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">Permissions</span>
+                </a>
+                <a href="{% url 'dashboard:manage_users' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-users text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">Manage Users</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Groups Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {% for group in groups %}
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-secondary-900">{{ group.name }}</h3>
+                    <a href="/admin/auth/group/{{ group.id }}/change/" class="text-primary-600 hover:text-primary-900">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-primary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Users in Group</span>
+                        <span class="text-xl font-bold text-primary-600">{{ group.user.count }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-3 bg-success-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Permissions</span>
+                        <span class="text-xl font-bold text-success-600">{{ group.permissions.count }}</span>
+                    </div>
+                </div>
+
+                <!-- Group Permissions Preview -->
+                {% if group.permissions.all %}
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-secondary-700 mb-2">Key Permissions:</h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for permission in group.permissions.all|slice:":5" %}
+                        <span class="px-2 py-1 bg-secondary-100 text-secondary-700 text-xs rounded">
+                            {{ permission.name|truncatechars:20 }}
+                        </span>
+                        {% endfor %}
+                        {% if group.permissions.count > 5 %}
+                        <span class="px-2 py-1 bg-secondary-200 text-secondary-600 text-xs rounded">
+                            +{{ group.permissions.count|add:"-5" }} more
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Group Users Preview -->
+                {% if group.user.all %}
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-secondary-700 mb-2">Users in Group:</h4>
+                    <div class="space-y-1">
+                        {% for user in group.user.all|slice:":3" %}
+                        <div class="text-sm text-secondary-600">
+                            {{ user.get_full_name|default:user.username }}
+                        </div>
+                        {% endfor %}
+                        {% if group.user.count > 3 %}
+                        <div class="text-xs text-secondary-500">
+                            +{{ group.user.count|add:"-3" }} more users
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="col-span-2 bg-white rounded-xl shadow-sm border border-secondary-100 p-8 text-center">
+                <i class="fas fa-users-cog text-4xl text-secondary-300 mb-4"></i>
+                <p class="text-secondary-500">No groups found</p>
+                <a href="/admin/auth/group/add/" class="btn-primary mt-4">
+                    <i class="fas fa-plus mr-2"></i>Create First Group
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Permissions Overview -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+            <div class="p-6 border-b border-secondary-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-secondary-900">System Permissions</h3>
+                <a href="/admin/auth/permission/" class="text-primary-600 hover:text-primary-900">
+                    <i class="fas fa-external-link-alt mr-1"></i>View All
+                </a>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% regroup permissions by content_type as grouped_permissions %}
+                    {% for content_type_group in grouped_permissions|slice:":6" %}
+                    <div class="p-4 bg-secondary-50 rounded-lg">
+                        <h4 class="font-medium text-secondary-900 mb-2">
+                            {{ content_type_group.grouper.name|title }}
+                        </h4>
+                        <div class="space-y-1">
+                            {% for permission in content_type_group.list|slice:":4" %}
+                            <div class="text-sm text-secondary-600">
+                                {{ permission.name }}
+                            </div>
+                            {% endfor %}
+                            {% if content_type_group.list|length > 4 %}
+                            <div class="text-xs text-secondary-500">
+                                +{{ content_type_group.list|length|add:"-4" }} more
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if grouped_permissions|length > 6 %}
+                <div class="mt-4 text-center">
+                    <a href="/admin/auth/permission/" class="btn-outline-primary">
+                        View All {{ permissions.count }} Permissions
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="mt-8 bg-warning-50 border-l-4 border-warning-500 p-4 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-warning-500 mt-1"></i>
+                <div class="ml-3">
+                    <p class="text-sm text-warning-800">
+                        <strong>Security Notice:</strong> Be careful when modifying groups and permissions. 
+                        Changes affect user access across the entire system. Always test changes in a development environment first.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

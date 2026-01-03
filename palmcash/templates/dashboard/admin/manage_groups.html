@@ -1,0 +1,368 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Groups - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Manage Groups</h1>
+                <p class="text-secondary-600 mt-2">View, edit, and manage user groups and their permissions</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'dashboard:add_group' %}" class="btn-primary">
+                    <i class="fas fa-plus mr-2"></i>Add New Group
+                </a>
+                <a href="{% url 'dashboard:groups_permissions' %}" class="btn-outline-primary">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Overview
+                </a>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div class="flex-1 max-w-md">
+                    <label for="search" class="sr-only">Search groups</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-secondary-400"></i>
+                        </div>
+                        <input type="text" 
+                               id="search" 
+                               placeholder="Search groups..."
+                               class="block w-full pl-10 pr-3 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <select id="sort-by" class="border border-secondary-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="name">Sort by Name</option>
+                        <option value="users">Sort by User Count</option>
+                        <option value="permissions">Sort by Permissions</option>
+                        <option value="created">Sort by Date Created</option>
+                    </select>
+                    
+                    <button id="refresh-btn" class="btn-outline-secondary">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Groups</p>
+                        <p class="text-3xl font-bold text-primary-600 mt-2">{{ groups.count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users-cog text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Users in Groups</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ total_users_in_groups }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Permissions</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ total_permissions }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-key text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Groups</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ active_groups }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Groups Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">All Groups</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full" id="groups-table">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">
+                                <input type="checkbox" id="select-all" class="rounded border-secondary-300 text-primary-600 focus:ring-primary-500">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Group Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Users</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Permissions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Created</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for group in groups %}
+                        <tr class="hover:bg-secondary-50 group-row" data-group-name="{{ group.name|lower }}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" class="group-checkbox rounded border-secondary-300 text-primary-600 focus:ring-primary-500" value="{{ group.id }}">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-users text-primary-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-secondary-900">{{ group.name }}</div>
+                                        <div class="text-sm text-secondary-500">ID: {{ group.id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-bold text-success-600">{{ group.user.count }}</span>
+                                    <span class="text-sm text-secondary-500 ml-2">users</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <span class="text-2xl font-bold text-info-600">{{ group.permissions.count }}</span>
+                                    <span class="text-sm text-secondary-500 ml-2">permissions</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                <div class="flex flex-col">
+                                    <span>{{ group.id|date:"M d, Y" }}</span>
+                                    <span class="text-xs">{{ group.id|date:"H:i" }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center space-x-2">
+                                    <a href="/admin/auth/group/{{ group.id }}/change/" 
+                                       class="text-primary-600 hover:text-primary-900 p-2 rounded-lg hover:bg-primary-50"
+                                       title="Edit Group">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button onclick="viewGroupDetails({{ group.id }}, '{{ group.name }}')"
+                                            class="text-info-600 hover:text-info-900 p-2 rounded-lg hover:bg-info-50"
+                                            title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="manageGroupUsers({{ group.id }}, '{{ group.name }}')"
+                                            class="text-success-600 hover:text-success-900 p-2 rounded-lg hover:bg-success-50"
+                                            title="Manage Users">
+                                        <i class="fas fa-users"></i>
+                                    </button>
+                                    <button onclick="deleteGroup({{ group.id }}, '{{ group.name }}')"
+                                            class="text-danger-600 hover:text-danger-900 p-2 rounded-lg hover:bg-danger-50"
+                                            title="Delete Group">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-users-cog text-4xl mb-4 text-secondary-300"></i>
+                                <p>No groups found</p>
+                                <a href="{% url 'dashboard:add_group' %}" class="btn-primary mt-4">
+                                    <i class="fas fa-plus mr-2"></i>Create First Group
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div id="bulk-actions" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border border-secondary-200 p-4 hidden">
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-secondary-700">
+                    <span id="selected-count">0</span> groups selected
+                </span>
+                <button onclick="bulkDeleteGroups()" class="btn-danger-sm">
+                    <i class="fas fa-trash mr-2"></i>Delete Selected
+                </button>
+                <button onclick="clearSelection()" class="btn-outline-secondary-sm">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Group Details Modal -->
+<div id="group-details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6 border-b border-secondary-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-secondary-900" id="modal-group-name">Group Details</h3>
+                    <button onclick="closeModal()" class="text-secondary-400 hover:text-secondary-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6" id="modal-content">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('search');
+    const groupRows = document.querySelectorAll('.group-row');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        groupRows.forEach(row => {
+            const groupName = row.dataset.groupName;
+            if (groupName.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    // Select all functionality
+    const selectAllCheckbox = document.getElementById('select-all');
+    const groupCheckboxes = document.querySelectorAll('.group-checkbox');
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    
+    selectAllCheckbox.addEventListener('change', function() {
+        groupCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkActions();
+    });
+    
+    groupCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActions);
+    });
+    
+    function updateBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.group-checkbox:checked');
+        const count = checkedBoxes.length;
+        
+        selectedCount.textContent = count;
+        
+        if (count > 0) {
+            bulkActions.classList.remove('hidden');
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+        
+        // Update select all checkbox state
+        selectAllCheckbox.checked = count === groupCheckboxes.length;
+        selectAllCheckbox.indeterminate = count > 0 && count < groupCheckboxes.length;
+    }
+});
+
+function viewGroupDetails(groupId, groupName) {
+    document.getElementById('modal-group-name').textContent = groupName + ' - Details';
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <div class="text-center">
+                <i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i>
+                <p class="text-secondary-600 mt-2">Loading group details...</p>
+            </div>
+        </div>
+    `;
+    document.getElementById('group-details-modal').classList.remove('hidden');
+    
+    // Simulate loading group details
+    setTimeout(() => {
+        document.getElementById('modal-content').innerHTML = `
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-primary-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-primary-900">Group ID</h4>
+                        <p class="text-2xl font-bold text-primary-600">${groupId}</p>
+                    </div>
+                    <div class="bg-success-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-success-900">Total Users</h4>
+                        <p class="text-2xl font-bold text-success-600">Loading...</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-secondary-900 mb-2">Recent Activity</h4>
+                    <div class="bg-secondary-50 p-4 rounded-lg">
+                        <p class="text-secondary-600">Group activity details would be loaded here...</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeModal()" class="btn-outline-secondary">Close</button>
+                    <a href="/admin/auth/group/${groupId}/change/" class="btn-primary">
+                        <i class="fas fa-edit mr-2"></i>Edit Group
+                    </a>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+function manageGroupUsers(groupId, groupName) {
+    alert(`Manage users for group: ${groupName}\nThis would open a user management interface.`);
+}
+
+function deleteGroup(groupId, groupName) {
+    if (confirm(`Are you sure you want to delete the group "${groupName}"?\n\nThis action cannot be undone.`)) {
+        alert(`Group "${groupName}" would be deleted.\nImplement actual deletion logic here.`);
+    }
+}
+
+function bulkDeleteGroups() {
+    const checkedBoxes = document.querySelectorAll('.group-checkbox:checked');
+    const count = checkedBoxes.length;
+    
+    if (confirm(`Are you sure you want to delete ${count} selected groups?\n\nThis action cannot be undone.`)) {
+        alert(`${count} groups would be deleted.\nImplement actual bulk deletion logic here.`);
+        clearSelection();
+    }
+}
+
+function clearSelection() {
+    document.querySelectorAll('.group-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('select-all').checked = false;
+    document.getElementById('bulk-actions').classList.add('hidden');
+}
+
+function closeModal() {
+    document.getElementById('group-details-modal').classList.add('hidden');
+}
+</script>
+{% endblock %}

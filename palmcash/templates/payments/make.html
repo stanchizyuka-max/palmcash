@@ -1,0 +1,256 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Make Payment - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900">Make Loan Payment</h1>
+            <p class="text-secondary-600 mt-2">Submit your payment for processing</p>
+        </div>
+
+        <!-- Alert Messages -->
+        <div class="space-y-4 mb-6">
+            <div class="bg-info-50 border-l-4 border-info-500 p-4 rounded-r-lg">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-info-600 text-xl mr-3 mt-0.5"></i>
+                    <div class="text-sm text-info-800">
+                        <strong>Payment Information:</strong> Please ensure all payment details are correct before submitting. 
+                        Payments are processed immediately and cannot be reversed.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-warning-50 border-l-4 border-warning-500 p-4 rounded-r-lg">
+                <div class="flex items-start">
+                    <i class="fas fa-shield-alt text-warning-600 text-xl mr-3 mt-0.5"></i>
+                    <div class="text-sm text-warning-800">
+                        <strong>Security Notice:</strong> Only borrowers can submit payments for their own loans. 
+                        Administrators and loan officers can only process and confirm payments submitted by borrowers.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-credit-card"></i>
+                    Payment Details
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-r-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-danger-500 text-xl mr-3"></i>
+                            <div class="text-sm text-danger-800">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-money-bill-wave text-secondary-400 mr-1"></i>
+                                Payment Amount (K) *
+                            </label>
+                            {{ form.amount|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.amount.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.amount.errors }}</p>
+                            {% endif %}
+                            <p class="mt-2 text-xs text-secondary-500">Enter the amount you want to pay</p>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                <i class="fas fa-wallet text-secondary-400 mr-1"></i>
+                                Payment Method *
+                            </label>
+                            {{ form.payment_method|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.payment_method.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.payment_method.errors }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6" id="reference-number-field">
+                        <label for="{{ form.reference_number.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-hashtag text-secondary-400 mr-1"></i>
+                            Reference Number <span id="reference-required" class="text-danger-600 hidden">*</span>
+                        </label>
+                        {{ form.reference_number|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                        {% if form.reference_number.errors %}
+                        <p class="mt-2 text-sm text-danger-600">{{ form.reference_number.errors }}</p>
+                        {% endif %}
+                        <p class="mt-2 text-xs text-secondary-500" id="reference-help-text">Transaction reference number (required for bank transfers and mobile money)</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-sticky-note text-secondary-400 mr-1"></i>
+                            Notes
+                        </label>
+                        {{ form.notes|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                        {% if form.notes.errors %}
+                        <p class="mt-2 text-sm text-danger-600">{{ form.notes.errors }}</p>
+                        {% endif %}
+                        <p class="mt-2 text-xs text-secondary-500">Optional: Add any additional information about this payment</p>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-secondary-200">
+                        <a href="{% url 'payments:list' %}" 
+                           class="inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                            <i class="fas fa-credit-card mr-2"></i>
+                            Submit Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Payment Methods Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden mt-6">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i>
+                    Payment Methods
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-primary-50 rounded-lg border border-primary-200">
+                        <h3 class="text-lg font-semibold text-primary-900 mb-3 flex items-center gap-2">
+                            <i class="fas fa-university"></i>
+                            Bank Transfer
+                        </h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Bank:</span>
+                                <span class="font-medium text-secondary-900">Zanaco Bank</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Account Name:</span>
+                                <span class="font-medium text-secondary-900">LoanVista Ltd</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Account Number:</span>
+                                <span class="font-medium text-secondary-900">1234567890</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Branch Code:</span>
+                                <span class="font-medium text-secondary-900">01001</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-success-50 rounded-lg border border-success-200">
+                        <h3 class="text-lg font-semibold text-success-900 mb-3 flex items-center gap-2">
+                            <i class="fas fa-mobile-alt"></i>
+                            Mobile Money
+                        </h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">MTN Mobile Money:</span>
+                                <span class="font-medium text-secondary-900">0977-123-456</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Airtel Money:</span>
+                                <span class="font-medium text-secondary-900">0966-123-456</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-secondary-600">Zamtel Kwacha:</span>
+                                <span class="font-medium text-secondary-900">0955-123-456</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-warning-50 border-l-4 border-warning-500 p-4 rounded-r-lg mt-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-warning-600 text-xl mr-3 mt-0.5"></i>
+                        <div class="text-sm text-warning-800">
+                            <strong>Important:</strong> Always keep your payment receipts and reference numbers for your records.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentMethodSelect = document.getElementById('{{ form.payment_method.id_for_label }}');
+    const referenceNumberInput = document.getElementById('{{ form.reference_number.id_for_label }}');
+    const referenceRequired = document.getElementById('reference-required');
+    const referenceHelpText = document.getElementById('reference-help-text');
+    const form = referenceNumberInput.closest('form');
+    
+    // Function to update reference number requirement
+    function updateReferenceRequirement() {
+        const paymentMethod = paymentMethodSelect.value;
+        
+        // Require reference number for bank_transfer and mobile_money
+        if (paymentMethod === 'bank_transfer' || paymentMethod === 'mobile_money') {
+            referenceNumberInput.required = true;
+            referenceRequired.classList.remove('hidden');
+            referenceHelpText.classList.remove('text-secondary-500');
+            referenceHelpText.classList.add('text-danger-600', 'font-medium');
+            referenceNumberInput.classList.add('border-danger-300');
+            
+            // Update help text based on payment method
+            if (paymentMethod === 'bank_transfer') {
+                referenceHelpText.textContent = 'Required: Enter your bank transaction reference number';
+            } else if (paymentMethod === 'mobile_money') {
+                referenceHelpText.textContent = 'Required: Enter your mobile money transaction ID';
+            }
+        } else {
+            referenceNumberInput.required = false;
+            referenceRequired.classList.add('hidden');
+            referenceHelpText.classList.remove('text-danger-600', 'font-medium');
+            referenceHelpText.classList.add('text-secondary-500');
+            referenceNumberInput.classList.remove('border-danger-300');
+            referenceHelpText.textContent = 'Transaction reference number (optional for cash and card payments)';
+        }
+    }
+    
+    // Update on page load
+    updateReferenceRequirement();
+    
+    // Update when payment method changes
+    paymentMethodSelect.addEventListener('change', updateReferenceRequirement);
+    
+    // Validate on form submit
+    form.addEventListener('submit', function(e) {
+        const paymentMethod = paymentMethodSelect.value;
+        const referenceValue = referenceNumberInput.value.trim();
+        
+        if ((paymentMethod === 'bank_transfer' || paymentMethod === 'mobile_money') && !referenceValue) {
+            e.preventDefault();
+            alert('Please enter a transaction reference number for ' + (paymentMethod === 'bank_transfer' ? 'bank transfer' : 'mobile money') + ' payments.');
+            referenceNumberInput.focus();
+            referenceNumberInput.classList.add('border-danger-500');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

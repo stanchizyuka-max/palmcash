@@ -1,0 +1,187 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Expenses Management{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-secondary-900">
+                    <i class="fas fa-receipt text-primary-600 mr-3"></i>Expenses
+                </h1>
+                <p class="text-secondary-600 mt-2">Track and manage all company expenses</p>
+            </div>
+            {% if user.role in 'admin,manager' %}
+            <a href="{% url 'expenses:create' %}" class="bg-success-600 hover:bg-success-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center gap-2">
+                <i class="fas fa-plus"></i>New Expense
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-secondary-100">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">
+                <i class="fas fa-filter text-primary-600 mr-2"></i>Filters
+            </h3>
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Category</label>
+                    <select name="category" class="w-full border border-secondary-300 rounded-lg px-4 py-2 text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if request.GET.category|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Branch</label>
+                    <input type="text" name="branch" value="{{ request.GET.branch }}" class="w-full border border-secondary-300 rounded-lg px-4 py-2 text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Branch name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Start Date</label>
+                    <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="w-full border border-secondary-300 rounded-lg px-4 py-2 text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">End Date</label>
+                    <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="w-full border border-secondary-300 rounded-lg px-4 py-2 text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Status</label>
+                    <select name="approval_status" class="w-full border border-secondary-300 rounded-lg px-4 py-2 text-secondary-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">All</option>
+                        <option value="approved" {% if request.GET.approval_status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="pending" {% if request.GET.approval_status == 'pending' %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-5">
+                    <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-search mr-2"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Expenses</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">K{{ total_expenses|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-primary-100 rounded-full p-4">
+                        <i class="fas fa-receipt text-primary-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-success-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Approved</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">K{{ approved_total|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-success-100 rounded-full p-4">
+                        <i class="fas fa-check-circle text-success-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-warning-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Approval</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">K{{ pending_total|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-warning-100 rounded-full p-4">
+                        <i class="fas fa-hourglass-half text-warning-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-secondary-100">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50 border-b border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Branch</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-200">
+                        {% for expense in expenses %}
+                        <tr class="hover:bg-secondary-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-secondary-900">{{ expense.expense_date|date:"M d, Y" }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-900">{{ expense.title }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">{{ expense.category.name }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">{{ expense.branch }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-secondary-900">K{{ expense.amount|floatformat:2 }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if expense.is_approved %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Approved
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+                                    <i class="fas fa-clock mr-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if user.role in 'admin,manager' %}
+                                <div class="flex gap-2">
+                                    <a href="{% url 'expenses:edit' expense.id %}" class="text-primary-600 hover:text-primary-700 font-medium">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:delete' expense.id %}" class="text-danger-600 hover:text-danger-700 font-medium">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No expenses found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="bg-secondary-50 px-6 py-4 border-t border-secondary-200 flex items-center justify-between">
+                <div class="text-sm text-secondary-600">
+                    Page <span class="font-semibold">{{ page_obj.number }}</span> of <span class="font-semibold">{{ page_obj.paginator.num_pages }}</span>
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 transition-colors">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 transition-colors">Previous</a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 transition-colors">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 transition-colors">Last</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

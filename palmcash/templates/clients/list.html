@@ -1,0 +1,222 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Clients - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
+                    <i class="fas fa-users mr-3 text-primary-600"></i>
+                    {% if user.role == 'loan_officer' %}My Assigned Clients{% else %}Clients{% endif %}
+                </h1>
+                <p class="text-secondary-600 mt-2">
+                    {% if user.role == 'loan_officer' %}
+                        View and manage your assigned clients
+                    {% else %}
+                        Manage and view all registered clients
+                    {% endif %}
+                </p>
+            </div>
+            {% if user.role == 'admin' or user.role == 'manager' or user.is_superuser %}
+            <a href="{% url 'clients:bulk_assign' %}" class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm">
+                <i class="fas fa-users-cog mr-2"></i>Bulk Assign Clients
+            </a>
+            {% endif %}
+        </div>
+        
+        {% if user.role == 'loan_officer' %}
+        <div class="mb-6 bg-info-50 border border-info-200 rounded-lg p-4">
+            <div class="flex items-start">
+                <i class="fas fa-info-circle text-info-600 text-xl mr-3 mt-0.5"></i>
+                <div>
+                    <h3 class="text-info-900 font-semibold mb-1">Your Assigned Clients</h3>
+                    <p class="text-info-800 text-sm">
+                        You are viewing only the clients that have been assigned to you by management. 
+                        You have <strong>{{ clients.count }}</strong> assigned client{{ clients.count|pluralize }}.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Clients</p>
+                        <p class="text-3xl font-bold text-primary-600 mt-2">{{ clients.count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Verified Clients</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ verified_count|default:0 }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Verification</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_count|default:0 }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clients Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            {% if clients %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50 border-b border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Client
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Email
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Phone
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Assigned Officer
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Member Since
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for client in clients %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full flex items-center justify-center mr-3 shadow-sm">
+                                        <span class="text-white font-semibold text-sm">
+                                            {{ client.get_full_name|default:client.username|slice:":1"|upper }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-secondary-900">
+                                            {{ client.get_full_name|default:client.username }}
+                                        </div>
+                                        <div class="text-xs text-secondary-500">
+                                            ID: {{ client.id }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center text-sm text-secondary-700">
+                                    <i class="fas fa-envelope text-secondary-400 mr-2"></i>
+                                    {{ client.email|default:"Not provided" }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center text-sm text-secondary-700">
+                                    <i class="fas fa-phone text-secondary-400 mr-2"></i>
+                                    {{ client.phone_number|default:"Not provided" }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if client.assigned_officer %}
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-user-tie text-primary-500 mr-2"></i>
+                                    <span class="text-secondary-900 font-medium">{{ client.assigned_officer.get_full_name }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-xs text-secondary-400 italic">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if client.is_verified %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                    <i class="fas fa-check-circle mr-1.5"></i>Verified
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+                                    <i class="fas fa-clock mr-1.5"></i>Pending
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-secondary-500">
+                                    <i class="fas fa-calendar-alt mr-1.5"></i>
+                                    {{ client.date_joined|date:"M d, Y" }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{% url 'clients:detail' client.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-primary-300 text-primary-700 hover:bg-primary-50 rounded-lg text-sm font-medium transition-colors duration-150">
+                                    <i class="fas fa-eye mr-1.5"></i>View Profile
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-secondary-200 sm:px-6">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn-outline-secondary">Previous</a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn-outline-secondary">Next</a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-secondary-700">
+                            Showing <span class="font-medium">{{ page_obj.start_index }}</span> to 
+                            <span class="font-medium">{{ page_obj.end_index }}</span> of 
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-12">
+                <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-4xl text-secondary-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-secondary-900 mb-2">No clients found</h3>
+                <p class="text-secondary-500">No clients have registered yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

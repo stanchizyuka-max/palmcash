@@ -1,0 +1,141 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Analytics - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900">Analytics Dashboard</h1>
+            <p class="text-secondary-600 mt-2">Detailed system analytics and performance metrics</p>
+        </div>
+
+        <!-- Loan Status Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Loan Status Distribution</h3>
+                <div class="space-y-4">
+                    {% for status in loan_status_data %}
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium text-secondary-700">{{ status.status|title }}</span>
+                            <span class="text-sm font-bold text-secondary-900">{{ status.count }}</span>
+                        </div>
+                        <div class="w-full bg-secondary-200 rounded-full h-3">
+                            {% widthratio status.count 100 100 as percentage %}
+                            <div class="bg-primary-600 h-3 rounded-full transition-all duration-500" style="width: {{ percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-secondary-500 text-center py-8">No loan data available</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Payment Performance -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Payment Performance</h3>
+                {% if payment_performance %}
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Total Due</span>
+                        <span class="text-xl font-bold text-primary-600">K {{ payment_performance.total_due|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Total Paid</span>
+                        <span class="text-xl font-bold text-success-600">K {{ payment_performance.total_paid|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-info-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Collection Rate</span>
+                        <span class="text-xl font-bold text-info-600">{{ payment_performance.collection_rate|floatformat:1 }}%</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-secondary-500 text-center py-8">No payment data available</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Monthly Disbursements -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Monthly Disbursements (Last 12 Months)</h3>
+            {% if monthly_disbursements %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Month</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Loans Count</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for month_data in monthly_disbursements %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-900">
+                                {{ month_data.month }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                {{ month_data.count }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                K {{ month_data.total|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-secondary-500 text-center py-8">No disbursement data available</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Loans</h3>
+                    <i class="fas fa-file-invoice-dollar text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ loan_status_data|length }}</p>
+                <p class="text-primary-100 text-sm mt-2">All loan applications</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Active Loans</h3>
+                    <i class="fas fa-check-circle text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">
+                    {% for status in loan_status_data %}
+                        {% if status.status == 'active' %}{{ status.count }}{% endif %}
+                    {% endfor %}
+                </p>
+                <p class="text-success-100 text-sm mt-2">Currently active</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Pending Loans</h3>
+                    <i class="fas fa-clock text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">
+                    {% for status in loan_status_data %}
+                        {% if status.status == 'pending' %}{{ status.count }}{% endif %}
+                    {% endfor %}
+                </p>
+                <p class="text-warning-100 text-sm mt-2">Awaiting approval</p>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="mt-8 text-center">
+            <a href="{% url 'dashboard:home' %}" class="btn-primary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Reply to Message - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-reply text-primary-600 text-3xl"></i>
+                <h1 class="text-4xl font-bold text-secondary-900">Reply to Message</h1>
+            </div>
+            <p class="text-secondary-600">Respond to {{ original_message.sender.get_full_name }}'s message</p>
+        </div>
+
+        <!-- Original Message -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden mb-8">
+            <div class="bg-secondary-100 px-6 py-4 border-b border-secondary-200">
+                <h3 class="font-semibold text-secondary-900">Original Message</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <p class="text-sm text-secondary-600 font-medium">From: {{ original_message.sender.get_full_name }}</p>
+                    <p class="text-sm text-secondary-600">{{ original_message.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+                <h4 class="font-semibold text-secondary-900 mb-2">{{ original_message.subject }}</h4>
+                <div class="prose prose-sm max-w-none text-secondary-700 whitespace-pre-wrap bg-secondary-50 p-4 rounded-lg">
+                    {{ original_message.body }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Reply Form -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-8 py-6">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-pen-to-square mr-3"></i>
+                    Your Reply
+                </h2>
+            </div>
+
+            <form method="post" class="p-8">
+                {% csrf_token %}
+                
+                <!-- Reply Body -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-align-left text-primary-600 mr-2"></i>Message
+                    </label>
+                    <textarea name="body" required rows="8" placeholder="Type your reply here..." class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 pt-6 border-t border-secondary-200">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-paper-plane mr-3"></i>
+                        Send Reply
+                    </button>
+                    <a href="{% url 'internal_messages:detail' original_message.id %}" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-secondary-100 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-200 transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-times mr-3"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

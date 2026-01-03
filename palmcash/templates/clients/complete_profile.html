@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Complete Profile - LoanVista{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>Complete Your Profile
+                </h4>
+                <p class="text-muted mb-0 mt-2">Please provide additional information to help us process your loan applications more efficiently.</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Why do we need this information?</strong> This information helps us assess your loan eligibility and provide you with the best possible loan terms.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Personal Information Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-user me-2"></i>Personal Information
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.middle_name.id_for_label }}" class="form-label">Middle Name</label>
+                            {{ form.middle_name|add_class:"form-control" }}
+                            {% if form.middle_name.errors %}
+                            <div class="text-danger small">{{ form.middle_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.gender.id_for_label }}" class="form-label">Gender</label>
+                            {{ form.gender|add_class:"form-control" }}
+                            {% if form.gender.errors %}
+                            <div class="text-danger small">{{ form.gender.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.marital_status.id_for_label }}" class="form-label">Marital Status</label>
+                            {{ form.marital_status|add_class:"form-control" }}
+                            {% if form.marital_status.errors %}
+                            <div class="text-danger small">{{ form.marital_status.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.dependents.id_for_label }}" class="form-label">Number of Dependents</label>
+                            {{ form.dependents|add_class:"form-control" }}
+                            {% if form.dependents.errors %}
+                            <div class="text-danger small">{{ form.dependents.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Include children and other family members you support financially.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Employment Information Section -->
+                    <div class="row mb-4 mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-briefcase me-2"></i>Employment Information
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.employment_status.id_for_label }}" class="form-label">Employment Status *</label>
+                            {{ form.employment_status|add_class:"form-control" }}
+                            {% if form.employment_status.errors %}
+                            <div class="text-danger small">{{ form.employment_status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.employer_name.id_for_label }}" class="form-label">Employer Name</label>
+                            {{ form.employer_name|add_class:"form-control" }}
+                            {% if form.employer_name.errors %}
+                            <div class="text-danger small">{{ form.employer_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.job_title.id_for_label }}" class="form-label">Job Title</label>
+                            {{ form.job_title|add_class:"form-control" }}
+                            {% if form.job_title.errors %}
+                            <div class="text-danger small">{{ form.job_title.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.employment_duration_years.id_for_label }}" class="form-label">Years of Employment</label>
+                            {{ form.employment_duration_years|add_class:"form-control" }}
+                            {% if form.employment_duration_years.errors %}
+                            <div class="text-danger small">{{ form.employment_duration_years.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">How long have you been with your current employer?</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Information Section -->
+                    <div class="row mb-4 mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-money-bill-wave me-2"></i>Financial Information
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.monthly_income.id_for_label }}" class="form-label">Monthly Income (K) *</label>
+                            {{ form.monthly_income|add_class:"form-control" }}
+                            {% if form.monthly_income.errors %}
+                            <div class="text-danger small">{{ form.monthly_income.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Your gross monthly salary or income.</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.monthly_expenses.id_for_label }}" class="form-label">Monthly Expenses (K)</label>
+                            {{ form.monthly_expenses|add_class:"form-control" }}
+                            {% if form.monthly_expenses.errors %}
+                            <div class="text-danger small">{{ form.monthly_expenses.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Your average monthly living expenses.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.other_income.id_for_label }}" class="form-label">Other Income (K)</label>
+                            {{ form.other_income|add_class:"form-control" }}
+                            {% if form.other_income.errors %}
+                            <div class="text-danger small">{{ form.other_income.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Any additional monthly income (business, investments, etc.).</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.existing_loans.id_for_label }}" class="form-label">Existing Loan Payments (K)</label>
+                            {{ form.existing_loans|add_class:"form-control" }}
+                            {% if form.existing_loans.errors %}
+                            <div class="text-danger small">{{ form.existing_loans.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Total monthly payments for existing loans.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Emergency Contact Section -->
+                    <div class="row mb-4 mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-phone me-2"></i>Emergency Contact
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.emergency_contact_name.id_for_label }}" class="form-label">Contact Name</label>
+                            {{ form.emergency_contact_name|add_class:"form-control" }}
+                            {% if form.emergency_contact_name.errors %}
+                            <div class="text-danger small">{{ form.emergency_contact_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.emergency_contact_phone.id_for_label }}" class="form-label">Contact Phone</label>
+                            {{ form.emergency_contact_phone|add_class:"form-control" }}
+                            {% if form.emergency_contact_phone.errors %}
+                            <div class="text-danger small">{{ form.emergency_contact_phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.emergency_contact_relationship.id_for_label }}" class="form-label">Relationship</label>
+                            {{ form.emergency_contact_relationship|add_class:"form-control" }}
+                            {% if form.emergency_contact_relationship.errors %}
+                            <div class="text-danger small">{{ form.emergency_contact_relationship.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Banking Information Section -->
+                    <div class="row mb-4 mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-university me-2"></i>Banking Information
+                            </h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.bank_name.id_for_label }}" class="form-label">Bank Name</label>
+                            {{ form.bank_name|add_class:"form-control" }}
+                            {% if form.bank_name.errors %}
+                            <div class="text-danger small">{{ form.bank_name.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Your primary bank for salary and loan disbursements.</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.account_number.id_for_label }}" class="form-label">Account Number</label>
+                            {{ form.account_number|add_class:"form-control" }}
+                            {% if form.account_number.errors %}
+                            <div class="text-danger small">{{ form.account_number.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Your bank account number for transactions.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-4">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Privacy Notice:</strong> All information provided is kept confidential and used only for loan assessment purposes in accordance with our privacy policy.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'dashboard:home' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Skip for Now
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Complete Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Benefits of Completing Profile -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-star me-2"></i>Benefits of Completing Your Profile
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-tachometer-alt fa-2x text-success mb-2"></i>
+                        <h6>Faster Processing</h6>
+                        <p class="text-muted small">Complete profiles are processed up to 50% faster.</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                        <h6>Better Rates</h6>
+                        <p class="text-muted small">Detailed profiles may qualify for preferential interest rates.</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-money-bill-wave fa-2x text-warning mb-2"></i>
+                        <h6>Higher Limits</h6>
+                        <p class="text-muted small">Complete profiles are eligible for higher loan amounts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate net income dynamically
+    const monthlyIncomeField = document.getElementById('{{ form.monthly_income.id_for_label }}');
+    const monthlyExpensesField = document.getElementById('{{ form.monthly_expenses.id_for_label }}');
+    const otherIncomeField = document.getElementById('{{ form.other_income.id_for_label }}');
+    const existingLoansField = document.getElementById('{{ form.existing_loans.id_for_label }}');
+    
+    function calculateNetIncome() {
+        const income = parseFloat(monthlyIncomeField.value) || 0;
+        const expenses = parseFloat(monthlyExpensesField.value) || 0;
+        const otherIncome = parseFloat(otherIncomeField.value) || 0;
+        const existingLoans = parseFloat(existingLoansField.value) || 0;
+        
+        const netIncome = income + otherIncome - expenses - existingLoans;
+        
+        // You can display this somewhere if needed
+        console.log('Net Monthly Income:', netIncome);
+    }
+    
+    [monthlyIncomeField, monthlyExpensesField, otherIncomeField, existingLoansField].forEach(field => {
+        if (field) {
+            field.addEventListener('input', calculateNetIncome);
+        }
+    });
+});
+</script>
+{% endblock %}

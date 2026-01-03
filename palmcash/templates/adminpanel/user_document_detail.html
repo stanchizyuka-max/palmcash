@@ -1,0 +1,122 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}User Document Details - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-secondary-900">User Document Details</h1>
+            <a href="{% url 'adminpanel:user_document_list' %}" class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to List
+            </a>
+        </div>
+
+        <!-- Details Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-8">
+            <div class="mb-6">
+                <span class="px-3 py-1 rounded-full text-sm font-medium
+                    {% if user_document.status == 'pending' %}bg-warning-100 text-warning-800
+                    {% elif user_document.status == 'approved' %}bg-success-100 text-success-800
+                    {% elif user_document.status == 'rejected' %}bg-danger-100 text-danger-800
+                    {% elif user_document.status == 'expired' %}bg-secondary-100 text-secondary-800
+                    {% endif %}">
+                    {{ user_document.get_status_display }}
+                </span>
+            </div>
+
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">User</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.user.get_full_name }}</p>
+                        <p class="text-sm text-secondary-600">{{ user_document.user.email }}</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Document Type</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.document_type.name }}</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Title</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.title }}</p>
+                    </div>
+
+                    {% if user_document.document_number %}
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Document Number</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.document_number }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Upload Date</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.uploaded_at|date:"M d, Y H:i" }}</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">File Size</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.file_size|filesizeformat }}</p>
+                    </div>
+
+                    {% if user_document.issue_date %}
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Issue Date</h3>
+                        <p class="text-lg font-semibold text-secondary-900">{{ user_document.issue_date|date:"M d, Y" }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if user_document.expiry_date %}
+                    <div>
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Expiry Date</h3>
+                        <p class="text-lg font-semibold {% if user_document.is_expired %}text-danger-600{% else %}text-secondary-900{% endif %}">
+                            {{ user_document.expiry_date|date:"M d, Y" }}
+                            {% if user_document.is_expired %}
+                            <span class="text-sm">(Expired)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if user_document.description %}
+                <div>
+                    <h3 class="text-sm font-medium text-secondary-500 mb-2">Description</h3>
+                    <p class="text-secondary-900">{{ user_document.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if user_document.reviewed_by %}
+                <div class="border-t border-secondary-200 pt-6">
+                    <h3 class="text-lg font-semibold text-secondary-900 mb-4">Review Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-secondary-500 mb-2">Reviewed By</h3>
+                            <p class="text-lg font-semibold text-secondary-900">{{ user_document.reviewed_by.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-secondary-500 mb-2">Review Date</h3>
+                            <p class="text-lg font-semibold text-secondary-900">{{ user_document.review_date|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                    {% if user_document.review_notes %}
+                    <div class="mt-4">
+                        <h3 class="text-sm font-medium text-secondary-500 mb-2">Review Notes</h3>
+                        <p class="text-secondary-900">{{ user_document.review_notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="pt-6">
+                    <a href="{{ user_document.file.url }}" target="_blank" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-download mr-2"></i>Download Document
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

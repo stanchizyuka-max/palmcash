@@ -1,0 +1,110 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Compose Message - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-envelope text-primary-600 text-3xl"></i>
+                <h1 class="text-4xl font-bold text-secondary-900">Compose Message</h1>
+            </div>
+            <p class="text-secondary-600">Send a message to a staff member</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-8 py-6">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-pen-to-square mr-3"></i>
+                    New Message
+                </h2>
+            </div>
+
+            <form method="post" class="p-8">
+                {% csrf_token %}
+                
+                <!-- Recipient -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-user text-primary-600 mr-2"></i>Recipient
+                    </label>
+                    <select name="recipient" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">-- Select a staff member --</option>
+                        {% for staff in staff_members %}
+                        <option value="{{ staff.id }}">
+                            {{ staff.get_full_name }} ({{ staff.get_role_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Subject -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-heading text-primary-600 mr-2"></i>Subject
+                    </label>
+                    <input type="text" name="subject" required placeholder="Message subject" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-align-left text-primary-600 mr-2"></i>Message
+                    </label>
+                    <textarea name="body" required rows="8" placeholder="Type your message here..." class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                </div>
+
+                <!-- Loan Context (Optional) -->
+                {% if loan %}
+                <div class="mb-6 p-4 bg-info-50 border border-info-200 rounded-lg">
+                    <p class="text-sm text-info-900">
+                        <i class="fas fa-link mr-2"></i>
+                        <strong>Linked to Loan:</strong> {{ loan.id }} - {{ loan.borrower.get_full_name }}
+                    </p>
+                    <input type="hidden" name="loan_id" value="{{ loan.id }}">
+                </div>
+                {% else %}
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-link text-primary-600 mr-2"></i>Link to Loan (Optional)
+                    </label>
+                    <input type="text" name="loan_id" placeholder="Loan ID (optional)" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 pt-6 border-t border-secondary-200">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-paper-plane mr-3"></i>
+                        Send Message
+                    </button>
+                    <a href="{% url 'internal_messages:inbox' %}" class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-secondary-100 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-200 transition-all duration-300 transform hover:scale-105">
+                        <i class="fas fa-times mr-3"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-info-50 border border-info-200 rounded-xl p-6">
+            <div class="flex gap-4">
+                <i class="fas fa-info-circle text-info-600 text-xl flex-shrink-0 mt-1"></i>
+                <div>
+                    <h3 class="font-semibold text-info-900 mb-2">Tips for Sending Messages</h3>
+                    <ul class="text-info-800 text-sm space-y-1">
+                        <li>• Be clear and concise in your subject line</li>
+                        <li>• Provide context and details in the message body</li>
+                        <li>• Link to a specific loan if the message is about a particular case</li>
+                        <li>• The recipient will receive both in-app and email notifications</li>
+                        <li>• You can reply to messages to continue the conversation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

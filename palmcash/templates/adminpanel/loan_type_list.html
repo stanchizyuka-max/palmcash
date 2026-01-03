@@ -1,0 +1,61 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Loan Types - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Loan Types</h1>
+                <p class="text-secondary-600 mt-2">Manage available loan products</p>
+            </div>
+            <a href="{% url 'dashboard:manager' %}" class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Loan Types Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for loan_type in loan_types %}
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-semibold text-secondary-900">{{ loan_type.name }}</h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium
+                        {% if loan_type.is_active %}bg-success-100 text-success-800{% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                        {% if loan_type.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                
+                <p class="text-secondary-600 text-sm mb-4">{{ loan_type.description|truncatewords:20 }}</p>
+                
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-secondary-600">Interest Rate:</span>
+                        <span class="font-semibold text-secondary-900">{{ loan_type.interest_rate }}%</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-secondary-600">Amount Range:</span>
+                        <span class="font-semibold text-secondary-900">K {{ loan_type.min_amount|floatformat:0 }} - K {{ loan_type.max_amount|floatformat:0 }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-secondary-600">Term Range:</span>
+                        <span class="font-semibold text-secondary-900">{{ loan_type.min_term_months }}-{{ loan_type.max_term_months }} months</span>
+                    </div>
+                </div>
+                
+                <a href="{% url 'adminpanel:loan_type_detail' loan_type.pk %}" class="block w-full text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    View Details
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-span-full bg-white rounded-xl shadow-sm border border-secondary-100 p-12 text-center">
+                <i class="fas fa-tags text-secondary-300 text-5xl mb-4"></i>
+                <p class="text-secondary-500 text-lg">No loan types found</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

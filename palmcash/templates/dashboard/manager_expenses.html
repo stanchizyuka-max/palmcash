@@ -1,0 +1,26 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Expenses Management - Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+            <i class="fas fa-receipt text-primary-600 mr-3"></i>Expenses Management
+        </h1>
+        <p class="text-secondary-600">Track, manage, and analyze all company expenses and vault transactions</p>
+    </div>
+
+    <!-- Include the expenses section -->
+    {% include 'dashboard/manager_expenses_section.html' %}
+</div>
+
+<script>
+    // Auto-refresh data every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}

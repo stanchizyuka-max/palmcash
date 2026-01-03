@@ -1,0 +1,392 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Loan Officer Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900">Loan Officer Dashboard</h1>
+            <p class="text-secondary-600 mt-2">Manage your assigned loans and clients</p>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Assigned Loans -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Assigned Loans</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ assigned_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-briefcase text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Approvals</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_approvals }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Loans -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Loans</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Clients -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">My Clients</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ my_clients }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Repayments Collected</h3>
+                    <i class="fas fa-hand-holding-usd text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">K {{ repayments_collected|floatformat:2 }}</p>
+                <p class="text-success-100 text-sm mt-2">Total collections</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-danger-500 to-danger-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Overdue Loans</h3>
+                    <i class="fas fa-exclamation-circle text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ overdue_loans }}</p>
+                <p class="text-danger-100 text-sm mt-2">Requires follow-up</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Due Today</h3>
+                    <i class="fas fa-calendar-day text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ due_today }}</p>
+                <p class="text-warning-100 text-sm mt-2">Payments expected</p>
+            </div>
+        </div>
+
+        <!-- My Clients Widget -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
+            <div class="p-6 border-b border-secondary-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-secondary-900">
+                    <i class="fas fa-users mr-2 text-info-600"></i>My Assigned Clients
+                </h3>
+                <a href="{% url 'clients:officer_clients' request.user.id %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    View All <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            <!-- Workload Summary -->
+            {% if officer_assignment %}
+            <div class="px-6 py-4 bg-secondary-50 border-b border-secondary-100">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <p class="text-xs text-secondary-600 font-medium uppercase">Assigned Clients</p>
+                        <p class="text-2xl font-bold text-secondary-900">{{ officer_assignment.current_client_count }}</p>
+                        <p class="text-xs text-secondary-500">of {{ officer_assignment.max_clients }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-secondary-600 font-medium uppercase">Workload</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="flex-1 bg-secondary-200 rounded-full h-2">
+                                <div class="bg-info-600 h-2 rounded-full" style="width: {{ officer_assignment.get_workload_percentage }}%"></div>
+                            </div>
+                            <span class="text-sm font-bold text-secondary-900">{{ officer_assignment.get_workload_percentage|floatformat:0 }}%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-secondary-600 font-medium uppercase">Status</p>
+                        {% if officer_assignment.is_accepting_assignments %}
+                        <p class="text-sm font-semibold text-success-600 mt-1">
+                            <i class="fas fa-check-circle mr-1"></i>Accepting
+                        </p>
+                        {% else %}
+                        <p class="text-sm font-semibold text-warning-600 mt-1">
+                            <i class="fas fa-pause-circle mr-1"></i>Not Accepting
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Recent Clients List -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Client Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Active Loans</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for client in recent_clients %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-secondary-900">{{ client.get_full_name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {{ client.email }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% with active_loans=client.get_outstanding_loans.count %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium {% if active_loans > 0 %}bg-info-100 text-info-800{% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                                    {{ active_loans }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <a href="{% url 'accounts:user_detail' client.id %}" class="text-primary-600 hover:text-primary-900">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-2xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No clients assigned yet</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Loans -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
+            <div class="p-6 border-b border-secondary-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-secondary-900">Recent Loans</h3>
+                <a href="{% url 'loans:list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    View All <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Client</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for loan in recent_loans %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-secondary-900">{{ loan.borrower.get_full_name }}</div>
+                                <div class="text-sm text-secondary-500">{{ loan.borrower.email }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                K {{ loan.principal_amount|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                    {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+                                    {% elif loan.status == 'active' %}bg-info-100 text-info-800
+                                    {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                    {% elif loan.status == 'completed' %}bg-secondary-100 text-secondary-800
+                                    {% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {{ loan.application_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <a href="{% url 'loans:detail' loan.id %}" class="text-primary-600 hover:text-primary-900">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-secondary-500">
+                                No loans assigned yet
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Messages -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-envelope mr-2"></i>Recent Messages
+                </h3>
+                <a href="{% url 'internal_messages:inbox' %}" class="bg-white text-info-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-info-50 transition-colors">
+                    <i class="fas fa-inbox mr-1"></i>View All
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_messages %}
+                <div class="space-y-3">
+                    {% for message in recent_messages %}
+                    <a href="{% url 'internal_messages:detail' message.id %}" class="flex items-start gap-4 p-3 bg-secondary-50 hover:bg-secondary-100 rounded-lg transition-colors">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 bg-info-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-info-600"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-secondary-900">{{ message.sender.get_full_name }}</p>
+                            <p class="text-xs text-secondary-600 truncate">{{ message.subject }}</p>
+                            <p class="text-xs text-secondary-500 mt-1">{{ message.created_at|timesince }} ago</p>
+                        </div>
+                        {% if not message.is_read %}
+                        <div class="flex-shrink-0">
+                            <span class="inline-block w-2 h-2 bg-info-600 rounded-full"></span>
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox text-3xl text-secondary-300 mb-2"></i>
+                    <p class="text-secondary-600 text-sm">No messages yet</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="bg-secondary-50 px-6 py-3 border-t border-secondary-200 flex gap-2">
+                <a href="{% url 'internal_messages:compose' %}" class="flex-1 text-center text-primary-600 hover:text-primary-700 text-sm font-medium py-2 rounded-lg hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-pen-to-square mr-1"></i>Compose
+                </a>
+                <a href="{% url 'internal_messages:inbox' %}" class="flex-1 text-center text-info-600 hover:text-info-700 text-sm font-medium py-2 rounded-lg hover:bg-info-50 transition-colors">
+                    <i class="fas fa-inbox mr-1"></i>Inbox
+                </a>
+            </div>
+        </div>
+
+        <!-- Pending Documents for Review -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
+            <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-file-upload mr-2"></i>Pending Documents for Review
+                </h3>
+                <a href="{% url 'documents:review_dashboard' %}" class="bg-white text-warning-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-warning-50 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>Review All
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50 border-b border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Document</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Client</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Uploaded</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-200">
+                        {% for doc in pending_documents_for_review %}
+                        <tr class="hover:bg-secondary-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-secondary-900">
+                                <i class="fas fa-file text-warning-500 mr-2"></i>{{ doc.title }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ doc.user.get_full_name|default:doc.user.username }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary-100 text-primary-800">
+                                    {{ doc.document_type.name }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ doc.uploaded_at|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <a href="{% url 'documents:detail' doc.id %}" class="text-primary-600 hover:text-primary-900">
+                                    <i class="fas fa-eye"></i> Review
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No pending documents to review</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-secondary-50 px-6 py-3 border-t border-secondary-200">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-secondary-600">
+                        Pending Documents: <span class="font-semibold text-secondary-900">{{ total_pending_documents }}</span>
+                    </p>
+                    <a href="{% url 'documents:review_dashboard' %}" class="text-warning-600 hover:text-warning-700 text-sm font-medium">
+                        Review All Documents <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="{% url 'loans:apply' %}" class="flex flex-col items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors duration-200">
+                    <i class="fas fa-plus-circle text-primary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-primary-900">New Loan</span>
+                </a>
+                <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-credit-card text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">Record Payment</span>
+                </a>
+                <a href="{% url 'clients:group_list' %}" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-users text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">My Clients</span>
+                </a>
+                <a href="{% url 'loans:calculator' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-calculator text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">Calculator</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,292 @@
+<!-- Manager Expenses Management Section -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Expenses Card -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-secondary-600 text-sm font-medium">Total Expenses</p>
+                <p class="text-3xl font-bold text-secondary-900 mt-2">K{{ total_expenses|floatformat:2 }}</p>
+                <p class="text-xs text-secondary-500 mt-2">All recorded expenses</p>
+            </div>
+            <div class="bg-primary-100 rounded-full p-4">
+                <i class="fas fa-receipt text-primary-600 text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approved Expenses Card -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-success-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-secondary-600 text-sm font-medium">Approved</p>
+                <p class="text-3xl font-bold text-success-600 mt-2">K{{ approved_expenses|floatformat:2 }}</p>
+                <p class="text-xs text-secondary-500 mt-2">Verified expenses</p>
+            </div>
+            <div class="bg-success-100 rounded-full p-4">
+                <i class="fas fa-check-circle text-success-600 text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Expenses Card -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-warning-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-secondary-600 text-sm font-medium">Pending Review</p>
+                <p class="text-3xl font-bold text-warning-600 mt-2">K{{ pending_expenses|floatformat:2 }}</p>
+                <p class="text-xs text-secondary-500 mt-2">Awaiting approval</p>
+            </div>
+            <div class="bg-warning-100 rounded-full p-4">
+                <i class="fas fa-hourglass-half text-warning-600 text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vault Balance Card -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-info-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-secondary-600 text-sm font-medium">Vault Balance</p>
+                <p class="text-3xl font-bold text-info-600 mt-2">K{{ vault_balance|floatformat:2 }}</p>
+                <p class="text-xs text-secondary-500 mt-2">Current cash position</p>
+            </div>
+            <div class="bg-info-100 rounded-full p-4">
+                <i class="fas fa-vault text-info-600 text-2xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expenses Management Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Recent Expenses Table -->
+    <div class="lg:col-span-2 bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-list mr-2"></i>Recent Expenses
+            </h3>
+            <a href="{% url 'expenses:create' %}" class="bg-white text-primary-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-primary-50 transition-colors">
+                <i class="fas fa-plus mr-1"></i>New Expense
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-secondary-50 border-b border-secondary-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-secondary-200">
+                    {% for expense in recent_expenses %}
+                    <tr class="hover:bg-secondary-50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-medium text-secondary-900">
+                            {{ expense.expense_date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-secondary-900">{{ expense.title }}</div>
+                            <div class="text-xs text-secondary-500">{{ expense.category.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-semibold text-secondary-900">
+                            K{{ expense.amount|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if expense.is_approved %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Approved
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+                                    <i class="fas fa-clock mr-1"></i>Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-secondary-500">
+                            <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                            <p class="text-sm">No expenses recorded yet</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="bg-secondary-50 px-6 py-3 border-t border-secondary-200">
+            <a href="{% url 'expenses:list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                View All Expenses <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Expense Categories Breakdown -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-chart-pie mr-2"></i>By Category
+            </h3>
+        </div>
+        <div class="p-6 space-y-4">
+            {% for category, amount in category_breakdown.items %}
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-secondary-900">{{ category }}</p>
+                    <div class="w-full bg-secondary-200 rounded-full h-2 mt-1">
+                        <div class="bg-success-500 h-2 rounded-full" data-width="{% widthratio amount total_expenses 100 %}"></div>
+                    </div>
+                </div>
+                <p class="text-sm font-semibold text-secondary-900 ml-4">K{{ amount|floatformat:2 }}</p>
+            </div>
+            {% empty %}
+            <p class="text-secondary-500 text-sm text-center py-4">No category data available</p>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('[data-width]').forEach(el => {
+            el.style.width = el.getAttribute('data-width') + '%';
+        });
+    </script>
+</div>
+
+<!-- Vault Transactions Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Recent Vault Transactions -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-exchange-alt mr-2"></i>Recent Vault Transactions
+            </h3>
+            <a href="{% url 'expenses:vault-transactions' %}" class="bg-white text-info-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-info-50 transition-colors">
+                <i class="fas fa-plus mr-1"></i>Record
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-secondary-50 border-b border-secondary-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Branch</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-secondary-200">
+                    {% for transaction in recent_transactions %}
+                    <tr class="hover:bg-secondary-50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-medium text-secondary-900">
+                            {{ transaction.transaction_date|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                {% if transaction.transaction_type == 'deposit' %}
+                                    bg-success-100 text-success-800
+                                {% elif transaction.transaction_type == 'withdrawal' %}
+                                    bg-danger-100 text-danger-800
+                                {% else %}
+                                    bg-info-100 text-info-800
+                                {% endif %}
+                            ">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-semibold text-secondary-900">
+                            K{{ transaction.amount|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-secondary-600">
+                            {{ transaction.branch }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-secondary-500">
+                            <p class="text-sm">No vault transactions recorded</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Branch Balance Summary -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-map-marker-alt mr-2"></i>Branch Balances
+            </h3>
+        </div>
+        <div class="p-6 space-y-4">
+            {% for branch, data in branch_balances.items %}
+            <div class="border border-secondary-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="font-semibold text-secondary-900">{{ branch }}</p>
+                    <p class="text-lg font-bold {% if data.balance >= 0 %}text-success-600{% else %}text-danger-600{% endif %}">
+                        K{{ data.balance|floatformat:2 }}
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-success-50 rounded p-2">
+                        <p class="text-secondary-600">Inflows</p>
+                        <p class="font-semibold text-success-700">K{{ data.inflows|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-danger-50 rounded p-2">
+                        <p class="text-secondary-600">Outflows</p>
+                        <p class="font-semibold text-danger-700">K{{ data.outflows|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-secondary-500 text-sm text-center py-4">No branch data available</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white rounded-xl shadow-lg p-6">
+    <h3 class="text-lg font-bold text-secondary-900 mb-4">
+        <i class="fas fa-lightning-bolt text-success-500 mr-2"></i>Quick Actions
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <a href="{% url 'expenses:create' %}" class="flex items-center gap-3 p-4 bg-success-50 hover:bg-success-100 rounded-lg transition-colors">
+            <div class="bg-success-500 rounded-full p-3">
+                <i class="fas fa-plus text-white"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-success-900">New Expense</p>
+                <p class="text-xs text-success-700">Record an expense</p>
+            </div>
+        </a>
+        <a href="{% url 'expenses:list' %}" class="flex items-center gap-3 p-4 bg-success-50 hover:bg-success-100 rounded-lg transition-colors">
+            <div class="bg-success-500 rounded-full p-3">
+                <i class="fas fa-list text-white"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-success-900">View Expenses</p>
+                <p class="text-xs text-success-700">All expenses</p>
+            </div>
+        </a>
+        <a href="{% url 'expenses:report' %}" class="flex items-center gap-3 p-4 bg-success-50 hover:bg-success-100 rounded-lg transition-colors">
+            <div class="bg-success-500 rounded-full p-3">
+                <i class="fas fa-chart-bar text-white"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-success-900">Reports</p>
+                <p class="text-xs text-success-700">Expense reports</p>
+            </div>
+        </a>
+        <a href="{% url 'expenses:vault-transactions' %}" class="flex items-center gap-3 p-4 bg-success-50 hover:bg-success-100 rounded-lg transition-colors">
+            <div class="bg-success-500 rounded-full p-3">
+                <i class="fas fa-vault text-white"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-success-900">Vault</p>
+                <p class="text-xs text-success-700">Vault transactions</p>
+            </div>
+        </a>
+    </div>
+</div>

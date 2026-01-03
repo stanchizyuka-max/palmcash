@@ -1,0 +1,109 @@
+{% extends 'emails/base_email.html' %}
+{% load humanize %}
+
+{% block title %}Payment Overdue - LoanVista{% endblock %}
+{% block header_subtitle %}Urgent: Payment Overdue{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    Urgent Notice{% if borrower.first_name %}, {{ borrower.first_name }}{% endif %}
+</h2>
+
+<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #991b1b; margin: 0; font-size: 16px; font-weight: bold;">
+        ⚠️ Payment Overdue - Immediate Action Required
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    Your payment for loan <strong>#{{ loan.application_number }}</strong> is now overdue. Please make your payment as soon as possible to avoid additional penalties.
+</p>
+
+<!-- Overdue Details -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #fee2e2; border-radius: 8px; margin: 0 0 30px 0; border: 2px solid #ef4444;">
+    <tr>
+        <td colspan="2" style="color: #991b1b; font-size: 16px; font-weight: bold; border-bottom: 2px solid #fecaca; padding-bottom: 10px;">
+            ⚠️ Overdue Payment
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #991b1b; font-size: 14px; border-bottom: 1px solid #fecaca;">
+            Amount Overdue:
+        </td>
+        <td style="color: #ef4444; font-size: 18px; text-align: right; border-bottom: 1px solid #fecaca;">
+            <strong>K{{ payment_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #991b1b; font-size: 14px; border-bottom: 1px solid #fecaca;">
+            Original Due Date:
+        </td>
+        <td style="color: #991b1b; font-size: 14px; text-align: right; border-bottom: 1px solid #fecaca;">
+            {{ due_date|date:"M d, Y" }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #991b1b; font-size: 14px; border-bottom: 1px solid #fecaca;">
+            Days Overdue:
+        </td>
+        <td style="color: #991b1b; font-size: 14px; text-align: right; border-bottom: 1px solid #fecaca;">
+            <strong>{{ days_overdue }} days</strong>
+        </td>
+    </tr>
+    {% if late_fee %}
+    <tr>
+        <td style="color: #991b1b; font-size: 14px; border-bottom: 1px solid #fecaca;">
+            Late Fee:
+        </td>
+        <td style="color: #ef4444; font-size: 14px; text-align: right; border-bottom: 1px solid #fecaca;">
+            <strong>K{{ late_fee|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td style="color: #991b1b; font-size: 14px;">
+            <strong>Total Amount Due:</strong>
+        </td>
+        <td style="color: #ef4444; font-size: 16px; text-align: right;">
+            <strong>K{{ total_due|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+</table>
+
+<!-- Consequences -->
+<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #92400e; margin: 0 0 10px 0; font-weight: bold; font-size: 14px;">
+        ⚠️ Consequences of Non-Payment:
+    </p>
+    <ul style="color: #92400e; margin: 0; padding-left: 20px; font-size: 14px;">
+        <li>Additional late fees will continue to accrue</li>
+        <li>Your credit score may be negatively affected</li>
+        <li>Legal action may be taken for continued non-payment</li>
+        <li>Your account may be referred to collections</li>
+    </ul>
+</div>
+
+<!-- Action Button -->
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/payments/make/{{ loan.id }}/" 
+               style="display: inline-block; padding: 15px 40px; background: #ef4444; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Pay Now
+            </a>
+        </td>
+    </tr>
+</table>
+
+<!-- Help Section -->
+<div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+    <p style="color: #1e40af; margin: 0; font-size: 14px;">
+        <strong>💬 Experiencing Financial Difficulties?</strong><br>
+        If you're unable to make your payment, please contact us immediately. We may be able to work out a payment arrangement or discuss other options.
+    </p>
+</div>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    Please address this matter urgently. Contact our support team if you need assistance.
+</p>
+{% endblock %}

@@ -1,0 +1,119 @@
+PALMCASH SYSTEM - DASHBOARDS SUMMARY
+====================================
+
+ADMIN DASHBOARD
+- System statistics (users, loans, borrowers)
+- Financial overview (income, expenses, profit/loss)
+- Officer performance and workload
+- Expense tracking and approval
+- Vault and branch management
+- Security deposit tracking
+- Comprehensive reporting
+
+MANAGER DASHBOARD
+- Portfolio overview (active loans, collections)
+- Loan officer performance monitoring
+- Expense management and approval
+- Financial summary (monthly, YTD)
+- Vault and branch operations
+- Security deposit verification
+- Daily transaction reports
+
+LOAN OFFICER DASHBOARD
+- Personal profile and workload
+- Group management (create, view, manage)
+- Loan portfolio tracking
+- Collections view (borrower loans)
+- Loan approval and disbursement
+- Security deposit recording
+- Performance metrics
+
+KEY FEATURES
+============
+
+1. MINIMUM 15 GROUPS REQUIREMENT
+   - Officers must manage ≥15 active groups to approve loans
+   - Prevents over-extension of credit
+   - Ensures portfolio diversification
+
+2. SECURITY DEPOSIT (10% REQUIREMENT)
+   - Required before loan disbursement
+   - Calculated as 10% of principal
+   - Must be verified by manager/admin
+   - Tracked separately from payments
+
+3. ROLE-BASED ACCESS CONTROL
+   - Admin: Full system access
+   - Manager: Operational oversight
+   - Officer: Personal workload only
+   - Borrower: Own loans only
+
+4. EXPENSE TRACKING
+   - Categories: Salaries, Rent, Utilities, Marketing, etc.
+   - Approval workflow: Pending → Approved/Rejected
+   - Separate from loan payments
+   - Included in P&L calculations
+
+5. VAULT & BRANCH MANAGEMENT
+   - Track cash movements
+   - Calculate branch balances
+   - Monitor inflows and outflows
+   - Support inter-branch transfers
+
+6. COMPREHENSIVE REPORTING
+   - Daily transaction reports
+   - Profit/loss dashboard
+   - Expense reports
+   - Collections analysis
+   - Security deposit tracking
+
+LOAN LIFECYCLE
+==============
+1. Application → 2. Approval (≥15 groups?) → 3. Deposit Required (10%)
+→ 4. Deposit Paid → 5. Deposit Verified → 6. Disbursement
+→ 7. Active (Repayment) → 8. Completed/Defaulted
+
+PERMISSIONS MATRIX
+==================
+                Admin  Manager  Officer  Borrower
+View all loans   ✅     ✅       Own      Own
+Approve loans    ✅     ✅       ✅*      ❌
+Disburse loans   ✅     ✅       ✅*      ❌
+Create groups    ✅     ✅       ✅       ❌
+Manage expenses  ✅     ✅       ❌       ❌
+Verify deposits  ✅     ✅       ❌       ❌
+View reports     ✅     ✅       Own      Own
+Manage users     ✅     ❌       ❌       ❌
+
+*Officer: Only if ≥15 groups (approve) and deposit verified (disburse)
+
+FINANCIAL CALCULATIONS
+======================
+Total Amount = Principal + (Principal × Interest Rate)
+Payment Amount = Total Amount ÷ Term (days or weeks)
+Security Deposit = Principal × 10%
+Profit/Loss = Interest Income - Total Expenses
+Branch Balance = Inflows - Outflows
+
+STATUS INDICATORS
+=================
+Officer Threshold:
+- 🟢 Green: ≥15 groups (Eligible)
+- 🟡 Yellow: 10-14 groups (Approaching)
+- 🔴 Red: <10 groups (Below threshold)
+
+Loan Status:
+- 🔵 Pending, 🟡 Approved, 🟢 Active, ✅ Completed, ❌ Defaulted
+
+Deposit Status:
+- 🔴 Required, 🟡 Paid, 🟢 Verified
+
+DOCUMENTATION FILES
+===================
+1. SYSTEM_DASHBOARDS_SUMMARY.md - Complete overview
+2. DASHBOARD_QUICK_REFERENCE.md - Quick visual guide
+3. SYSTEM_ARCHITECTURE_OVERVIEW.md - Technical details
+4. DOCUMENTATION_INDEX.md - Navigation guide
+5. PROJECT_RENAME_SUMMARY.md - Project rename info
+
+For detailed information, see DOCUMENTATION_INDEX.md

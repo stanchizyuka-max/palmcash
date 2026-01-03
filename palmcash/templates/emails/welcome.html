@@ -1,0 +1,153 @@
+{% extends 'emails/base_email.html' %}
+
+{% block title %}Welcome to LoanVista{% endblock %}
+{% block header_subtitle %}Welcome Aboard!{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    Welcome to LoanVista{% if user.first_name %}, {{ user.first_name }}{% endif %}! 🎉
+</h2>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;">
+    We're thrilled to have you join the LoanVista family! Your journey to financial empowerment starts here. 
+    LoanVista is designed to make loan management simple, transparent, and accessible for everyone.
+</p>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;">
+    Whether you're applying for your first loan or managing multiple accounts, we're here to support you every step of the way. 
+    Our platform combines cutting-edge technology with personalized service to ensure your experience is smooth and stress-free.
+</p>
+
+<div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #065f46; margin: 0; font-size: 14px;">
+        ✅ Your account has been created successfully!
+    </p>
+</div>
+
+<!-- Account Details -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 0 0 30px 0;">
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Username:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>{{ user.username }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Email:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ user.email }}
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px;">
+            Account Type:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right;">
+            {{ user.get_role_display }}
+        </td>
+    </tr>
+</table>
+
+{% if user.role == 'borrower' %}
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">🚀 Your Journey Starts Here:</h3>
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 15px 0; font-size: 14px;">
+    Getting started with LoanVista is easy! Follow these simple steps to unlock your loan opportunities:
+</p>
+<ol style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 0; padding-left: 20px;">
+    <li><strong>Complete Your Profile</strong> - Add your personal and contact information to help us serve you better</li>
+    <li><strong>Upload Required Documents</strong> - Submit your ID, proof of income, and other necessary documents</li>
+    <li><strong>Document Verification</strong> - Our team will review and verify your documents (usually within 24 hours)</li>
+    <li><strong>Apply for Your Loan</strong> - Once verified, you're ready to apply for loans with competitive rates</li>
+    <li><strong>Track Your Application</strong> - Monitor your loan status in real-time through your dashboard</li>
+</ol>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/documents/upload/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Upload Documents
+            </a>
+        </td>
+    </tr>
+</table>
+{% else %}
+<h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">🚀 Your Admin Dashboard Awaits:</h3>
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 15px 0; font-size: 14px;">
+    As a {{ user.get_role_display }}, you have powerful tools at your fingertips to manage the LoanVista platform:
+</p>
+<ul style="color: #4b5563; line-height: 1.8; margin: 0 0 30px 0; padding-left: 20px;">
+    <li><strong>Dashboard Overview</strong> - Get real-time insights into loan applications, payments, and system performance</li>
+    <li><strong>Application Management</strong> - Review and process pending loan applications efficiently</li>
+    <li><strong>Document Verification</strong> - Verify client documents and ensure compliance</li>
+    <li><strong>Portfolio Monitoring</strong> - Track active loans, payment schedules, and overdue accounts</li>
+    <li><strong>Reporting & Analytics</strong> - Generate comprehensive reports for better decision-making</li>
+</ul>
+
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/dashboard/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Go to Dashboard
+            </a>
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+<!-- Features -->
+<div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; margin: 0 0 20px 0;">
+    <h3 style="color: #1e40af; margin: 0 0 15px 0; font-size: 16px;">✨ What You Can Do:</h3>
+    <table width="100%" cellpadding="5" cellspacing="0">
+        <tr>
+            <td style="color: #1e40af; font-size: 14px; padding: 5px 0;">
+                <strong>✓</strong> Track loan applications in real-time
+            </td>
+        </tr>
+        <tr>
+            <td style="color: #1e40af; font-size: 14px; padding: 5px 0;">
+                <strong>✓</strong> Make payments online securely
+            </td>
+        </tr>
+        <tr>
+            <td style="color: #1e40af; font-size: 14px; padding: 5px 0;">
+                <strong>✓</strong> View payment schedules and history
+            </td>
+        </tr>
+        <tr>
+            <td style="color: #1e40af; font-size: 14px; padding: 5px 0;">
+                <strong>✓</strong> Receive instant notifications
+            </td>
+        </tr>
+        <tr>
+            <td style="color: #1e40af; font-size: 14px; padding: 5px 0;">
+                <strong>✓</strong> Access 24/7 customer support
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 0 0 20px 0; border-radius: 4px;">
+    <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.6;">
+        <strong>💡 Quick Tip:</strong> Complete your profile and upload your documents as soon as possible to speed up your loan application process. Our team typically reviews documents within 24 hours!
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 15px 0; font-size: 14px;">
+    <strong>Need assistance?</strong> Our dedicated support team is available Monday to Friday, 8:00 AM - 5:00 PM. 
+    Don't hesitate to reach out if you have any questions or need guidance.
+</p>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    Welcome aboard! We're excited to be part of your financial journey and look forward to helping you achieve your goals.
+</p>
+
+<p style="color: #667eea; line-height: 1.6; margin: 15px 0 0 0; font-size: 14px; font-weight: bold;">
+    The LoanVista Team 💙
+</p>
+{% endblock %}

@@ -1,0 +1,352 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard - LoanVista{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    }
+    
+    .chart-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                    Welcome back, {{ user.full_name|default:user.username }}!
+                </h1>
+                <p class="text-gray-600">
+                    {% if user.role == 'borrower' %}
+                        Manage your loans and track your financial progress
+                    {% else %}
+                        Here's what's happening with your loan portfolio today
+                    {% endif %}
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>{{ "now"|date:"F d, Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user.role == 'borrower' %}
+    <!-- Borrower Dashboard -->
+    
+    <!-- Alert Notifications -->
+    {% include 'dashboard/borrower_alerts.html' %}
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Active Loans -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Active Loans</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ active_loans }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-contract text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Borrowed -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Borrowed</p>
+                    <p class="text-3xl font-bold text-gray-900">K{{ total_borrowed|floatformat:0|intcomma }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Applications -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Pending Applications</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ pending_applications }}</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Action -->
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-sm p-6 text-white metric-card transition-all duration-200">
+            <div class="text-center">
+                <i class="fas fa-plus-circle text-3xl mb-3"></i>
+                <p class="text-sm font-medium mb-2">Need a Loan?</p>
+                <a href="{% url 'loans:apply' %}" class="bg-white text-primary-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors duration-200">
+                    Apply Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Loans -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">Your Loans</h2>
+                <a href="{% url 'loans:list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="p-6">
+            {% if user_loans %}
+            <div class="space-y-4">
+                {% for loan in user_loans|slice:":5" %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-contract text-primary-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Loan #{{ loan.id }}</p>
+                            <p class="text-sm text-gray-600">K{{ loan.principal_amount|floatformat:0|intcomma }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if loan.status == 'active' %}bg-green-100 text-green-800
+                            {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif loan.status == 'completed' %}bg-blue-100 text-blue-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ loan.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-file-contract text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-600 mb-4">You don't have any loans yet</p>
+                <a href="{% url 'loans:apply' %}" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                    Apply for Your First Loan
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Staff Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Loans -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Loans</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_loans|intcomma }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-contract text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm">
+                    <span class="text-green-600 font-medium">{{ active_loans }}</span>
+                    <span class="text-gray-600 ml-1">active loans</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Disbursed -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total Disbursed</p>
+                    <p class="text-3xl font-bold text-gray-900">K{{ total_disbursed|floatformat:0|intcomma }}</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center text-sm">
+                    <i class="fas fa-arrow-up text-green-500 mr-1"></i>
+                    <span class="text-green-600 font-medium">12%</span>
+                    <span class="text-gray-600 ml-1">from last month</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Applications -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Pending Applications</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ pending_loans }}</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'loans:list' %}?status=pending" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                    Review Applications →
+                </a>
+            </div>
+        </div>
+
+        <!-- Overdue Payments -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 metric-card transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Overdue Payments</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ overdue_payments }}</p>
+                </div>
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'payments:list' %}?status=overdue" class="text-red-600 hover:text-red-700 text-sm font-medium">
+                    View Overdue →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Process Applications</h3>
+                    <p class="text-blue-100 text-sm">Review and approve pending loan applications</p>
+                </div>
+                <i class="fas fa-clipboard-check text-3xl text-blue-200"></i>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'loans:list' %}?status=pending" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors duration-200">
+                    Review Now
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Payment Tracking</h3>
+                    <p class="text-green-100 text-sm">Monitor payments and collection performance</p>
+                </div>
+                <i class="fas fa-chart-line text-3xl text-green-200"></i>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'payments:list' %}" class="bg-white text-green-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-50 transition-colors duration-200">
+                    View Payments
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Generate Reports</h3>
+                    <p class="text-purple-100 text-sm">Access comprehensive analytics and reports</p>
+                </div>
+                <i class="fas fa-chart-bar text-3xl text-purple-200"></i>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'reports:list' %}" class="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-50 transition-colors duration-200">
+                    View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">Loan Application Approved</p>
+                        <p class="text-sm text-gray-600">Loan #1234 for K50,000 has been approved</p>
+                    </div>
+                    <span class="text-sm text-gray-500">2 hours ago</span>
+                </div>
+
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-credit-card text-blue-600"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">Payment Received</p>
+                        <p class="text-sm text-gray-600">K5,000 payment received for Loan #1230</p>
+                    </div>
+                    <span class="text-sm text-gray-500">4 hours ago</span>
+                </div>
+
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-yellow-600"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">New Application Submitted</p>
+                        <p class="text-sm text-gray-600">John Mwanza submitted a loan application for K75,000</p>
+                    </div>
+                    <span class="text-sm text-gray-500">6 hours ago</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any dashboard-specific JavaScript here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate metric cards on load
+        const cards = document.querySelectorAll('.metric-card');
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

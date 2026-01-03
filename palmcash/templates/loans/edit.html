@@ -1,0 +1,208 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% load widget_tweaks %}
+
+{% block title %}Edit Loan {{ loan.application_number }} - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="bg-primary-100 p-3 rounded-lg">
+                    <i class="fas fa-edit text-primary-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">Edit Loan Application</h1>
+                    <p class="text-secondary-600 mt-1">Application #{{ loan.application_number }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Alert -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mr-3"></i>
+                <div class="text-sm text-yellow-800">
+                    <strong>Note:</strong> You can only edit loans with status "Pending" or "Draft". 
+                    Current status: <span class="font-semibold">{{ loan.get_status_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white">Loan Details</h2>
+            </div>
+            
+            <div class="p-8">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-r-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-danger-500 text-xl mr-3"></i>
+                            <div class="text-sm text-danger-800">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Loan Type Section -->
+                    <div class="mb-8 pb-8 border-b border-secondary-200">
+                        <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-file-contract text-primary-600"></i>
+                            Loan Type & Amount
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.loan_type.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Loan Type <span class="text-danger-500">*</span>
+                                </label>
+                                {{ form.loan_type|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.loan_type.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.loan_type.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.loan_type.help_text %}
+                                <p class="mt-1 text-xs text-secondary-500">{{ form.loan_type.help_text }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.principal_amount.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Loan Amount (K) <span class="text-danger-500">*</span>
+                                </label>
+                                {{ form.principal_amount|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.principal_amount.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.principal_amount.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.principal_amount.help_text %}
+                                <p class="mt-1 text-xs text-secondary-500">{{ form.principal_amount.help_text }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Loan Terms Section -->
+                    <div class="mb-8 pb-8 border-b border-secondary-200">
+                        <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-primary-600"></i>
+                            Loan Terms
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.term_months.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Term (Months) <span class="text-danger-500">*</span>
+                                </label>
+                                {{ form.term_months|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.term_months.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.term_months.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.term_months.help_text %}
+                                <p class="mt-1 text-xs text-secondary-500">{{ form.term_months.help_text }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Interest Rate
+                                </label>
+                                <div class="w-full px-4 py-3 border border-secondary-200 rounded-lg bg-secondary-50 text-secondary-700">
+                                    {{ loan.interest_rate }}% (Set by loan type)
+                                </div>
+                                <p class="mt-1 text-xs text-secondary-500">Interest rate is automatically set based on the selected loan type</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Purpose Section -->
+                    <div class="mb-8 pb-8 border-b border-secondary-200">
+                        <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-bullseye text-primary-600"></i>
+                            Loan Purpose
+                        </h3>
+                        
+                        <div>
+                            <label for="{{ form.purpose.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                Purpose <span class="text-danger-500">*</span>
+                            </label>
+                            {{ form.purpose|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                            {% if form.purpose.errors %}
+                            <p class="mt-2 text-sm text-danger-600">{{ form.purpose.errors.0 }}</p>
+                            {% endif %}
+                            {% if form.purpose.help_text %}
+                            <p class="mt-1 text-xs text-secondary-500">{{ form.purpose.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Collateral Section -->
+                    <div class="mb-8 pb-8 border-b border-secondary-200">
+                        <h3 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-primary-600"></i>
+                            Collateral Information (Optional)
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.collateral_description.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Collateral Description
+                                </label>
+                                {{ form.collateral_description|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.collateral_description.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.collateral_description.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-secondary-500">Describe any assets you're offering as collateral</p>
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.collateral_value.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    Estimated Value (K)
+                                </label>
+                                {{ form.collateral_value|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.collateral_value.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.collateral_value.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-secondary-500">Estimated market value of the collateral</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Alert -->
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-500 text-xl mr-3 mt-0.5"></i>
+                            <div class="text-sm text-blue-800">
+                                <strong>Important:</strong> Changes to your loan application will reset the review process. 
+                                Make sure all information is accurate before submitting.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-secondary-200">
+                        <a href="{% url 'loans:detail' loan.pk %}" 
+                           class="inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                            <i class="fas fa-save mr-2"></i>
+                            Update Loan Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

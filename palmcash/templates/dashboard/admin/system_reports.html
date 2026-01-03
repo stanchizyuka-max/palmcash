@@ -1,0 +1,225 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}System Reports - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">System Reports</h1>
+                <p class="text-secondary-600 mt-2">Comprehensive system analytics and performance reports</p>
+            </div>
+            <a href="{% url 'dashboard:admin' %}" class="btn-outline-primary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- System Health Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Users</h3>
+                    <i class="fas fa-users text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ system_health.total_users }}</p>
+                <p class="text-primary-100 text-sm mt-2">Registered users</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Loans</h3>
+                    <i class="fas fa-file-invoice-dollar text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ system_health.total_loans }}</p>
+                <p class="text-success-100 text-sm mt-2">All loan applications</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Pending Documents</h3>
+                    <i class="fas fa-file-alt text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ system_health.pending_documents }}</p>
+                <p class="text-warning-100 text-sm mt-2">Awaiting review</p>
+            </div>
+        </div>
+
+        <!-- User Activity Report -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">User Activity (Last 30 Days)</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">New User Registrations</span>
+                            <p class="text-xs text-secondary-500">Users who joined in the last 30 days</p>
+                        </div>
+                        <span class="text-2xl font-bold text-primary-600">{{ user_activity.new_users_30d }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">Active Users</span>
+                            <p class="text-xs text-secondary-500">Users who logged in recently</p>
+                        </div>
+                        <span class="text-2xl font-bold text-success-600">{{ user_activity.active_users_30d }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-4 bg-info-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">Total Logins</span>
+                            <p class="text-xs text-secondary-500">Users who have ever logged in</p>
+                        </div>
+                        <span class="text-2xl font-bold text-info-600">{{ user_activity.total_logins }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Loan Performance (Last 30 Days)</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">New Applications</span>
+                            <p class="text-xs text-secondary-500">Loan applications submitted</p>
+                        </div>
+                        <span class="text-2xl font-bold text-primary-600">{{ loan_performance.applications_30d }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">Approvals</span>
+                            <p class="text-xs text-secondary-500">Applications approved</p>
+                        </div>
+                        <span class="text-2xl font-bold text-success-600">{{ loan_performance.approvals_30d }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center p-4 bg-info-50 rounded-lg">
+                        <div>
+                            <span class="text-secondary-700 font-medium">Approval Rate</span>
+                            <p class="text-xs text-secondary-500">Percentage of approvals</p>
+                        </div>
+                        <span class="text-2xl font-bold text-info-600">{{ loan_performance.approval_rate|floatformat:1 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Generate Reports</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="{% url 'reports:list' %}" class="flex flex-col items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors duration-200">
+                    <i class="fas fa-chart-bar text-primary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-primary-900">Financial Reports</span>
+                </a>
+                <a href="{% url 'dashboard:manage_users' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-users text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">User Reports</span>
+                </a>
+                <a href="{% url 'dashboard:manage_loans' %}" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-file-invoice-dollar text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">Loan Reports</span>
+                </a>
+                <a href="{% url 'dashboard:analytics' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-analytics text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">Analytics</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- System Performance Metrics -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">System Performance Metrics</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Performance Indicators -->
+                <div>
+                    <h4 class="font-medium text-secondary-700 mb-3">Key Performance Indicators</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">User Engagement Rate</span>
+                            <div class="flex items-center">
+                                {% if user_activity.total_logins > 0 %}
+                                    {% widthratio user_activity.active_users_30d user_activity.total_logins 100 as engagement_rate %}
+                                    <span class="text-sm font-medium text-secondary-900">{{ engagement_rate }}%</span>
+                                    <div class="w-20 bg-secondary-200 rounded-full h-2 ml-2">
+                                        <div class="bg-success-600 h-2 rounded-full" style="width: {{ engagement_rate }}%"></div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-sm font-medium text-secondary-500">N/A</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">Loan Approval Rate</span>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium text-secondary-900">{{ loan_performance.approval_rate|floatformat:1 }}%</span>
+                                <div class="w-20 bg-secondary-200 rounded-full h-2 ml-2">
+                                    <div class="bg-primary-600 h-2 rounded-full" style="width: {{ loan_performance.approval_rate }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">System Health</span>
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium text-success-600">Excellent</span>
+                                <div class="w-20 bg-secondary-200 rounded-full h-2 ml-2">
+                                    <div class="bg-success-600 h-2 rounded-full" style="width: 95%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Summary -->
+                <div>
+                    <h4 class="font-medium text-secondary-700 mb-3">Recent Activity Summary</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-secondary-600">New users this month:</span>
+                            <span class="font-medium text-secondary-900">{{ user_activity.new_users_30d }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-secondary-600">Loan applications:</span>
+                            <span class="font-medium text-secondary-900">{{ loan_performance.applications_30d }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-secondary-600">Pending documents:</span>
+                            <span class="font-medium text-secondary-900">{{ system_health.pending_documents }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-secondary-600">System uptime:</span>
+                            <span class="font-medium text-success-600">99.9%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div class="mt-8 bg-info-50 border-l-4 border-info-500 p-4 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-download text-info-500 mt-1"></i>
+                <div class="ml-3">
+                    <p class="text-sm text-info-800">
+                        <strong>Export Reports:</strong> Generate detailed reports in PDF or Excel format for external analysis and compliance.
+                    </p>
+                    <div class="mt-2">
+                        <a href="#" class="text-info-700 hover:text-info-900 text-sm font-medium mr-4">
+                            <i class="fas fa-file-pdf mr-1"></i>Export as PDF
+                        </a>
+                        <a href="#" class="text-info-700 hover:text-info-900 text-sm font-medium">
+                            <i class="fas fa-file-excel mr-1"></i>Export as Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Expense Report - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <i class="fas fa-chart-bar text-primary-600 text-3xl"></i>
+                <h1 class="text-4xl font-bold text-secondary-900">Expense Report</h1>
+            </div>
+            <p class="text-secondary-600">Analyze and review all approved expenses with detailed breakdowns</p>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 p-6 mb-8">
+            <div class="flex items-center gap-2 mb-6">
+                <i class="fas fa-filter text-primary-600"></i>
+                <h2 class="text-lg font-semibold text-secondary-900">Filter Report</h2>
+            </div>
+            <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Category</label>
+                    <select name="category" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if request.GET.category|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Branch</label>
+                    <input type="text" name="branch" value="{{ request.GET.branch }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Branch name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">Start Date</label>
+                    <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-secondary-700 mb-2">End Date</label>
+                    <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-6 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-search mr-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Expenses -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-primary-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Approved Expenses</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">K{{ total_expenses|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-primary-100 rounded-full p-4">
+                        <i class="fas fa-money-bill-wave text-primary-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Number of Expenses -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-success-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Number of Expenses</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ expenses|length }}</p>
+                    </div>
+                    <div class="bg-success-100 rounded-full p-4">
+                        <i class="fas fa-list text-success-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average Expense -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-info-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Average Expense</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">
+                            K{% if average_expense %}{{ average_expense|floatformat:2 }}{% else %}0.00{% endif %}
+                        </p>
+                    </div>
+                    <div class="bg-info-100 rounded-full p-4">
+                        <i class="fas fa-chart-line text-info-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown and Summary -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Expenses by Category -->
+            <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                    <h2 class="text-lg font-bold text-white flex items-center">
+                        <i class="fas fa-chart-pie mr-3"></i>Expenses by Category
+                    </h2>
+                </div>
+                <div class="p-6">
+                    {% if category_totals %}
+                    <div class="space-y-4">
+                        {% for category, total in category_totals.items %}
+                        <div class="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
+                            <span class="text-secondary-700 font-medium">{{ category }}</span>
+                            <span class="text-lg font-bold text-success-600">K{{ total|floatformat:2 }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-inbox text-4xl text-secondary-300 mb-3"></i>
+                        <p class="text-secondary-600">No expenses found for the selected filters.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Report Summary -->
+            <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                    <h2 class="text-lg font-bold text-white flex items-center">
+                        <i class="fas fa-file-alt mr-3"></i>Report Summary
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Total Expenses</span>
+                        <span class="text-lg font-bold text-info-600">K{{ total_expenses|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Number of Transactions</span>
+                        <span class="text-lg font-bold text-info-600">{{ expenses|length }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Average per Transaction</span>
+                        <span class="text-lg font-bold text-info-600">K{% if average_expense %}{{ average_expense|floatformat:2 }}{% else %}0.00{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Expenses Table -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                <h2 class="text-lg font-bold text-white flex items-center">
+                    <i class="fas fa-table mr-3"></i>Detailed Expenses
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50 border-b border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Title</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Branch</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-secondary-700 uppercase tracking-wider">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-200">
+                        {% for expense in expenses %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-200">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">
+                                {{ expense.expense_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-900 font-medium">
+                                {{ expense.title }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                                    {{ expense.category.name }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
+                                {{ expense.branch }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-secondary-900 text-right">
+                                K{{ expense.amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No expenses found for the selected filters.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

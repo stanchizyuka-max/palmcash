@@ -1,0 +1,73 @@
+{% extends "admin/change_list.html" %}
+{% load humanize %}
+
+{% block content_title %}
+<h1>Client Document Review Center</h1>
+<p class="help">Review and verify documents uploaded by clients. These are general client documents, separate from loan-specific documents.</p>
+{% endblock %}
+
+{% block result_list %}
+<!-- Document Review Statistics -->
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Client Document Statistics</h2>
+    <div style="display: flex; gap: 20px; padding: 15px;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #007cba;">{{ total_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Total Documents</p>
+        </div>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #856404;">{{ pending_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Pending Review</p>
+        </div>
+        <div style="background: #d1edff; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #0c5460;">{{ approved_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Approved</p>
+        </div>
+        <div style="background: #f8d7da; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #721c24;">{{ rejected_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Rejected</p>
+        </div>
+        <div style="background: #d4edda; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #155724;">{{ approval_rate }}%</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Approval Rate</p>
+        </div>
+    </div>
+</div>
+
+{% if pending_documents > 0 %}
+<div class="module" style="margin-bottom: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+    <div style="padding: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ Client Documents Awaiting Review</h3>
+        <p style="margin: 0; color: #856404;">
+            You have <strong>{{ pending_documents }}</strong> client document{{ pending_documents|pluralize }} waiting for review and verification.
+            These are documents uploaded by clients through the client dashboard.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Quick Actions</h2>
+    <div style="padding: 15px;">
+        <a href="?status__exact=pending" class="button" style="margin-right: 10px;">📋 View Pending Documents</a>
+        <a href="?status__exact=approved" class="button" style="margin-right: 10px;">✅ View Approved Documents</a>
+        <a href="?status__exact=rejected" class="button" style="margin-right: 10px;">❌ View Rejected Documents</a>
+        <a href="/clients/" class="button" style="margin-right: 10px;">👥 View Clients</a>
+        <a href="/loans/documents/review-dashboard/" class="button">🎛️ Loan Documents</a>
+    </div>
+</div>
+
+<!-- Important Notice -->
+<div class="module" style="margin-bottom: 20px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 5px;">
+    <div style="padding: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: #0066cc;">ℹ️ Document Types</h3>
+        <p style="margin: 0; color: #0066cc;">
+            <strong>Client Documents:</strong> General documents uploaded by clients (National ID, Proof of Income, etc.)<br>
+            <strong>Loan Documents:</strong> Specific documents attached to loan applications (managed separately)
+        </p>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

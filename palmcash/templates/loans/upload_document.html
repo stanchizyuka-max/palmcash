@@ -1,0 +1,221 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Upload Document - Loan {{ loan.application_number }} - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="bg-primary-100 p-3 rounded-lg">
+                    <i class="fas fa-upload text-primary-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">Upload Document</h1>
+                    <p class="text-secondary-600 mt-1">Loan: {{ loan.application_number }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Upload Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                        <h2 class="text-xl font-semibold text-white">Document Upload Form</h2>
+                    </div>
+                    
+                    <div class="p-8">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                            <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-r-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-exclamation-circle text-danger-500 text-xl mr-3"></i>
+                                    <div class="text-sm text-danger-800">
+                                        {{ form.non_field_errors }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Document Type -->
+                            <div class="mb-6">
+                                <label for="{{ form.document_type.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    <i class="fas fa-tag text-secondary-400 mr-1"></i>
+                                    Document Type <span class="text-danger-500">*</span>
+                                </label>
+                                {{ form.document_type|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.document_type.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.document_type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- File Upload -->
+                            <div class="mb-6">
+                                <label for="{{ form.document_file.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    <i class="fas fa-file text-secondary-400 mr-1"></i>
+                                    Choose File <span class="text-danger-500">*</span>
+                                </label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-secondary-300 border-dashed rounded-lg hover:border-primary-400 transition-colors duration-200">
+                                    <div class="space-y-1 text-center">
+                                        <i class="fas fa-cloud-upload-alt text-4xl text-secondary-400 mb-3"></i>
+                                        <div class="flex text-sm text-secondary-600">
+                                            <label for="{{ form.document_file.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                                                <span>Upload a file</span>
+                                                {{ form.document_file|add_class:"sr-only" }}
+                                            </label>
+                                            <p class="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p class="text-xs text-secondary-500">
+                                            {{ form.document_file.help_text }}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if form.document_file.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.document_file.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Description -->
+                            <div class="mb-6">
+                                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-secondary-700 mb-2">
+                                    <i class="fas fa-comment text-secondary-400 mr-1"></i>
+                                    Description (Optional)
+                                </label>
+                                {{ form.description|add_class:"w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200" }}
+                                {% if form.description.errors %}
+                                <p class="mt-2 text-sm text-danger-600">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-secondary-500">Add any additional information about this document</p>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-secondary-200">
+                                <button type="submit" 
+                                        class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                                    <i class="fas fa-upload mr-2"></i>Upload Document
+                                </button>
+                                <a href="{% url 'loans:document_list' loan.pk %}" 
+                                   class="inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
+                                    <i class="fas fa-times mr-2"></i>Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Guidelines Sidebar -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Accepted File Types -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-file-alt"></i>
+                            Accepted File Types
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-3">
+                            <li class="flex items-center gap-3">
+                                <div class="bg-danger-100 p-2 rounded-lg">
+                                    <i class="fas fa-file-pdf text-danger-600"></i>
+                                </div>
+                                <span class="text-sm text-secondary-700">PDF documents</span>
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-file-image text-primary-600"></i>
+                                </div>
+                                <span class="text-sm text-secondary-700">Images (JPG, PNG)</span>
+                            </li>
+                            <li class="flex items-center gap-3">
+                                <div class="bg-info-100 p-2 rounded-lg">
+                                    <i class="fas fa-file-word text-info-600"></i>
+                                </div>
+                                <span class="text-sm text-secondary-700">Word (DOC, DOCX)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- File Size Limit -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-weight-hanging"></i>
+                            File Size Limit
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-warning-600 mb-2">10 MB</div>
+                            <p class="text-sm text-secondary-600">Maximum file size</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Required Documents -->
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i>
+                            Required Documents
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3">
+                                <div class="bg-warning-100 p-2 rounded-lg mt-0.5">
+                                    <i class="fas fa-id-card text-warning-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-secondary-900">ID Copy</p>
+                                    <p class="text-xs text-secondary-500">National ID or Passport</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <div class="bg-success-100 p-2 rounded-lg mt-0.5">
+                                    <i class="fas fa-money-check text-success-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-secondary-900">Proof of Income</p>
+                                    <p class="text-xs text-secondary-500">Payslip or Tax Return</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <div class="bg-info-100 p-2 rounded-lg mt-0.5">
+                                    <i class="fas fa-university text-info-600"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-secondary-900">Bank Statement</p>
+                                    <p class="text-xs text-secondary-500">Last 3 months</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Info Alert -->
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 text-xl mr-3 mt-0.5"></i>
+                        <div class="text-sm text-blue-800">
+                            <strong>Note:</strong> All documents will be reviewed by our loan officers before approval.
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

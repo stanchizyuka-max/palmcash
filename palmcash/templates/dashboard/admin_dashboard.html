@@ -1,0 +1,255 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Admin Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900">System Administrator Dashboard</h1>
+            <p class="text-secondary-600 mt-2">Complete system overview and administration</p>
+        </div>
+
+        <!-- System Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Users -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Users</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Users</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-check text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Loans -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Loans</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ total_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-invoice-dollar text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Documents -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Documents</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_documents }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-alt text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Role Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Borrowers</h3>
+                    <i class="fas fa-user text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ total_borrowers }}</p>
+                <p class="text-primary-100 text-sm mt-2">Regular customers</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Loan Officers</h3>
+                    <i class="fas fa-briefcase text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ total_officers }}</p>
+                <p class="text-success-100 text-sm mt-2">Front-line staff</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Managers</h3>
+                    <i class="fas fa-user-tie text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ total_managers }}</p>
+                <p class="text-warning-100 text-sm mt-2">Management staff</p>
+            </div>
+        </div>
+
+        <!-- Financial Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Financial Summary</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Total Disbursed</span>
+                        <span class="text-2xl font-bold text-primary-600">K {{ total_disbursed|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Total Repaid</span>
+                        <span class="text-2xl font-bold text-success-600">K {{ total_repaid|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-warning-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Overdue Payments</span>
+                        <span class="text-2xl font-bold text-warning-600">{{ overdue_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Monthly Activity</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-info-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">New Signups</span>
+                        <span class="text-2xl font-bold text-info-600">{{ monthly_signups }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">New Applications</span>
+                        <span class="text-2xl font-bold text-primary-600">{{ monthly_applications }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Active Loans</span>
+                        <span class="text-2xl font-bold text-success-600">{{ active_loans }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Recent Users -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+                <div class="p-6 border-b border-secondary-100">
+                    <h3 class="text-lg font-semibold text-secondary-900">Recent Users</h3>
+                </div>
+                <div class="p-6">
+                    {% if recent_users %}
+                    <div class="space-y-4">
+                        {% for user in recent_users %}
+                        <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                            <div>
+                                <p class="font-medium text-secondary-900">{{ user.get_full_name|default:user.username }}</p>
+                                <p class="text-sm text-secondary-600">{{ user.get_role_display }} • {{ user.email }}</p>
+                            </div>
+                            <span class="text-xs text-secondary-500">{{ user.date_joined|date:"M d" }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-secondary-500 text-center py-8">No recent users</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Loans -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+                <div class="p-6 border-b border-secondary-100">
+                    <h3 class="text-lg font-semibold text-secondary-900">Recent Loan Applications</h3>
+                </div>
+                <div class="p-6">
+                    {% if recent_loans %}
+                    <div class="space-y-4">
+                        {% for loan in recent_loans %}
+                        <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                            <div>
+                                <p class="font-medium text-secondary-900">{{ loan.borrower.get_full_name }}</p>
+                                <p class="text-sm text-secondary-600">K {{ loan.principal_amount|floatformat:2 }}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium
+                                {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+                                {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                {% endif %}">
+                                {{ loan.get_status_display }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-secondary-500 text-center py-8">No recent applications</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- System Administration -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">System Administration</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a href="{% url 'dashboard:manage_loans' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-file-invoice-dollar text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">Manage Loans</span>
+                </a>
+                <a href="{% url 'dashboard:groups_permissions' %}" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-users-cog text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">Groups & Permissions</span>
+                </a>
+                <a href="{% url 'dashboard:system_reports' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-chart-bar text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">System Reports</span>
+                </a>
+            </div>
+            
+            <!-- Additional Admin Tools -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4 mt-4">
+                <a href="{% url 'accounts:manage_users' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 border border-blue-200">
+                    <i class="fas fa-users-cog text-blue-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-blue-900 text-center">Manage Users</span>
+                </a>
+                <a href="{% url 'loans:manage_loan_types' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 border border-purple-200">
+                    <i class="fas fa-tags text-purple-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-purple-900 text-center">Loan Types</span>
+                </a>
+                <a href="{% url 'loans:manage_loan_documents' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200 border border-indigo-200">
+                    <i class="fas fa-file-contract text-indigo-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-indigo-900 text-center">Loan Documents</span>
+                </a>
+                <a href="{% url 'documents:manage_documents' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors duration-200 border border-teal-200">
+                    <i class="fas fa-folder-open text-teal-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-teal-900 text-center">User Documents</span>
+                </a>
+                <a href="{% url 'documents:manage_document_types' %}" class="flex flex-col items-center p-4 bg-cyan-50 rounded-lg hover:bg-cyan-100 transition-colors duration-200 border border-cyan-200">
+                    <i class="fas fa-clipboard-list text-cyan-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-cyan-900 text-center">Document Types</span>
+                </a>
+                <a href="/admin/" class="flex flex-col items-center p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors duration-200">
+                    <i class="fas fa-cogs text-secondary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-secondary-900 text-center">Django Admin</span>
+                </a>
+                <a href="{% url 'dashboard:analytics' %}" class="flex flex-col items-center p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors duration-200">
+                    <i class="fas fa-chart-pie text-secondary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-secondary-900 text-center">Analytics</span>
+                </a>
+                <a href="{% url 'reports:list' %}" class="flex flex-col items-center p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors duration-200">
+                    <i class="fas fa-file-alt text-secondary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-secondary-900 text-center">Reports</span>
+                </a>
+                <a href="{% url 'dashboard:manager' %}" class="flex flex-col items-center p-4 bg-secondary-50 rounded-lg hover:bg-secondary-100 transition-colors duration-200">
+                    <i class="fas fa-eye text-secondary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-secondary-900 text-center">Manager View</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

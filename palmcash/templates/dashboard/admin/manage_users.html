@@ -1,0 +1,218 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manage Users - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Manage Users</h1>
+                <p class="text-secondary-600 mt-2">System user management and administration</p>
+            </div>
+            <a href="{% url 'dashboard:admin' %}" class="btn-outline-primary">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- User Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Users</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Users</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-check text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Staff Users</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ staff_users }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-tie text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Superusers</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ superusers }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-crown text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Role Distribution</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-4 bg-primary-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Borrowers</span>
+                        <span class="text-xl font-bold text-primary-600">{{ role_stats.borrowers }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-success-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Loan Officers</span>
+                        <span class="text-xl font-bold text-success-600">{{ role_stats.officers }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-info-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Managers</span>
+                        <span class="text-xl font-bold text-info-600">{{ role_stats.managers }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-4 bg-warning-50 rounded-lg">
+                        <span class="text-secondary-700 font-medium">Administrators</span>
+                        <span class="text-xl font-bold text-warning-600">{{ role_stats.admins }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <a href="/admin/accounts/user/add/" class="block w-full btn-primary text-center">
+                        <i class="fas fa-user-plus mr-2"></i>Add New User
+                    </a>
+                    <a href="/admin/accounts/user/" class="block w-full btn-outline-primary text-center">
+                        <i class="fas fa-edit mr-2"></i>Edit Users (Django Admin)
+                    </a>
+                    <a href="{% url 'dashboard:groups_permissions' %}" class="block w-full btn-outline-success text-center">
+                        <i class="fas fa-users-cog mr-2"></i>Manage Groups & Permissions
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Document & Loan Management</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="{% url 'adminpanel:loan_type_list' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200">
+                    <i class="fas fa-tags text-purple-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-purple-900">Loan Types</span>
+                </a>
+                <a href="{% url 'adminpanel:loan_document_list' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200">
+                    <i class="fas fa-file-contract text-indigo-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-indigo-900">Loan Documents</span>
+                </a>
+                <a href="{% url 'adminpanel:user_document_list' %}" class="flex flex-col items-center p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors duration-200">
+                    <i class="fas fa-id-card text-pink-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-pink-900">User Documents</span>
+                </a>
+                <a href="{% url 'adminpanel:document_type_list' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors duration-200">
+                    <i class="fas fa-folder-open text-teal-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-teal-900">Document Types</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">All Users</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Last Login</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Joined</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for user in users %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-primary-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-secondary-900">
+                                            {{ user.get_full_name|default:user.username }}
+                                            {% if user.is_superuser %}<i class="fas fa-crown text-warning-500 ml-1"></i>{% endif %}
+                                        </div>
+                                        <div class="text-sm text-secondary-500">{{ user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if user.role == 'admin' %}bg-warning-100 text-warning-800
+                                    {% elif user.role == 'manager' %}bg-info-100 text-info-800
+                                    {% elif user.role == 'loan_officer' %}bg-success-100 text-success-800
+                                    {% else %}bg-primary-100 text-primary-800
+                                    {% endif %}">
+                                    {{ user.get_role_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if user.is_active %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">Active</span>
+                                {% else %}
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-danger-100 text-danger-800">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {% if user.last_login %}
+                                    {{ user.last_login|date:"M d, Y H:i" }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {{ user.date_joined|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <a href="/admin/accounts/user/{{ user.id }}/change/" class="text-primary-600 hover:text-primary-900 mr-3">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                {% if not user.is_superuser %}
+                                <a href="/admin/accounts/user/{{ user.id }}/delete/" class="text-danger-600 hover:text-danger-900">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-secondary-500">
+                                No users found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

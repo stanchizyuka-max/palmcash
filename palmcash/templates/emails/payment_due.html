@@ -1,0 +1,90 @@
+{% extends 'emails/base_email.html' %}
+{% load humanize %}
+
+{% block title %}Payment Due Reminder - LoanVista{% endblock %}
+{% block header_subtitle %}Payment Reminder{% endblock %}
+
+{% block content %}
+<h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 24px;">
+    Payment Reminder{% if borrower.first_name %}, {{ borrower.first_name }}{% endif %}
+</h2>
+
+<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #92400e; margin: 0; font-size: 16px; font-weight: bold;">
+        ⏰ Payment Due Soon
+    </p>
+</div>
+
+<p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+    This is a friendly reminder that your payment for loan <strong>#{{ loan.application_number }}</strong> is due soon.
+</p>
+
+<!-- Payment Details -->
+<table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; margin: 0 0 30px 0;">
+    <tr>
+        <td colspan="2" style="color: #1f2937; font-size: 16px; font-weight: bold; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+            💳 Payment Information
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Amount Due:
+        </td>
+        <td style="color: #f59e0b; font-size: 16px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>K{{ payment_amount|floatformat:2|intcomma }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Due Date:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            <strong>{{ due_date|date:"M d, Y" }}</strong>
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px; border-bottom: 1px solid #e5e7eb;">
+            Days Until Due:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+            {{ days_until_due }} days
+        </td>
+    </tr>
+    <tr>
+        <td style="color: #6b7280; font-size: 14px;">
+            Current Balance:
+        </td>
+        <td style="color: #1f2937; font-size: 14px; text-align: right;">
+            K{{ loan.balance_remaining|floatformat:2|intcomma }}
+        </td>
+    </tr>
+</table>
+
+<!-- Important Notice -->
+<div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 0 0 30px 0; border-radius: 4px;">
+    <p style="color: #1e40af; margin: 0 0 10px 0; font-weight: bold; font-size: 14px;">
+        💡 Important:
+    </p>
+    <ul style="color: #1e40af; margin: 0; padding-left: 20px; font-size: 14px;">
+        <li>Make your payment before the due date to avoid late fees</li>
+        <li>You can make payments online through your dashboard</li>
+        <li>Contact us if you're experiencing payment difficulties</li>
+    </ul>
+</div>
+
+<!-- Action Button -->
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center" style="padding: 0 0 20px 0;">
+            <a href="{{ site_url }}/payments/make/{{ loan.id }}/" 
+               style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                Make Payment Now
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="color: #6b7280; line-height: 1.6; margin: 0; font-size: 14px;">
+    Thank you for staying on top of your payments. We appreciate your business!
+</p>
+{% endblock %}

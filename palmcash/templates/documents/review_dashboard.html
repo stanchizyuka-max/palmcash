@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Client Document Review Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-file-check me-2"></i>
+                Client Document Review Dashboard
+            </h1>
+            <div>
+                <span class="badge bg-warning fs-6 me-2">{{ pending_documents }} Pending</span>
+                <span class="badge bg-success fs-6">{{ approved_documents }} Approved</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ pending_documents }}</h4>
+                        <p class="mb-0">Pending Review</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ approved_documents }}</h4>
+                        <p class="mb-0">Approved</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ rejected_documents }}</h4>
+                        <p class="mb-0">Rejected</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ total_documents }}</h4>
+                        <p class="mb-0">Total Documents</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pending Documents -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Client Documents Pending Review
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pending_by_user %}
+                {% for user_data in pending_by_user %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user me-2"></i>
+                                {{ user_data.user.full_name }}
+                            </h6>
+                            <div>
+                                <small class="text-muted">{{ user_data.user.username }} ({{ user_data.user.get_role_display }})</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Document Title</th>
+                                        <th>Type</th>
+                                        <th>File</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for document in user_data.documents %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-file me-2"></i>
+                                            {{ document.title }}
+                                        </td>
+                                        <td>{{ document.document_type.name }}</td>
+                                        <td>{{ document.original_filename }}</td>
+                                        <td>{{ document.uploaded_at|date:"M d, H:i" }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                {% if document.file %}
+                                                <a href="{{ document.file.url }}" 
+                                                   class="btn btn-outline-primary" 
+                                                   target="_blank" title="Download">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                {% else %}
+                                                <button class="btn btn-outline-secondary" disabled title="No file">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-outline-success" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#reviewModal{{ document.pk }}" 
+                                                        title="Review">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </button>
+                                                <a href="{% url 'documents:detail' document.pk %}" 
+                                                   class="btn btn-outline-info" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteModal{{ document.pk }}" 
+                                                        title="Delete Document">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="text-success">All client documents reviewed!</h5>
+                    <p class="text-muted">No client documents are currently pending review.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Last 7 Days</h6>
+                    <p class="mb-1"><strong>New Uploads:</strong> {{ recent_uploads }}</p>
+                    <p class="mb-1"><strong>Reviews Completed:</strong> {{ recent_reviews }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Review Progress</h6>
+                    {% if total_documents > 0 %}
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ approval_percentage }}%">
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ approval_percentage|floatformat:1 }}% approved</small>
+                    {% else %}
+                    <p class="text-muted">No documents to review</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'documents:list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>View All Documents
+                    </a>
+                    <a href="/admin/documents/document/" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>Admin Panel
+                    </a>
+                    <a href="{% url 'clients:group_list' %}" class="btn btn-outline-info">
+                        <i class="fas fa-users me-2"></i>View Clients
+                    </a>
+                    <a href="/loans/documents/review-dashboard/" class="btn btn-outline-warning">
+                        <i class="fas fa-money-bill-wave me-2"></i>Loan Documents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modals -->
+{% for user_data in pending_by_user %}
+{% for document in user_data.documents %}
+<div class="modal fade" id="reviewModal{{ document.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Client Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Document Information</h6>
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <td><strong>Client:</strong></td>
+                                <td>{{ document.user.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Username:</strong></td>
+                                <td>{{ document.user.username }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Title:</strong></td>
+                                <td>{{ document.title }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Type:</strong></td>
+                                <td>{{ document.document_type.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>File:</strong></td>
+                                <td>{{ document.original_filename }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Uploaded:</strong></td>
+                                <td>{{ document.uploaded_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Document Details</h6>
+                        {% if document.description %}
+                        <p><strong>Description:</strong><br>{{ document.description }}</p>
+                        {% endif %}
+                        {% if document.document_number %}
+                        <p><strong>Document Number:</strong> {{ document.document_number }}</p>
+                        {% endif %}
+                        {% if document.issue_date %}
+                        <p><strong>Issue Date:</strong> {{ document.issue_date }}</p>
+                        {% endif %}
+                        {% if document.expiry_date %}
+                        <p><strong>Expiry Date:</strong> {{ document.expiry_date }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                {% if document.file %}
+                <a href="{{ document.file.url }}" class="btn btn-outline-primary me-auto" target="_blank">
+                    <i class="fas fa-download me-2"></i>Download Document
+                </a>
+                {% endif %}
+                
+                <form method="post" action="{% url 'documents:reject' document.pk %}" class="d-inline me-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="reason" value="Document rejected after review">
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Are you sure you want to reject this document?')">
+                        <i class="fas fa-times me-2"></i>Reject
+                    </button>
+                </form>
+                
+                <form method="post" action="{% url 'documents:approve' document.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="notes" value="Document approved after review">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Approve
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endfor %}
+
+<!-- Delete Confirmation Modals -->
+{% for user_data in pending_by_user %}
+{% for document in user_data.documents %}
+<div class="modal fade" id="deleteModal{{ document.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Document Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <p>Are you sure you want to permanently delete this document?</p>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Document Details:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Title:</strong> {{ document.title }}</li>
+                            <li><strong>Client:</strong> {{ document.user.full_name }}</li>
+                            <li><strong>Type:</strong> {{ document.document_type.name }}</li>
+                            <li><strong>File:</strong> {{ document.original_filename }}</li>
+                            <li><strong>Uploaded:</strong> {{ document.uploaded_at|date:"M d, Y H:i" }}</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>What will be deleted:</h6>
+                    <ul>
+                        <li>Document record from database</li>
+                        <li>Associated file from server storage</li>
+                        <li>All related metadata and history</li>
+                    </ul>
+                </div>
+                
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmDelete{{ document.pk }}" required>
+                    <label class="form-check-label text-danger" for="confirmDelete{{ document.pk }}">
+                        <strong>I understand this action is permanent and cannot be undone</strong>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <form method="post" action="{% url 'documents:delete' document.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'documents:review_dashboard' %}">
+                    <button type="submit" class="btn btn-danger" id="deleteBtn{{ document.pk }}" disabled>
+                        <i class="fas fa-trash me-2"></i>Delete Permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox{{ document.pk }} = document.getElementById('confirmDelete{{ document.pk }}');
+    const deleteBtn{{ document.pk }} = document.getElementById('deleteBtn{{ document.pk }}');
+    
+    if (checkbox{{ document.pk }} && deleteBtn{{ document.pk }}) {
+        checkbox{{ document.pk }}.addEventListener('change', function() {
+            deleteBtn{{ document.pk }}.disabled = !this.checked;
+        });
+    }
+});
+</script>
+{% endfor %}
+{% endfor %}
+{% endblock %}

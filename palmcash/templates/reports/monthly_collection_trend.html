@@ -1,0 +1,435 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Monthly Collection Trend - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-secondary-900 flex items-center gap-3">
+                    <i class="fas fa-chart-line text-primary-600"></i>
+                    Monthly Collection Trend
+                </h1>
+                <p class="text-secondary-600 mt-2">Comprehensive financial performance analysis</p>
+            </div>
+            <div class="bg-primary-100 text-primary-800 px-4 py-2 rounded-lg font-semibold">
+                <i class="fas fa-calendar-alt mr-2"></i>
+                Since {{ system_launch_date|date:"M d, Y" }}
+            </div>
+        </div>
+
+        <!-- System Information Alert -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r-lg">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
+                <div class="text-sm text-blue-800">
+                    <strong>System Launch:</strong> {{ system_launch_date|date:"F d, Y" }} ({{ system_age }}) | 
+                    <strong>Report Period:</strong> {{ report_period }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Collections -->
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-success-100 text-sm font-medium mb-1">Total Collections</p>
+                        <h3 class="text-3xl font-bold mb-2">K{{ summary.collections.total|floatformat:0|intcomma|default:"0" }}</h3>
+                        <p class="text-success-100 text-xs">{{ summary.collections.count|default:"0" }} payments</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                        <i class="fas fa-money-bill-wave text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Disbursed -->
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-primary-100 text-sm font-medium mb-1">Total Disbursed</p>
+                        <h3 class="text-3xl font-bold mb-2">K{{ summary.disbursements.total|floatformat:0|intcomma|default:"0" }}</h3>
+                        <p class="text-primary-100 text-xs">{{ summary.disbursements.count|default:"0" }} loans</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                        <i class="fas fa-hand-holding-usd text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Cash Flow -->
+            <div class="bg-gradient-to-br from-{% if summary.net_flow >= 0 %}success-500 to-success-600{% else %}warning-500 to-warning-600{% endif %} rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="{% if summary.net_flow >= 0 %}text-success-100{% else %}text-warning-100{% endif %} text-sm font-medium mb-1">Net Cash Flow</p>
+                        <h3 class="text-3xl font-bold mb-2">K{{ summary.net_flow|floatformat:0|intcomma }}</h3>
+                        <p class="{% if summary.net_flow >= 0 %}text-success-100{% else %}text-warning-100{% endif %} text-xs">Collections - Disbursements</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                        <i class="fas fa-{% if summary.net_flow >= 0 %}arrow-up{% else %}arrow-down{% endif %} text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Applications -->
+            <div class="bg-gradient-to-br from-info-500 to-info-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-info-100 text-sm font-medium mb-1">Total Applications</p>
+                        <h3 class="text-3xl font-bold mb-2">{{ summary.applications.total|default:"0" }}</h3>
+                        <p class="text-info-100 text-xs">{{ summary.applications.approved|default:"0" }} approved</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 p-3 rounded-lg">
+                        <i class="fas fa-file-alt text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Collections Chart -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4">
+                    <h5 class="text-white font-semibold flex items-center gap-2">
+                        <i class="fas fa-chart-bar"></i>
+                        Monthly Collections
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <canvas id="collectionsChart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Disbursements Chart -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                    <h5 class="text-white font-semibold flex items-center gap-2">
+                        <i class="fas fa-chart-line"></i>
+                        Monthly Disbursements
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <canvas id="disbursementsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Chart -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                <h5 class="text-white font-semibold flex items-center gap-2">
+                    <i class="fas fa-chart-area"></i>
+                    Monthly Loan Applications
+                </h5>
+            </div>
+            <div class="p-6">
+                <canvas id="applicationsChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly Data Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <div class="bg-gradient-to-r from-secondary-700 to-secondary-800 px-6 py-4">
+                <h5 class="text-white font-semibold flex items-center gap-2">
+                    <i class="fas fa-table"></i>
+                    Monthly Breakdown
+                </h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-secondary-200">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Month</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Collections</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Payments</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Disbursements</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Loans</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Applications</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Approval Rate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-700 uppercase tracking-wider">Net Flow</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for data in chart_data %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold text-secondary-900">{{ data.period }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-success-600 font-semibold">
+                                K{{ data.collections.amount|floatformat:0|intcomma }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-secondary-600">
+                                {{ data.collections.count }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-primary-600 font-semibold">
+                                K{{ data.disbursements.amount|floatformat:0|intcomma }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-secondary-600">
+                                {{ data.disbursements.count }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-secondary-600">
+                                {{ data.applications.total }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if data.applications.total > 0 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if data.applications.approval_rate >= 80 %}bg-success-100 text-success-800
+                                    {% elif data.applications.approval_rate >= 60 %}bg-warning-100 text-warning-800
+                                    {% else %}bg-danger-100 text-danger-800{% endif %}">
+                                    {{ data.applications.approval_rate|floatformat:1 }}%
+                                </span>
+                                {% else %}
+                                <span class="text-secondary-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold {% if data.net_flow >= 0 %}text-success-600{% else %}text-danger-600{% endif %}">
+                                    K{{ data.net_flow|floatformat:0|intcomma }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-4xl mb-2"></i>
+                                <p>No data available for the selected period</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Performance -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4">
+                <h5 class="text-white font-semibold flex items-center gap-2">
+                    <i class="fas fa-clock"></i>
+                    Recent Performance
+                </h5>
+            </div>
+            <div class="p-6">
+                <p class="text-secondary-700 mb-6"><strong>Period:</strong> {{ recent_performance.period }}</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center p-6 bg-success-50 rounded-lg">
+                        <h4 class="text-3xl font-bold text-success-600 mb-2">
+                            K{{ recent_performance.collections.total|floatformat:0|intcomma|default:"0" }}
+                        </h4>
+                        <p class="text-secondary-700 font-medium mb-1">Collections</p>
+                        <p class="text-sm text-secondary-500">{{ recent_performance.collections.count|default:"0" }} payments</p>
+                    </div>
+                    <div class="text-center p-6 bg-primary-50 rounded-lg">
+                        <h4 class="text-3xl font-bold text-primary-600 mb-2">
+                            {{ recent_performance.applications|default:"0" }}
+                        </h4>
+                        <p class="text-secondary-700 font-medium mb-1">New Applications</p>
+                        <p class="text-sm text-secondary-500">&nbsp;</p>
+                    </div>
+                    <div class="text-center p-6 bg-info-50 rounded-lg">
+                        {% if recent_performance.collections.count > 0 and recent_performance.collections.average %}
+                        <h4 class="text-3xl font-bold text-info-600 mb-2">
+                            K{{ recent_performance.collections.average|floatformat:0|intcomma }}
+                        </h4>
+                        {% else %}
+                        <h4 class="text-3xl font-bold text-secondary-400 mb-2">K0</h4>
+                        {% endif %}
+                        <p class="text-secondary-700 font-medium mb-1">Avg Payment</p>
+                        <p class="text-sm text-secondary-500">&nbsp;</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Prepare data for charts
+    const chartData = {{ chart_data|safe }};
+    const labels = chartData.map(item => item.period);
+    
+    // Collections Chart
+    const collectionsCtx = document.getElementById('collectionsChart').getContext('2d');
+    new Chart(collectionsCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Collections (K)',
+                data: chartData.map(item => item.collections.amount),
+                backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                borderColor: 'rgba(34, 197, 94, 1)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'K' + value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Collections: K' + context.parsed.y.toLocaleString();
+                        }
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    borderRadius: 8
+                },
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    // Disbursements Chart
+    const disbursementsCtx = document.getElementById('disbursementsChart').getContext('2d');
+    new Chart(disbursementsCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Disbursements (K)',
+                data: chartData.map(item => item.disbursements.amount),
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'K' + value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Disbursements: K' + context.parsed.y.toLocaleString();
+                        }
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    borderRadius: 8
+                },
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    // Applications Chart
+    const applicationsCtx = document.getElementById('applicationsChart').getContext('2d');
+    new Chart(applicationsCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total Applications',
+                    data: chartData.map(item => item.applications.total),
+                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Approved',
+                    data: chartData.map(item => item.applications.approved),
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Rejected',
+                    data: chartData.map(item => item.applications.rejected),
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    borderRadius: 8
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

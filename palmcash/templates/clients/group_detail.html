@@ -1,0 +1,342 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} - PalmCash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex-1">
+                    <div class="flex items-center mb-2">
+                        <a href="{% url 'clients:group_list' %}" class="text-blue-600 hover:text-blue-900 mr-3 text-lg">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <h1 class="text-4xl font-bold text-gray-900">{{ group.name }}</h1>
+                    </div>
+                    {% if group.description %}
+                    <p class="text-gray-600 ml-8 mt-2">{{ group.description }}</p>
+                    {% endif %}
+                </div>
+                {% if user.role in 'admin,manager' %}
+                <a href="{% url 'clients:group_edit' group.pk %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-edit mr-2"></i>Edit Group
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Group Status and Info -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 ml-8">
+                <!-- Status -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Status</p>
+                            {% if group.is_active %}
+                            <p class="text-lg font-semibold text-green-600">Active</p>
+                            {% else %}
+                            <p class="text-lg font-semibold text-gray-600">Inactive</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-2xl">
+                            {% if group.is_active %}
+                            <i class="fas fa-check-circle text-green-500"></i>
+                            {% else %}
+                            <i class="fas fa-times-circle text-gray-400"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Members -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Members</p>
+                            <p class="text-lg font-semibold text-blue-600">{{ group.active_member_count }}</p>
+                            {% if group.max_members %}
+                            <p class="text-xs text-gray-500">of {{ group.max_members }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-2xl text-blue-500">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Loans -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Active Loans</p>
+                            <p class="text-lg font-semibold text-purple-600">{{ active_loans }}</p>
+                        </div>
+                        <div class="text-2xl text-purple-500">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Officer -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Loan Officer</p>
+                        {% if group.assigned_officer %}
+                        <p class="text-lg font-semibold text-gray-900">{{ group.assigned_officer.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">{{ group.assigned_officer.email }}</p>
+                        {% else %}
+                        <p class="text-lg font-semibold text-gray-400">Unassigned</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2">
+                <!-- Group Information Card -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Group Information</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600 text-sm">Branch</p>
+                            <p class="text-gray-900 font-semibold">{{ group.branch|default:"Not specified" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Payment Day</p>
+                            <p class="text-gray-900 font-semibold">{{ group.payment_day|default:"Not specified" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Created</p>
+                            <p class="text-gray-900 font-semibold">{{ group.created_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm">Last Updated</p>
+                            <p class="text-gray-900 font-semibold">{{ group.updated_at|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Members Section -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Active Members ({{ members.count }})</h2>
+                        {% if user.role in 'admin,manager,loan_officer' and group.is_active %}
+                        <button type="button" class="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm" data-toggle="modal" data-target="#addMemberModal">
+                            <i class="fas fa-plus mr-1"></i>Add Member
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if members %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Joined</th>
+                                    {% if user.role in 'admin,manager,loan_officer' %}
+                                    <th class="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                {% for membership in members %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center">
+                                            {% if membership.borrower.profile_picture %}
+                                            <img src="{{ membership.borrower.profile_picture.url }}" alt="{{ membership.borrower.full_name }}" class="w-8 h-8 rounded-full mr-3">
+                                            {% else %}
+                                            <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-xs font-bold">
+                                                {{ membership.borrower.first_name|first }}{{ membership.borrower.last_name|first }}
+                                            </div>
+                                            {% endif %}
+                                            <span class="font-medium text-gray-900">{{ membership.borrower.get_full_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-600">{{ membership.borrower.email }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ membership.borrower.phone_number|default:"N/A" }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ membership.joined_at|date:"M d, Y" }}</td>
+                                    {% if user.role in 'admin,manager,loan_officer' %}
+                                    <td class="px-4 py-3 text-center">
+                                        <form method="post" action="{% url 'clients:remove_member' group.pk membership.pk %}" style="display:inline;" onsubmit="return confirm('Remove this member from the group?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-medium">
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-users text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-gray-600">No active members in this group yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Inactive Members Section -->
+                {% if inactive_members %}
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Inactive Members ({{ inactive_members.count }})</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Removed</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                {% for membership in inactive_members %}
+                                <tr class="hover:bg-gray-50 opacity-75">
+                                    <td class="px-4 py-3">
+                                        <span class="font-medium text-gray-600">{{ membership.borrower.get_full_name }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-600">{{ membership.borrower.email }}</td>
+                                    <td class="px-4 py-3 text-gray-600">{{ membership.removed_at|date:"M d, Y"|default:"N/A" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+                    <div class="space-y-2">
+                        {% if user.role in 'admin,manager' %}
+                        <a href="{% url 'clients:group_edit' group.pk %}" class="block w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-center text-sm font-medium">
+                            <i class="fas fa-edit mr-2"></i>Edit Group
+                        </a>
+                        {% endif %}
+                        {% if user.role in 'admin,manager,loan_officer' and group.is_active %}
+                        <button type="button" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm font-medium" data-toggle="modal" data-target="#addMemberModal">
+                            <i class="fas fa-user-plus mr-2"></i>Add Member
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'clients:group_list' %}" class="block w-full px-4 py-2 bg-gray-200 text-gray-900 rounded hover:bg-gray-300 transition text-center text-sm font-medium">
+                            <i class="fas fa-list mr-2"></i>Back to Groups
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Group Stats -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Statistics</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center pb-3 border-b">
+                            <span class="text-gray-600">Total Members</span>
+                            <span class="font-bold text-lg text-gray-900">{{ group.member_count }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-3 border-b">
+                            <span class="text-gray-600">Active Members</span>
+                            <span class="font-bold text-lg text-green-600">{{ group.active_member_count }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-3 border-b">
+                            <span class="text-gray-600">Inactive Members</span>
+                            <span class="font-bold text-lg text-gray-600">{{ inactive_members.count }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Active Loans</span>
+                            <span class="font-bold text-lg text-purple-600">{{ active_loans }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div id="addMemberModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900">Add Member to {{ group.name }}</h3>
+        </div>
+        <form method="post" action="{% url 'clients:add_member' group.pk %}" class="p-6">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="borrower_id" class="block text-sm font-medium text-gray-700 mb-2">Select Borrower</label>
+                <select name="borrower_id" id="borrower_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Choose a borrower --</option>
+                    {% for borrower in available_borrowers %}
+                    <option value="{{ borrower.id }}">{{ borrower.get_full_name }} ({{ borrower.email }})</option>
+                    {% endfor %}
+                </select>
+                {% if not available_borrowers %}
+                <p class="text-sm text-gray-600 mt-2">No available borrowers to add.</p>
+                {% endif %}
+            </div>
+            <div class="flex gap-3">
+                <button type="button" class="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded hover:bg-gray-300 transition font-medium" onclick="closeModal('addMemberModal')">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-medium">
+                    Add Member
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Modal functionality
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Setup modal buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Open modal buttons
+    document.querySelectorAll('[data-toggle="modal"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            if (targetId) {
+                openModal(targetId.replace('#', ''));
+            }
+        });
+    });
+
+    // Close modal when clicking outside
+    const addMemberModal = document.getElementById('addMemberModal');
+    if (addMemberModal) {
+        addMemberModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal('addMemberModal');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ block.super }} - Palm Cash{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .dashboard-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dashboard-nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-nav a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .dashboard-nav .user-info {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .dashboard-nav .user-info strong {
+            font-weight: 600;
+        }
+        
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #header h1 {
+            color: white;
+        }
+        
+        #header a {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        #header a:hover {
+            color: white;
+        }
+    </style>
+{% endblock %}
+
+{% block content_title %}
+    <div class="dashboard-nav">
+        <div class="user-info">
+            <span>👤 Logged in as: <strong>{{ user.get_full_name|default:user.username }}</strong></span>
+            {% if user_role %}
+                <span style="margin-left: 20px;">📋 Role: <strong>{{ user_role }}</strong></span>
+            {% endif %}
+        </div>
+        <a href="{{ dashboard_url }}" title="Return to your dashboard">
+            ← Back to Dashboard
+        </a>
+    </div>
+    {{ block.super }}
+{% endblock %}
+
+{% block footer %}
+    <div style="text-align: center; padding: 20px; border-top: 1px solid #ddd; margin-top: 40px; color: #666; font-size: 12px;">
+        <p>
+            <a href="{{ dashboard_url }}" style="color: #667eea; text-decoration: none;">← Return to Dashboard</a>
+            | Palm Cash Administration Panel
+        </p>
+    </div>
+    {{ block.super }}
+{% endblock %}

@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}System Statistics - LoanVista{% endblock %}
+
+{% block extra_css %}
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: {
+                        50: '#f0fdf4',
+                        500: '#22c55e',
+                        600: '#16a34a',
+                        700: '#15803d',
+                        900: '#14532d'
+                    }
+                }
+            }
+        }
+    }
+</script>
+<style>
+    .stat-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px) scale(1.02);
+    }
+    
+    .gradient-bg {
+        background: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 400px;
+    }
+    
+    .glass-effect {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .pulse-animation {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- System Header -->
+    <div class="gradient-bg text-white py-16 mb-8 rounded-2xl mx-4">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-chart-pie text-4xl mr-4"></i>
+                        <h1 class="text-5xl font-bold">System Statistics</h1>
+                    </div>
+                    <p class="text-xl opacity-90 max-w-2xl">
+                        Comprehensive system performance and usage analytics for data-driven insights
+                    </p>
+                </div>
+                <div class="hidden lg:block">
+                    <div class="glass-effect rounded-full p-6">
+                        <div class="bg-white bg-opacity-20 rounded-2xl px-6 py-3">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span class="font-semibold">{{ system_age }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-8 border border-blue-100">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="group">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4 group-hover:bg-blue-200 transition-colors duration-300">
+                        <i class="fas fa-rocket text-2xl text-blue-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-900 mb-2">System Launched</h3>
+                    <p class="text-2xl font-bold text-blue-600">{{ system_launch_date|date:"F d, Y" }}</p>
+                </div>
+                <div class="group">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4 group-hover:bg-green-200 transition-colors duration-300">
+                        <i class="fas fa-calendar-alt text-2xl text-green-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-900 mb-2">Operational Period</h3>
+                    <p class="text-2xl font-bold text-green-600">{{ report_period }}</p>
+                </div>
+                <div class="group">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-4 group-hover:bg-orange-200 transition-colors duration-300">
+                        <i class="fas fa-hourglass-half text-2xl text-orange-600"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-900 mb-2">System Age</h3>
+                    <p class="text-2xl font-bold text-orange-600">{{ system_age }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User & Document Statistics -->
+    <div class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- User Statistics -->
+            <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-users mr-3"></i>
+                        User Statistics
+                    </h2>
+                </div>
+                <div class="p-8">
+                    {% if user_stats %}
+                        <div class="grid grid-cols-2 gap-6">
+                            {% for stat in user_stats %}
+                            <div class="text-center group">
+                                <div class="bg-blue-50 rounded-2xl p-6 group-hover:bg-blue-100 transition-colors duration-300">
+                                    <h3 class="text-3xl font-bold text-blue-600 mb-2">{{ stat.count }}</h3>
+                                    <p class="text-gray-600 font-medium capitalize">{{ stat.role|title }}s</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <i class="fas fa-user-plus text-gray-300 text-6xl mb-4"></i>
+                            <p class="text-gray-500 text-lg">No user data available yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Document Statistics -->
+            <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-6">
+                    <h2 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-file-alt mr-3"></i>
+                        Document Statistics
+                    </h2>
+                </div>
+                <div class="p-8">
+                    {% if document_stats %}
+                        <div class="grid grid-cols-2 gap-6">
+                            {% for stat in document_stats %}
+                            <div class="text-center group">
+                                <div class="bg-purple-50 rounded-2xl p-6 group-hover:bg-purple-100 transition-colors duration-300">
+                                    <h3 class="text-3xl font-bold text-purple-600 mb-2">{{ stat.count }}</h3>
+                                    <p class="text-gray-600 font-medium capitalize">{{ stat.status|title }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-12">
+                            <i class="fas fa-file-upload text-gray-300 text-6xl mb-4"></i>
+                            <p class="text-gray-500 text-lg">No document data available yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Document Verification -->
+    <div class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-6">
+                <h2 class="text-2xl font-bold flex items-center">
+                    <i class="fas fa-file-contract mr-3"></i>
+                    Loan Document Verification Status
+                </h2>
+            </div>
+            <div class="p-8">
+                {% if loan_document_stats %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {% for stat in loan_document_stats %}
+                        <div class="text-center group">
+                            {% if stat.is_verified %}
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4 group-hover:bg-green-200 transition-colors duration-300">
+                                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                                </div>
+                                <h3 class="text-4xl font-bold text-green-600 mb-2">{{ stat.count }}</h3>
+                                <p class="text-gray-600 font-medium">Verified Documents</p>
+                            {% else %}
+                                <div class="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 rounded-full mb-4 group-hover:bg-yellow-200 transition-colors duration-300">
+                                    <i class="fas fa-clock text-3xl text-yellow-600 pulse-animation"></i>
+                                </div>
+                                <h3 class="text-4xl font-bold text-yellow-600 mb-2">{{ stat.count }}</h3>
+                                <p class="text-gray-600 font-medium">Pending Verification</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-file-signature text-gray-300 text-6xl mb-4"></i>
+                        <p class="text-gray-500 text-lg">No loan document data available yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Activity Chart -->
+    <div class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-8 py-6">
+                <h2 class="text-2xl font-bold flex items-center">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    Daily Activity Trends (Last 30 Days)
+                </h2>
+            </div>
+            <div class="p-8">
+                <div class="chart-container bg-gray-50 rounded-xl p-6">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Summary -->
+    <div class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 text-center p-8 group">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-6 group-hover:bg-blue-200 transition-colors duration-300">
+                    <i class="fas fa-file-contract text-3xl text-blue-600"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-blue-600 mb-2">
+                    {% if daily_activity %}
+                        {{ daily_activity|length|add:"-30"|default:0 }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h3>
+                <p class="text-gray-600 font-medium">Total Loan Applications</p>
+            </div>
+            
+            <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 text-center p-8 group">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 group-hover:bg-green-200 transition-colors duration-300">
+                    <i class="fas fa-credit-card text-3xl text-green-600"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-green-600 mb-2">
+                    {% if daily_activity %}
+                        {% for day in daily_activity %}{{ day.payments|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h3>
+                <p class="text-gray-600 font-medium">Total Payments</p>
+            </div>
+            
+            <div class="stat-card bg-white rounded-2xl shadow-lg border border-gray-100 text-center p-8 group">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-purple-100 rounded-full mb-6 group-hover:bg-purple-200 transition-colors duration-300">
+                    <i class="fas fa-file-upload text-3xl text-purple-600"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-purple-600 mb-2">
+                    {% if daily_activity %}
+                        {% for day in daily_activity %}{{ day.documents|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h3>
+                <p class="text-gray-600 font-medium">Documents Uploaded</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Daily Activity Chart with modern styling
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    
+    const dailyData = {{ daily_activity|safe }};
+    
+    if (dailyData && dailyData.length > 0) {
+        const labels = dailyData.map(day => day.date_label);
+        const loansData = dailyData.map(day => day.loans);
+        const paymentsData = dailyData.map(day => day.payments);
+        const documentsData = dailyData.map(day => day.documents);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Loan Applications',
+                        data: loansData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Payments',
+                        data: paymentsData,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#22c55e',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Documents',
+                        data: documentsData,
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#a855f7',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 14,
+                                weight: '600'
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Daily System Activity Overview',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        padding: 20
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                elements: {
+                    point: {
+                        hoverBorderWidth: 3
+                    }
+                }
+            }
+        });
+    } else {
+        // Show no data message with Tailwind styling
+        ctx.canvas.parentElement.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20">
+                <i class="fas fa-chart-line text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 text-lg font-medium">No activity data available yet</p>
+                <p class="text-gray-400 text-sm mt-2">Data will appear as system usage increases</p>
+            </div>
+        `;
+    }
+    
+    // Animate cards on scroll with staggered effect
+    const cards = document.querySelectorAll('.stat-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0) scale(1)';
+                }, index * 100);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    });
+    
+    cards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px) scale(0.95)';
+        card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        observer.observe(card);
+    });
+    
+    // Animate counters
+    const counters = document.querySelectorAll('.text-4xl, .text-3xl');
+    
+    const animateCounter = (element) => {
+        const target = parseInt(element.textContent.replace(/[^\d]/g, ''));
+        if (isNaN(target) || target === 0) return;
+        
+        const duration = 2000;
+        const step = target / (duration / 16);
+        let current = 0;
+        
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            element.textContent = Math.floor(current).toLocaleString();
+        }, 16);
+    };
+    
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounter(entry.target);
+                counterObserver.unobserve(entry.target);
+            }
+        });
+    });
+    
+    counters.forEach(counter => {
+        counterObserver.observe(counter);
+    });
+    
+    // Add hover effects to icons
+    const icons = document.querySelectorAll('.fas');
+    icons.forEach(icon => {
+        icon.style.transition = 'transform 0.3s ease';
+        
+        icon.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.1) rotate(5deg)';
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+        });
+    });
+});
+</script>
+{% endblock %}

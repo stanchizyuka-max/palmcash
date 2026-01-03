@@ -1,0 +1,203 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}About Us - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Hero Section -->
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-3xl p-12 mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h1 class="text-4xl font-bold mb-4">About Palm Cash</h1>
+                    <p class="text-xl text-primary-100">Empowering Zambian communities through innovative financial
+                        solutions and transparent loan management.</p>
+                </div>
+                <div class="text-center">
+                    <i class="fas fa-tree text-8xl opacity-75"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mission & Vision -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-primary-500 to-primary-600 p-6 text-center">
+                    <i class="fas fa-bullseye text-4xl text-white mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Our Mission</h3>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-secondary-600">To provide accessible, transparent, and efficient loan management
+                        services that empower individuals and businesses across Zambia to achieve their financial goals.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-success-500 to-success-600 p-6 text-center">
+                    <i class="fas fa-eye text-4xl text-white mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Our Vision</h3>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-secondary-600">To become Zambia's leading digital financial platform, fostering
+                        economic growth and financial inclusion through innovative technology and exceptional service.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Our Story -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover mb-12">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4">
+                <h2 class="text-2xl font-bold text-white text-center">Our Story</h2>
+            </div>
+            <div class="p-8">
+                <div class="max-w-4xl mx-auto">
+                    <p class="text-xl text-center mb-6 text-secondary-700 font-medium">Founded in 2025, Palm Cash
+                        emerged from a vision to revolutionize the lending industry in Zambia through technology and
+                        transparency.</p>
+                    <div class="space-y-4 text-secondary-600">
+                        <p>Our journey began when our founders recognized the challenges faced by both borrowers and
+                            lenders in the traditional loan management process. Long queues, paperwork delays, and lack
+                            of transparency were common issues that needed addressing.</p>
+                        <p>With a deep understanding of the Zambian financial landscape and expertise in technology, we
+                            developed Palm Cash as a comprehensive digital platform that streamlines the entire loan
+                            lifecycle - from application to repayment.</p>
+                        <p>Today, we serve individuals, small businesses, and agricultural enterprises across Zambia,
+                            providing them with fair access to credit and the tools they need to manage their financial
+                            obligations effectively. Our name "Palm Cash" symbolizes growth, prosperity, and the natural abundance we aim to bring to our customers' financial lives.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Founders Section -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover mb-12">
+            <div class="bg-gradient-to-r from-secondary-600 to-secondary-700 px-6 py-4">
+                <h2 class="text-2xl font-bold text-white text-center">Meet Our Leadership Team</h2>
+            </div>
+            <div class="p-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div
+                            class="w-32 h-32 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user text-4xl text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-secondary-900 mb-2">Chizyuka Muna</h3>
+                        <p class="text-primary-600 font-semibold mb-3">Chief Executive Officer</p>
+                        <p class="text-secondary-600 text-sm">Former banking executive with 15+ years in Zambian
+                            financial services. Chizyuka brings deep industry knowledge and a passion for financial
+                            inclusion.</p>
+                        <div class="mt-4 flex justify-center space-x-3">
+                            <i
+                                class="fab fa-linkedin text-primary-600 text-xl hover:text-primary-800 cursor-pointer"></i>
+                            <i class="fab fa-twitter text-info-600 text-xl hover:text-info-800 cursor-pointer"></i>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div
+                            class="w-32 h-32 bg-gradient-to-br from-success-500 to-success-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user text-4xl text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-secondary-900 mb-2">Royce Banda</h3>
+                        <p class="text-success-600 font-semibold mb-3">Chief Technology Officer</p>
+                        <p class="text-secondary-600 text-sm">Software engineer and fintech innovator with expertise in
+                            building scalable financial platforms. Royce leads our technology vision and development.
+                        </p>
+                        <div class="mt-4 flex justify-center space-x-3">
+                            <i
+                                class="fab fa-linkedin text-primary-600 text-xl hover:text-primary-800 cursor-pointer"></i>
+                            <i
+                                class="fab fa-github text-secondary-600 text-xl hover:text-secondary-800 cursor-pointer"></i>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div
+                            class="w-32 h-32 bg-gradient-to-br from-info-500 to-info-600 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user text-4xl text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-secondary-900 mb-2">Mpazi Sichula</h3>
+                        <p class="text-info-600 font-semibold mb-3">Chief Operations Officer</p>
+                        <p class="text-secondary-600 text-sm">Operations specialist with extensive experience in loan
+                            processing and risk management. Mpazi ensures our platform delivers exceptional user
+                            experiences.</p>
+                        <div class="mt-4 flex justify-center space-x-3">
+                            <i
+                                class="fab fa-linkedin text-primary-600 text-xl hover:text-primary-800 cursor-pointer"></i>
+                            <i class="fab fa-twitter text-info-600 text-xl hover:text-info-800 cursor-pointer"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Values -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover mb-12">
+            <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                <h2 class="text-2xl font-bold text-white text-center">Our Values</h2>
+            </div>
+            <div class="p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="text-center">
+                        <div
+                            class="w-16 h-16 bg-primary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-handshake text-2xl text-primary-600"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-secondary-900 mb-2">Transparency</h3>
+                        <p class="text-secondary-600 text-sm">Clear terms, honest communication, and no hidden fees in
+                            all our dealings.</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div
+                            class="w-16 h-16 bg-success-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-2xl text-success-600"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-secondary-900 mb-2">Security</h3>
+                        <p class="text-secondary-600 text-sm">Protecting our customers' data and financial information
+                            with industry-leading security measures.</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-info-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-users text-2xl text-info-600"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-secondary-900 mb-2">Inclusion</h3>
+                        <p class="text-secondary-600 text-sm">Making financial services accessible to all Zambians,
+                            regardless of their background or location.</p>
+                    </div>
+
+                    <div class="text-center">
+                        <div
+                            class="w-16 h-16 bg-warning-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-rocket text-2xl text-warning-600"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-secondary-900 mb-2">Innovation</h3>
+                        <p class="text-secondary-600 text-sm">Continuously improving our platform with cutting-edge
+                            technology and user-centered design.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-3xl p-12 text-center">
+            <h2 class="text-3xl font-bold mb-4">Ready to Experience the Future of Lending?</h2>
+            <p class="text-xl text-primary-100 mb-8">Join thousands of satisfied customers who trust Palm Cash for their
+                financial needs.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'accounts:register' %}"
+                    class="bg-white text-primary-600 hover:bg-primary-50 font-semibold py-3 px-8 rounded-xl transition-colors duration-200 inline-flex items-center justify-center">
+                    <i class="fas fa-user-plus mr-2"></i>Get Started Today
+                </a>
+                <a href="{% url 'pages:contact' %}"
+                    class="border-2 border-white text-white hover:bg-white hover:text-primary-600 font-semibold py-3 px-8 rounded-xl transition-colors duration-200 inline-flex items-center justify-center">
+                    <i class="fas fa-envelope mr-2"></i>Contact Us
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Document Types - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Document Types</h1>
+                <p class="text-secondary-600 mt-2">Manage document type configurations</p>
+            </div>
+            <a href="{% url 'dashboard:manager' %}" class="px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Document Types Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for doc_type in document_types %}
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-semibold text-secondary-900">{{ doc_type.name }}</h3>
+                    <div class="flex space-x-2">
+                        {% if doc_type.is_required %}
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+                            Required
+                        </span>
+                        {% endif %}
+                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                            {% if doc_type.is_active %}bg-success-100 text-success-800{% else %}bg-secondary-100 text-secondary-800{% endif %}">
+                            {% if doc_type.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <p class="text-secondary-600 text-sm mb-4">{{ doc_type.description|truncatewords:15 }}</p>
+                
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-secondary-600">Max File Size:</span>
+                        <span class="font-semibold text-secondary-900">{{ doc_type.max_file_size_mb }} MB</span>
+                    </div>
+                    <div class="text-sm">
+                        <span class="text-secondary-600">Allowed Extensions:</span>
+                        <div class="mt-1 flex flex-wrap gap-1">
+                            {% for ext in doc_type.get_allowed_extensions_list %}
+                            <span class="px-2 py-1 bg-secondary-100 text-secondary-700 rounded text-xs">.{{ ext }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="{% url 'adminpanel:document_type_detail' doc_type.pk %}" class="block w-full text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    View Details
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-span-full bg-white rounded-xl shadow-sm border border-secondary-100 p-12 text-center">
+                <i class="fas fa-folder-open text-secondary-300 text-5xl mb-4"></i>
+                <p class="text-secondary-500 text-lg">No document types found</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}{{ message.subject }} - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-envelope-open text-primary-600 text-3xl"></i>
+                <h1 class="text-4xl font-bold text-secondary-900">Message</h1>
+            </div>
+            <a href="{% url 'internal_messages:inbox' %}" class="inline-flex items-center px-4 py-2 bg-secondary-100 text-secondary-700 font-semibold rounded-lg hover:bg-secondary-200 transition-all">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Inbox
+            </a>
+        </div>
+
+        <!-- Message Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 overflow-hidden mb-8">
+            <!-- Message Header -->
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-8 py-6">
+                <h2 class="text-2xl font-bold text-white mb-2">{{ message.subject }}</h2>
+                <div class="flex items-center justify-between text-primary-100">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-user-circle text-xl"></i>
+                            <span>From: <strong>{{ message.sender.get_full_name }}</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar text-xl"></i>
+                            <span>{{ message.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                    </div>
+                    {% if message.is_read %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white">
+                        <i class="fas fa-check-circle mr-1"></i>Read
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white">
+                        <i class="fas fa-envelope mr-1"></i>Unread
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Message Body -->
+            <div class="p-8">
+                <div class="prose prose-sm max-w-none text-secondary-900 whitespace-pre-wrap">
+                    {{ message.body }}
+                </div>
+
+                <!-- Loan Context -->
+                {% if message.loan %}
+                <div class="mt-8 p-4 bg-info-50 border border-info-200 rounded-lg">
+                    <p class="text-sm text-info-900">
+                        <i class="fas fa-link mr-2"></i>
+                        <strong>Related Loan:</strong> 
+                        <a href="{% url 'loans:detail' message.loan.id %}" class="text-info-600 hover:text-info-900 underline">
+                            Loan #{{ message.loan.id }} - {{ message.loan.borrower.get_full_name }}
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-secondary-50 px-8 py-4 border-t border-secondary-200 flex gap-4">
+                <a href="{% url 'internal_messages:reply' message.id %}" class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-lg hover:from-success-600 hover:to-success-700 transition-all">
+                    <i class="fas fa-reply mr-2"></i>Reply
+                </a>
+                <a href="{% url 'internal_messages:inbox' %}" class="inline-flex items-center px-6 py-2 bg-secondary-200 text-secondary-700 font-semibold rounded-lg hover:bg-secondary-300 transition-all">
+                    <i class="fas fa-times mr-2"></i>Close
+                </a>
+            </div>
+        </div>
+
+        <!-- Sender Info Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-secondary-100 p-8">
+            <h3 class="text-lg font-bold text-secondary-900 mb-4">
+                <i class="fas fa-user-circle mr-2 text-primary-600"></i>Sender Information
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <p class="text-sm text-secondary-600 font-medium">Name</p>
+                    <p class="text-lg font-semibold text-secondary-900">{{ message.sender.get_full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-secondary-600 font-medium">Role</p>
+                    <p class="text-lg font-semibold text-secondary-900">{{ message.sender.get_role_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-secondary-600 font-medium">Email</p>
+                    <p class="text-lg font-semibold text-secondary-900">{{ message.sender.email }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-secondary-600 font-medium">Phone</p>
+                    <p class="text-lg font-semibold text-secondary-900">{{ message.sender.phone_number|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

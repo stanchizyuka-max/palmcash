@@ -1,0 +1,57 @@
+{% extends "admin/change_list.html" %}
+{% load humanize %}
+
+{% block content_title %}
+<h1>Document Review & Verification Center</h1>
+<p class="help">Review and verify loan documents uploaded by borrowers. Click on any document to download and verify it.</p>
+{% endblock %}
+
+{% block result_list %}
+<!-- Document Review Statistics -->
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Document Review Statistics</h2>
+    <div style="display: flex; gap: 20px; padding: 15px;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #007cba;">{{ total_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Total Documents</p>
+        </div>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #856404;">{{ pending_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Pending Review</p>
+        </div>
+        <div style="background: #d1edff; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #0c5460;">{{ verified_documents }}</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Verified</p>
+        </div>
+        <div style="background: #d4edda; padding: 15px; border-radius: 5px; text-align: center; min-width: 120px;">
+            <h3 style="margin: 0; color: #155724;">{{ verification_rate }}%</h3>
+            <p style="margin: 5px 0 0 0; color: #666;">Verification Rate</p>
+        </div>
+    </div>
+</div>
+
+{% if pending_documents > 0 %}
+<div class="module" style="margin-bottom: 20px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+    <div style="padding: 15px;">
+        <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ Action Required</h3>
+        <p style="margin: 0; color: #856404;">
+            You have <strong>{{ pending_documents }}</strong> document{{ pending_documents|pluralize }} waiting for review and verification.
+            Please review and verify these documents to help process loan applications.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Quick Actions</h2>
+    <div style="padding: 15px;">
+        <a href="?is_verified__exact=0" class="button" style="margin-right: 10px;">📋 View Pending Documents</a>
+        <a href="?is_verified__exact=1" class="button" style="margin-right: 10px;">✅ View Verified Documents</a>
+        <a href="/loans/documents/review-dashboard/" class="button" style="margin-right: 10px;">🎛️ Review Dashboard</a>
+        <a href="/loans/status-dashboard/" class="button">📊 Loan Dashboard</a>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

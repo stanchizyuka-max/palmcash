@@ -1,0 +1,294 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Borrower Group - PalmCash{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .flatpickr-calendar {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.16);
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+    }
+    .flatpickr-day.selected {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: #2563eb;
+    }
+    .flatpickr-day:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+    .flatpickr-current-month {
+        color: #1f2937;
+        font-weight: 600;
+    }
+    .flatpickr-prev-month, .flatpickr-next-month {
+        color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{% url 'clients:group_list' %}" 
+                   class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <i class="fas fa-arrow-left text-secondary-600"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-secondary-900">
+                        {% if object %}Edit{% else %}Create{% endif %} Borrower Group
+                    </h1>
+                    <p class="text-secondary-600 mt-1">
+                        {% if object %}Update group information{% else %}Create a new borrower group{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-2xl shadow-xl border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-users mr-3"></i>
+                    Group Information
+                </h2>
+            </div>
+
+            <form method="POST" class="p-6 space-y-6">
+                {% csrf_token %}
+
+                <!-- Group Name -->
+                <div>
+                    <label for="id_name" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-tag text-primary-600 mr-2"></i>
+                        Group Name *
+                    </label>
+                    <input type="text" 
+                           name="name" 
+                           id="id_name" 
+                           value="{{ form.name.value|default:'' }}"
+                           required
+                           class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                           placeholder="e.g., Downtown Group, Small Business Group">
+                    {% if form.name.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="id_description" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-align-left text-primary-600 mr-2"></i>
+                        Description
+                    </label>
+                    <textarea name="description" 
+                              id="id_description" 
+                              rows="4"
+                              class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                              placeholder="Describe the purpose and characteristics of this group...">{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Branch Location -->
+                <div>
+                    <label for="id_branch" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-building text-primary-600 mr-2"></i>
+                        Branch Location *
+                    </label>
+                    <input type="text" 
+                           name="branch" 
+                           id="id_branch" 
+                           value="{{ form.branch.value|default:'' }}"
+                           required
+                           class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                           placeholder="e.g., Downtown Branch, Main Office">
+                    {% if form.branch.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.branch.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs text-secondary-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Branch where this group operates
+                    </p>
+                </div>
+
+                <!-- Payment Day with Calendar -->
+                <div>
+                    <label for="id_payment_day" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-calendar-day text-primary-600 mr-2"></i>
+                        Payment Day *
+                    </label>
+                    <div class="relative">
+                        <input type="text" 
+                               name="payment_day" 
+                               id="id_payment_day" 
+                               value="{{ form.payment_day.value|default:'' }}"
+                               required
+                               class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                               placeholder="Select payment day or enter (e.g., Monday, Day 15)"
+                               autocomplete="off">
+                        <button type="button" 
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-600 hover:text-primary-700 transition-colors"
+                                onclick="document.getElementById('id_payment_day').focus()">
+                            <i class="fas fa-calendar text-lg"></i>
+                        </button>
+                    </div>
+                    {% if form.payment_day.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.payment_day.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs text-secondary-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Day when group members make loan payments (e.g., Monday for weekly, Day 15 for monthly, or select from calendar)
+                    </p>
+                </div>
+
+                <!-- Assigned Officer -->
+                <div>
+                    <label for="id_assigned_officer" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-user-tie text-primary-600 mr-2"></i>
+                        Assigned Loan Officer
+                    </label>
+                    <select name="assigned_officer" 
+                            id="id_assigned_officer"
+                            class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+                        <option value="">Select a loan officer...</option>
+                        {% for choice in form.assigned_officer.field.queryset %}
+                        <option value="{{ choice.id }}" {% if form.assigned_officer.value == choice.id|stringformat:"s" %}selected{% endif %}>
+                            {{ choice.full_name }} ({{ choice.email }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.assigned_officer.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.assigned_officer.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs text-secondary-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        The loan officer who will manage this group
+                    </p>
+                </div>
+
+                <!-- Max Members -->
+                <div>
+                    <label for="id_max_members" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        <i class="fas fa-users text-primary-600 mr-2"></i>
+                        Maximum Members
+                    </label>
+                    <input type="number" 
+                           name="max_members" 
+                           id="id_max_members" 
+                           value="{{ form.max_members.value|default:'' }}"
+                           min="1"
+                           class="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                           placeholder="Leave blank for unlimited">
+                    {% if form.max_members.errors %}
+                    <p class="mt-2 text-sm text-danger-600">{{ form.max_members.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs text-secondary-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Leave blank for unlimited members
+                    </p>
+                </div>
+
+                <!-- Is Active -->
+                <div class="flex items-center">
+                    <input type="checkbox" 
+                           name="is_active" 
+                           id="id_is_active" 
+                           {% if form.is_active.value or not object %}checked{% endif %}
+                           class="w-5 h-5 text-primary-600 border-2 border-secondary-300 rounded focus:ring-2 focus:ring-primary-500">
+                    <label for="id_is_active" class="ml-3 text-sm font-semibold text-secondary-900">
+                        <i class="fas fa-check-circle text-success-600 mr-2"></i>
+                        Active Group
+                    </label>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex gap-4 pt-6 border-t border-secondary-200">
+                    <a href="{% url 'clients:group_list' %}" 
+                       class="flex-1 inline-flex items-center justify-center px-6 py-3 border-2 border-secondary-300 text-secondary-700 font-semibold rounded-xl hover:bg-secondary-50 transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                    <button type="submit" 
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 shadow-md hover:shadow-lg transition-all duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if object %}Update{% else %}Create{% endif %} Group
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-gradient-to-r from-info-50 to-info-100 border-l-4 border-info-500 p-6 rounded-xl shadow-sm">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-info-600 text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-sm font-semibold text-info-900 mb-2">Tips for Creating Groups</h3>
+                    <ul class="text-sm text-info-800 space-y-1">
+                        <li><i class="fas fa-check mr-2"></i>Group borrowers by location, business type, or loan purpose</li>
+                        <li><i class="fas fa-check mr-2"></i>Assign an experienced loan officer to manage the group</li>
+                        <li><i class="fas fa-check mr-2"></i>Set reasonable member limits to ensure quality service</li>
+                        <li><i class="fas fa-check mr-2"></i>You can add members after creating the group</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar Widget Script -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize calendar for payment day field
+        flatpickr('#id_payment_day', {
+            mode: 'single',
+            dateFormat: 'Y-m-d',
+            altFormat: 'F j, Y',
+            altInput: false,
+            enableTime: false,
+            minDate: 'today',
+            maxDate: new Date().fp_incr(365),
+            theme: 'light',
+            position: 'below',
+            static: false,
+            inline: false,
+            clickOpens: true,
+            closeOnSelect: true,
+            weekNumbers: true,
+            showMonths: 1,
+            monthSelectorType: 'dropdown',
+            prevArrow: '<svg class="flatpickr-prev-month" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>',
+            nextArrow: '<svg class="flatpickr-next-month" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+            onClose: function(selectedDates, dateStr, instance) {
+                // Format the selected date for display
+                if (selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+                    const dayNum = date.getDate();
+                    // Store as "Monday" or "Day 15" format
+                    document.getElementById('id_payment_day').value = dayName;
+                }
+            }
+        });
+
+        // Allow manual input as well
+        const paymentDayInput = document.getElementById('id_payment_day');
+        paymentDayInput.addEventListener('blur', function() {
+            // Allow manual entry like "Monday", "Day 15", etc.
+            const value = this.value.trim();
+            if (value && !value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // Keep manual entries as-is
+                this.value = value;
+            }
+        });
+    });
+</script>
+
+{% endblock %}

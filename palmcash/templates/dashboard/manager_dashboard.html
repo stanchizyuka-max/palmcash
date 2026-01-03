@@ -1,0 +1,300 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Manager Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-secondary-900">Manager Dashboard</h1>
+            <p class="text-secondary-600 mt-2">System-wide overview and analytics</p>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Loans -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Loans</p>
+                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-invoice-dollar text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Loans -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Active Loans</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ active_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Approvals</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_loans }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-warning-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Customers -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Customers</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ total_customers }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Disbursed</h3>
+                    <i class="fas fa-money-bill-wave text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">K {{ total_disbursed|floatformat:2 }}</p>
+                <p class="text-primary-100 text-sm mt-2">All-time disbursements</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-success-500 to-success-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Total Repaid</h3>
+                    <i class="fas fa-hand-holding-usd text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">K {{ total_repaid|floatformat:2 }}</p>
+                <p class="text-success-100 text-sm mt-2">Total collections</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Overdue Payments</h3>
+                    <i class="fas fa-exclamation-triangle text-2xl opacity-80"></i>
+                </div>
+                <p class="text-3xl font-bold">{{ overdue_count }}</p>
+                <p class="text-warning-100 text-sm mt-2">Requires attention</p>
+            </div>
+        </div>
+
+        <!-- Recent Applications & Loan Status -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Recent Applications -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+                <div class="p-6 border-b border-secondary-100">
+                    <h3 class="text-lg font-semibold text-secondary-900">Recent Applications</h3>
+                </div>
+                <div class="p-6">
+                    {% if recent_applications %}
+                    <div class="space-y-4">
+                        {% for loan in recent_applications %}
+                        <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
+                            <div>
+                                <p class="font-medium text-secondary-900">{{ loan.borrower.get_full_name }}</p>
+                                <p class="text-sm text-secondary-600">K {{ loan.principal_amount|floatformat:2 }}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium
+                                {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+                                {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                {% endif %}">
+                                {{ loan.get_status_display }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-secondary-500 text-center py-8">No recent applications</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Loan Status Distribution -->
+            <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
+                <div class="p-6 border-b border-secondary-100">
+                    <h3 class="text-lg font-semibold text-secondary-900">Loan Status Distribution</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for status in loan_status_data %}
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium text-secondary-700">{{ status.status|title }}</span>
+                                <span class="text-sm font-bold text-secondary-900">{{ status.count }}</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-primary-600 h-2 rounded-full" style="width: {{ status.count|floatformat:0 }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-secondary-100 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <a href="{% url 'loans:list' %}" class="flex flex-col items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors duration-200">
+                    <i class="fas fa-list text-primary-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-primary-900">View All Loans</span>
+                </a>
+                <a href="{% url 'clients:group_list' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
+                    <i class="fas fa-users text-success-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-success-900">Manage Clients</span>
+                </a>
+                <a href="{% url 'reports:list' %}" class="flex flex-col items-center p-4 bg-info-50 rounded-lg hover:bg-info-100 transition-colors duration-200">
+                    <i class="fas fa-chart-bar text-info-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-info-900">View Reports</span>
+                </a>
+                <a href="{% url 'dashboard:analytics' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
+                    <i class="fas fa-analytics text-warning-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-warning-900">Analytics</span>
+                </a>
+                <a href="{% url 'dashboard:manage_loans' %}" class="flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200">
+                    <i class="fas fa-file-invoice text-orange-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-orange-900">Manage Loans</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Messaging Section -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-info-500 to-info-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-envelope mr-2"></i>Recent Messages
+                </h3>
+                <a href="{% url 'internal_messages:inbox' %}" class="bg-white text-info-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-info-50 transition-colors">
+                    <i class="fas fa-inbox mr-1"></i>View All
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_messages %}
+                <div class="space-y-3">
+                    {% for message in recent_messages %}
+                    <a href="{% url 'internal_messages:detail' message.id %}" class="flex items-start gap-4 p-3 bg-secondary-50 hover:bg-secondary-100 rounded-lg transition-colors">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 bg-info-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-info-600"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-secondary-900">{{ message.sender.get_full_name }}</p>
+                            <p class="text-xs text-secondary-600 truncate">{{ message.subject }}</p>
+                            <p class="text-xs text-secondary-500 mt-1">{{ message.created_at|timesince }} ago</p>
+                        </div>
+                        {% if not message.is_read %}
+                        <div class="flex-shrink-0">
+                            <span class="inline-block w-2 h-2 bg-info-600 rounded-full"></span>
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox text-3xl text-secondary-300 mb-2"></i>
+                    <p class="text-secondary-600 text-sm">No messages yet</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="bg-secondary-50 px-6 py-3 border-t border-secondary-200 flex gap-2">
+                <a href="{% url 'internal_messages:compose' %}" class="flex-1 text-center text-primary-600 hover:text-primary-700 text-sm font-medium py-2 rounded-lg hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-pen-to-square mr-1"></i>Compose
+                </a>
+                <a href="{% url 'internal_messages:inbox' %}" class="flex-1 text-center text-info-600 hover:text-info-700 text-sm font-medium py-2 rounded-lg hover:bg-info-50 transition-colors">
+                    <i class="fas fa-inbox mr-1"></i>Inbox
+                </a>
+            </div>
+        </div>
+
+        <!-- Expenses Management Section -->
+        {% include 'dashboard/manager_expenses_section.html' %}
+
+        <!-- Approved Documents Section -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-success-500 to-success-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-file-check mr-2"></i>Recently Approved Documents
+                </h3>
+                <a href="{% url 'documents:manage_documents' %}" class="bg-white text-success-600 px-3 py-1 rounded-lg text-sm font-medium hover:bg-success-50 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>View All
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50 border-b border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Document</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Approved Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700">Approved By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-200">
+                        {% for doc in approved_documents %}
+                        <tr class="hover:bg-secondary-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-medium text-secondary-900">
+                                <i class="fas fa-file text-success-500 mr-2"></i>{{ doc.title }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ doc.user.get_full_name|default:doc.user.username }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary-100 text-primary-800">
+                                    {{ doc.document_type.name }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ doc.review_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ doc.reviewed_by.get_full_name|default:doc.reviewed_by.username|default:"-" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-3xl mb-2 opacity-50"></i>
+                                <p class="text-sm">No approved documents yet</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-secondary-50 px-6 py-3 border-t border-secondary-200">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-secondary-600">
+                        Total Approved Documents: <span class="font-semibold text-secondary-900">{{ total_approved_documents }}</span>
+                    </p>
+                    <a href="{% url 'documents:manage_documents' %}" class="text-success-600 hover:text-success-700 text-sm font-medium">
+                        View All Documents <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

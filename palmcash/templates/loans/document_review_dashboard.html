@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Document Review Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-file-check me-2"></i>
+                Document Review Dashboard
+            </h1>
+            <div>
+                <span class="badge bg-warning fs-6 me-2">{{ pending_count }} Pending</span>
+                <span class="badge bg-success fs-6">{{ verified_count }} Verified</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ pending_count }}</h4>
+                        <p class="mb-0">Pending Review</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ verified_count }}</h4>
+                        <p class="mb-0">Verified</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ total_documents }}</h4>
+                        <p class="mb-0">Total Documents</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-file-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ loans_with_pending_docs|length }}</h4>
+                        <p class="mb-0">Loans Pending</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-money-bill-wave fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pending Documents -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Documents Pending Review
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if loans_with_pending_docs %}
+                {% for loan_data in loans_with_pending_docs %}
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                Loan {{ loan_data.loan.application_number }}
+                            </h6>
+                            <div>
+                                <span class="badge bg-{{ loan_data.loan.status|yesno:'success,warning,danger' }}">
+                                    {{ loan_data.loan.get_status_display }}
+                                </span>
+                                <small class="text-muted ms-2">{{ loan_data.loan.borrower.full_name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Document Type</th>
+                                        <th>File Name</th>
+                                        <th>Size</th>
+                                        <th>Uploaded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for document in loan_data.documents %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-file me-2"></i>
+                                            {{ document.get_document_type_display }}
+                                        </td>
+                                        <td>{{ document.original_filename }}</td>
+                                        <td>{{ document.file_size_mb }} MB</td>
+                                        <td>{{ document.uploaded_at|date:"M d, H:i" }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                {% if document.document_file %}
+                                                <a href="{% url 'loans:download_document' document.pk %}" 
+                                                   class="btn btn-outline-primary" title="Download">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                {% else %}
+                                                <button class="btn btn-outline-secondary" disabled title="No file available">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button type="button" class="btn btn-outline-success" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#verifyModal{{ document.pk }}" 
+                                                        title="Review">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </button>
+                                                <a href="{% url 'loans:document_list' loan_data.loan.pk %}" 
+                                                   class="btn btn-outline-info" title="View All">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteLoanDocModal{{ document.pk }}" 
+                                                        title="Delete Document">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 class="text-success">All documents reviewed!</h5>
+                    <p class="text-muted">No documents are currently pending review.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recently Verified -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Recently Verified
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if verified_documents %}
+                <div class="list-group list-group-flush">
+                    {% for document in verified_documents %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start px-0">
+                        <div class="ms-2 me-auto">
+                            <div class="fw-bold">{{ document.get_document_type_display }}</div>
+                            <small class="text-muted">{{ document.loan.application_number }}</small>
+                            <br>
+                            <small class="text-success">
+                                <i class="fas fa-user me-1"></i>{{ document.verified_by.full_name }}
+                            </small>
+                        </div>
+                        <small class="text-muted">{{ document.verified_at|date:"M d" }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No recently verified documents.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'loans:list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>View All Loans
+                    </a>
+                    <a href="{% url 'loans:status_dashboard' %}" class="btn btn-outline-info">
+                        <i class="fas fa-chart-bar me-2"></i>Loan Dashboard
+                    </a>
+                    <a href="/admin/loans/loandocument/" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Modals -->
+{% for loan_data in loans_with_pending_docs %}
+{% for document in loan_data.documents %}
+<div class="modal fade" id="verifyModal{{ document.pk }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'loans:verify_document' document.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Document Information</h6>
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td><strong>Loan:</strong></td>
+                                    <td>{{ document.loan.application_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Borrower:</strong></td>
+                                    <td>{{ document.loan.borrower.full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Type:</strong></td>
+                                    <td>{{ document.get_document_type_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>File:</strong></td>
+                                    <td>{{ document.original_filename }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Size:</strong></td>
+                                    <td>{{ document.file_size_mb }} MB</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Uploaded:</strong></td>
+                                    <td>{{ document.uploaded_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Verification</h6>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_verified" 
+                                           id="verified{{ document.pk }}" {% if document.is_verified %}checked{% endif %}>
+                                    <label class="form-check-label" for="verified{{ document.pk }}">
+                                        <strong>Mark as verified</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="verification_notes{{ document.pk }}" class="form-label">Notes:</label>
+                                <textarea name="verification_notes" id="verification_notes{{ document.pk }}" 
+                                          class="form-control" rows="4" 
+                                          placeholder="Add verification notes or reasons for rejection...">{{ document.verification_notes }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if document.description %}
+                    <div class="mt-3">
+                        <h6>Document Description</h6>
+                        <p class="text-muted">{{ document.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    {% if document.document_file %}
+                    <a href="{% url 'loans:download_document' document.pk %}" class="btn btn-outline-primary me-auto">
+                        <i class="fas fa-download me-2"></i>Download Document
+                    </a>
+                    {% else %}
+                    <button class="btn btn-outline-secondary me-auto" disabled>
+                        <i class="fas fa-ban me-2"></i>No File Available
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Update Verification
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endfor %}
+
+<!-- Delete Confirmation Modals for Loan Documents -->
+{% for loan_data in loans_with_pending_docs %}
+{% for document in loan_data.documents %}
+<div class="modal fade" id="deleteLoanDocModal{{ document.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Loan Document Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-warning me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <p>Are you sure you want to permanently delete this loan document?</p>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Document Details:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Loan:</strong> {{ document.loan.application_number }}</li>
+                            <li><strong>Borrower:</strong> {{ document.loan.borrower.full_name }}</li>
+                            <li><strong>Type:</strong> {{ document.get_document_type_display }}</li>
+                            <li><strong>File:</strong> {{ document.original_filename }}</li>
+                            <li><strong>Uploaded:</strong> {{ document.uploaded_at|date:"M d, Y H:i" }}</li>
+                            <li><strong>Status:</strong> {{ document.is_verified|yesno:"Verified,Pending" }}</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>What will be deleted:</h6>
+                    <ul>
+                        <li>Loan document record from database</li>
+                        <li>Associated file from server storage</li>
+                        <li>All verification history and notes</li>
+                    </ul>
+                </div>
+                
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmDeleteLoanDoc{{ document.pk }}" required>
+                    <label class="form-check-label text-danger" for="confirmDeleteLoanDoc{{ document.pk }}">
+                        <strong>I understand this action is permanent and cannot be undone</strong>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <form method="post" action="{% url 'loans:admin_delete_document' document.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'loans:document_review_dashboard' %}">
+                    <button type="submit" class="btn btn-danger" id="deleteLoanDocBtn{{ document.pk }}" disabled>
+                        <i class="fas fa-trash me-2"></i>Delete Permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox{{ document.pk }} = document.getElementById('confirmDeleteLoanDoc{{ document.pk }}');
+    const deleteBtn{{ document.pk }} = document.getElementById('deleteLoanDocBtn{{ document.pk }}');
+    
+    if (checkbox{{ document.pk }} && deleteBtn{{ document.pk }}) {
+        checkbox{{ document.pk }}.addEventListener('change', function() {
+            deleteBtn{{ document.pk }}.disabled = !this.checked;
+        });
+    }
+});
+</script>
+{% endfor %}
+{% endfor %}
+{% endblock %}
