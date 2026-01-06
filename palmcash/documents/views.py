@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from .models import ClientDocument, ClientVerification
+from accounts.models import User
 
 
 # ============================================================================
@@ -105,22 +106,43 @@ def client_verification_status(request):
 
 @login_required
 def document_verification_dashboard(request):
-    """Manager/Admin dashboard for verifying client documents"""
-    if request.user.role not in ['manager', 'admin']:
+    """Dashboard for verifying client documents - accessible to loan officers, managers, and admins"""
+    user = request.user
+    
+    # Check permissions
+    if user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to access this dashboard.')
         return redirect('dashboard:home')
     
-    # Get pending verifications
-    pending_verifications = ClientVerification.objects.filter(
-        status__in=['documents_submitted', 'documents_rejected']
-    ).select_related('client').prefetch_related('client__documents')
+    # Filter based on role
+    if user.role == 'loan_officer':
+        # Loan officers see documents from their clients
+        from django.db.models import Q
+        client_ids = User.objects.filter(
+            Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
+            role='borrower'
+        ).values_list('id', flat=True).distinct()
+        
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents')
+        
+        total_clients = ClientVerification.objects.filter(client_id__in=client_ids).count()
+        verified_clients = ClientVerification.objects.filter(
+            client_id__in=client_ids,
+            status='verified'
+        ).count()
+    else:
+        # Managers and admins see all documents
+        pending_verifications = ClientVerification.objects.filter(
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents')
+        
+        total_clients = ClientVerification.objects.count()
+        verified_clients = ClientVerification.objects.filter(status='verified').count()
     
-    # Get statistics
-    total_clients = ClientVerification.objects.count()
-    verified_clients = ClientVerification.objects.filter(status='verified').count()
-    pending_clients = ClientVerification.objects.filter(
-        status__in=['documents_submitted', 'documents_rejected']
-    ).count()
+    pending_clients = pending_verifications.count()
     
     context = {
         'pending_verifications': pending_verifications,
@@ -135,7 +157,7 @@ def document_verification_dashboard(request):
 @login_required
 def approve_client_documents(request, client_id):
     """Approve all documents for a client"""
-    if request.user.role not in ['manager', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
         return redirect('documents:verification_dashboard')
     
@@ -145,6 +167,19 @@ def approve_client_documents(request, client_id):
     try:
         from accounts.models import User
         client = get_object_or_404(User, id=client_id, role='borrower')
+        
+        # Check if loan officer has access to this client
+        if request.user.role == 'loan_officer':
+            from django.db.models import Q
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You do not have permission to approve documents for this client.')
+                return redirect('documents:verification_dashboard')
+        
         verification = get_object_or_404(ClientVerification, client=client)
         
         # Approve all documents
@@ -161,7 +196,7 @@ def approve_client_documents(request, client_id):
 @login_required
 def reject_client_documents(request, client_id):
     """Reject all documents for a client"""
-    if request.user.role not in ['manager', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
         return redirect('documents:verification_dashboard')
     
@@ -171,6 +206,19 @@ def reject_client_documents(request, client_id):
     try:
         from accounts.models import User
         client = get_object_or_404(User, id=client_id, role='borrower')
+        
+        # Check if loan officer has access to this client
+        if request.user.role == 'loan_officer':
+            from django.db.models import Q
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You do not have permission to reject documents for this client.')
+                return redirect('documents:verification_dashboard')
+        
         verification = get_object_or_404(ClientVerification, client=client)
         
         reason = request.POST.get('reason', 'Documents do not meet requirements.')
@@ -189,7 +237,7 @@ def reject_client_documents(request, client_id):
 @login_required
 def approve_single_document(request, document_id):
     """Approve a single document"""
-    if request.user.role not in ['manager', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
         return redirect('documents:verification_dashboard')
     
@@ -198,6 +246,19 @@ def approve_single_document(request, document_id):
     
     try:
         document = get_object_or_404(ClientDocument, id=document_id)
+        
+        # Check if loan officer has access to this client
+        if request.user.role == 'loan_officer':
+            from django.db.models import Q
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=document.client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You do not have permission to approve documents for this client.')
+                return redirect('documents:verification_dashboard')
+        
         notes = request.POST.get('notes', '')
         
         document.approve(request.user, notes)
@@ -217,7 +278,7 @@ def approve_single_document(request, document_id):
 @login_required
 def reject_single_document(request, document_id):
     """Reject a single document"""
-    if request.user.role not in ['manager', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
         return redirect('documents:verification_dashboard')
     
@@ -226,6 +287,19 @@ def reject_single_document(request, document_id):
     
     try:
         document = get_object_or_404(ClientDocument, id=document_id)
+        
+        # Check if loan officer has access to this client
+        if request.user.role == 'loan_officer':
+            from django.db.models import Q
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=document.client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You do not have permission to reject documents for this client.')
+                return redirect('documents:verification_dashboard')
+        
         reason = request.POST.get('reason', 'Document does not meet requirements.')
         
         document.reject(request.user, reason)

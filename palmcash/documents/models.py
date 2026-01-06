@@ -120,6 +120,38 @@ class ClientDocument(models.Model):
         self.verification_date = timezone.now()
         self.verification_notes = reason
         self.save()
+    
+    def save(self, *args, **kwargs):
+        """Compress image before saving"""
+        if self.image:
+            from PIL import Image
+            from io import BytesIO
+            from django.core.files.base import ContentFile
+            
+            # Open the image
+            img = Image.open(self.image)
+            
+            # Convert RGBA to RGB if necessary
+            if img.mode in ('RGBA', 'LA', 'P'):
+                rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = rgb_img
+            
+            # Resize if too large (max 1920x1440)
+            max_width = 1920
+            max_height = 1440
+            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            
+            # Compress and save
+            output = BytesIO()
+            img.save(output, format='JPEG', quality=75, optimize=True)
+            output.seek(0)
+            
+            # Replace the image
+            file_name = self.image.name
+            self.image = ContentFile(output.read(), name=file_name)
+        
+        super().save(*args, **kwargs)
 
 
 class ClientVerification(models.Model):
