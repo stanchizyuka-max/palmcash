@@ -295,9 +295,44 @@
                 <!-- Right Side Menu -->
                 <div class="flex items-center space-x-4">
                     <!-- Notifications -->
-                    <a href="{% url 'notifications:list' %}" class="relative p-2 text-secondary-700 hover:text-primary-600 transition-colors">
-                        <i class="fas fa-bell text-xl"></i>
-                    </a>
+                    <div class="relative group">
+                        <a href="{% url 'notifications:list' %}" class="relative p-2 text-secondary-700 hover:text-primary-600 transition-colors">
+                            <i class="fas fa-bell text-xl"></i>
+                            {% if unread_notifications_count > 0 %}
+                            <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-danger-600 rounded-full">
+                                {{ unread_notifications_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        
+                        <!-- Notification Dropdown -->
+                        {% if unread_notifications_count > 0 %}
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 border border-secondary-200">
+                            <div class="p-4 border-b border-secondary-200">
+                                <h3 class="font-semibold text-secondary-900">Notifications</h3>
+                            </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                {% for notification in recent_notifications %}
+                                <a href="{% url 'notifications:detail' notification.pk %}" class="block px-4 py-3 hover:bg-secondary-50 border-b border-secondary-100 transition-colors">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-secondary-900 truncate">{{ notification.subject }}</p>
+                                            <p class="text-xs text-secondary-600 mt-1 line-clamp-2">{{ notification.message }}</p>
+                                            <p class="text-xs text-secondary-500 mt-1">{{ notification.created_at|timesince }} ago</p>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                            <div class="p-3 border-t border-secondary-200 text-center">
+                                <a href="{% url 'notifications:list' %}" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                                    View all notifications
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                     
                     <!-- User Menu -->
                     <div class="hidden lg:block relative group">

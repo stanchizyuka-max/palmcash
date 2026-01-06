@@ -718,3 +718,204 @@ class UpdateOfficerCapacityView(LoginRequiredMixin, View):
             f'Capacity limits updated for {officer.full_name}: {max_groups} groups, {max_clients} clients.'
         )
         return redirect('clients:officer_workload_detail', pk=officer_id)
+
+
+
+# ============================================================================
+# CLIENT VERIFICATION VIEWS
+# ============================================================================
+
+class VerifyClientView(LoginRequiredMixin, View):
+    """Verify a client - approve their documents and mark as verified"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        
+        if request.user.role not in ['admin', 'manager', 'loan_officer']:
+            messages.error(request, 'You do not have permission to verify clients.')
+            return redirect('dashboard:home')
+        
+        # Loan officers can only verify their assigned clients
+        if request.user.role == 'loan_officer':
+            client_id = kwargs.get('client_id')
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You can only verify clients assigned to you.')
+                return redirect('accounts:user_detail', pk=client_id)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, client_id):
+        from documents.models import ClientVerification
+        from django.utils import timezone
+        
+        client = get_object_or_404(User, pk=client_id, role='borrower')
+        
+        try:
+            verification = ClientVerification.objects.get(client=client)
+        except ClientVerification.DoesNotExist:
+            messages.error(request, 'Client verification record not found.')
+            return redirect('accounts:user_detail', pk=client_id)
+        
+        # Check if all documents are uploaded
+        if not verification.all_documents_uploaded:
+            messages.error(request, 'Client has not uploaded all required documents.')
+            return redirect('accounts:user_detail', pk=client_id)
+        
+        # Approve all documents
+        verification.approve_all_documents(request.user)
+        
+        # Mark client as verified
+        client.is_verified = True
+        client.save(update_fields=['is_verified'])
+        
+        messages.success(request, f'{client.full_name} has been verified successfully!')
+        return redirect('accounts:user_detail', pk=client_id)
+
+
+class RejectClientVerificationView(LoginRequiredMixin, View):
+    """Reject a client's verification - mark documents as rejected"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        
+        if request.user.role not in ['admin', 'manager', 'loan_officer']:
+            messages.error(request, 'You do not have permission to reject client verification.')
+            return redirect('dashboard:home')
+        
+        # Loan officers can only reject verification for their assigned clients
+        if request.user.role == 'loan_officer':
+            client_id = kwargs.get('client_id')
+            has_access = User.objects.filter(
+                Q(assigned_officer=request.user) | Q(group_memberships__group__assigned_officer=request.user),
+                id=client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You can only reject verification for clients assigned to you.')
+                return redirect('accounts:user_detail', pk=client_id)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, client_id):
+        from documents.models import ClientVerification
+        
+        client = get_object_or_404(User, pk=client_id, role='borrower')
+        reason = request.POST.get('reason', 'Documents do not meet requirements.')
+        
+        try:
+            verification = ClientVerification.objects.get(client=client)
+        except ClientVerification.DoesNotExist:
+            messages.error(request, 'Client verification record not found.')
+            return redirect('accounts:user_detail', pk=client_id)
+        
+        # Reject all documents
+        verification.reject_all_documents(request.user, reason)
+        
+        # Mark client as not verified
+        client.is_verified = False
+        client.save(update_fields=['is_verified'])
+        
+        messages.success(request, f'{client.full_name} verification has been rejected.')
+        return redirect('accounts:user_detail', pk=client_id)
+
+
+
+class UserVerificationManagementView(LoginRequiredMixin, ListView):
+    """Manage and verify users - accessible to loan officers, managers, and admins"""
+    model = User
+    template_name = 'clients/user_verification_management.html'
+    context_object_name = 'users'
+    paginate_by = 20
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        
+        if request.user.role not in ['admin', 'manager', 'loan_officer']:
+            messages.error(request, 'You do not have permission to access user verification management.')
+            return redirect('dashboard:home')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        from django.db.models import Q
+        
+        # Base queryset - borrowers only
+        queryset = User.objects.filter(role='borrower', is_active=True)
+        
+        # Loan officers see only their assigned clients
+        if self.request.user.role == 'loan_officer':
+            queryset = queryset.filter(
+                Q(assigned_officer=self.request.user) | 
+                Q(group_memberships__group__assigned_officer=self.request.user, group_memberships__is_active=True)
+            ).distinct()
+        
+        # Apply search filter
+        search_query = self.request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(phone_number__icontains=search_query)
+            )
+        
+        # Apply status filter
+        status_filter = self.request.GET.get('status', '').strip()
+        if status_filter == 'verified':
+            queryset = queryset.filter(is_verified=True)
+        elif status_filter == 'pending':
+            queryset = queryset.filter(
+                is_verified=False,
+                verification__status__in=['pending', 'documents_submitted']
+            )
+        elif status_filter == 'rejected':
+            queryset = queryset.filter(
+                verification__status__in=['documents_rejected', 'rejected']
+            )
+        
+        return queryset.select_related('assigned_officer', 'verification').order_by('-date_joined')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get all borrowers for statistics
+        if self.request.user.role == 'loan_officer':
+            from django.db.models import Q
+            all_borrowers = User.objects.filter(
+                Q(assigned_officer=self.request.user) | 
+                Q(group_memberships__group__assigned_officer=self.request.user, group_memberships__is_active=True),
+                role='borrower'
+            ).distinct()
+        else:
+            all_borrowers = User.objects.filter(role='borrower')
+        
+        # Calculate statistics
+        context['total_users'] = all_borrowers.count()
+        context['verified_users'] = all_borrowers.filter(is_verified=True).count()
+        context['pending_users'] = all_borrowers.filter(
+            is_verified=False,
+            verification__status__in=['pending', 'documents_submitted']
+        ).count()
+        context['rejected_users'] = all_borrowers.filter(
+            verification__status__in=['documents_rejected', 'rejected']
+        ).count()
+        
+        # Calculate percentage
+        if context['total_users'] > 0:
+            context['verified_percentage'] = (context['verified_users'] / context['total_users']) * 100
+        else:
+            context['verified_percentage'] = 0
+        
+        # Add filter info
+        context['search_query'] = self.request.GET.get('search', '')
+        context['status_filter'] = self.request.GET.get('status', '')
+        
+        return context

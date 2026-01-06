@@ -23,9 +23,17 @@
             </div>
             
             <div class="flex items-center gap-3">
-                {% if client.is_verified %}
+                {% if client.verification and client.verification.status == 'verified' %}
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-success-100 text-success-800 shadow-sm">
                     <i class="fas fa-check-circle mr-2"></i>Verified Client
+                </span>
+                {% elif client.verification and client.verification.status == 'documents_rejected' %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-danger-100 text-danger-800 shadow-sm">
+                    <i class="fas fa-times-circle mr-2"></i>Documents Rejected
+                </span>
+                {% elif client.verification and client.verification.status == 'documents_submitted' %}
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-info-100 text-info-800 shadow-sm">
+                    <i class="fas fa-hourglass-half mr-2"></i>Awaiting Review
                 </span>
                 {% else %}
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-warning-100 text-warning-800 shadow-sm">
@@ -128,6 +136,72 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Document Verification Status -->
+                {% if client.verification %}
+                <div class="bg-white rounded-xl shadow-lg border border-secondary-100 p-6">
+                    <h4 class="text-lg font-semibold text-secondary-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-file-check text-primary-600"></i>
+                        Document Verification
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-secondary-600">Status</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold
+                                {% if client.verification.status == 'verified' %}bg-success-100 text-success-800
+                                {% elif client.verification.status == 'documents_submitted' %}bg-info-100 text-info-800
+                                {% elif client.verification.status == 'documents_rejected' %}bg-danger-100 text-danger-800
+                                {% elif client.verification.status == 'rejected' %}bg-danger-100 text-danger-800
+                                {% else %}bg-warning-100 text-warning-800{% endif %}">
+                                {{ client.verification.get_status_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="pt-3 border-t border-secondary-200">
+                            <p class="text-xs font-semibold text-secondary-500 uppercase tracking-wide mb-2">Documents Uploaded</p>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    {% if client.verification.nrc_front_uploaded %}
+                                    <i class="fas fa-check-circle text-success-600"></i>
+                                    <span class="text-sm text-secondary-700">NRC Front</span>
+                                    {% else %}
+                                    <i class="fas fa-circle text-secondary-300"></i>
+                                    <span class="text-sm text-secondary-500">NRC Front</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {% if client.verification.nrc_back_uploaded %}
+                                    <i class="fas fa-check-circle text-success-600"></i>
+                                    <span class="text-sm text-secondary-700">NRC Back</span>
+                                    {% else %}
+                                    <i class="fas fa-circle text-secondary-300"></i>
+                                    <span class="text-sm text-secondary-500">NRC Back</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {% if client.verification.selfie_uploaded %}
+                                    <i class="fas fa-check-circle text-success-600"></i>
+                                    <span class="text-sm text-secondary-700">Selfie</span>
+                                    {% else %}
+                                    <i class="fas fa-circle text-secondary-300"></i>
+                                    <span class="text-sm text-secondary-500">Selfie</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if client.verification.verified_by %}
+                        <div class="pt-3 border-t border-secondary-200">
+                            <p class="text-xs font-semibold text-secondary-500 uppercase tracking-wide mb-1">Verified By</p>
+                            <p class="text-sm text-secondary-700">{{ client.verification.verified_by.get_full_name }}</p>
+                            {% if client.verification.verification_date %}
+                            <p class="text-xs text-secondary-500 mt-1">{{ client.verification.verification_date|date:"M d, Y H:i" }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
 
                 <!-- Assigned Loan Officer -->
                 {% if user.role == 'admin' or user.role == 'manager' or user.is_superuser %}
@@ -426,13 +500,93 @@
                     </div>
                 </div>
 
+                <!-- Verification Actions -->
+                {% if user.role in 'admin,manager,loan_officer' or user.is_superuser %}
+                {% if client.verification %}
+                <div class="flex flex-col sm:flex-row justify-end gap-3">
+                    {% if client.verification.status == 'documents_submitted' and not client.is_verified %}
+                    <button onclick="openRejectModal()" 
+                            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-lg hover:from-danger-600 hover:to-danger-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Reject Documents
+                    </button>
+                    <form method="post" action="{% url 'clients:verify' client.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                            <i class="fas fa-check mr-2"></i>Approve & Verify
+                        </button>
+                    </form>
+                    {% elif client.is_verified %}
+                    <button onclick="openRejectModal()" 
+                            class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-warning-500 to-warning-600 text-white rounded-lg hover:from-warning-600 hover:to-warning-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-times mr-2"></i>Revoke Verification
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endif %}
 
             </div>
         </div>
     </div>
 </div>
 
+<!-- Reject Verification Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="bg-gradient-to-r from-danger-500 to-danger-600 px-6 py-4 rounded-t-xl">
+            <h3 class="text-xl font-semibold text-white">Reject Verification</h3>
+        </div>
+        <form method="post" id="rejectForm">
+            {% csrf_token %}
+            <div class="p-6">
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-4">
+                    <p class="text-sm text-red-800 font-medium">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        This will reject the client's documents and require resubmission.
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="reason" class="block text-sm font-medium text-secondary-700 mb-2">
+                        Reason for Rejection <span class="text-danger-500">*</span>
+                    </label>
+                    <textarea name="reason" id="reason" rows="3" required
+                              class="w-full px-4 py-3 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-danger-500 focus:border-transparent"
+                              placeholder="Please provide a reason for rejecting the documents..."></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-secondary-50 rounded-b-xl flex justify-end gap-3">
+                <button type="button" onclick="closeRejectModal()"
+                        class="px-4 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-100 font-medium transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-lg hover:from-danger-600 hover:to-danger-700 font-medium shadow-lg transition-all duration-200">
+                    <i class="fas fa-times mr-2"></i>Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+function openRejectModal() {
+    const form = document.getElementById('rejectForm');
+    const clientId = {{ client.pk }};
+    form.action = `{% url 'clients:reject_verification' 0 %}`.replace('0', clientId);
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('rejectModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+
 // Update capacity warning when officer selection changes
 function updateCapacityWarning() {
     const select = document.getElementById('officer_id');

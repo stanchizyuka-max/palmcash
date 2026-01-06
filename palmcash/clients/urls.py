@@ -24,4 +24,11 @@ urlpatterns = [
     path('officers/workload/', views.OfficerWorkloadView.as_view(), name='officer_workload'),
     path('officers/<int:pk>/workload-detail/', views.OfficerWorkloadDetailView.as_view(), name='officer_workload_detail'),
     path('officers/<int:officer_id>/update-capacity/', views.UpdateOfficerCapacityView.as_view(), name='update_officer_capacity'),
+    
+    # Client verification
+    path('clients/<int:client_id>/verify/', views.VerifyClientView.as_view(), name='verify'),
+    path('clients/<int:client_id>/reject-verification/', views.RejectClientVerificationView.as_view(), name='reject_verification'),
+    
+    # User verification management
+    path('users/verification-management/', views.UserVerificationManagementView.as_view(), name='user_verification_management'),
 ]
