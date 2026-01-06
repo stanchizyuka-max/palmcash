@@ -1,0 +1,154 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Loan Approval - Loan #{{ loan.id }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Loan Approval Review</h1>
+                    <p class="mt-2 text-gray-600">Loan #{{ loan.id }} - K{{ loan.principal_amount|floatformat:2 }}</p>
+                </div>
+                <a href="{% url 'dashboard:admin_pending_approvals' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Back
+                </a>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        {% if error %}
+        <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Borrower Information -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Borrower Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Name</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.full_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Email</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.phone_number }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Group</dt>
+                    <dd class="text-lg text-gray-900">
+                        {% if group %}
+                            {{ group.name }}
+                        {% else %}
+                            <span class="text-gray-400">Not assigned</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Details -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Loan Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Loan Amount</dt>
+                    <dd class="text-2xl font-bold text-gray-900">K{{ loan.principal_amount|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Interest Rate</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.interest_rate }}%</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Loan Officer</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.loan_officer.full_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Purpose</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.purpose|default:"Not specified" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Loan Term</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.loan_term_months }} months</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Requested Date</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.created_at|date:"M d, Y" }}</dd>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Deposit -->
+        {% if security_deposit %}
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Security Deposit</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Amount</dt>
+                    <dd class="text-lg text-gray-900">K{{ security_deposit.amount|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd>
+                        {% if security_deposit.is_verified %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                        {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending Verification</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Approval Decision -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Approval Decision</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Approve Form -->
+                <form method="post" action="{% url 'dashboard:admin_loan_approve' loan.id %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="approve_reason" class="block text-sm font-medium text-gray-700 mb-2">Approval Notes (Optional)</label>
+                        <textarea id="approve_reason" name="reason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Add any notes about this approval..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        ✓ Approve Loan
+                    </button>
+                </form>
+
+                <!-- Reject Form -->
+                <form method="post" action="{% url 'dashboard:admin_loan_reject' loan.id %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="reject_reason" class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason *</label>
+                        <textarea id="reject_reason" name="reason" rows="3" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500" placeholder="Explain why this loan is being rejected..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                        ✗ Reject Loan
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Important Notes -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-yellow-900 mb-2">⚠️ Important</h3>
+            <ul class="text-sm text-yellow-800 list-disc list-inside space-y-1">
+                <li>This is a high-value loan requiring admin approval</li>
+                <li>Verify security deposit is verified before approval</li>
+                <li>All decisions will be logged for audit purposes</li>
+                <li>Rejection requires a reason</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

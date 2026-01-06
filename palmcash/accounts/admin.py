@@ -4,7 +4,7 @@ from django.contrib.auth.models import Permission, User as DjangoUser
 from django.contrib.contenttypes.models import ContentType
 from .models import User
 
-@admin.register(User)
+
 class UserAdmin(BaseUserAdmin):
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'is_verified', 'date_joined']
     list_filter = ['role', 'is_verified', 'is_staff', 'is_active', 'date_joined']
@@ -22,11 +22,19 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-# Register Permission and ContentType models
-admin.site.register(Permission)
-admin.site.register(ContentType)
 
-# Register Django's built-in User model for compatibility with existing links
+class PermissionAdmin(admin.ModelAdmin):
+    list_display = ['name', 'content_type', 'codename']
+    list_filter = ['content_type']
+    search_fields = ['name', 'codename']
+
+
+class ContentTypeAdmin(admin.ModelAdmin):
+    list_display = ['app_label', 'model']
+    list_filter = ['app_label']
+    search_fields = ['app_label', 'model']
+
+
 class DjangoUserAdmin(admin.ModelAdmin):
     list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined']
     list_filter = ['is_staff', 'is_active', 'date_joined']
@@ -40,10 +48,16 @@ class DjangoUserAdmin(admin.ModelAdmin):
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
 
-# Try to register Django's User model
-try:
-    admin.site.register(DjangoUser, DjangoUserAdmin)
-except admin.sites.AlreadyRegistered:
-    # If already registered, unregister and re-register with our admin
-    admin.site.unregister(DjangoUser)
-    admin.site.register(DjangoUser, DjangoUserAdmin)
+
+# Register models with custom admin site
+def register_admin_models():
+    """Register all models with the custom admin site"""
+    from common.admin import custom_admin_site
+    custom_admin_site.register(User, UserAdmin)
+    custom_admin_site.register(Permission, PermissionAdmin)
+    custom_admin_site.register(ContentType, ContentTypeAdmin)
+    custom_admin_site.register(DjangoUser, DjangoUserAdmin)
+
+
+# Call registration function
+register_admin_models()

@@ -1,0 +1,110 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Audit Logs - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+                <i class="fas fa-history text-primary-600 mr-3"></i>
+                Audit Logs
+            </h1>
+            <p class="text-lg text-secondary-600">View system audit logs and admin actions</p>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-info-600 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-secondary-600 text-sm font-semibold">Total Logs</p>
+                    <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_logs }}</p>
+                </div>
+                <i class="fas fa-file-alt text-info-600 text-4xl opacity-20"></i>
+            </div>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-list mr-2"></i>
+                    Audit Log Entries
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-100 border-b-2 border-secondary-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Admin</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Action</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Affected User</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr class="border-b border-secondary-100 hover:bg-secondary-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-secondary-900">{{ log.timestamp|date:"M d, Y H:i" }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-900">
+                                {% if log.admin_user %}
+                                    {{ log.admin_user.full_name }}
+                                {% else %}
+                                    <span class="text-secondary-400">System</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-3 py-1 bg-info-100 text-info-700 rounded-full text-xs font-bold">
+                                    {{ log.get_action_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-900">
+                                {% if log.affected_user %}
+                                    {{ log.affected_user.full_name }}
+                                {% else %}
+                                    <span class="text-secondary-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-secondary-600">
+                                {{ log.description|truncatewords:10 }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-secondary-600">
+                                <i class="fas fa-inbox text-4xl opacity-20 mb-2"></i>
+                                <p class="mt-2">No audit logs found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="px-6 py-4 bg-secondary-50 border-t border-secondary-200 flex items-center justify-between">
+                <div class="text-sm text-secondary-600">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex gap-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Previous</a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Last</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

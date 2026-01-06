@@ -1,0 +1,157 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Loan Details - Loan #{{ loan.id }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Loan #{{ loan.id }}</h1>
+                    <p class="mt-2 text-gray-600">K{{ loan.principal_amount|floatformat:2 }} - {{ loan.get_status_display }}</p>
+                </div>
+                <a href="{% url 'dashboard:admin_all_loans' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Back
+                </a>
+            </div>
+        </div>
+
+        <!-- Borrower Information -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Borrower Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Name</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.full_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Email</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd class="text-lg text-gray-900">{{ borrower.phone_number }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Group</dt>
+                    <dd class="text-lg text-gray-900">
+                        {% if group %}
+                            {{ group.name }}
+                        {% else %}
+                            <span class="text-gray-400">Not assigned</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Details -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Loan Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Principal Amount</dt>
+                    <dd class="text-2xl font-bold text-gray-900">K{{ loan.principal_amount|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Interest Rate</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.interest_rate }}%</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Loan Term</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.loan_term_months }} months</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if loan.status == 'active' %}bg-green-100 text-green-800{% elif loan.status == 'completed' %}bg-blue-100 text-blue-800{% elif loan.status == 'defaulted' %}bg-red-100 text-red-800{% elif loan.status == 'rejected' %}bg-gray-100 text-gray-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ loan.get_status_display }}
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Loan Officer</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.loan_officer.full_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Purpose</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.purpose|default:"Not specified" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Created Date</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.created_at|date:"M d, Y H:i" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Disbursement Date</dt>
+                    <dd class="text-lg text-gray-900">{{ loan.disbursement_date|date:"M d, Y"|default:"Not disbursed" }}</dd>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Deposit -->
+        {% if security_deposit %}
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Security Deposit</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Amount</dt>
+                    <dd class="text-lg text-gray-900">K{{ security_deposit.amount|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd>
+                        {% if security_deposit.is_verified %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                        {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Collections -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Payment Collections</h2>
+            
+            <div class="mb-4 p-4 bg-blue-50 rounded">
+                <p class="text-sm text-blue-800">Total Collected: <strong>K{{ total_collected|floatformat:2 }}</strong></p>
+            </div>
+
+            {% if collections %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collected</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for collection in collections %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ collection.collection_date|date:"M d, Y" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">K{{ collection.expected_amount|floatformat:2 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">K{{ collection.collected_amount|floatformat:2 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if collection.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ collection.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No collections recorded</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

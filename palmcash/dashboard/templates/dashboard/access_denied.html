@@ -1,0 +1,63 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+<div class="access-denied">
+    <div class="error-container">
+        <h1>Access Denied</h1>
+        <p>You do not have permission to access this dashboard.</p>
+        <p>Please contact your administrator if you believe this is an error.</p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Go Home</a>
+    </div>
+</div>
+
+<style>
+    .access-denied {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        padding: 20px;
+    }
+
+    .error-container {
+        text-align: center;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 40px;
+        max-width: 500px;
+    }
+
+    .error-container h1 {
+        color: #D32F2F;
+        margin-bottom: 10px;
+    }
+
+    .error-container p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 4px;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 14px;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #2E7D32;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #1b5e20;
+    }
+</style>
+{% endblock %}

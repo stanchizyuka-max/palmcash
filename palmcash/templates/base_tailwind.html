@@ -239,187 +239,90 @@
 
 <body class="h-full font-sans antialiased text-secondary-800 bg-secondary-50">
     <!-- Navigation -->
-    <nav
-        class="fixed top-0 w-full z-50 transition-all duration-300 bg-white/95 backdrop-blur-md shadow-sm border-b border-secondary-200">
+    <nav class="fixed top-0 w-full z-50 bg-white shadow-md border-b border-secondary-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="{% url 'home' %}" class="flex items-center space-x-3 group">
-                        <div
-                            class="w-10 h-10 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                    <a href="{% url 'dashboard:home' %}" class="flex items-center space-x-2 group">
+                        <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
                             <i class="fas fa-tree text-white text-lg"></i>
                         </div>
-                        <div class="flex flex-col">
-                            <span
-                                class="text-xl font-bold text-secondary-900 leading-tight group-hover:text-primary-600 transition-colors duration-200">Palm Cash</span>
-                            <span
-                                class="text-xs text-secondary-500 leading-tight hidden sm:block group-hover:text-primary-500 transition-colors duration-200">Loan
-                                Management</span>
-                        </div>
+                        <span class="text-lg font-bold text-secondary-900 group-hover:text-primary-600 transition-colors">Palm Cash</span>
                     </a>
                 </div>
 
                 {% if user.is_authenticated %}
                 <!-- Desktop Navigation -->
-                <div class="hidden lg:flex items-center space-x-8">
-                    <a href="{% url 'dashboard:home' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="{% url 'dashboard:home' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
 
                     {% if user.role == 'borrower' %}
-                    <!-- Borrower Menu -->
-                    <a href="{% url 'loans:list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                    <a href="{% url 'loans:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-money-bill-wave mr-2"></i>My Loans
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
-                    <a href="{% url 'loans:calculator' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
-                        <i class="fas fa-calculator mr-2"></i>Calculator
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
+                    <a href="{% url 'documents:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-file-upload mr-2"></i>Documents
                     </a>
-                    <a href="{% url 'payments:list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                    <a href="{% url 'payments:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-credit-card mr-2"></i>Payments
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
                     
                     {% elif user.role == 'loan_officer' or user.role == 'manager' or user.is_superuser %}
-                    <!-- Staff Menu (Loan Officer, Manager, Admin) -->
-                    <a href="{% url 'loans:list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                    <a href="{% url 'loans:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-money-bill-wave mr-2"></i>Loans
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
-                    <a href="{% url 'clients:group_list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                    <a href="{% url 'clients:group_list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-users mr-2"></i>Clients
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
-                    <a href="{% url 'payments:list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
+                    <a href="{% url 'payments:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-credit-card mr-2"></i>Payments
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
                     </a>
-                    <a href="{% url 'loans:calculator' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
-                        <i class="fas fa-calculator mr-2"></i>Calculator
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
+                    
+                    {% if user.is_superuser or user.role == 'admin' %}
+                    <a href="{% url 'dashboard:manage_officers' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-user-tie mr-2"></i>Officers
                     </a>
-                    <a href="{% url 'reports:list' %}"
-                        class="text-secondary-700 hover:text-primary-600 font-medium transition-all duration-200 relative group">
-                        <i class="fas fa-chart-line mr-2"></i>Reports
-                        <span
-                            class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary-600 transition-all duration-300 group-hover:w-full"></span>
+                    <a href="{% url 'dashboard:manage_branches' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-building mr-2"></i>Branches
                     </a>
+                    {% endif %}
                     {% endif %}
                 </div>
 
-                <!-- User Menu & Mobile Menu Button -->
+                <!-- Right Side Menu -->
                 <div class="flex items-center space-x-4">
-                    <!-- Notifications Bell -->
-                    <div class="hidden lg:block relative group">
-                        <a href="{% url 'notifications:list' %}" class="relative p-2 text-secondary-700 hover:text-primary-600 transition-colors duration-200 block">
-                            <i class="fas fa-bell text-xl"></i>
-                            {% if unread_notifications_count > 0 %}
-                            <span class="absolute -top-1 -right-1 bg-danger-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                                {{ unread_notifications_count }}
-                            </span>
-                            {% endif %}
-                        </a>
-                        
-                        <!-- Notifications Dropdown -->
-                        <div class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-secondary-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 max-h-96 overflow-hidden z-50">
-                            <div class="p-4 border-b border-secondary-200 flex justify-between items-center">
-                                <h3 class="font-semibold text-secondary-900">Notifications</h3>
-                                <a href="{% url 'notifications:mark_all_read' %}" class="text-xs text-primary-600 hover:text-primary-700">Mark all read</a>
-                            </div>
-                            <div class="overflow-y-auto max-h-80">
-                                {% with user.notifications.all|slice:":5" as recent_notifications %}
-                                {% if recent_notifications %}
-                                    {% for notification in recent_notifications %}
-                                    <a href="{% url 'notifications:detail' notification.pk %}" 
-                                       class="block p-4 hover:bg-secondary-50 transition-colors duration-200 border-b border-secondary-100 {% if not notification.read_at %}bg-primary-50{% endif %}">
-                                        <div class="flex items-start gap-3">
-                                            <div class="flex-shrink-0">
-                                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                                    <i class="fas fa-bell text-primary-600"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-secondary-900 truncate">{{ notification.subject }}</p>
-                                                <p class="text-xs text-secondary-600 line-clamp-2">{{ notification.message|truncatewords:15 }}</p>
-                                                <p class="text-xs text-secondary-500 mt-1">{{ notification.created_at|timesince }} ago</p>
-                                            </div>
-                                            {% if not notification.read_at %}
-                                            <div class="flex-shrink-0">
-                                                <span class="inline-block w-2 h-2 bg-primary-600 rounded-full"></span>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </a>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="p-8 text-center">
-                                        <i class="fas fa-bell-slash text-4xl text-secondary-300 mb-2"></i>
-                                        <p class="text-secondary-600 text-sm">No notifications yet</p>
-                                    </div>
-                                {% endif %}
-                                {% endwith %}
-                            </div>
-                            <div class="p-3 border-t border-secondary-200 text-center">
-                                <a href="{% url 'notifications:list' %}" class="text-sm text-primary-600 hover:text-primary-700 font-medium">View all notifications</a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Desktop User Menu -->
-                    <div class="hidden lg:block relative group">
-                        <button
-                            class="flex items-center space-x-2 text-secondary-700 hover:text-primary-600 transition-colors duration-200">
-                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-user text-primary-600 text-sm"></i>
-                            </div>
-                            <span class="hidden md:block font-medium">{{ user.get_full_name|default:user.username }}</span>
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </button>
-
-                        <div
-                            class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-secondary-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
-                            <div class="p-2">
-                                <a href="{% url 'accounts:profile' %}"
-                                    class="flex items-center space-x-3 p-3 rounded-lg hover:bg-secondary-50 transition-colors duration-200">
-                                    <i class="fas fa-user-circle text-secondary-600"></i>
-                                    <span class="text-secondary-900">Profile</span>
-                                </a>
-                                <form method="post" action="{% url 'accounts:logout' %}" class="w-full">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                        class="flex items-center space-x-3 p-3 rounded-lg hover:bg-danger-50 transition-colors duration-200 w-full text-left border-0 bg-transparent">
-                                        <i class="fas fa-sign-out-alt text-danger-600"></i>
-                                        <span class="text-danger-900">Logout</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mobile Notification Button -->
-                    <a href="{% url 'notifications:list' %}" class="lg:hidden relative p-2 text-secondary-700 hover:text-primary-600">
+                    <!-- Notifications -->
+                    <a href="{% url 'notifications:list' %}" class="relative p-2 text-secondary-700 hover:text-primary-600 transition-colors">
                         <i class="fas fa-bell text-xl"></i>
                     </a>
                     
+                    <!-- User Menu -->
+                    <div class="hidden lg:block relative group">
+                        <button class="flex items-center space-x-2 px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
+                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-primary-600 text-sm"></i>
+                            </div>
+                            <span class="text-sm font-medium">{{ user.get_full_name|default:user.username }}</span>
+                        </button>
+
+                        <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-secondary-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                            <a href="{% url 'accounts:profile' %}" class="flex items-center space-x-2 px-4 py-3 text-secondary-700 hover:bg-primary-50 transition-colors border-b border-secondary-100">
+                                <i class="fas fa-user-circle"></i>
+                                <span>Profile</span>
+                            </a>
+                            <form method="post" action="{% url 'accounts:logout' %}" class="w-full">
+                                {% csrf_token %}
+                                <button type="submit" class="w-full text-left px-4 py-3 text-danger-600 hover:bg-danger-50 transition-colors flex items-center space-x-2 border-0 bg-transparent">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- Mobile Menu Button -->
                     <button id="mobile-menu-button" class="lg:hidden text-secondary-700 hover:text-primary-600 p-2">
                         <i class="fas fa-bars text-2xl"></i>
@@ -428,8 +331,8 @@
                 {% else %}
                 <!-- Guest Navigation -->
                 <div class="flex items-center space-x-4">
-                    <a href="{% url 'accounts:login' %}" class="btn-outline-primary">Login</a>
-                    <a href="{% url 'accounts:register' %}" class="btn-primary">Register</a>
+                    <a href="{% url 'accounts:login' %}" class="px-4 py-2 text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors">Login</a>
+                    <a href="{% url 'accounts:register' %}" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">Register</a>
                 </div>
                 {% endif %}
             </div>
@@ -438,59 +341,49 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="hidden lg:hidden bg-white border-t border-secondary-200">
             <div class="px-4 py-4 space-y-2">
-                <a href="{% url 'dashboard:home' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'dashboard:home' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                 </a>
 
                 {% if user.role == 'borrower' %}
-                <!-- Borrower Mobile Menu -->
-                <a href="{% url 'loans:list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'loans:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-money-bill-wave mr-2"></i>My Loans
                 </a>
-                <a href="{% url 'loans:calculator' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
-                    <i class="fas fa-calculator mr-2"></i>Calculator
+                <a href="{% url 'documents:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-file-upload mr-2"></i>Documents
                 </a>
-                <a href="{% url 'payments:list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'payments:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-credit-card mr-2"></i>Payments
                 </a>
                 
                 {% elif user.role == 'loan_officer' or user.role == 'manager' or user.is_superuser %}
-                <!-- Staff Mobile Menu -->
-                <a href="{% url 'loans:list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'loans:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-money-bill-wave mr-2"></i>Loans
                 </a>
-                <a href="{% url 'clients:group_list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'clients:group_list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-users mr-2"></i>Clients
                 </a>
-                <a href="{% url 'payments:list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
+                <a href="{% url 'payments:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-credit-card mr-2"></i>Payments
                 </a>
-                <a href="{% url 'loans:calculator' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
-                    <i class="fas fa-calculator mr-2"></i>Calculator
+                
+                {% if user.is_superuser or user.role == 'admin' %}
+                <a href="{% url 'dashboard:manage_officers' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-user-tie mr-2"></i>Officers
                 </a>
-                <a href="{% url 'reports:list' %}"
-                    class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors duration-200">
-                    <i class="fas fa-chart-line mr-2"></i>Reports
+                <a href="{% url 'dashboard:manage_branches' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-building mr-2"></i>Branches
                 </a>
+                {% endif %}
                 {% endif %}
 
                 <div class="border-t border-secondary-200 pt-2 mt-2">
-                    <a href="{% url 'accounts:profile' %}"
-                        class="block px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50 transition-colors duration-200">
+                    <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                         <i class="fas fa-user-circle mr-2"></i>Profile
                     </a>
                     <form method="post" action="{% url 'accounts:logout' %}" class="w-full">
                         {% csrf_token %}
-                        <button type="submit"
-                            class="w-full text-left px-4 py-3 rounded-lg text-danger-600 hover:bg-danger-50 transition-colors duration-200">
+                        <button type="submit" class="w-full text-left px-4 py-2 rounded-lg text-danger-600 hover:bg-danger-50 transition-colors border-0 bg-transparent">
                             <i class="fas fa-sign-out-alt mr-2"></i>Logout
                         </button>
                     </form>
@@ -508,6 +401,7 @@
     <footer class="bg-gradient-to-r from-secondary-900 to-secondary-800 text-white border-t-4 border-primary-600 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
                 <div class="col-span-1 md:col-span-2">
                     <div class="flex items-center space-x-3 mb-4">
                         <div
@@ -519,37 +413,71 @@
                             <p class="text-secondary-300 text-sm">Professional Loan Management</p>
                         </div>
                     </div>
-                    <p class="text-secondary-200 mb-4">Streamline your lending operations with our comprehensive loan
-                        management system.</p>
+                    <p class="text-secondary-200 mb-4">Streamline your lending operations with our comprehensive loan management system. Trusted by financial institutions across the region.</p>
+                    
+                    <!-- Social Links -->
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition-colors duration-200">
+                            <i class="fab fa-facebook-f text-white"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition-colors duration-200">
+                            <i class="fab fa-twitter text-white"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition-colors duration-200">
+                            <i class="fab fa-linkedin-in text-white"></i>
+                        </a>
+                    </div>
                 </div>
 
+                <!-- Quick Links -->
                 <div>
-                    <h4 class="font-semibold mb-4 text-white">Quick Links</h4>
-                    <ul class="space-y-2 text-secondary-200">
-                        <li><a href="{% url 'home' %}"
-                                class="hover:text-primary-400 transition-colors duration-200">Home</a></li>
-                        <li><a href="{% url 'pages:about' %}"
-                                class="hover:text-primary-400 transition-colors duration-200">About</a></li>
-                        <li><a href="{% url 'pages:contact' %}"
-                                class="hover:text-primary-400 transition-colors duration-200">Contact</a></li>
+                    <h4 class="font-semibold mb-4 text-white text-lg">Quick Links</h4>
+                    <ul class="space-y-3 text-secondary-200">
+                        <li><a href="{% url 'dashboard:home' %}"
+                                class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Dashboard
+                            </a></li>
+                        <li><a href="{% url 'dashboard:collection_details' %}"
+                                class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Collections
+                            </a></li>
+                        <li><a href="{% url 'dashboard:pending_approvals' %}"
+                                class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Approvals
+                            </a></li>
                     </ul>
                 </div>
 
+                <!-- Support -->
                 <div>
-                    <h4 class="font-semibold mb-4 text-white">Support</h4>
-                    <ul class="space-y-2 text-secondary-200">
-                        <li><a href="#" class="hover:text-primary-400 transition-colors duration-200">Help Center</a>
-                        </li>
-                        <li><a href="{% url 'pages:terms' %}"
-                                class="hover:text-primary-400 transition-colors duration-200">Terms of Service</a></li>
-                        <li><a href="#" class="hover:text-primary-400 transition-colors duration-200">Privacy Policy</a>
-                        </li>
+                    <h4 class="font-semibold mb-4 text-white text-lg">Support</h4>
+                    <ul class="space-y-3 text-secondary-200">
+                        <li><a href="{% url 'notifications:list' %}" class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Notifications
+                            </a></li>
+                        <li><a href="#" class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Help Center
+                            </a></li>
+                        <li><a href="#" class="hover:text-primary-400 transition-colors duration-200 flex items-center">
+                                <i class="fas fa-chevron-right mr-2 text-primary-500"></i>Contact Us
+                            </a></li>
                     </ul>
                 </div>
             </div>
 
-            <div class="border-t border-secondary-700 mt-8 pt-8 text-center text-secondary-300">
-                <p>&copy; 2025 Palm Cash. All rights reserved.</p>
+            <!-- Divider -->
+            <div class="border-t border-secondary-700 mt-8 pt-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-secondary-300 text-sm">
+                    <div>
+                        <p>&copy; 2025 Palm Cash. All rights reserved.</p>
+                    </div>
+                    <div class="md:text-center">
+                        <p>Version 1.0 | Last Updated: January 6, 2026</p>
+                    </div>
+                    <div class="md:text-right">
+                        <p>Powered by <span class="text-primary-400 font-semibold">Palm Cash Team</span></p>
+                    </div>
+                </div>
             </div>
         </div>
     </footer>

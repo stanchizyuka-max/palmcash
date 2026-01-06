@@ -66,9 +66,14 @@ def manager_admin_login(request):
         else:
             error = 'Invalid username or password. Please try again.'
     
+    # Get manager name if authenticated, otherwise use default
+    manager_name = 'Manager'
+    if request.user.is_authenticated:
+        manager_name = request.user.get_full_name() or request.user.username
+    
     context = {
         'error': error,
-        'manager_name': request.user.get_full_name() or request.user.username,
+        'manager_name': manager_name,
         'dashboard_url': reverse('dashboard:home'),
     }
     

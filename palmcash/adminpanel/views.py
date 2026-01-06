@@ -3,7 +3,6 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Q
 from loans.models import LoanType, LoanDocument
-from documents.models import DocumentType, Document
 
 def is_manager_or_admin(user):
     """Check if user is manager or admin"""

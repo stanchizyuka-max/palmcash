@@ -3,11 +3,75 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 
 
+class Branch(models.Model):
+    """Represents a branch location"""
+    
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True, help_text="Branch code (e.g., MB, SB1)")
+    location = models.CharField(max_length=200, help_text="Physical location/address")
+    manager = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_branch',
+        limit_choices_to={'role': 'manager'},
+        help_text='Branch manager'
+    )
+    
+    # Contact information
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Branch'
+        verbose_name_plural = 'Branches'
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    @property
+    def loan_officer_count(self):
+        """Get number of loan officers in this branch"""
+        return OfficerAssignment.objects.filter(
+            branch=self.name,
+            officer__is_active=True
+        ).count()
+    
+    @property
+    def active_groups_count(self):
+        """Get number of active groups in this branch"""
+        return self.groups.filter(is_active=True).count()
+    
+    @property
+    def total_clients_count(self):
+        """Get total number of clients in this branch"""
+        from django.db.models import Count
+        return self.groups.aggregate(
+            total=Count('members', distinct=True)
+        )['total'] or 0
+
+
 class BorrowerGroup(models.Model):
     """Groups for organizing borrowers"""
     
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    
+    # Branch assignment
+    branch = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Branch this group belongs to'
+    )
     
     # Loan officer assigned to manage this group
     assigned_officer = models.ForeignKey(
@@ -20,12 +84,7 @@ class BorrowerGroup(models.Model):
         help_text='Loan officer responsible for this group'
     )
     
-    # Branch and payment settings
-    branch = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text='Branch location for this group'
-    )
+    # Payment settings
     payment_day = models.CharField(
         max_length=20,
         blank=True,
@@ -87,8 +146,10 @@ class BorrowerGroup(models.Model):
     def get_active_loans_count(self):
         """Get count of active loans for group members"""
         from loans.models import Loan
+        # Get borrowers from group memberships
+        borrowers = self.members.filter(is_active=True).values_list('borrower', flat=True)
         return Loan.objects.filter(
-            borrower__in=self.members.all(),
+            borrower__in=borrowers,
             status='active'
         ).count()
     
@@ -97,8 +158,10 @@ class BorrowerGroup(models.Model):
         from loans.models import Loan
         from django.db.models import Sum
         
+        # Get borrowers from group memberships
+        borrowers = self.members.filter(is_active=True).values_list('borrower', flat=True)
         result = Loan.objects.filter(
-            borrower__in=self.members.all(),
+            borrower__in=borrowers,
             status__in=['active', 'completed']
         ).aggregate(total=Sum('principal_amount'))
         
@@ -164,6 +227,13 @@ class OfficerAssignment(models.Model):
         on_delete=models.CASCADE,
         related_name='officer_assignment',
         limit_choices_to={'role': 'loan_officer'}
+    )
+    
+    # Branch assignment
+    branch = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Branch where this loan officer is assigned'
     )
     
     # Workload settings
@@ -317,3 +387,447 @@ class ClientAssignmentAuditLog(models.Model):
             return f"{self.client.full_name} reassigned from {self.previous_officer.full_name} to {self.new_officer.full_name} on {self.timestamp.date()}"
         else:
             return f"{self.client.full_name} assigned to {self.new_officer.full_name} on {self.timestamp.date()}"
+
+
+class AdminAuditLog(models.Model):
+    """Track all admin actions for audit purposes"""
+    
+    ACTION_CHOICES = [
+        ('branch_create', 'Create Branch'),
+        ('branch_update', 'Update Branch'),
+        ('branch_delete', 'Delete Branch'),
+        ('officer_transfer', 'Transfer Officer'),
+        ('officer_update', 'Update Officer'),
+        ('group_transfer', 'Transfer Group'),
+        ('client_transfer', 'Transfer Client'),
+        ('loan_approve', 'Approve Loan'),
+        ('loan_reject', 'Reject Loan'),
+        ('override_assignment', 'Override Assignment'),
+        ('other', 'Other'),
+    ]
+    
+    admin_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='admin_actions',
+        limit_choices_to={'role': 'admin'},
+        help_text='Admin who performed the action'
+    )
+    
+    action = models.CharField(
+        max_length=50,
+        choices=ACTION_CHOICES,
+        help_text='Type of action performed'
+    )
+    
+    # Affected entities
+    affected_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_affected_actions',
+        help_text='User affected by this action'
+    )
+    
+    affected_branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_actions',
+        help_text='Branch affected by this action'
+    )
+    
+    affected_group = models.ForeignKey(
+        BorrowerGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_actions',
+        help_text='Group affected by this action'
+    )
+    
+    # Details
+    description = models.TextField(
+        help_text='Description of the action'
+    )
+    
+    old_value = models.TextField(
+        blank=True,
+        help_text='Previous value (if applicable)'
+    )
+    
+    new_value = models.TextField(
+        blank=True,
+        help_text='New value (if applicable)'
+    )
+    
+    # Timestamp
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When this action occurred'
+    )
+    
+    # IP and user agent for security
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text='IP address of the admin'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Admin Audit Log'
+        verbose_name_plural = 'Admin Audit Logs'
+        indexes = [
+            models.Index(fields=['admin_user', '-timestamp']),
+            models.Index(fields=['action', '-timestamp']),
+            models.Index(fields=['affected_user', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_action_display()} by {self.admin_user.username} on {self.timestamp.date()}"
+
+
+
+class OfficerTransferLog(models.Model):
+    """Track officer transfers between branches"""
+    
+    officer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='officer_transfers',
+        help_text='Officer being transferred'
+    )
+    previous_branch = models.CharField(
+        max_length=100,
+        help_text='Previous branch name'
+    )
+    new_branch = models.CharField(
+        max_length=100,
+        help_text='New branch name'
+    )
+    transferred_groups = models.JSONField(
+        default=list,
+        help_text='List of group IDs transferred'
+    )
+    reason = models.TextField(
+        help_text='Reason for transfer'
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='performed_officer_transfers',
+        help_text='Admin who performed transfer'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When transfer occurred'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Officer Transfer Log'
+        verbose_name_plural = 'Officer Transfer Logs'
+        indexes = [
+            models.Index(fields=['officer', '-timestamp']),
+            models.Index(fields=['performed_by', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.officer.full_name} transferred from {self.previous_branch} to {self.new_branch} on {self.timestamp.date()}"
+
+
+class ClientTransferLog(models.Model):
+    """Track client transfers between groups"""
+    
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='client_transfers',
+        limit_choices_to={'role': 'borrower'},
+        help_text='Client being transferred'
+    )
+    previous_group = models.ForeignKey(
+        BorrowerGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='previous_transfers',
+        help_text='Previous group'
+    )
+    new_group = models.ForeignKey(
+        BorrowerGroup,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='new_transfers',
+        help_text='New group'
+    )
+    reason = models.TextField(
+        help_text='Reason for transfer'
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='performed_client_transfers',
+        help_text='Admin who performed transfer'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When transfer occurred'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Client Transfer Log'
+        verbose_name_plural = 'Client Transfer Logs'
+        indexes = [
+            models.Index(fields=['client', '-timestamp']),
+            models.Index(fields=['performed_by', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        prev_group = self.previous_group.name if self.previous_group else 'Unknown'
+        return f"{self.client.full_name} transferred from {prev_group} to {self.new_group.name} on {self.timestamp.date()}"
+
+
+class LoanApprovalQueue(models.Model):
+    """Track loans pending admin approval"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    loan = models.OneToOneField(
+        'loans.Loan',
+        on_delete=models.CASCADE,
+        related_name='approval_queue',
+        help_text='Loan awaiting approval'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Approval status'
+    )
+    submitted_date = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When loan was submitted for approval'
+    )
+    decision_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When decision was made'
+    )
+    decision_reason = models.TextField(
+        blank=True,
+        help_text='Reason for approval/rejection'
+    )
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='loan_decisions',
+        help_text='Admin who made decision'
+    )
+    
+    class Meta:
+        ordering = ['-submitted_date']
+        verbose_name = 'Loan Approval Queue'
+        verbose_name_plural = 'Loan Approval Queues'
+        indexes = [
+            models.Index(fields=['status', '-submitted_date']),
+            models.Index(fields=['decided_by', '-decision_date']),
+        ]
+    
+    def __str__(self):
+        return f"Loan {self.loan.id} - {self.get_status_display()} (K{self.loan.principal_amount})"
+
+
+class ApprovalAuditLog(models.Model):
+    """Track approval actions for audit trail"""
+    
+    ACTION_CHOICES = [
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    loan = models.ForeignKey(
+        'loans.Loan',
+        on_delete=models.CASCADE,
+        related_name='approval_audits',
+        help_text='Loan being approved'
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+        help_text='Approval action'
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='approval_actions',
+        help_text='User who performed action'
+    )
+    reason = models.TextField(
+        blank=True,
+        help_text='Reason for action'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When action occurred'
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text='IP address of user'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Approval Audit Log'
+        verbose_name_plural = 'Approval Audit Logs'
+        indexes = [
+            models.Index(fields=['loan', '-timestamp']),
+            models.Index(fields=['performed_by', '-timestamp']),
+            models.Index(fields=['action', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"Loan {self.loan.id} - {self.get_action_display()} by {self.performed_by.username} on {self.timestamp.date()}"
+
+
+class DisbursementAuditLog(models.Model):
+    """Track disbursement actions for audit trail"""
+    
+    ACTION_CHOICES = [
+        ('initiated', 'Initiated'),
+        ('processed', 'Processed'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    
+    loan = models.ForeignKey(
+        'loans.Loan',
+        on_delete=models.CASCADE,
+        related_name='disbursement_audits',
+        help_text='Loan being disbursed'
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+        help_text='Disbursement action'
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text='Amount disbursed'
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='disbursement_actions',
+        help_text='User who performed action'
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text='Additional notes'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When action occurred'
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text='IP address of user'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Disbursement Audit Log'
+        verbose_name_plural = 'Disbursement Audit Logs'
+        indexes = [
+            models.Index(fields=['loan', '-timestamp']),
+            models.Index(fields=['performed_by', '-timestamp']),
+            models.Index(fields=['action', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"Loan {self.loan.id} - {self.get_action_display()} K{self.amount} on {self.timestamp.date()}"
+
+
+class CollectionAuditLog(models.Model):
+    """Track collection actions for audit trail"""
+    
+    ACTION_CHOICES = [
+        ('collected', 'Collected'),
+        ('partial', 'Partial'),
+        ('missed', 'Missed'),
+        ('default', 'Default'),
+    ]
+    
+    loan = models.ForeignKey(
+        'loans.Loan',
+        on_delete=models.CASCADE,
+        related_name='collection_audits',
+        help_text='Loan with collection'
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+        help_text='Collection action'
+    )
+    amount_expected = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text='Expected collection amount'
+    )
+    amount_collected = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text='Actual collection amount'
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='collection_actions',
+        help_text='User who performed action'
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text='Additional notes'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When action occurred'
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text='IP address of user'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Collection Audit Log'
+        verbose_name_plural = 'Collection Audit Logs'
+        indexes = [
+            models.Index(fields=['loan', '-timestamp']),
+            models.Index(fields=['performed_by', '-timestamp']),
+            models.Index(fields=['action', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"Loan {self.loan.id} - {self.get_action_display()} K{self.amount_collected} on {self.timestamp.date()}"

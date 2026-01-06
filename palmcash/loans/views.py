@@ -34,10 +34,10 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         loan = self.get_object()
         
         # Add document information
-        context['documents'] = loan.documents.all()[:5]  # Show first 5 documents
-        context['document_count'] = loan.documents.count()
-        context['verified_documents'] = loan.documents.filter(status='approved').count()
-        context['pending_documents'] = loan.documents.filter(status='pending').count()
+        context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
+        context['document_count'] = loan.loan_documents.count()
+        context['verified_documents'] = loan.loan_documents.filter(is_verified=True).count()
+        context['pending_documents'] = loan.loan_documents.filter(is_verified=False).count()
         
         # Check if user can upload documents
         context['can_upload_documents'] = (
@@ -71,9 +71,9 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
                 return redirect('loans:list')
             
             # Check if borrower has verified documents
-            from documents.models import Document
-            verified_documents = Document.objects.filter(
-                user=request.user,
+            from documents.models import ClientDocument
+            verified_documents = ClientDocument.objects.filter(
+                client=request.user,
                 status='approved'
             ).exists()
             
@@ -99,9 +99,9 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
             ).exists()
             
             # Check document verification status
-            from documents.models import Document
-            context['has_verified_documents'] = Document.objects.filter(
-                user=self.request.user,
+            from documents.models import ClientDocument
+            context['has_verified_documents'] = ClientDocument.objects.filter(
+                client=self.request.user,
                 status='approved'
             ).exists()
         

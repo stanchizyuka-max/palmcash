@@ -12,13 +12,14 @@ Class-based views
     2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
 Including another URLconf
     1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
 """
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect, render
+from common.admin import custom_admin_site
 
 def redirect_to_dashboard(request):
     if request.user.is_authenticated:
@@ -33,7 +34,7 @@ def home_view(request):
     return render(request, 'home_tailwind.html')
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/", custom_admin_site.urls),
     path('admin-auth/', include('palmcash.admin_urls')),
     path('', home_view, name='home'),
     path('home/', home_view, name='home_alt'),  # Handle /home/ requests

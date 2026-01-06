@@ -6,7 +6,6 @@ from django.db.models.functions import TruncMonth, TruncDate
 from datetime import datetime, date, timedelta
 from loans.models import Loan
 from payments.models import Payment, PaymentSchedule
-from documents.models import Document
 from accounts.models import User
 from common.utils import (
     get_system_launch_date, 

@@ -1,0 +1,1003 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Manager Dashboard - {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="dashboard-header-section">
+        <div class="header-content">
+            <div>
+                <h1 class="dashboard-title">{{ branch.name }}</h1>
+                <p class="dashboard-subtitle">Branch Manager Dashboard</p>
+            </div>
+            <div class="header-meta">
+                <span class="branch-code">{{ branch.code }}</span>
+                <span class="branch-location"><i class="fas fa-map-marker-alt"></i> {{ branch.location }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+        <div class="metric-card primary">
+            <div class="metric-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-content">
+                <p class="metric-label">Loan Officers</p>
+                <h3 class="metric-value">{{ officers_count }}</h3>
+            </div>
+        </div>
+
+        <div class="metric-card secondary">
+            <div class="metric-icon">
+                <i class="fas fa-users-cog"></i>
+            </div>
+            <div class="metric-content">
+                <p class="metric-label">Active Groups</p>
+                <h3 class="metric-value">{{ groups_count }}</h3>
+            </div>
+        </div>
+
+        <div class="metric-card info">
+            <div class="metric-icon">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="metric-content">
+                <p class="metric-label">Total Clients</p>
+                <h3 class="metric-value">{{ clients_count }}</h3>
+            </div>
+        </div>
+
+        <div class="metric-card success">
+            <div class="metric-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="metric-content">
+                <p class="metric-label">Collection Rate</p>
+                <h3 class="metric-value">{{ collection_rate }}%</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Today's Collections Card -->
+        <div class="card collections-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-coins"></i> Today's Collections
+                </h2>
+                <span class="card-date">{{ today|date:"M d, Y" }}</span>
+            </div>
+            <div class="card-body">
+                <div class="collection-stats">
+                    <div class="collection-stat">
+                        <div class="stat-icon expected">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="stat-info">
+                            <p class="stat-label">Expected</p>
+                            <p class="stat-amount">K{{ today_expected|floatformat:0 }}</p>
+                        </div>
+                    </div>
+
+                    <div class="collection-stat">
+                        <div class="stat-icon collected">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <p class="stat-label">Collected</p>
+                            <p class="stat-amount success">K{{ today_collected|floatformat:0 }}</p>
+                        </div>
+                    </div>
+
+                    <div class="collection-stat">
+                        <div class="stat-icon pending">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="stat-info">
+                            <p class="stat-label">Pending</p>
+                            <p class="stat-amount">K{{ today_pending|floatformat:0 }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ collection_rate }}%"></div>
+                </div>
+                <p class="progress-text">{{ collection_rate }}% collection rate</p>
+
+                <a href="{% url 'dashboard:collection_details' %}" class="btn btn-outline">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Pending Approvals Card -->
+        <div class="card approvals-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-clipboard-check"></i> Pending Approvals
+                </h2>
+                <span class="badge badge-warning">{{ pending_security|add:pending_topups|add:pending_returns }}</span>
+            </div>
+            <div class="card-body">
+                <div class="approval-items">
+                    <div class="approval-item">
+                        <div class="approval-icon security">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="approval-info">
+                            <p class="approval-label">Security Deposits</p>
+                            <p class="approval-count">{{ pending_security }} pending</p>
+                        </div>
+                        <span class="approval-badge">{{ pending_security }}</span>
+                    </div>
+
+                    <div class="approval-item">
+                        <div class="approval-icon topup">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="approval-info">
+                            <p class="approval-label">Security Top-Ups</p>
+                            <p class="approval-count">{{ pending_topups }} pending</p>
+                        </div>
+                        <span class="approval-badge">{{ pending_topups }}</span>
+                    </div>
+
+                    <div class="approval-item">
+                        <div class="approval-icon return">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="approval-info">
+                            <p class="approval-label">Security Returns</p>
+                            <p class="approval-count">{{ pending_returns }} pending</p>
+                        </div>
+                        <span class="approval-badge">{{ pending_returns }}</span>
+                    </div>
+                </div>
+
+                <a href="{% url 'dashboard:pending_approvals' %}" class="btn btn-primary btn-block">
+                    <i class="fas fa-check"></i> Review & Approve
+                </a>
+            </div>
+        </div>
+
+        <!-- Expenses Summary Card -->
+        <div class="card expenses-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-receipt"></i> Expenses
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="summary-stat">
+                    <div class="stat-icon expenses">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-info">
+                        <p class="stat-label">Total Expenses</p>
+                        <p class="stat-amount">K{{ total_expenses|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <a href="{% url 'dashboard:expense_list' %}" class="btn btn-outline">
+                    <i class="fas fa-list"></i> View Expenses
+                </a>
+                <a href="{% url 'dashboard:expense_create' %}" class="btn btn-outline" style="margin-top: 8px;">
+                    <i class="fas fa-plus"></i> Add Expense
+                </a>
+            </div>
+        </div>
+
+        <!-- Funds Summary Card -->
+        <div class="card funds-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-money-bill-wave"></i> Funds
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="fund-stats">
+                    <div class="fund-stat">
+                        <p class="stat-label">Transfers</p>
+                        <p class="stat-amount">K{{ total_transfers|floatformat:2 }}</p>
+                    </div>
+                    <div class="fund-stat">
+                        <p class="stat-label">Deposits</p>
+                        <p class="stat-amount">K{{ total_deposits|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <a href="{% url 'dashboard:fund_history' %}" class="btn btn-outline">
+                    <i class="fas fa-history"></i> View History
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Officer Performance Section -->
+    <div class="card full-width">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-chart-bar"></i> Loan Officer Performance
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if officer_stats %}
+            <div class="table-responsive">
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Officer Name</th>
+                            <th>Groups Managed</th>
+                            <th>Clients</th>
+                            <th>Collection Rate</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for officer in officer_stats %}
+                        <tr>
+                            <td>
+                                <div class="officer-name">
+                                    <i class="fas fa-user-circle"></i>
+                                    {{ officer.name }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-info">{{ officer.groups }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">{{ officer.clients }}</span>
+                            </td>
+                            <td>
+                                <div class="rate-bar">
+                                    <div class="rate-fill" style="width: {{ officer.collection_rate }}%"></div>
+                                </div>
+                                <span class="rate-text">{{ officer.collection_rate }}%</span>
+                            </td>
+                            <td>
+                                {% if officer.collection_rate >= 80 %}
+                                    <span class="status-badge excellent">Excellent</span>
+                                {% elif officer.collection_rate >= 60 %}
+                                    <span class="status-badge good">Good</span>
+                                {% else %}
+                                    <span class="status-badge needs-attention">Needs Attention</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No loan officers assigned to this branch yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+            <a href="{% url 'dashboard:pending_approvals' %}" class="action-btn primary">
+                <i class="fas fa-check-double"></i>
+                <span>Approve Security</span>
+            </a>
+            <a href="{% url 'dashboard:collection_details' %}" class="action-btn secondary">
+                <i class="fas fa-list"></i>
+                <span>View Collections</span>
+            </a>
+            <a href="{% url 'dashboard:manage_officers' %}" class="action-btn info">
+                <i class="fas fa-cog"></i>
+                <span>Manage Officers</span>
+            </a>
+            <a href="{% url 'dashboard:expense_list' %}" class="action-btn warning">
+                <i class="fas fa-receipt"></i>
+                <span>Manage Expenses</span>
+            </a>
+            <a href="{% url 'dashboard:fund_history' %}" class="action-btn success">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Manage Funds</span>
+            </a>
+            <a href="{% url 'reports:list' %}" class="action-btn secondary">
+                <i class="fas fa-file-alt"></i>
+                <span>View Reports</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #2E7D32;
+        --secondary-color: #1976D2;
+        --info-color: #0097A7;
+        --success-color: #388E3C;
+        --warning-color: #F57C00;
+        --danger-color: #D32F2F;
+        --light-bg: #F5F7FA;
+        --border-color: #E0E0E0;
+        --text-primary: #212121;
+        --text-secondary: #757575;
+    }
+
+    .dashboard-container {
+        padding: 30px 20px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+
+    /* Header Section */
+    .dashboard-header-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid var(--primary-color);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .dashboard-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .dashboard-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 8px 0 0 0;
+    }
+
+    .header-meta {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+
+    .branch-code {
+        background: var(--primary-color);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .branch-location {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: white;
+    }
+
+    .metric-card.primary .metric-icon {
+        background: linear-gradient(135deg, var(--primary-color), #1b5e20);
+    }
+
+    .metric-card.secondary .metric-icon {
+        background: linear-gradient(135deg, var(--secondary-color), #1565c0);
+    }
+
+    .metric-card.info .metric-icon {
+        background: linear-gradient(135deg, var(--info-color), #00838f);
+    }
+
+    .metric-card.success .metric-icon {
+        background: linear-gradient(135deg, var(--success-color), #2e7d32);
+    }
+
+    .metric-content {
+        flex: 1;
+    }
+
+    .metric-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .metric-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 8px 0 0 0;
+    }
+
+    /* Content Grid */
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    /* Card Styles */
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .card.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8eef7 100%);
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .card-date {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .card-body {
+        padding: 24px;
+    }
+
+    /* Collections Card */
+    .collection-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .collection-stat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--light-bg);
+        border-radius: 8px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: white;
+    }
+
+    .stat-icon.expected {
+        background: linear-gradient(135deg, #FFA726, #FB8C00);
+    }
+
+    .stat-icon.collected {
+        background: linear-gradient(135deg, #66BB6A, #43A047);
+    }
+
+    .stat-icon.pending {
+        background: linear-gradient(135deg, #FFA726, #F57C00);
+    }
+
+    .stat-icon.expenses {
+        background: linear-gradient(135deg, #FFA726, #FB8C00);
+    }
+
+    .stat-info {
+        flex: 1;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .stat-amount {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 4px 0 0 0;
+    }
+
+    .stat-amount.success {
+        color: var(--success-color);
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: var(--light-bg);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0 0 15px 0;
+    }
+
+    /* Approvals Card */
+    .approval-items {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .approval-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--light-bg);
+        border-radius: 8px;
+        transition: background 0.3s ease;
+    }
+
+    .approval-item:hover {
+        background: #e8eef7;
+    }
+
+    .approval-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: white;
+    }
+
+    .approval-icon.security {
+        background: linear-gradient(135deg, #AB47BC, #8E24AA);
+    }
+
+    .approval-icon.topup {
+        background: linear-gradient(135deg, #29B6F6, #0288D1);
+    }
+
+    .approval-icon.return {
+        background: linear-gradient(135deg, #EF5350, #E53935);
+    }
+
+    .approval-info {
+        flex: 1;
+    }
+
+    .approval-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .approval-count {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 4px 0 0 0;
+    }
+
+    .approval-badge {
+        background: var(--warning-color);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    /* Fund Stats */
+    .fund-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    .fund-stat {
+        padding: 12px;
+        background: var(--light-bg);
+        border-radius: 8px;
+    }
+
+    .fund-stat .stat-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .fund-stat .stat-amount {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 4px 0 0 0;
+    }
+
+    /* Summary Stat */
+    .summary-stat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--light-bg);
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    /* Performance Table */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .performance-table thead {
+        background: var(--light-bg);
+    }
+
+    .performance-table th {
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-primary);
+        border-bottom: 2px solid var(--border-color);
+        font-size: 13px;
+        text-transform: uppercase;
+    }
+
+    .performance-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .performance-table tbody tr:hover {
+        background: var(--light-bg);
+    }
+
+    .officer-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .officer-name i {
+        font-size: 20px;
+        color: var(--primary-color);
+    }
+
+    .rate-bar {
+        height: 6px;
+        background: var(--light-bg);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+
+    .rate-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    }
+
+    .rate-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-warning {
+        background: var(--warning-color);
+        color: white;
+    }
+
+    .badge-info {
+        background: var(--info-color);
+        color: white;
+    }
+
+    .badge-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status-badge.excellent {
+        background: #C8E6C9;
+        color: #1B5E20;
+    }
+
+    .status-badge.good {
+        background: #BBDEFB;
+        color: #1565C0;
+    }
+
+    .status-badge.needs-attention {
+        background: #FFCCBC;
+        color: #D84315;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), #1b5e20);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border: 2px solid var(--primary-color);
+    }
+
+    .btn-outline:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-block {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Quick Actions */
+    .quick-actions-section {
+        margin-top: 30px;
+    }
+
+    .quick-actions-section h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 20px 0;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px;
+        border-radius: 12px;
+        text-decoration: none;
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn i {
+        font-size: 28px;
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(135deg, var(--primary-color), #1b5e20);
+    }
+
+    .action-btn.secondary {
+        background: linear-gradient(135deg, var(--secondary-color), #1565c0);
+    }
+
+    .action-btn.info {
+        background: linear-gradient(135deg, var(--info-color), #00838f);
+    }
+
+    .action-btn.success {
+        background: linear-gradient(135deg, var(--success-color), #2e7d32);
+    }
+
+    .action-btn.warning {
+        background: linear-gradient(135deg, var(--warning-color), #E65100);
+    }
+
+    .action-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        color: var(--border-color);
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 20px 15px;
+        }
+
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .header-meta {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .collection-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .dashboard-title {
+            font-size: 24px;
+        }
+
+        .performance-table {
+            font-size: 12px;
+        }
+
+        .performance-table th,
+        .performance-table td {
+            padding: 12px 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .metric-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-title {
+            font-size: 20px;
+        }
+    }
+</style>
+{% endblock %}

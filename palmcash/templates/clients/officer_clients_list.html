@@ -4,123 +4,167 @@
 {% block title %}{{ officer.get_full_name }}'s Clients - PalmCash{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center mb-4">
-                <a href="{% url 'clients:officer_workload' %}" class="text-blue-600 hover:text-blue-900 mr-3">
-                    <i class="fas fa-arrow-left"></i>
+            <div class="flex items-center gap-4 mb-4">
+                <a href="{% url 'dashboard:dashboard' %}" class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <i class="fas fa-arrow-left text-slate-600"></i>
                 </a>
-                <h1 class="text-4xl font-bold text-gray-900">{{ officer.get_full_name }}'s Clients</h1>
+                <div>
+                    <h1 class="text-4xl font-bold text-slate-900">
+                        <i class="fas fa-users text-blue-600 mr-3"></i>
+                        My Clients
+                    </h1>
+                    <p class="text-slate-600 mt-1">Manage and track all your assigned borrowers</p>
+                </div>
             </div>
-            <p class="text-gray-600">Manage and track all assigned borrowers</p>
         </div>
 
         <!-- Workload Summary -->
         {% if workload_info %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Assigned Clients</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ workload_info.current_clients }}</p>
-                    <p class="text-xs text-gray-500">of {{ workload_info.max_clients }} capacity</p>
-                </div>
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Workload</p>
-                    <div class="flex items-center gap-2">
-                        <div class="flex-1 bg-gray-200 rounded-full h-3">
-                            <div class="bg-blue-600 h-3 rounded-full" style="width: {{ workload_info.workload_percentage }}%"></div>
-                        </div>
-                        <span class="text-lg font-bold text-gray-900">{{ workload_info.workload_percentage|floatformat:0 }}%</span>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Assigned Clients -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Assigned Clients</p>
+                        <p class="text-4xl font-bold text-blue-600">{{ workload_info.current_clients }}</p>
+                        <p class="text-xs text-slate-500 mt-1">of {{ workload_info.max_clients }} capacity</p>
+                    </div>
+                    <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-2xl"></i>
                     </div>
                 </div>
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Status</p>
-                    {% if workload_info.workload_percentage >= 80 %}
-                    <p class="text-lg font-bold text-red-600">
-                        <i class="fas fa-exclamation-circle mr-1"></i>At Capacity
-                    </p>
-                    {% elif workload_info.workload_percentage >= 50 %}
-                    <p class="text-lg font-bold text-yellow-600">
-                        <i class="fas fa-info-circle mr-1"></i>Moderate Load
-                    </p>
-                    {% else %}
-                    <p class="text-lg font-bold text-green-600">
-                        <i class="fas fa-check-circle mr-1"></i>Available
-                    </p>
-                    {% endif %}
+            </div>
+
+            <!-- Workload Percentage -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+                <p class="text-slate-600 text-sm font-semibold mb-4">Workload</p>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl font-bold text-slate-900">{{ workload_info.workload_percentage|floatformat:0 }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                            <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full" style="width: {{ workload_info.workload_percentage }}%"></div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Status -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+                <p class="text-slate-600 text-sm font-semibold mb-4">Status</p>
+                {% if workload_info.workload_percentage >= 80 %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-red-600">At Capacity</p>
+                        <p class="text-xs text-red-500">Workload is high</p>
+                    </div>
+                </div>
+                {% elif workload_info.workload_percentage >= 50 %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-info-circle text-yellow-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-yellow-600">Moderate Load</p>
+                        <p class="text-xs text-yellow-500">Manageable workload</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-green-600">Available</p>
+                        <p class="text-xs text-green-500">Can accept more clients</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
 
         <!-- Filters and Sorting -->
-        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-            <form method="get" class="flex gap-4 flex-wrap">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 mb-6">
+            <form method="get" class="flex gap-4 flex-wrap items-end">
                 <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" id="status" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="status" class="block text-sm font-semibold text-slate-900 mb-2">
+                        <i class="fas fa-filter text-blue-600 mr-1"></i>Status
+                    </label>
+                    <select name="status" id="status" class="px-4 py-2 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                         <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
                         <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
                     </select>
                 </div>
                 <div>
-                    <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-                    <select name="sort" id="sort" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="sort" class="block text-sm font-semibold text-slate-900 mb-2">
+                        <i class="fas fa-sort text-blue-600 mr-1"></i>Sort By
+                    </label>
+                    <select name="sort" id="sort" class="px-4 py-2 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                         <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Name</option>
                         <option value="balance" {% if current_sort == 'balance' %}selected{% endif %}>Outstanding Balance</option>
                     </select>
                 </div>
-                <div class="flex items-end">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                        <i class="fas fa-filter mr-1"></i>Apply
-                    </button>
-                </div>
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold shadow-md">
+                    <i class="fas fa-search mr-2"></i>Apply Filters
+                </button>
             </form>
         </div>
 
         <!-- Clients Table -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
             {% if clients %}
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-gray-50 border-b">
+                    <thead class="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
                         <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Active Loans</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Outstanding Balance</th>
-                            <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-slate-900 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-slate-900 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-slate-900 uppercase tracking-wider">Phone</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-slate-900 uppercase tracking-wider">Active Loans</th>
+                            <th class="px-6 py-4 text-left text-sm font-bold text-slate-900 uppercase tracking-wider">Outstanding Balance</th>
+                            <th class="px-6 py-4 text-center text-sm font-bold text-slate-900 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y">
+                    <tbody class="divide-y divide-slate-200">
                         {% for client in clients %}
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4">
-                                <a href="{% url 'accounts:user_detail' client.pk %}" class="font-medium text-blue-600 hover:text-blue-900">
-                                    {{ client.get_full_name }}
-                                </a>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-blue-600"></i>
+                                    </div>
+                                    <a href="{% url 'accounts:user_detail' client.pk %}" class="font-semibold text-blue-600 hover:text-blue-700">
+                                        {{ client.get_full_name }}
+                                    </a>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 text-gray-600">{{ client.email }}</td>
-                            <td class="px-6 py-4 text-gray-600">{{ client.phone_number|default:"N/A" }}</td>
+                            <td class="px-6 py-4 text-slate-700">{{ client.email }}</td>
+                            <td class="px-6 py-4 text-slate-700">{{ client.phone_number|default:"N/A" }}</td>
                             <td class="px-6 py-4">
                                 {% with active_loans=client.get_outstanding_loans.count %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if active_loans > 0 %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ active_loans }}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {% if active_loans > 0 %}bg-blue-100 text-blue-700{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    <i class="fas fa-money-bill-wave mr-1"></i>{{ active_loans }}
                                 </span>
                                 {% endwith %}
                             </td>
-                            <td class="px-6 py-4 text-gray-600">
-                                {% with outstanding=client.get_outstanding_loans|dictsort:"principal_amount"|sum:"principal_amount" %}
-                                K{{ outstanding|floatformat:2 }}
-                                {% endwith %}
+                            <td class="px-6 py-4">
+                                <span class="font-semibold text-slate-900">
+                                    K{% if client.outstanding_balance %}{{ client.outstanding_balance|floatformat:2 }}{% else %}0.00{% endif %}
+                                </span>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <a href="{% url 'accounts:user_detail' client.pk %}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                                    <i class="fas fa-eye"></i> View
+                                <a href="{% url 'accounts:user_detail' client.pk %}" class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium text-sm">
+                                    <i class="fas fa-eye mr-1"></i>View
                                 </a>
                             </td>
                         </tr>
@@ -131,35 +175,36 @@
 
             <!-- Pagination -->
             {% if is_paginated %}
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div class="text-sm text-gray-600">
-                    Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                <div class="text-sm text-slate-600">
+                    Showing page <span class="font-semibold">{{ page_obj.number }}</span> of <span class="font-semibold">{{ page_obj.paginator.num_pages }}</span>
                 </div>
                 <div class="flex gap-2">
                     {% if page_obj.has_previous %}
-                    <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                        First
+                    <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition font-medium text-sm">
+                        <i class="fas fa-chevron-left mr-1"></i>First
                     </a>
-                    <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition font-medium text-sm">
                         Previous
                     </a>
                     {% endif %}
                     
                     {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition font-medium text-sm">
                         Next
                     </a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                        Last
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="px-3 py-1 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition font-medium text-sm">
+                        Last<i class="fas fa-chevron-right ml-1"></i>
                     </a>
                     {% endif %}
                 </div>
             </div>
             {% endif %}
             {% else %}
-            <div class="text-center py-12">
-                <i class="fas fa-users text-gray-300 text-4xl mb-3"></i>
-                <p class="text-gray-600">No clients assigned to this officer yet.</p>
+            <div class="text-center py-16">
+                <i class="fas fa-users text-slate-300 text-5xl mb-4"></i>
+                <p class="text-slate-600 text-lg font-medium">No clients assigned yet</p>
+                <p class="text-slate-500 text-sm mt-1">Clients will appear here once they are added to your groups</p>
             </div>
             {% endif %}
         </div>

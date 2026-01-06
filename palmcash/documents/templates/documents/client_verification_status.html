@@ -1,0 +1,167 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Verification Status - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Status Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header {% if can_apply_for_loan %}bg-success{% elif verification.status == 'documents_rejected' %}bg-danger{% else %}bg-warning{% endif %} text-white">
+                    <h4 class="mb-0">
+                        {% if can_apply_for_loan %}
+                            <i class="fas fa-check-circle"></i> Verification Complete
+                        {% elif verification.status == 'documents_rejected' %}
+                            <i class="fas fa-times-circle"></i> Documents Rejected
+                        {% elif verification.status == 'documents_submitted' %}
+                            <i class="fas fa-hourglass-half"></i> Awaiting Review
+                        {% else %}
+                            <i class="fas fa-file-upload"></i> Documents Required
+                        {% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead mb-0">{{ verification.get_status_display }}</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            {% if not can_apply_for_loan %}
+                <div class="alert alert-info mb-4">
+                    <h5>Next Steps:</h5>
+                    {% if not all_documents_uploaded %}
+                        <p class="mb-0">Please upload all required documents to proceed with verification.</p>
+                    {% elif verification.status == 'documents_submitted' %}
+                        <p class="mb-0">Your documents are being reviewed. This usually takes 1-2 business days.</p>
+                    {% elif verification.status == 'documents_rejected' %}
+                        <p class="mb-0">Please review the feedback below and resubmit your documents.</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="alert alert-success mb-4">
+                    <h5><i class="fas fa-check"></i> You are now eligible to apply for loans!</h5>
+                    <p class="mb-0">
+                        <a href="{% url 'loans:apply' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus"></i> Apply for a Loan
+                        </a>
+                    </p>
+                </div>
+            {% endif %}
+
+            <!-- Documents Status -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Your Documents</h5>
+                </div>
+                <div class="card-body">
+                    {% if documents %}
+                        <div class="row">
+                            {% for doc in documents %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <h6 class="card-title mb-0">{{ doc.get_document_type_display }}</h6>
+                                                {% if doc.status == 'approved' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check"></i> Approved
+                                                    </span>
+                                                {% elif doc.status == 'rejected' %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times"></i> Rejected
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-hourglass-half"></i> Pending
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Document Preview -->
+                                            {% if doc.image %}
+                                                <div class="mb-3">
+                                                    <img src="{{ doc.image.url }}" alt="{{ doc.get_document_type_display }}" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
+                                                </div>
+                                            {% endif %}
+
+                                            <!-- Upload Date -->
+                                            <p class="card-text mb-2">
+                                                <small class="text-muted">
+                                                    Uploaded: {{ doc.uploaded_at|date:"M d, Y H:i" }}
+                                                </small>
+                                            </p>
+
+                                            <!-- Verification Notes -->
+                                            {% if doc.verification_notes %}
+                                                <div class="alert alert-{% if doc.status == 'approved' %}success{% else %}danger{% endif %} py-2 px-3 mb-0">
+                                                    <small>
+                                                        <strong>Feedback:</strong> {{ doc.verification_notes }}
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+
+                                            <!-- Verified By -->
+                                            {% if doc.verified_by %}
+                                                <p class="card-text mt-2 mb-0">
+                                                    <small class="text-muted">
+                                                        Reviewed by: {{ doc.verified_by.full_name }}
+                                                    </small>
+                                                </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <p class="mb-0">No documents uploaded yet. 
+                                <a href="{% url 'documents:client_upload' %}">Upload your documents now</a>
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Rejection Reason -->
+            {% if verification.status == 'documents_rejected' and verification.rejection_reason %}
+                <div class="alert alert-danger mt-4">
+                    <h5>Rejection Reason:</h5>
+                    <p class="mb-0">{{ verification.rejection_reason }}</p>
+                </div>
+            {% endif %}
+
+            <!-- Upload New Documents Button -->
+            {% if not can_apply_for_loan %}
+                <div class="mt-4">
+                    <a href="{% url 'documents:client_upload' %}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-upload"></i> 
+                        {% if all_documents_uploaded %}
+                            Resubmit Documents
+                        {% else %}
+                            Upload Documents
+                        {% endif %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+    }
+    
+    .card-header {
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+{% endblock %}

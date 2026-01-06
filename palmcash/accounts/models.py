@@ -66,8 +66,14 @@ class User(AbstractUser):
             return False
         if self.has_outstanding_loans():
             return False
-        # Check if user has verified documents
-        return self.has_verified_documents()
+        # Check if user has verified documents (NRC front, NRC back, selfie)
+        try:
+            from documents.models import ClientVerification
+            verification = ClientVerification.objects.get(client=self)
+            return verification.can_apply_for_loan()
+        except:
+            # If documents app not available, allow application
+            return True
     
     def has_verified_documents(self):
         """Check if user has at least one verified document"""

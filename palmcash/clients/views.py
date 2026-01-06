@@ -355,18 +355,13 @@ class BorrowerListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = User.objects.filter(role='borrower', is_active=True)
         
-        # Loan officers only see borrowers in their groups
+        # Loan officers see borrowers assigned to them OR in their groups
         if self.request.user.role == 'loan_officer':
-            # Get all groups assigned to this officer
-            officer_groups = BorrowerGroup.objects.filter(
-                assigned_officer=self.request.user,
-                is_active=True
-            )
+            from django.db.models import Q
             
-            # Get borrowers who are members of these groups
             queryset = queryset.filter(
-                group_memberships__group__in=officer_groups,
-                group_memberships__is_active=True
+                Q(assigned_officer=self.request.user) |
+                Q(group_memberships__group__assigned_officer=self.request.user, group_memberships__is_active=True)
             ).distinct()
         
         return queryset.order_by('last_name', 'first_name')
@@ -528,40 +523,45 @@ class OfficerClientsListView(LoginRequiredMixin, ListView):
         officer_id = self.kwargs.get('officer_id')
         officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
         
+        from django.db.models import Q
+        
+        # Get clients assigned to officer OR in officer's groups
         queryset = User.objects.filter(
+            Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
             role='borrower',
-            assigned_officer=officer,
             is_active=True
-        )
+        ).distinct()
         
         # Apply status filter
         status_filter = self.request.GET.get('status')
         if status_filter == 'inactive':
             queryset = User.objects.filter(
+                Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
                 role='borrower',
-                assigned_officer=officer,
                 is_active=False
+            ).distinct()
+        
+        # Always annotate with outstanding balance
+        from django.db.models import Sum, Case, When, DecimalField
+        from loans.models import Loan
+        
+        queryset = queryset.annotate(
+            outstanding_balance=Sum(
+                Case(
+                    When(
+                        loans__status__in=['active', 'approved', 'disbursed'],
+                        then='loans__principal_amount'
+                    ),
+                    default=0,
+                    output_field=DecimalField()
+                )
             )
+        )
         
         # Apply sorting
         sort_by = self.request.GET.get('sort', 'name')
         if sort_by == 'balance':
-            from django.db.models import Sum, Case, When, DecimalField
-            from loans.models import Loan
-            
-            # Annotate with outstanding balance
-            queryset = queryset.annotate(
-                outstanding_balance=Sum(
-                    Case(
-                        When(
-                            loans__status__in=['active', 'approved', 'disbursed'],
-                            then='loans__principal_amount'
-                        ),
-                        default=0,
-                        output_field=DecimalField()
-                    )
-                )
-            ).order_by('-outstanding_balance')
+            queryset = queryset.order_by('-outstanding_balance')
         else:
             queryset = queryset.order_by('last_name', 'first_name')
         

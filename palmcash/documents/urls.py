@@ -4,16 +4,16 @@ from . import views
 app_name = 'documents'
 
 urlpatterns = [
-    path('', views.DocumentListView.as_view(), name='list'),
-    path('upload/', views.DocumentUploadView.as_view(), name='upload'),
-    path('review-dashboard/', views.DocumentReviewDashboardView.as_view(), name='review_dashboard'),
-    path('bulk-delete/', views.BulkDeleteDocumentsView.as_view(), name='bulk_delete'),
-    path('<int:pk>/', views.DocumentDetailView.as_view(), name='detail'),
-    path('<int:pk>/approve/', views.ApproveDocumentView.as_view(), name='approve'),
-    path('<int:pk>/reject/', views.RejectDocumentView.as_view(), name='reject'),
-    path('<int:pk>/delete/', views.DeleteDocumentView.as_view(), name='delete'),
+    # List view
+    path('', views.client_document_upload, name='list'),
     
-    # Admin management URLs
-    path('manage/documents/', views.DocumentsManageView.as_view(), name='manage_documents'),
-    path('manage/document-types/', views.DocumentTypesManageView.as_view(), name='manage_document_types'),
+    # Client document verification URLs
+    path('client/upload/', views.client_document_upload, name='client_upload'),
+    path('upload/', views.client_document_upload, name='upload'),  # Alias for borrower dashboard
+    path('client/status/', views.client_verification_status, name='client_verification_status'),
+    path('verification/dashboard/', views.document_verification_dashboard, name='verification_dashboard'),
+    path('verification/approve/<int:client_id>/', views.approve_client_documents, name='approve_client_documents'),
+    path('verification/reject/<int:client_id>/', views.reject_client_documents, name='reject_client_documents'),
+    path('verification/approve-document/<int:document_id>/', views.approve_single_document, name='approve_single_document'),
+    path('verification/reject-document/<int:document_id>/', views.reject_single_document, name='reject_single_document'),
 ]

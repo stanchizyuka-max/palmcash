@@ -4,170 +4,313 @@
 {% block title %}Apply for Loan - LoanVista{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-secondary-900 mb-2">
-            <i class="fas fa-money-bill-wave text-primary-600 mr-3"></i>
-            Apply for a Loan
-        </h1>
-        <p class="text-secondary-600">Choose between daily or weekly repayment at 45% interest</p>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
-            <h2 class="text-xl font-bold text-white">Loan Application Form</h2>
-        </div>
-        <div class="p-8">
-            <!-- Eligibility Check -->
-            {% if not has_verified_documents %}
-            <div class="bg-warning-50 border-l-4 border-warning-500 rounded-lg p-6 mb-6">
-                <h5 class="text-lg font-semibold text-warning-900 mb-2">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>Document Verification Required
-                </h5>
-                <p class="text-warning-700 mb-3">You must have at least one verified document before applying for a loan.</p>
-                <a href="{% url 'documents:list' %}" class="btn-warning">
-                    <i class="fas fa-upload mr-2"></i>Upload Documents
-                </a>
-            </div>
-            {% endif %}
-
-            {% if user_loans and not can_apply %}
-            <div class="bg-danger-50 border-l-4 border-danger-500 rounded-lg p-6 mb-6">
-                <h5 class="text-lg font-semibold text-danger-900 mb-2">
-                    <i class="fas fa-ban mr-2"></i>Outstanding Loans Detected
-                </h5>
-                <p class="text-danger-700">You cannot apply for a new loan while you have outstanding loans. Please complete your current loan payments first.</p>
-            </div>
-            {% endif %}
-            
-            <form method="post" id="loan-application-form">
-                {% csrf_token %}
-                
-                {% if form.non_field_errors %}
-                <div class="bg-danger-50 border border-danger-200 rounded-lg p-4 mb-6 text-danger-800">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    {{ form.non_field_errors }}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+                        <i class="fas fa-money-bill-wave text-primary-600 mr-3"></i>
+                        Apply for a Loan
+                    </h1>
+                    <p class="text-lg text-secondary-600">Get the funds you need with flexible repayment options</p>
                 </div>
-                {% endif %}
-                
-                <!-- Loan Type Selection -->
-                <div class="mb-6">
-                    <label for="{{ form.loan_type.id_for_label }}" class="block text-sm font-semibold text-secondary-700 mb-2">
-                        <i class="fas fa-list text-primary-600 mr-2"></i>Loan Type *
-                    </label>
-                    {{ form.loan_type|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors duration-200" }}
-                    {% if form.loan_type.errors %}
-                    <div class="text-danger-600 text-sm mt-1">{{ form.loan_type.errors }}</div>
-                    {% endif %}
-                    
-                    <!-- Loan Type Info -->
-                    <div id="loan-type-info" class="mt-3 bg-info-50 border border-info-200 rounded-lg p-4" style="display: none;">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <p class="text-info-900"><i class="fas fa-percentage mr-2"></i><strong>Interest Rate:</strong> <span id="interest-rate-info">45%</span></p>
-                                <p class="text-info-900"><i class="fas fa-calendar mr-2"></i><strong>Frequency:</strong> <span id="frequency-info"></span></p>
+                <div class="hidden md:block">
+                    <div class="bg-primary-100 rounded-full p-6">
+                        <i class="fas fa-hand-holding-usd text-primary-600 text-4xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Form Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-secondary-100">
+                    <div class="bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 px-8 py-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-clipboard-list mr-3"></i>
+                            Loan Application Form
+                        </h2>
+                        <p class="text-primary-100 text-sm mt-1">Fill in your loan details below</p>
+                    </div>
+                    <div class="p-8">
+                    <!-- Eligibility Alerts -->
+                    {% if not has_verified_documents %}
+                    <div class="bg-gradient-to-r from-warning-50 to-warning-100 border-l-4 border-warning-500 rounded-xl p-6 mb-8 shadow-sm">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-warning-600 text-2xl mt-1"></i>
                             </div>
-                            <div>
-                                <p class="text-info-900"><i class="fas fa-money-bill mr-2"></i><strong>Amount Range:</strong> <span id="amount-range-info"></span></p>
-                                <p class="text-info-900"><i class="fas fa-clock mr-2"></i><strong>Term Range:</strong> <span id="term-range-info"></span></p>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-bold text-warning-900 mb-1">Document Verification Required</h3>
+                                <p class="text-warning-700 mb-4">You must have at least one verified document before applying for a loan. This helps us verify your identity and protect both of us.</p>
+                                <a href="{% url 'documents:list' %}" class="inline-flex items-center px-4 py-2 bg-warning-600 text-white rounded-lg hover:bg-warning-700 transition-colors duration-200 font-medium">
+                                    <i class="fas fa-upload mr-2"></i>Upload Documents Now
+                                </a>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Loan Amount -->
-                    <div>
-                        <label for="{{ form.principal_amount.id_for_label }}" class="block text-sm font-semibold text-secondary-700 mb-2">
-                            <i class="fas fa-money-bill-wave text-primary-600 mr-2"></i>Loan Amount (K) *
-                        </label>
-                        {{ form.principal_amount|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors duration-200" }}
-                        {% if form.principal_amount.errors %}
-                        <div class="text-danger-600 text-sm mt-1">{{ form.principal_amount.errors }}</div>
-                        {% endif %}
-                        <p class="text-xs text-secondary-500 mt-1">Enter the amount you wish to borrow</p>
-                    </div>
-                    
-                    <!-- Loan Term -->
-                    <div id="term-input-container">
-                        <label id="term-label" class="block text-sm font-semibold text-secondary-700 mb-2">
-                            <i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term *
-                        </label>
-                        <input type="number" id="term-input" name="term" min="1" 
-                               class="w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors duration-200"
-                               placeholder="Enter term">
-                        <p id="term-help" class="text-xs text-secondary-500 mt-1">Select loan type first</p>
-                    </div>
-                </div>
-                
-                <!-- Purpose -->
-                <div class="mb-6">
-                    <label for="{{ form.purpose.id_for_label }}" class="block text-sm font-semibold text-secondary-700 mb-2">
-                        <i class="fas fa-comment-alt text-primary-600 mr-2"></i>Purpose of Loan *
-                    </label>
-                    {{ form.purpose|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors duration-200" }}
-                    {% if form.purpose.errors %}
-                    <div class="text-danger-600 text-sm mt-1">{{ form.purpose.errors }}</div>
                     {% endif %}
-                </div>
-                
-                <!-- Loan Calculator -->
-                <div id="loan-calculator" class="bg-gradient-to-br from-success-50 to-success-100 border-2 border-success-200 rounded-xl p-6 mb-6" style="display: none;">
-                    <h3 class="text-lg font-bold text-success-900 mb-4">
-                        <i class="fas fa-calculator mr-2"></i>Loan Repayment Summary
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-secondary-700">Principal Amount:</span>
-                                <span class="font-bold text-secondary-900" id="calc-principal">K0</span>
+
+                    {% if user_loans and not can_apply %}
+                    <div class="bg-gradient-to-r from-danger-50 to-danger-100 border-l-4 border-danger-500 rounded-xl p-6 mb-8 shadow-sm">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-ban text-danger-600 text-2xl mt-1"></i>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-secondary-700">Interest (45%):</span>
-                                <span class="font-bold text-warning-600" id="calc-interest">K0</span>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-bold text-danger-900 mb-1">Outstanding Loans Detected</h3>
+                                <p class="text-danger-700">You cannot apply for a new loan while you have outstanding loans. Please complete your current loan payments first.</p>
                             </div>
-                            <div class="flex justify-between border-t-2 border-success-300 pt-2">
-                                <span class="text-secondary-700 font-semibold">Total Repayment:</span>
-                                <span class="font-bold text-success-700 text-lg" id="calc-total">K0</span>
+                        </div>
+                    </div>
+                    {% endif %}
+            
+                    <form method="post" id="loan-application-form">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="bg-danger-50 border-l-4 border-danger-500 rounded-xl p-4 mb-6 text-danger-800">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Loan Type Selection -->
+                        <div class="mb-8">
+                            <label for="{{ form.loan_type.id_for_label }}" class="block text-sm font-bold text-secondary-900 mb-3">
+                                <i class="fas fa-list text-primary-600 mr-2"></i>Loan Type <span class="text-danger-600">*</span>
+                            </label>
+                            {{ form.loan_type|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 bg-white" }}
+                            {% if form.loan_type.errors %}
+                            <div class="text-danger-600 text-sm mt-2 flex items-center">
+                                <i class="fas fa-times-circle mr-1"></i>{{ form.loan_type.errors }}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Loan Type Info Card -->
+                            <div id="loan-type-info" class="mt-4 bg-gradient-to-br from-info-50 to-info-100 border-2 border-info-200 rounded-xl p-5 hidden">
+                                <h4 class="font-bold text-info-900 mb-4 flex items-center">
+                                    <i class="fas fa-info-circle mr-2"></i>Loan Details
+                                </h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="text-xs text-secondary-600 mb-1">Interest Rate</p>
+                                        <p class="text-lg font-bold text-primary-600"><span id="interest-rate-info">45%</span></p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="text-xs text-secondary-600 mb-1">Repayment Frequency</p>
+                                        <p class="text-lg font-bold text-secondary-900"><span id="frequency-info">-</span></p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="text-xs text-secondary-600 mb-1">Amount Range</p>
+                                        <p class="text-sm font-bold text-secondary-900"><span id="amount-range-info">-</span></p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="text-xs text-secondary-600 mb-1">Term Range</p>
+                                        <p class="text-sm font-bold text-secondary-900"><span id="term-range-info">-</span></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-secondary-700">Repayment Frequency:</span>
-                                <span class="font-bold text-secondary-900" id="calc-frequency">-</span>
+                        <!-- Loan Amount and Term -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <!-- Loan Amount -->
+                            <div>
+                                <label for="{{ form.principal_amount.id_for_label }}" class="block text-sm font-bold text-secondary-900 mb-3">
+                                    <i class="fas fa-money-bill-wave text-primary-600 mr-2"></i>Loan Amount (K) <span class="text-danger-600">*</span>
+                                </label>
+                                {{ form.principal_amount|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 bg-white" }}
+                                {% if form.principal_amount.errors %}
+                                <div class="text-danger-600 text-sm mt-2 flex items-center">
+                                    <i class="fas fa-times-circle mr-1"></i>{{ form.principal_amount.errors }}
+                                </div>
+                                {% endif %}
+                                <p class="text-xs text-secondary-500 mt-2">Enter the amount you wish to borrow</p>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-secondary-700">Number of Payments:</span>
-                                <span class="font-bold text-secondary-900" id="calc-periods">0</span>
+                            
+                            <!-- Loan Term -->
+                            <div id="term-input-container">
+                                <label id="term-label" class="block text-sm font-bold text-secondary-900 mb-3">
+                                    <i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term <span class="text-danger-600">*</span>
+                                </label>
+                                <input type="number" id="term-input" name="term" min="1" 
+                                       class="w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 bg-white"
+                                       placeholder="Enter term">
+                                <p id="term-help" class="text-xs text-secondary-500 mt-2">Select loan type first</p>
                             </div>
-                            <div class="flex justify-between border-t-2 border-success-300 pt-2">
-                                <span class="text-secondary-700 font-semibold">Payment Amount:</span>
-                                <span class="font-bold text-primary-600 text-lg" id="calc-payment">K0</span>
+                        </div>
+                        
+                        <!-- Purpose -->
+                        <div class="mb-8">
+                            <label for="{{ form.purpose.id_for_label }}" class="block text-sm font-bold text-secondary-900 mb-3">
+                                <i class="fas fa-comment-alt text-primary-600 mr-2"></i>Purpose of Loan <span class="text-danger-600">*</span>
+                            </label>
+                            {{ form.purpose|add_class:"w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 bg-white" }}
+                            {% if form.purpose.errors %}
+                            <div class="text-danger-600 text-sm mt-2 flex items-center">
+                                <i class="fas fa-times-circle mr-1"></i>{{ form.purpose.errors }}
+                            </div>
+                            {% endif %}
+                            <p class="text-xs text-secondary-500 mt-2">Tell us what you plan to use this loan for</p>
+                        </div>
+                
+                        <!-- Loan Calculator -->
+                        <div id="loan-calculator" class="bg-gradient-to-br from-success-50 via-success-100 to-success-50 border-2 border-success-300 rounded-2xl p-8 mb-8 shadow-lg hidden">
+                            <h3 class="text-xl font-bold text-success-900 mb-6 flex items-center">
+                                <i class="fas fa-calculator mr-3 text-success-600"></i>Loan Repayment Summary
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <!-- Left Column -->
+                                <div class="space-y-4">
+                                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                                        <p class="text-sm text-secondary-600 mb-1">Principal Amount</p>
+                                        <p class="text-2xl font-bold text-secondary-900" id="calc-principal">K0</p>
+                                    </div>
+                                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                                        <p class="text-sm text-secondary-600 mb-1">Interest (45%)</p>
+                                        <p class="text-2xl font-bold text-warning-600" id="calc-interest">K0</p>
+                                    </div>
+                                    <div class="bg-gradient-to-r from-success-500 to-success-600 rounded-xl p-4 shadow-md">
+                                        <p class="text-sm text-success-100 mb-1">Total Repayment</p>
+                                        <p class="text-3xl font-bold text-white" id="calc-total">K0</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right Column -->
+                                <div class="space-y-4">
+                                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                                        <p class="text-sm text-secondary-600 mb-1">Repayment Frequency</p>
+                                        <p class="text-2xl font-bold text-secondary-900" id="calc-frequency">-</p>
+                                    </div>
+                                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                                        <p class="text-sm text-secondary-600 mb-1">Number of Payments</p>
+                                        <p class="text-2xl font-bold text-secondary-900" id="calc-periods">0</p>
+                                    </div>
+                                    <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl p-4 shadow-md">
+                                        <p class="text-sm text-primary-100 mb-1">Payment Amount</p>
+                                        <p class="text-3xl font-bold text-white" id="calc-payment">K0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Upfront Payment Notice -->
+                            <div class="mt-6 bg-white border-l-4 border-info-500 rounded-lg p-4">
+                                <p class="text-sm text-info-800">
+                                    <i class="fas fa-info-circle mr-2 text-info-600"></i>
+                                    <strong>Upfront Payment Required:</strong> A 10% security deposit (K<span id="upfront-amount">0</span>) is required before disbursement.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex justify-between items-center pt-8 border-t-2 border-secondary-200">
+                            <a href="{% url 'dashboard:home' %}" class="inline-flex items-center px-6 py-3 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-all duration-200 font-semibold">
+                                <i class="fas fa-arrow-left mr-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 font-semibold shadow-lg {% if not can_apply or not has_verified_documents %}opacity-50 cursor-not-allowed{% endif %}" {% if not can_apply or not has_verified_documents %}disabled{% endif %}>
+                                <i class="fas fa-paper-plane mr-2"></i>Submit Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Quick Info Card -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-secondary-100 mb-6">
+                    <h3 class="text-lg font-bold text-secondary-900 mb-4 flex items-center">
+                        <i class="fas fa-lightbulb text-warning-500 mr-2"></i>Quick Tips
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-primary-100">
+                                    <i class="fas fa-check text-primary-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-semibold text-secondary-900">Flexible Terms</p>
+                                <p class="text-xs text-secondary-600 mt-1">Choose daily or weekly repayment</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-success-100">
+                                    <i class="fas fa-check text-success-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-semibold text-secondary-900">Quick Approval</p>
+                                <p class="text-xs text-secondary-600 mt-1">Get approved within 24 hours</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-info-100">
+                                    <i class="fas fa-check text-info-600"></i>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-semibold text-secondary-900">Transparent Pricing</p>
+                                <p class="text-xs text-secondary-600 mt-1">No hidden fees or charges</p>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-4 bg-white rounded-lg p-4">
-                        <p class="text-sm text-info-700">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            <strong>Note:</strong> This is an estimate. A 10% upfront payment (K<span id="upfront-amount">0</span>) is required before disbursement.
-                        </p>
+                </div>
+
+                <!-- Requirements Card -->
+                <div class="bg-gradient-to-br from-info-50 to-info-100 rounded-2xl shadow-xl p-6 border border-info-200 mb-6">
+                    <h3 class="text-lg font-bold text-info-900 mb-4 flex items-center">
+                        <i class="fas fa-clipboard-check text-info-600 mr-2"></i>Requirements
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-info-900">Verified documents</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-info-900">No outstanding loans</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-info-900">Valid identification</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span class="text-info-900">10% upfront payment</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- FAQ Card -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-secondary-100">
+                    <h3 class="text-lg font-bold text-secondary-900 mb-4 flex items-center">
+                        <i class="fas fa-question-circle text-primary-600 mr-2"></i>Need Help?
+                    </h3>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <p class="font-semibold text-secondary-900 mb-1">What's the interest rate?</p>
+                            <p class="text-secondary-600">All loans have a fixed 45% interest rate</p>
+                        </div>
+                        <div class="border-t border-secondary-200 pt-3">
+                            <p class="font-semibold text-secondary-900 mb-1">How long does approval take?</p>
+                            <p class="text-secondary-600">Usually within 24 hours of submission</p>
+                        </div>
+                        <div class="border-t border-secondary-200 pt-3">
+                            <p class="font-semibold text-secondary-900 mb-1">Can I repay early?</p>
+                            <p class="text-secondary-600">Yes, without any penalties</p>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex justify-between items-center pt-6 border-t border-secondary-200">
-                    <a href="{% url 'dashboard:home' %}" class="btn-outline-secondary">
-                        <i class="fas fa-arrow-left mr-2"></i>Cancel
-                    </a>
-                    <button type="submit" class="btn-primary" {% if not can_apply or not has_verified_documents %}disabled{% endif %}>
-                        <i class="fas fa-paper-plane mr-2"></i>Submit Application
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -209,14 +352,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update term input based on frequency
             if (data.frequency === 'daily') {
-                termLabel.innerHTML = '<i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term (Days) *';
+                termLabel.innerHTML = '<i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term (Days) <span class="text-danger-600">*</span>';
                 termInput.setAttribute('min', data.min_term_days);
                 termInput.setAttribute('max', data.max_term_days);
                 termInput.setAttribute('placeholder', `Enter days (${data.min_term_days}-${data.max_term_days})`);
                 termHelp.textContent = `Enter number of days (${data.min_term_days} to ${data.max_term_days})`;
                 document.getElementById('term-range-info').textContent = `${data.min_term_days}-${data.max_term_days} days`;
             } else if (data.frequency === 'weekly') {
-                termLabel.innerHTML = '<i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term (Weeks) *';
+                termLabel.innerHTML = '<i class="fas fa-calendar-alt text-primary-600 mr-2"></i>Loan Term (Weeks) <span class="text-danger-600">*</span>';
                 termInput.setAttribute('min', data.min_term_weeks);
                 termInput.setAttribute('max', data.max_term_weeks);
                 termInput.setAttribute('placeholder', `Enter weeks (${data.min_term_weeks}-${data.max_term_weeks})`);
@@ -224,11 +367,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('term-range-info').textContent = `${data.min_term_weeks}-${data.max_term_weeks} weeks`;
             }
             
-            document.getElementById('loan-type-info').style.display = 'block';
+            document.getElementById('loan-type-info').classList.remove('hidden');
             calculateLoan();
         } else {
-            document.getElementById('loan-type-info').style.display = 'none';
-            document.getElementById('loan-calculator').style.display = 'none';
+            document.getElementById('loan-type-info').classList.add('hidden');
+            document.getElementById('loan-calculator').classList.add('hidden');
         }
     });
     
@@ -253,9 +396,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('calc-payment').textContent = `K${paymentAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
             document.getElementById('upfront-amount').textContent = upfrontPayment.toLocaleString('en-US', {minimumFractionDigits: 2});
             
-            document.getElementById('loan-calculator').style.display = 'block';
+            document.getElementById('loan-calculator').classList.remove('hidden');
         } else {
-            document.getElementById('loan-calculator').style.display = 'none';
+            document.getElementById('loan-calculator').classList.add('hidden');
         }
     }
     

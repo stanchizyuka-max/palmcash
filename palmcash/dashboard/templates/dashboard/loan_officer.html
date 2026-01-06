@@ -1,0 +1,270 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Loan Officer Dashboard - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+                <i class="fas fa-chart-line text-primary-600 mr-3"></i>
+                Dashboard
+            </h1>
+            <p class="text-lg text-secondary-600">Welcome, {{ user.first_name }}! Here's your performance overview.</p>
+        </div>
+
+        <!-- Top Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- My Groups -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-secondary-100 hover:shadow-xl transition-shadow duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-semibold mb-1">My Groups</p>
+                        <p class="text-4xl font-bold text-primary-600">{{ groups_count }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-primary-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Clients -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-secondary-100 hover:shadow-xl transition-shadow duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-semibold mb-1">My Clients</p>
+                        <p class="text-4xl font-bold text-success-600">{{ clients_count }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-success-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-tie text-success-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Loans -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-secondary-100 hover:shadow-xl transition-shadow duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-semibold mb-1">Active Loans</p>
+                        <p class="text-4xl font-bold text-info-600">{{ active_loans_count }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-info-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-info-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Collections -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 border border-secondary-100 hover:shadow-xl transition-shadow duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-semibold mb-1">Today's Expected</p>
+                        <p class="text-4xl font-bold text-warning-600">K{{ today_expected|floatformat:0 }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-warning-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-warning-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collections Section -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 border border-secondary-100 mb-8">
+            <h2 class="text-2xl font-bold text-secondary-900 mb-6 flex items-center">
+                <i class="fas fa-chart-bar text-primary-600 mr-3"></i>
+                Today's Collections
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <!-- Expected -->
+                <div class="bg-gradient-to-br from-info-50 to-info-100 rounded-xl p-6 border border-info-200">
+                    <p class="text-info-700 text-sm font-semibold mb-2">Expected</p>
+                    <p class="text-3xl font-bold text-info-900">K{{ today_expected|floatformat:0 }}</p>
+                </div>
+
+                <!-- Collected -->
+                <div class="bg-gradient-to-br from-success-50 to-success-100 rounded-xl p-6 border border-success-200">
+                    <p class="text-success-700 text-sm font-semibold mb-2">Collected</p>
+                    <p class="text-3xl font-bold text-success-900">K{{ today_collected|floatformat:0 }}</p>
+                </div>
+
+                <!-- Pending -->
+                <div class="bg-gradient-to-br from-warning-50 to-warning-100 rounded-xl p-6 border border-warning-200">
+                    <p class="text-warning-700 text-sm font-semibold mb-2">Pending</p>
+                    <p class="text-3xl font-bold text-warning-900">K{{ today_pending|floatformat:0 }}</p>
+                </div>
+
+                <!-- Defaults -->
+                <div class="bg-gradient-to-br from-danger-50 to-danger-100 rounded-xl p-6 border border-danger-200">
+                    <p class="text-danger-700 text-sm font-semibold mb-2">Defaults</p>
+                    <p class="text-3xl font-bold text-danger-900">{{ today_defaults }}</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <a href="{% url 'payments:list' %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 font-semibold shadow-lg">
+                    <i class="fas fa-plus mr-2"></i>Record Payment
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Groups Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-secondary-100">
+                    <div class="bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 px-8 py-6">
+                        <h3 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-layer-group mr-3"></i>
+                            My Groups
+                        </h3>
+                        <p class="text-primary-100 text-sm mt-1">Manage your assigned groups</p>
+                    </div>
+                    
+                    {% if groups %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-secondary-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-secondary-700 uppercase tracking-wider">Group Name</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-secondary-700 uppercase tracking-wider">Members</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-secondary-700 uppercase tracking-wider">Active Loans</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-secondary-700 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-secondary-200">
+                                {% for group in groups %}
+                                <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center mr-3">
+                                                <i class="fas fa-users text-primary-600"></i>
+                                            </div>
+                                            <span class="font-semibold text-secondary-900">{{ group.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 bg-info-100 text-info-700 rounded-full text-sm font-semibold">{{ group.member_count }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-semibold">{{ group.get_active_loans_count }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <a href="{% url 'loans:detail' group.id %}" class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors duration-150 font-medium text-sm">
+                                            <i class="fas fa-eye mr-1"></i>View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-secondary-50 px-8 py-4 border-t border-secondary-200">
+                        <a href="{% url 'loans:list' %}" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">
+                            <i class="fas fa-arrow-right mr-1"></i>View All Groups
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="p-12 text-center">
+                        <i class="fas fa-inbox text-secondary-300 text-4xl mb-4"></i>
+                        <p class="text-secondary-600 mb-4">No groups assigned yet.</p>
+                        <a href="{% url 'loans:apply' %}" class="text-primary-600 hover:text-primary-700 font-semibold">
+                            Create your first group <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pending Actions Sidebar -->
+            <div>
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-secondary-100">
+                    <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
+                        <h3 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-tasks mr-2"></i>
+                            Pending Actions
+                        </h3>
+                    </div>
+                    
+                    <div class="p-6 space-y-4">
+                        <!-- Security Deposits -->
+                        <div class="bg-gradient-to-br from-info-50 to-info-100 rounded-xl p-4 border border-info-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-info-700 text-xs font-semibold uppercase mb-1">Security Deposits</p>
+                                    <p class="text-info-900 text-sm">Awaiting Verification</p>
+                                </div>
+                                <div class="text-3xl font-bold text-info-600">{{ pending_security }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Ready to Disburse -->
+                        <div class="bg-gradient-to-br from-success-50 to-success-100 rounded-xl p-4 border border-success-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-success-700 text-xs font-semibold uppercase mb-1">Ready to Disburse</p>
+                                    <p class="text-success-900 text-sm">Loans Approved</p>
+                                </div>
+                                <div class="text-3xl font-bold text-success-600">{{ ready_to_disburse }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Defaults to Follow -->
+                        <div class="bg-gradient-to-br from-danger-50 to-danger-100 rounded-xl p-4 border border-danger-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-danger-700 text-xs font-semibold uppercase mb-1">Defaults</p>
+                                    <p class="text-danger-900 text-sm">Follow Up Required</p>
+                                </div>
+                                <div class="text-3xl font-bold text-danger-600">{{ defaults_to_follow }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-secondary-50 px-6 py-4 border-t border-secondary-200">
+                        <a href="{% url 'loans:list' %}" class="text-primary-600 hover:text-primary-700 font-semibold text-sm">
+                            <i class="fas fa-arrow-right mr-1"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 border border-secondary-100">
+            <h3 class="text-2xl font-bold text-secondary-900 mb-6 flex items-center">
+                <i class="fas fa-bolt text-primary-600 mr-3"></i>
+                Quick Actions
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Apply for Loan -->
+                <a href="{% url 'loans:apply' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:shadow-lg">
+                    <i class="fas fa-file-contract text-primary-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-primary-900 text-center">Apply for Loan</span>
+                </a>
+
+                <!-- View Groups -->
+                <a href="{% url 'loans:list' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-success-50 to-success-100 rounded-xl border-2 border-success-200 hover:border-success-400 transition-all duration-200 hover:shadow-lg">
+                    <i class="fas fa-layer-group text-success-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-success-900 text-center">View Groups</span>
+                </a>
+
+                <!-- View Collections -->
+                <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-info-50 to-info-100 rounded-xl border-2 border-info-200 hover:border-info-400 transition-all duration-200 hover:shadow-lg">
+                    <i class="fas fa-credit-card text-info-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-info-900 text-center">View Collections</span>
+                </a>
+
+                <!-- View Loans -->
+                <a href="{% url 'loans:list' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-warning-50 to-warning-100 rounded-xl border-2 border-warning-200 hover:border-warning-400 transition-all duration-200 hover:shadow-lg">
+                    <i class="fas fa-money-bill-wave text-warning-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-warning-900 text-center">View Loans</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

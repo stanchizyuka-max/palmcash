@@ -1,658 +1,2806 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic import TemplateView
-from django.db.models import Sum, Count, Q
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from loans.models import Loan
-from payments.models import Payment
-from datetime import datetime, timedelta
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
+from datetime import date, timedelta
+
+from loans.models import Loan, LoanApprovalRequest
+from payments.models import PaymentCollection, DefaultProvision
+from clients.models import BorrowerGroup, Branch, AdminAuditLog
+from accounts.models import User
+
 
 @login_required
-def dashboard_redirect(request):
-    """Redirect users to their appropriate dashboard based on role"""
+def dashboard(request):
+    """Route to appropriate dashboard based on user role"""
+    if request.user.role == 'loan_officer':
+        return loan_officer_dashboard(request)
+    elif request.user.role == 'manager':
+        return manager_dashboard(request)
+    elif request.user.role == 'admin':
+        return admin_dashboard(request)
+    elif request.user.role == 'borrower':
+        return borrower_dashboard(request)
+    else:
+        return render(request, 'dashboard/access_denied.html')
+
+
+@login_required
+def loan_officer_dashboard(request):
+    """Loan Officer Dashboard"""
+    officer = request.user
+    
+    # Get metrics
+    groups = BorrowerGroup.objects.filter(assigned_officer=officer)
+    
+    # Get clients assigned to this officer - include both directly assigned and group members
+    from django.db.models import Q
+    clients = User.objects.filter(
+        Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
+        role='borrower',
+        is_active=True
+    ).distinct()
+    
+    active_loans = Loan.objects.filter(
+        loan_officer=officer,
+        status='active'
+    )
+    
+    # Today's collections
+    today = date.today()
+    today_collections = PaymentCollection.objects.filter(
+        loan__loan_officer=officer,
+        collection_date=today
+    )
+    
+    today_expected = sum(c.expected_amount for c in today_collections) or 0
+    today_collected = sum(c.collected_amount for c in today_collections) or 0
+    today_defaults = today_collections.filter(is_default=True).count()
+    
+    # Pending actions
+    pending_security = Loan.objects.filter(
+        loan_officer=officer,
+        security_deposit__is_verified=False
+    ).count()
+    
+    ready_to_disburse = Loan.objects.filter(
+        loan_officer=officer,
+        status='approved',
+        security_deposit__is_verified=True
+    ).count()
+    
+    # Outstanding balance
+    outstanding_balance = active_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    # Workload percentage (assuming max capacity is 100 groups/clients)
+    total_workload = groups.count() + clients.count()
+    workload_percentage = (total_workload / 200 * 100) if total_workload > 0 else 0
+    
+    # Clients expected to pay today
+    clients_expected_today = today_collections.select_related('loan__borrower').order_by('-expected_amount')
+    
+    # Recent transactions (from passbook/payment records)
+    from payments.models import PaymentCollection as PC
+    recent_transactions = PC.objects.filter(
+        loan__loan_officer=officer
+    ).select_related('loan__borrower').order_by('-collection_date')[:10]
+    
+    # Format recent transactions for display
+    formatted_transactions = []
+    for trans in recent_transactions:
+        formatted_transactions.append({
+            'type': 'payment',
+            'description': f"Payment from {trans.loan.borrower.full_name}",
+            'amount': trans.collected_amount,
+            'created_at': trans.collection_date,
+            'client_name': trans.loan.borrower.full_name,
+        })
+    
+    # Passbook entries - get recent entries across all loans
+    from payments.models import PassbookEntry
+    passbook_entries = PassbookEntry.objects.filter(
+        loan__loan_officer=officer
+    ).select_related('loan__borrower').order_by('-entry_date')[:20]
+    
+    # Pending documents for review - get clients in officer's groups with pending documents
+    from documents.models import ClientDocument
+    
+    # Get all clients in officer's groups or directly assigned
+    clients_in_groups = User.objects.filter(
+        Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+        Q(assigned_officer=officer),
+        role='borrower'
+    ).values_list('id', flat=True).distinct()
+    
+    # Get pending documents from those clients
+    pending_documents = ClientDocument.objects.filter(
+        client_id__in=clients_in_groups,
+        status='pending'
+    ).select_related('client').distinct()[:10]
+    
+    context = {
+        'groups_count': groups.count(),
+        'clients_count': clients.count(),
+        'active_loans_count': active_loans.count(),
+        'today_expected': today_expected,
+        'today_collected': today_collected,
+        'today_pending': today_expected - today_collected,
+        'today_defaults': today_defaults,
+        'groups': groups[:5],
+        'pending_security': pending_security,
+        'ready_to_disburse': ready_to_disburse,
+        'defaults_to_follow': DefaultProvision.objects.filter(
+            loan__loan_officer=officer,
+            status='active'
+        ).count(),
+        'outstanding_balance': outstanding_balance,
+        'workload_percentage': workload_percentage,
+        'clients_expected_today': clients_expected_today,
+        'recent_transactions': formatted_transactions,
+        'passbook_entries': passbook_entries,
+        'pending_documents': pending_documents,
+        'pending_documents_count': pending_documents.count(),
+    }
+    
+    return render(request, 'dashboard/loan_officer_enhanced.html', context)
+
+
+@login_required
+def manager_dashboard(request):
+    """Manager Dashboard"""
+    manager = request.user
+    
+    # Check if user is actually a manager
+    if manager.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get branch - manager should have a managed_branch relationship
+    try:
+        branch = manager.managed_branch
+        if not branch:
+            # Manager doesn't have a branch assigned
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch. Please contact your administrator.'
+            })
+    except:
+        return render(request, 'dashboard/access_denied.html', {
+            'message': 'You have not been assigned to a branch. Please contact your administrator.'
+        })
+    
+    # Branch metrics
+    officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
+    groups = BorrowerGroup.objects.filter(branch=branch.name)
+    clients_count = sum(g.member_count for g in groups)
+    
+    # Today's collections
+    today = date.today()
+    today_collections = PaymentCollection.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        collection_date=today
+    )
+    
+    today_expected = sum(c.expected_amount for c in today_collections) or 0
+    today_collected = sum(c.collected_amount for c in today_collections) or 0
+    collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
+    
+    # Pending approvals
+    pending_security = 0
+    pending_topups = 0
+    pending_returns = 0
+    
+    try:
+        from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest
+        
+        pending_security = SecurityDeposit.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            is_verified=False
+        ).count()
+        
+        pending_topups = SecurityTopUpRequest.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='pending'
+        ).count()
+        
+        pending_returns = SecurityReturnRequest.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='pending'
+        ).count()
+    except:
+        pass
+    
+    # Expense summary
+    total_expenses = 0
+    try:
+        from expenses.models import Expense
+        expenses = Expense.objects.filter(branch=branch.name)
+        total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+    except:
+        pass
+    
+    # Fund summary
+    total_transfers = 0
+    total_deposits = 0
+    try:
+        from expenses.models import FundsTransfer, BankDeposit
+        transfers = FundsTransfer.objects.filter(source_branch=branch.name)
+        deposits = BankDeposit.objects.filter(source_branch=branch.name)
+        total_transfers = transfers.aggregate(Sum('amount'))['amount__sum'] or 0
+        total_deposits = deposits.aggregate(Sum('amount'))['amount__sum'] or 0
+    except:
+        pass
+    
+    # Officer performance
+    officer_stats = []
+    for officer in officers:
+        try:
+            assignment = officer.officer_assignment
+            officer_loans = Loan.objects.filter(
+                loan_officer=officer,
+                status='active'
+            )
+            officer_collections = PaymentCollection.objects.filter(
+                loan__loan_officer=officer,
+                status='completed'
+            )
+            
+            if officer_collections.exists():
+                collection_rate_officer = (
+                    officer_collections.filter(is_partial=False).count() / 
+                    officer_collections.count() * 100
+                )
+            else:
+                collection_rate_officer = 0
+            
+            stats = {
+                'name': officer.full_name,
+                'groups': assignment.current_group_count,
+                'clients': assignment.current_client_count,
+                'collection_rate': round(collection_rate_officer, 1),
+            }
+            officer_stats.append(stats)
+        except:
+            pass
+    
+    context = {
+        'branch': branch,
+        'officers_count': officers.count(),
+        'groups_count': groups.count(),
+        'clients_count': clients_count,
+        'today_expected': today_expected,
+        'today_collected': today_collected,
+        'collection_rate': round(collection_rate, 1),
+        'pending_security': pending_security,
+        'pending_topups': pending_topups,
+        'pending_returns': pending_returns,
+        'officer_stats': officer_stats,
+        'total_expenses': total_expenses,
+        'total_transfers': total_transfers,
+        'total_deposits': total_deposits,
+        'total_funds': total_transfers + total_deposits,
+    }
+    
+    return render(request, 'dashboard/manager_enhanced.html', context)
+
+
+@login_required
+def admin_dashboard(request):
+    """Admin Dashboard"""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # System metrics
+    branches = Branch.objects.all()
+    officers = User.objects.filter(role='loan_officer')
+    clients = User.objects.filter(role='borrower')
+    loans = Loan.objects.all()
+    
+    # High-value loans
+    pending_approvals = LoanApprovalRequest.objects.filter(status='pending')
+    approved_this_week = LoanApprovalRequest.objects.filter(
+        status='approved',
+        approval_date__gte=date.today() - timedelta(days=7)
+    )
+    
+    # Total disbursed
+    total_disbursed = loans.filter(
+        status__in=['active', 'completed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    # System collection rate
+    all_collections = PaymentCollection.objects.filter(status='completed')
+    if all_collections.exists():
+        system_collection_rate = (
+            all_collections.filter(is_partial=False).count() / 
+            all_collections.count() * 100
+        )
+    else:
+        system_collection_rate = 0
+    
+    # Branch performance
+    branch_stats = []
+    for branch in branches:
+        try:
+            branch_groups = BorrowerGroup.objects.filter(branch=branch.name)
+            branch_clients = sum(g.member_count for g in branch_groups)
+            branch_loans = Loan.objects.filter(
+                loan_officer__officer_assignment__branch=branch.name,
+                status__in=['active', 'completed']
+            )
+            branch_disbursed = branch_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
+            
+            branch_collections = PaymentCollection.objects.filter(
+                loan__loan_officer__officer_assignment__branch=branch.name,
+                status='completed'
+            )
+            
+            if branch_collections.exists():
+                branch_rate = (
+                    branch_collections.filter(is_partial=False).count() / 
+                    branch_collections.count() * 100
+                )
+            else:
+                branch_rate = 0
+            
+            stats = {
+                'name': branch.name,
+                'clients': branch_clients,
+                'total_disbursed': branch_disbursed,
+                'collection_rate': round(branch_rate, 1),
+            }
+            branch_stats.append(stats)
+        except:
+            pass
+    
+    # System health
+    active_loans = loans.filter(status='active').count()
+    completed_loans = loans.filter(status='completed').count()
+    defaulted_loans = loans.filter(status='defaulted').count()
+    total_loans = loans.count()
+    
+    active_pct = (active_loans / total_loans * 100) if total_loans > 0 else 0
+    completed_pct = (completed_loans / total_loans * 100) if total_loans > 0 else 0
+    defaulted_pct = (defaulted_loans / total_loans * 100) if total_loans > 0 else 0
+    
+    context = {
+        'branches_count': branches.count(),
+        'officers_count': officers.count(),
+        'active_officers_count': officers.filter(is_active=True).count(),
+        'clients_count': clients.count(),
+        'active_loans_count': active_loans,
+        'total_disbursed': total_disbursed,
+        'system_collection_rate': round(system_collection_rate, 1),
+        'pending_approvals_count': pending_approvals.count(),
+        'approved_this_week': approved_this_week.count(),
+        'branch_stats': branch_stats,
+        'total_loans': total_loans,
+        'active_loans': active_loans,
+        'completed_loans': completed_loans,
+        'defaulted_loans': defaulted_loans,
+        'active_pct': round(active_pct, 1),
+        'completed_pct': round(completed_pct, 1),
+        'defaulted_pct': round(defaulted_pct, 1),
+        'transfers_this_month': 0,  # Will be calculated from OfficerTransferLog
+        'client_transfers_this_month': 0,  # Will be calculated from ClientTransferLog
+        'pending_overrides': 0,  # Will be calculated from pending assignments
+        'default_rate': round(defaulted_pct, 1),
+    }
+    
+    # Add transfer counts from audit logs
+    try:
+        from adminpanel.models import OfficerTransferLog, ClientTransferLog
+        from datetime import datetime
+        current_month = date.today().replace(day=1)
+        
+        transfers_this_month = OfficerTransferLog.objects.filter(
+            timestamp__gte=current_month
+        ).count()
+        context['transfers_this_month'] = transfers_this_month
+        
+        client_transfers_this_month = ClientTransferLog.objects.filter(
+            timestamp__gte=current_month
+        ).count()
+        context['client_transfers_this_month'] = client_transfers_this_month
+    except:
+        pass
+    
+    return render(request, 'dashboard/admin_new.html', context)
+
+
+@login_required
+def borrower_dashboard(request):
+    """Borrower Dashboard"""
+    borrower = request.user
+    
+    # Get borrower's loans
+    loans = Loan.objects.filter(borrower=borrower)
+    active_loans = loans.filter(status='active').count()
+    completed_loans = loans.filter(status='completed').count()
+    pending_loans = loans.filter(status='pending').count()
+    
+    # Get upcoming payments
+    from payments.models import PaymentCollection
+    upcoming_payments = PaymentCollection.objects.filter(
+        loan__borrower=borrower,
+        status='scheduled'
+    ).order_by('collection_date')[:5]
+    
+    # Get total borrowed and repaid
+    total_borrowed = loans.filter(
+        status__in=['active', 'completed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    total_repaid = PaymentCollection.objects.filter(
+        loan__borrower=borrower,
+        status='completed'
+    ).aggregate(total=Sum('collected_amount'))['total'] or 0
+    
+    # Get borrower's documents
+    from documents.models import ClientDocument
+    borrower_documents = ClientDocument.objects.filter(client=borrower)
+    has_verified_documents = borrower_documents.filter(status='approved').exists()
+    
+    # Get rejected loans
+    rejected_loans = loans.filter(status='rejected')
+    
+    # Get recent notifications
+    from notifications.models import Notification
+    recent_notifications = Notification.objects.filter(
+        recipient=borrower
+    ).order_by('-created_at')[:5]
+    
+    # Get repayment schedule
+    from payments.models import PaymentSchedule
+    repayment_schedule = PaymentSchedule.objects.filter(
+        loan__borrower=borrower
+    ).order_by('due_date')
+    
+    # Get pending applications
+    pending_applications = loans.filter(status='pending').count()
+    
+    context = {
+        'total_loans': loans.count(),
+        'active_loans': active_loans,
+        'completed_loans': completed_loans,
+        'pending_loans': pending_loans,
+        'upcoming_payments': upcoming_payments,
+        'total_borrowed': total_borrowed,
+        'total_repaid': total_repaid,
+        'has_verified_documents': has_verified_documents,
+        'rejected_loans': rejected_loans,
+        'recent_notifications': recent_notifications,
+        'borrower_documents': borrower_documents,
+        'repayment_schedule': repayment_schedule,
+        'pending_applications': pending_applications,
+        'user_loans': loans,
+    }
+    
+    return render(request, 'dashboard/borrower_dashboard.html', context)
+
+
+# Action Views for Dashboard Links
+
+@login_required
+def collection_details(request):
+    """Collection Details View - Shows detailed collection information"""
     user = request.user
     
-    if user.is_superuser:
-        return redirect('dashboard:admin')
-    elif user.role == 'manager':
-        return redirect('dashboard:manager')
+    if user.role == 'manager':
+        # Manager sees collections for their branch
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+        
+        collections = PaymentCollection.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name
+        ).order_by('-collection_date')
     elif user.role == 'loan_officer':
-        return redirect('dashboard:officer')
-    elif user.role == 'borrower':
-        return redirect('dashboard:borrower')
+        # Loan officer sees their collections
+        collections = PaymentCollection.objects.filter(
+            loan__loan_officer=user
+        ).order_by('-collection_date')
+    elif user.role == 'admin':
+        # Admin sees all collections
+        collections = PaymentCollection.objects.all().order_by('-collection_date')
     else:
-        return redirect('accounts:login')
-
-class DashboardView(LoginRequiredMixin, TemplateView):
-    """Legacy dashboard view - redirects to role-specific dashboard"""
+        return render(request, 'dashboard/access_denied.html')
     
-    def get(self, request, *args, **kwargs):
-        return dashboard_redirect(request)
-
-
-class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin Dashboard - System administration and full control"""
-    template_name = 'dashboard/admin_dashboard.html'
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(collections, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
     
-    def test_func(self):
-        return self.request.user.is_superuser
+    context = {
+        'page_obj': page_obj,
+        'collections': page_obj.object_list,
+        'total_collections': collections.count(),
+        'total_collected': collections.aggregate(total=Sum('collected_amount'))['total'] or 0,
+    }
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        today = datetime.now().date()
-        thirty_days_ago = today - timedelta(days=30)
-        
-        # System-wide statistics
-        from accounts.models import User
-        all_loans = Loan.objects.all()
-        all_users = User.objects.all()
-        
-        context['total_loans'] = all_loans.count()
-        context['active_loans'] = all_loans.filter(status='active').count()
-        context['pending_loans'] = all_loans.filter(status='pending').count()
-        context['rejected_loans'] = all_loans.filter(status='rejected').count()
-        context['completed_loans'] = all_loans.filter(status='completed').count()
-        
-        # User statistics
-        context['total_users'] = all_users.count()
-        context['total_borrowers'] = all_users.filter(role='borrower').count()
-        context['total_managers'] = all_users.filter(role='manager').count()
-        context['total_officers'] = all_users.filter(role='loan_officer').count()
-        context['active_users'] = all_users.filter(is_active=True).count()
-        
-        # Financial overview
-        context['total_disbursed'] = all_loans.filter(
-            status__in=['active', 'completed', 'disbursed']
-        ).aggregate(total=Sum('principal_amount'))['total'] or 0
-        
-        context['total_repaid'] = Payment.objects.filter(
-            status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        # System activity
-        context['recent_users'] = all_users.filter(
-            date_joined__gte=thirty_days_ago
-        ).order_by('-date_joined')[:10]
-        
-        context['recent_loans'] = all_loans.filter(
-            application_date__gte=thirty_days_ago
-        ).order_by('-application_date')[:10]
-        
-        # Performance metrics
-        from payments.models import PaymentSchedule
-        context['overdue_count'] = PaymentSchedule.objects.filter(
-            due_date__lt=today,
-            is_paid=False
-        ).count()
-        
-        # Documents pending approval
-        from documents.models import Document
-        context['pending_documents'] = Document.objects.filter(status='pending').count()
-        
-        # Pending payments
-        context['pending_payments'] = Payment.objects.filter(status='pending').count()
-        
-        # Monthly statistics
-        context['monthly_signups'] = all_users.filter(
-            date_joined__gte=thirty_days_ago
-        ).count()
-        
-        context['monthly_applications'] = all_loans.filter(
-            application_date__gte=thirty_days_ago
-        ).count()
-        
-        # Role distribution
-        context['role_distribution'] = [
-            {'role': 'Borrowers', 'count': context['total_borrowers']},
-            {'role': 'Managers', 'count': context['total_managers']},
-            {'role': 'Officers', 'count': context['total_officers']},
-        ]
-        
-        # Loan status distribution
-        context['loan_status_data'] = all_loans.values('status').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        return context
+    return render(request, 'dashboard/collection_details.html', context)
 
 
-class ManagerDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Manager Dashboard - High-level overview and controls"""
-    template_name = 'dashboard/manager_dashboard.html'
+@login_required
+def pending_approvals(request):
+    """Pending Approvals View - Shows loans awaiting approval"""
+    user = request.user
     
-    def test_func(self):
-        return self.request.user.role == 'manager' or self.request.user.is_superuser
+    if user.role == 'manager':
+        # Manager sees pending approvals for their branch
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+        
+        pending = LoanApprovalRequest.objects.filter(
+            status='pending',
+            loan__loan_officer__officer_assignment__branch=branch.name
+        ).order_by('-requested_date')
+    elif user.role == 'admin':
+        # Admin sees all pending approvals
+        pending = LoanApprovalRequest.objects.filter(
+            status='pending'
+        ).order_by('-requested_date')
+    else:
+        return render(request, 'dashboard/access_denied.html')
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        today = datetime.now().date()
-        thirty_days_ago = today - timedelta(days=30)
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(pending, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'pending_approvals': page_obj.object_list,
+        'total_pending': pending.count(),
+    }
+    
+    return render(request, 'dashboard/pending_approvals.html', context)
+
+
+@login_required
+def manage_officers(request):
+    """Manage Officers View - Shows loan officers and their assignments"""
+    user = request.user
+    
+    if user.role == 'manager':
+        # Manager sees officers in their branch
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
         
-        # Total statistics
-        all_loans = Loan.objects.all()
-        context['total_loans'] = all_loans.count()
-        context['active_loans'] = all_loans.filter(status='active').count()
-        context['pending_loans'] = all_loans.filter(status='pending').count()
-        context['rejected_loans'] = all_loans.filter(status='rejected').count()
-        context['completed_loans'] = all_loans.filter(status='completed').count()
-        
-        # Financial statistics
-        context['total_disbursed'] = all_loans.filter(
-            status__in=['active', 'completed', 'disbursed']
-        ).aggregate(total=Sum('principal_amount'))['total'] or 0
-        
-        context['total_repaid'] = Payment.objects.filter(
-            status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        # Customer statistics
-        from accounts.models import User
-        context['total_customers'] = User.objects.filter(role='borrower').count()
-        context['active_loan_officers'] = User.objects.filter(role='loan_officer', is_active=True).count()
-        
-        # Recent activity
-        context['recent_applications'] = all_loans.filter(
-            application_date__gte=thirty_days_ago
-        ).order_by('-application_date')[:10]
-        
-        # Overdue loans
-        from payments.models import PaymentSchedule
-        context['overdue_count'] = PaymentSchedule.objects.filter(
-            due_date__lt=today,
-            is_paid=False
-        ).count()
-        
-        # Loan performance by status
-        context['loan_status_data'] = all_loans.values('status').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        # Monthly repayment statistics
-        context['monthly_repayments'] = Payment.objects.filter(
-            payment_date__gte=thirty_days_ago
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        # Pending documents
-        from documents.models import Document
-        context['pending_documents'] = Document.objects.filter(status='pending').count()
-        
-        # Approved documents (for display on dashboard)
-        context['approved_documents'] = Document.objects.filter(status='approved').order_by('-uploaded_at')[:10]
-        context['total_approved_documents'] = Document.objects.filter(status='approved').count()
-        
-        # Pending payments
-        context['pending_payments'] = Payment.objects.filter(status='pending').count()
-        
-        # Expenses data
+        officers = User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch=branch.name
+        ).order_by('first_name', 'last_name')
+    elif user.role == 'admin':
+        # Admin sees all officers
+        officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
+    else:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(officers, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'officers': page_obj.object_list,
+        'total_officers': officers.count(),
+    }
+    
+    return render(request, 'dashboard/manage_officers.html', context)
+
+
+@login_required
+def manage_branches(request):
+    """Manage Branches View - Shows all branches and their details"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    branches = Branch.objects.all().order_by('name')
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(branches, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'branches': page_obj.object_list,
+        'total_branches': branches.count(),
+    }
+    
+    return render(request, 'dashboard/manage_branches.html', context)
+
+
+@login_required
+def audit_logs(request):
+    """Audit Logs View - Shows admin audit logs"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    logs = AdminAuditLog.objects.all().order_by('-timestamp')
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'logs': page_obj.object_list,
+        'total_logs': logs.count(),
+    }
+    
+    return render(request, 'dashboard/audit_logs.html', context)
+
+
+
+# Approval Views
+
+@login_required
+def approval_detail(request, approval_id):
+    """View approval details and allow approve/reject actions"""
+    from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest, ApprovalLog
+    
+    user = request.user
+    
+    # Get the approval item based on ID and type
+    approval_type = request.GET.get('type', 'security_deposit')
+    
+    if approval_type == 'security_deposit':
         try:
-            from expenses.models import Expense, VaultTransaction
-            from decimal import Decimal
-            
-            all_expenses = Expense.objects.all()
-            context['total_expenses'] = all_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            context['approved_expenses'] = all_expenses.filter(is_approved=True).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            context['pending_expenses'] = all_expenses.filter(is_approved=False).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            # Recent expenses
-            context['recent_expenses'] = all_expenses.order_by('-expense_date')[:5]
-            
-            # Category breakdown
-            category_breakdown = {}
-            for expense in all_expenses:
-                category_name = expense.category.name if expense.category else 'Uncategorized'
-                if category_name not in category_breakdown:
-                    category_breakdown[category_name] = Decimal('0')
-                category_breakdown[category_name] += expense.amount
-            context['category_breakdown'] = category_breakdown
-            
-            # Vault balance
-            deposits = VaultTransaction.objects.filter(
-                transaction_type__in=['deposit', 'payment_collection']
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            withdrawals = VaultTransaction.objects.filter(
-                transaction_type__in=['withdrawal', 'loan_disbursement']
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            context['vault_balance'] = deposits - withdrawals
-            
-            # Recent vault transactions
-            context['recent_transactions'] = VaultTransaction.objects.order_by('-transaction_date')[:5]
-            
-            # Branch balances
-            branch_balances = {}
-            branches = VaultTransaction.objects.values_list('branch', flat=True).distinct()
-            for branch in branches:
-                inflows = VaultTransaction.objects.filter(
-                    branch=branch,
-                    transaction_type__in=['deposit', 'payment_collection']
-                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-                
-                outflows = VaultTransaction.objects.filter(
-                    branch=branch,
-                    transaction_type__in=['withdrawal', 'loan_disbursement']
-                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-                
-                branch_balances[branch] = {
-                    'inflows': inflows,
-                    'outflows': outflows,
-                    'balance': inflows - outflows
-                }
-            context['branch_balances'] = branch_balances
-            
-        except ImportError:
-            # Expenses app not available
-            context['total_expenses'] = 0
-            context['approved_expenses'] = 0
-            context['pending_expenses'] = 0
-            context['recent_expenses'] = []
-            context['category_breakdown'] = {}
-            context['vault_balance'] = 0
-            context['recent_transactions'] = []
-            context['branch_balances'] = {}
-        
-        # Recent messages
-        from internal_messages.models import Message
-        context['recent_messages'] = Message.objects.filter(recipient=self.request.user).order_by('-created_at')[:5]
-        
-        return context
-
-
-
-class LoanOfficerDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Loan Officer Dashboard - Assigned loans and clients"""
-    template_name = 'dashboard/officer_dashboard.html'
-    
-    def test_func(self):
-        return self.request.user.role == 'loan_officer'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        today = datetime.now().date()
-        
-        # Loans assigned to this officer
-        assigned_loans = Loan.objects.filter(loan_officer=user)
-        
-        context['assigned_loans'] = assigned_loans.count()
-        context['pending_approvals'] = assigned_loans.filter(status='pending').count()
-        context['active_loans'] = assigned_loans.filter(status='active').count()
-        context['overdue_loans'] = assigned_loans.filter(
-            status='active',
-            payment_schedule__due_date__lt=today,
-            payment_schedule__is_paid=False
-        ).distinct().count()
-        
-        # Recent loans
-        context['recent_loans'] = assigned_loans.order_by('-application_date')[:10]
-        
-        # Clients assigned to this officer (using the new assigned_officer field)
-        assigned_clients = user.assigned_clients.filter(role='borrower', is_active=True)
-        context['my_clients'] = assigned_clients.count()
-        context['recent_clients'] = assigned_clients.order_by('-date_joined')[:5]
-        
-        # Officer assignment settings
+            approval = SecurityDeposit.objects.get(id=approval_id, is_verified=False)
+            approval_type_display = 'Security Deposit'
+        except SecurityDeposit.DoesNotExist:
+            return render(request, 'dashboard/access_denied.html', {'message': 'Approval not found'})
+    elif approval_type == 'security_topup':
         try:
-            from clients.models import OfficerAssignment
-            context['officer_assignment'] = OfficerAssignment.objects.get(officer=user)
-        except:
-            context['officer_assignment'] = None
-        
-        # Repayments collected
-        context['repayments_collected'] = Payment.objects.filter(
-            loan__loan_officer=user,
-            status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        # Today's due payments
-        from payments.models import PaymentSchedule
-        context['due_today'] = PaymentSchedule.objects.filter(
-            loan__loan_officer=user,
-            due_date=today,
-            is_paid=False
-        ).count()
-        
-        # Pending payments to review
-        context['pending_payments'] = Payment.objects.filter(
-            loan__loan_officer=user,
-            status='pending'
-        ).count()
-        
-        # Documents for clients assigned to this officer
-        from documents.models import Document
-        context['pending_documents_for_review'] = Document.objects.filter(
-            user__in=assigned_clients,
-            status='pending'
-        ).order_by('-uploaded_at')[:10]
-        context['total_pending_documents'] = Document.objects.filter(
-            user__in=assigned_clients,
-            status='pending'
-        ).count()
-        
-        # Recent messages
-        from internal_messages.models import Message
-        context['recent_messages'] = Message.objects.filter(recipient=user).order_by('-created_at')[:5]
-        
-        return context
+            approval = SecurityTopUpRequest.objects.get(id=approval_id, status='pending')
+            approval_type_display = 'Security Top-Up'
+        except SecurityTopUpRequest.DoesNotExist:
+            return render(request, 'dashboard/access_denied.html', {'message': 'Approval not found'})
+    elif approval_type == 'security_return':
+        try:
+            approval = SecurityReturnRequest.objects.get(id=approval_id, status='pending')
+            approval_type_display = 'Security Return'
+        except SecurityReturnRequest.DoesNotExist:
+            return render(request, 'dashboard/access_denied.html', {'message': 'Approval not found'})
+    else:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Invalid approval type'})
+    
+    # Check if user is manager of the branch
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get loan details
+    loan = approval.loan if hasattr(approval, 'loan') else None
+    
+    context = {
+        'approval': approval,
+        'approval_type': approval_type,
+        'approval_type_display': approval_type_display,
+        'loan': loan,
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/approval_detail.html', context)
 
 
-class BorrowerDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Borrower Dashboard - Personal loans and payments"""
-    template_name = 'dashboard/borrower_dashboard.html'
+@login_required
+def approval_approve(request, approval_id):
+    """Approve a security-related request"""
+    from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest, ApprovalLog
     
-    def test_func(self):
-        return self.request.user.role == 'borrower'
+    if request.method != 'POST':
+        return render(request, 'dashboard/access_denied.html', {'message': 'Invalid request method'})
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        
-        # Borrower's loans
-        user_loans = Loan.objects.filter(borrower=user)
-        
-        # Check for rejected loans with reasons
-        rejected_loans = user_loans.filter(status='rejected').exclude(rejection_reason='')
-        
-        # Check document verification status
-        from documents.models import Document
-        has_verified_docs = Document.objects.filter(user=user, status='approved').exists()
-        
-        # Get borrower's documents
-        borrower_documents = Document.objects.filter(user=user).order_by('-uploaded_at')
-        
-        # Get repayment schedule for active loans
-        from payments.models import PaymentSchedule
-        active_loans = user_loans.filter(status='active')
-        repayment_schedule = PaymentSchedule.objects.filter(
-            loan__in=active_loans
-        ).order_by('due_date')[:10]  # Show next 10 payments
-        
-        # Recent notifications
-        from notifications.models import Notification
-        recent_notifications = Notification.objects.filter(
-            recipient=user
-        ).order_by('-created_at')[:5]
-        
-        context.update({
-            'user_loans': user_loans,
-            'active_loans': user_loans.filter(status='active').count(),
-            'total_borrowed': user_loans.filter(status__in=['active', 'completed']).aggregate(
-                total=Sum('principal_amount'))['total'] or 0,
-            'pending_applications': user_loans.filter(status='pending').count(),
-            'rejected_loans': rejected_loans,
-            'has_verified_documents': has_verified_docs,
-            'borrower_documents': borrower_documents,
-            'repayment_schedule': repayment_schedule,
-            'recent_notifications': recent_notifications,
-        })
-        
-        return context
-
-
-class AnalyticsView(LoginRequiredMixin, TemplateView):
-    template_name = 'dashboard/analytics.html'
+    user = request.user
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Only show analytics to admin and loan officers
-        if self.request.user.role in ['admin', 'loan_officer'] or self.request.user.is_superuser:
-            context.update({
-                'loan_status_data': self.get_loan_status_data(),
-                'monthly_disbursements': self.get_monthly_disbursements(),
-                'payment_performance': self.get_payment_performance(),
-            })
-        
-        return context
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
     
-    def get_loan_status_data(self):
-        return Loan.objects.values('status').annotate(count=Count('id'))
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
     
-    def get_monthly_disbursements(self):
-        # Get disbursements for the last 12 months using Django's database-agnostic approach
-        from django.db.models.functions import TruncMonth
-        
-        return Loan.objects.filter(
-            disbursement_date__isnull=False,
-            disbursement_date__gte=datetime.now().date() - timedelta(days=365)
-        ).annotate(
-            month=TruncMonth('disbursement_date')
-        ).values('month').annotate(
-            total=Sum('principal_amount'),
-            count=Count('id')
-        ).order_by('month')
+    approval_type = request.POST.get('type', 'security_deposit')
+    comments = request.POST.get('comments', '')
     
-    def get_payment_performance(self):
-        from payments.models import PaymentSchedule
-        total_due = PaymentSchedule.objects.aggregate(total=Sum('total_amount'))['total'] or 0
-        paid = PaymentSchedule.objects.filter(is_paid=True).aggregate(total=Sum('total_amount'))['total'] or 0
-        
-        return {
-            'total_due': total_due,
-            'total_paid': paid,
-            'collection_rate': (paid / total_due * 100) if total_due > 0 else 0
-        }
-
-
-class ManageUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin User Management"""
-    template_name = 'dashboard/admin/manage_users.html'
-    
-    def test_func(self):
-        return self.request.user.is_superuser or self.request.user.role == 'manager'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from accounts.models import User
-        from django.contrib.auth.models import Group
-        
-        context['users'] = User.objects.all().order_by('-date_joined')
-        context['groups'] = Group.objects.all()
-        context['total_users'] = User.objects.count()
-        context['active_users'] = User.objects.filter(is_active=True).count()
-        context['staff_users'] = User.objects.filter(is_staff=True).count()
-        context['superusers'] = User.objects.filter(is_superuser=True).count()
-        
-        # Role distribution
-        context['role_stats'] = {
-            'borrowers': User.objects.filter(role='borrower').count(),
-            'officers': User.objects.filter(role='loan_officer').count(),
-            'managers': User.objects.filter(role='manager').count(),
-            'admins': User.objects.filter(role='admin').count(),
-        }
-        
-        return context
-
-
-class ManageLoansView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin Loan Management"""
-    template_name = 'dashboard/admin/manage_loans.html'
-    
-    def test_func(self):
-        return self.request.user.is_superuser or self.request.user.role == 'manager'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        all_loans = Loan.objects.all().select_related('borrower', 'loan_officer')
-        
-        context['loans'] = all_loans.order_by('-application_date')[:50]  # Latest 50
-        context['total_loans'] = all_loans.count()
-        
-        # Status breakdown
-        context['status_stats'] = {
-            'pending': all_loans.filter(status='pending').count(),
-            'approved': all_loans.filter(status='approved').count(),
-            'active': all_loans.filter(status='active').count(),
-            'completed': all_loans.filter(status='completed').count(),
-            'rejected': all_loans.filter(status='rejected').count(),
-        }
-        
-        # Financial stats
-        context['financial_stats'] = {
-            'total_disbursed': all_loans.filter(status__in=['active', 'completed']).aggregate(
-                total=Sum('principal_amount'))['total'] or 0,
-            'total_outstanding': all_loans.filter(status='active').aggregate(
-                total=Sum('principal_amount'))['total'] or 0,
-        }
-        
-        return context
-
-
-class GroupsPermissionsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin Groups & Permissions Management"""
-    template_name = 'dashboard/admin/groups_permissions.html'
-    
-    def test_func(self):
-        return self.request.user.is_superuser
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from django.contrib.auth.models import Group, Permission
-        from django.contrib.contenttypes.models import ContentType
-        
-        from accounts.models import User
-        
-        context['groups'] = Group.objects.all().prefetch_related('permissions')
-        context['permissions'] = Permission.objects.all().select_related('content_type')
-        context['content_types'] = ContentType.objects.all()
-        
-        # Group statistics
-        context['group_stats'] = {}
-        for group in context['groups']:
-            context['group_stats'][group.name] = {
-                'users': User.objects.filter(groups=group).count(),
-                'permissions': group.permissions.count()
-            }
-        
-        return context
-
-
-class SystemReportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin System Reports"""
-    template_name = 'dashboard/admin/system_reports.html'
-    
-    def test_func(self):
-        return self.request.user.is_superuser
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from accounts.models import User
-        from django.db.models import Count
-        from datetime import datetime, timedelta
-        
-        today = datetime.now().date()
-        thirty_days_ago = today - timedelta(days=30)
-        
-        # User activity report
-        context['user_activity'] = {
-            'new_users_30d': User.objects.filter(date_joined__gte=thirty_days_ago).count(),
-            'active_users_30d': User.objects.filter(last_login__gte=thirty_days_ago).count(),
-            'total_logins': User.objects.exclude(last_login__isnull=True).count(),
-        }
-        
-        # Loan performance report
-        all_loans = Loan.objects.all()
-        context['loan_performance'] = {
-            'applications_30d': all_loans.filter(application_date__gte=thirty_days_ago).count(),
-            'approvals_30d': all_loans.filter(
-                application_date__gte=thirty_days_ago, 
-                status__in=['approved', 'active', 'completed']
-            ).count(),
-            'approval_rate': 0,
-        }
-        
-        if context['loan_performance']['applications_30d'] > 0:
-            context['loan_performance']['approval_rate'] = (
-                context['loan_performance']['approvals_30d'] / 
-                context['loan_performance']['applications_30d'] * 100
+    try:
+        if approval_type == 'security_deposit':
+            approval = SecurityDeposit.objects.get(id=approval_id, is_verified=False)
+            approval.is_verified = True
+            approval.save()
+            
+            # Log the approval
+            ApprovalLog.objects.create(
+                approval_type='security_deposit',
+                loan=approval.loan,
+                manager=user,
+                action='approve',
+                comments=comments,
+                branch=branch.name
+            )
+            
+        elif approval_type == 'security_topup':
+            approval = SecurityTopUpRequest.objects.get(id=approval_id, status='pending')
+            approval.status = 'approved'
+            approval.save()
+            
+            # Log the approval
+            ApprovalLog.objects.create(
+                approval_type='security_topup',
+                loan=approval.loan,
+                manager=user,
+                action='approve',
+                comments=comments,
+                branch=branch.name
+            )
+            
+        elif approval_type == 'security_return':
+            approval = SecurityReturnRequest.objects.get(id=approval_id, status='pending')
+            approval.status = 'approved'
+            approval.save()
+            
+            # Log the approval
+            ApprovalLog.objects.create(
+                approval_type='security_return',
+                loan=approval.loan,
+                manager=user,
+                action='approve',
+                comments=comments,
+                branch=branch.name
             )
         
-        # System health
-        context['system_health'] = {
-            'total_users': User.objects.count(),
-            'total_loans': all_loans.count(),
-            'pending_documents': 0,  # Will be calculated if documents app exists
-        }
-        
-        try:
-            from documents.models import Document
-            context['system_health']['pending_documents'] = Document.objects.filter(
-                status='pending'
-            ).count()
-        except ImportError:
-            pass
-        
-        return context
-
-
-class AddGroupView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin Add Group"""
-    template_name = 'dashboard/admin/add_group.html'
-    
-    def test_func(self):
-        return self.request.user.is_superuser
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from django.contrib.auth.models import Permission
-        
-        context['permissions'] = Permission.objects.all().select_related('content_type').order_by('content_type__app_label', 'codename')
-        
-        return context
-    
-    def post(self, request, *args, **kwargs):
-        from django.contrib.auth.models import Group, Permission
-        from django.contrib import messages
+        # Redirect to pending approvals
         from django.shortcuts import redirect
+        return redirect('dashboard:pending_approvals')
         
-        name = request.POST.get('name')
-        permission_ids = request.POST.getlist('permissions')
+    except Exception as e:
+        return render(request, 'dashboard/access_denied.html', {'message': f'Error approving: {str(e)}'})
+
+
+@login_required
+def approval_reject(request, approval_id):
+    """Reject a security-related request"""
+    from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest, ApprovalLog
+    
+    if request.method != 'POST':
+        return render(request, 'dashboard/access_denied.html', {'message': 'Invalid request method'})
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    approval_type = request.POST.get('type', 'security_deposit')
+    comments = request.POST.get('comments', '')
+    
+    if not comments:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Comments are required for rejection'})
+    
+    try:
+        if approval_type == 'security_deposit':
+            approval = SecurityDeposit.objects.get(id=approval_id, is_verified=False)
+            approval.is_verified = False  # Keep as unverified
+            approval.save()
+            
+            # Log the rejection
+            ApprovalLog.objects.create(
+                approval_type='security_deposit',
+                loan=approval.loan,
+                manager=user,
+                action='reject',
+                comments=comments,
+                branch=branch.name
+            )
+            
+        elif approval_type == 'security_topup':
+            approval = SecurityTopUpRequest.objects.get(id=approval_id, status='pending')
+            approval.status = 'rejected'
+            approval.save()
+            
+            # Log the rejection
+            ApprovalLog.objects.create(
+                approval_type='security_topup',
+                loan=approval.loan,
+                manager=user,
+                action='reject',
+                comments=comments,
+                branch=branch.name
+            )
+            
+        elif approval_type == 'security_return':
+            approval = SecurityReturnRequest.objects.get(id=approval_id, status='pending')
+            approval.status = 'rejected'
+            approval.save()
+            
+            # Log the rejection
+            ApprovalLog.objects.create(
+                approval_type='security_return',
+                loan=approval.loan,
+                manager=user,
+                action='reject',
+                comments=comments,
+                branch=branch.name
+            )
         
-        if not name:
-            messages.error(request, 'Group name is required.')
-            return self.get(request, *args, **kwargs)
+        # Redirect to pending approvals
+        from django.shortcuts import redirect
+        return redirect('dashboard:pending_approvals')
         
+    except Exception as e:
+        return render(request, 'dashboard/access_denied.html', {'message': f'Error rejecting: {str(e)}'})
+
+
+@login_required
+def approval_history(request):
+    """View approval history and logs"""
+    from loans.models import ApprovalLog
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get approval logs for this branch
+    logs = ApprovalLog.objects.filter(branch=branch.name).order_by('-timestamp')
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'logs': page_obj.object_list,
+        'total_logs': logs.count(),
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/approval_history.html', context)
+
+
+# Expense Management Views
+
+@login_required
+def expense_list(request):
+    """View and filter expenses for manager's branch"""
+    from expenses.models import Expense, ExpenseCode
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get expenses for this branch
+    expenses = Expense.objects.filter(branch=branch.name).order_by('-expense_date')
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        expenses = expenses.filter(expense_date__gte=start_date)
+    if end_date:
+        expenses = expenses.filter(expense_date__lte=end_date)
+    
+    # Filter by expense code
+    expense_code = request.GET.get('expense_code')
+    if expense_code:
+        expenses = expenses.filter(expense_code_id=expense_code)
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(expenses, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Calculate totals
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'expenses': page_obj.object_list,
+        'total_expenses': total_expenses,
+        'expense_codes': ExpenseCode.objects.filter(is_active=True),
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/expense_list.html', context)
+
+
+@login_required
+def expense_create(request):
+    """Create a new expense"""
+    from expenses.models import Expense, ExpenseCode
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
         try:
-            # Create the group
-            group = Group.objects.create(name=name)
+            amount = request.POST.get('amount')
+            expense_code_id = request.POST.get('expense_code')
+            expense_date = request.POST.get('expense_date')
+            description = request.POST.get('description')
             
-            # Add permissions if selected
-            if permission_ids:
-                permissions = Permission.objects.filter(id__in=permission_ids)
-                group.permissions.set(permissions)
+            # Validate required fields
+            if not amount or not expense_code_id or not expense_date:
+                return render(request, 'dashboard/expense_form.html', {
+                    'error': 'Amount, expense code, and date are required',
+                    'expense_codes': ExpenseCode.objects.filter(is_active=True),
+                    'branch': branch,
+                })
             
-            messages.success(request, f'Group "{name}" created successfully!')
-            return redirect('dashboard:manage_groups')
+            # Create expense
+            expense_code = ExpenseCode.objects.get(id=expense_code_id)
+            expense = Expense.objects.create(
+                amount=amount,
+                expense_code=expense_code,
+                expense_date=expense_date,
+                description=description or '',
+                branch=branch.name,
+                recorded_by=user,
+                title=f"{expense_code.name} - {expense_date}"
+            )
+            
+            # Redirect to expense list
+            from django.shortcuts import redirect
+            return redirect('dashboard:expense_list')
             
         except Exception as e:
-            messages.error(request, f'Error creating group: {str(e)}')
-            return self.get(request, *args, **kwargs)
+            return render(request, 'dashboard/expense_form.html', {
+                'error': f'Error creating expense: {str(e)}',
+                'expense_codes': ExpenseCode.objects.filter(is_active=True),
+                'branch': branch,
+            })
+    
+    context = {
+        'expense_codes': ExpenseCode.objects.filter(is_active=True),
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/expense_form.html', context)
 
 
-class ManageGroupsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Admin Manage Groups"""
-    template_name = 'dashboard/admin/manage_groups.html'
+@login_required
+def expense_report(request):
+    """Generate expense report by category and date"""
+    from expenses.models import Expense, ExpenseCode
     
-    def test_func(self):
-        return self.request.user.is_superuser
+    user = request.user
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from django.contrib.auth.models import Group, Permission
-        from accounts.models import User
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get expenses for this branch
+    expenses = Expense.objects.filter(branch=branch.name)
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        expenses = expenses.filter(expense_date__gte=start_date)
+    if end_date:
+        expenses = expenses.filter(expense_date__lte=end_date)
+    
+    # Aggregate by expense code
+    category_totals = {}
+    total_expenses = 0
+    total_count = 0
+    
+    for code in ExpenseCode.objects.filter(is_active=True):
+        code_expenses = expenses.filter(expense_code=code)
+        total = code_expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+        if total > 0:
+            count = code_expenses.count()
+            total_count += count
+            percentage = (total / expenses.aggregate(Sum('amount'))['amount__sum'] * 100) if expenses.aggregate(Sum('amount'))['amount__sum'] else 0
+            category_totals[code.name] = {
+                'total': total,
+                'count': count,
+                'percentage': round(percentage, 1)
+            }
+            total_expenses += total
+    
+    context = {
+        'category_totals': category_totals,
+        'total_expenses': total_expenses,
+        'total_expenses_count': total_count,
+        'expense_codes': ExpenseCode.objects.filter(is_active=True),
+        'branch': branch,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    
+    return render(request, 'dashboard/expense_report.html', context)
+
+
+# Funds Management Views
+
+@login_required
+def fund_transfer_create(request):
+    """Create a new fund transfer between branches"""
+    from expenses.models import FundsTransfer
+    from clients.models import Branch
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            amount = request.POST.get('amount')
+            destination_branch = request.POST.get('destination_branch')
+            date_str = request.POST.get('date')
+            reference = request.POST.get('reference')
+            description = request.POST.get('description', '')
+            
+            # Validate required fields
+            if not amount or not destination_branch or not date_str or not reference:
+                return render(request, 'dashboard/fund_transfer_form.html', {
+                    'error': 'Amount, destination branch, date, and reference are required',
+                    'branches': Branch.objects.exclude(name=branch.name),
+                    'branch': branch,
+                })
+            
+            # Create fund transfer
+            transfer = FundsTransfer.objects.create(
+                amount=amount,
+                source_branch=branch.name,
+                destination_branch=destination_branch,
+                reference_number=reference,
+                description=description,
+                requested_by=user,
+                status='pending'
+            )
+            
+            # Redirect to fund history
+            from django.shortcuts import redirect
+            return redirect('dashboard:fund_history')
+            
+        except Exception as e:
+            return render(request, 'dashboard/fund_transfer_form.html', {
+                'error': f'Error creating transfer: {str(e)}',
+                'branches': Branch.objects.exclude(name=branch.name),
+                'branch': branch,
+            })
+    
+    context = {
+        'branches': Branch.objects.exclude(name=branch.name),
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/fund_transfer_form.html', context)
+
+
+@login_required
+def fund_deposit_create(request):
+    """Create a new bank deposit"""
+    from expenses.models import BankDeposit
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            amount = request.POST.get('amount')
+            bank_name = request.POST.get('bank_name')
+            account_number = request.POST.get('account_number')
+            date_str = request.POST.get('date')
+            reference = request.POST.get('reference')
+            description = request.POST.get('description', '')
+            
+            # Validate required fields
+            if not amount or not bank_name or not account_number or not date_str or not reference:
+                return render(request, 'dashboard/fund_deposit_form.html', {
+                    'error': 'Amount, bank name, account number, date, and reference are required',
+                    'branch': branch,
+                })
+            
+            # Create bank deposit
+            deposit = BankDeposit.objects.create(
+                amount=amount,
+                source_branch=branch.name,
+                bank_name=bank_name,
+                account_number=account_number,
+                reference_number=reference,
+                description=description,
+                requested_by=user,
+                deposit_date=date_str,
+                status='pending'
+            )
+            
+            # Redirect to fund history
+            from django.shortcuts import redirect
+            return redirect('dashboard:fund_history')
+            
+        except Exception as e:
+            return render(request, 'dashboard/fund_deposit_form.html', {
+                'error': f'Error creating deposit: {str(e)}',
+                'branch': branch,
+            })
+    
+    context = {
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/fund_deposit_form.html', context)
+
+
+@login_required
+def fund_history(request):
+    """View fund transfer and deposit history"""
+    from expenses.models import FundsTransfer, BankDeposit
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+    except:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get transfers for this branch (as source or destination)
+    transfers = FundsTransfer.objects.filter(
+        Q(source_branch=branch.name) | Q(destination_branch=branch.name)
+    ).order_by('-requested_date')
+    
+    # Get deposits for this branch
+    deposits = BankDeposit.objects.filter(source_branch=branch.name).order_by('-requested_date')
+    
+    # Filter by type
+    fund_type = request.GET.get('type')
+    if fund_type == 'transfer':
+        transfers = transfers
+        deposits = BankDeposit.objects.none()
+    elif fund_type == 'deposit':
+        transfers = FundsTransfer.objects.none()
+        deposits = deposits
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        transfers = transfers.filter(requested_date__gte=start_date)
+        deposits = deposits.filter(requested_date__gte=start_date)
+    if end_date:
+        transfers = transfers.filter(requested_date__lte=end_date)
+        deposits = deposits.filter(requested_date__lte=end_date)
+    
+    # Filter by amount range
+    min_amount = request.GET.get('min_amount')
+    max_amount = request.GET.get('max_amount')
+    if min_amount:
+        transfers = transfers.filter(amount__gte=min_amount)
+        deposits = deposits.filter(amount__gte=min_amount)
+    if max_amount:
+        transfers = transfers.filter(amount__lte=max_amount)
+        deposits = deposits.filter(amount__lte=max_amount)
+    
+    # Combine and paginate
+    from django.core.paginator import Paginator
+    from itertools import chain
+    
+    all_records = list(chain(transfers, deposits))
+    all_records.sort(key=lambda x: x.requested_date, reverse=True)
+    
+    paginator = Paginator(all_records, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Calculate totals
+    total_transfers = transfers.aggregate(Sum('amount'))['amount__sum'] or 0
+    total_deposits = deposits.aggregate(Sum('amount'))['amount__sum'] or 0
+    total_funds = total_transfers + total_deposits
+    
+    context = {
+        'page_obj': page_obj,
+        'records': page_obj.object_list,
+        'total_records': len(all_records),
+        'total_transfers': total_transfers,
+        'total_deposits': total_deposits,
+        'total_funds': total_funds,
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/fund_history.html', context)
+
+
+# User Management Views
+
+@login_required
+def user_create(request):
+    """Create a new user (officer or manager)"""
+    user = request.user
+    
+    # Check if user is admin
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            phone_number = request.POST.get('phone_number')
+            role = request.POST.get('role')
+            password = request.POST.get('password')
+            password_confirm = request.POST.get('password_confirm')
+            
+            # Validate required fields
+            if not all([username, email, first_name, last_name, role, password]):
+                return render(request, 'dashboard/user_form.html', {
+                    'error': 'All fields are required',
+                })
+            
+            # Validate passwords match
+            if password != password_confirm:
+                return render(request, 'dashboard/user_form.html', {
+                    'error': 'Passwords do not match',
+                })
+            
+            # Check if username already exists
+            if User.objects.filter(username=username).exists():
+                return render(request, 'dashboard/user_form.html', {
+                    'error': 'Username already exists',
+                })
+            
+            # Check if email already exists
+            if User.objects.filter(email=email).exists():
+                return render(request, 'dashboard/user_form.html', {
+                    'error': 'Email already exists',
+                })
+            
+            # Create user
+            new_user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=password,
+                role=role,
+                phone_number=phone_number or '',
+                is_active=True
+            )
+            
+            # If loan officer, create officer assignment
+            if role == 'loan_officer':
+                from clients.models import OfficerAssignment
+                OfficerAssignment.objects.create(
+                    officer=new_user,
+                    branch='',
+                    max_groups=15,
+                    max_clients=50,
+                    is_accepting_assignments=True
+                )
+            
+            # Redirect to manage officers
+            from django.shortcuts import redirect
+            return redirect('dashboard:manage_officers')
+            
+        except Exception as e:
+            return render(request, 'dashboard/user_form.html', {
+                'error': f'Error creating user: {str(e)}',
+            })
+    
+    context = {}
+    return render(request, 'dashboard/user_form.html', context)
+
+
+@login_required
+def branch_create(request):
+    """Create a new branch"""
+    user = request.user
+    
+    # Check if user is admin
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            location = request.POST.get('location')
+            phone = request.POST.get('phone')
+            email = request.POST.get('email')
+            manager_id = request.POST.get('manager')
+            
+            # Validate required fields
+            if not all([name, code, location]):
+                return render(request, 'dashboard/branch_form.html', {
+                    'error': 'Name, code, and location are required',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if branch name already exists
+            if Branch.objects.filter(name=name).exists():
+                return render(request, 'dashboard/branch_form.html', {
+                    'error': 'Branch name already exists',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if branch code already exists
+            if Branch.objects.filter(code=code).exists():
+                return render(request, 'dashboard/branch_form.html', {
+                    'error': 'Branch code already exists',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Get manager if provided
+            manager = None
+            if manager_id:
+                try:
+                    manager = User.objects.get(id=manager_id, role='manager')
+                except User.DoesNotExist:
+                    return render(request, 'dashboard/branch_form.html', {
+                        'error': 'Invalid manager selected',
+                        'managers': User.objects.filter(role='manager'),
+                    })
+            
+            # Create branch
+            branch = Branch.objects.create(
+                name=name,
+                code=code,
+                location=location,
+                phone=phone or '',
+                email=email or '',
+                manager=manager,
+                is_active=True
+            )
+            
+            # Redirect to manage branches
+            from django.shortcuts import redirect
+            return redirect('dashboard:manage_branches')
+            
+        except Exception as e:
+            return render(request, 'dashboard/branch_form.html', {
+                'error': f'Error creating branch: {str(e)}',
+                'managers': User.objects.filter(role='manager'),
+            })
+    
+    context = {
+        'managers': User.objects.filter(role='manager'),
+    }
+    return render(request, 'dashboard/branch_form.html', context)
+
+
+# Admin Branch Management Views
+
+@login_required
+def admin_branches_list(request):
+    """Admin view: List all branches with filtering and pagination"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    branches = Branch.objects.all().order_by('name')
+    
+    # Search by name, code, or location
+    search_query = request.GET.get('search', '')
+    if search_query:
+        branches = branches.filter(
+            Q(name__icontains=search_query) |
+            Q(code__icontains=search_query) |
+            Q(location__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status')
+    if status_filter:
+        if status_filter == 'active':
+            branches = branches.filter(is_active=True)
+        elif status_filter == 'inactive':
+            branches = branches.filter(is_active=False)
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(branches, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'branches': page_obj.object_list,
+        'total_branches': branches.count(),
+        'search_query': search_query,
+        'status_filter': status_filter,
+    }
+    
+    return render(request, 'dashboard/admin_branches_list.html', context)
+
+
+@login_required
+def admin_branch_detail(request, branch_id):
+    """Admin view: Display branch details and statistics"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Branch not found'})
+    
+    # Get branch statistics
+    officers = User.objects.filter(
+        role='loan_officer',
+        officer_assignment__branch=branch.name
+    )
+    
+    groups = BorrowerGroup.objects.filter(branch=branch.name)
+    
+    # Calculate client count
+    clients_count = sum(g.member_count for g in groups)
+    
+    # Get loans for this branch
+    loans = Loan.objects.filter(
+        loan_officer__officer_assignment__branch=branch.name
+    )
+    
+    total_disbursed = loans.filter(
+        status__in=['active', 'completed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    active_loans = loans.filter(status='active').count()
+    
+    context = {
+        'branch': branch,
+        'officers_count': officers.count(),
+        'officers': officers,
+        'groups_count': groups.count(),
+        'groups': groups,
+        'clients_count': clients_count,
+        'total_disbursed': total_disbursed,
+        'active_loans': active_loans,
+    }
+    
+    return render(request, 'dashboard/admin_branch_detail.html', context)
+
+
+@login_required
+def admin_branch_create(request):
+    """Admin view: Create a new branch"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            location = request.POST.get('location')
+            phone = request.POST.get('phone', '')
+            email = request.POST.get('email', '')
+            manager_id = request.POST.get('manager')
+            
+            # Validate required fields
+            if not all([name, code, location]):
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Name, code, and location are required',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if branch name already exists
+            if Branch.objects.filter(name=name).exists():
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Branch name already exists',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if branch code already exists
+            if Branch.objects.filter(code=code).exists():
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Branch code already exists',
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Get manager if provided
+            manager = None
+            if manager_id:
+                try:
+                    manager = User.objects.get(id=manager_id, role='manager')
+                except User.DoesNotExist:
+                    return render(request, 'dashboard/admin_branch_form.html', {
+                        'error': 'Invalid manager selected',
+                        'managers': User.objects.filter(role='manager'),
+                    })
+            
+            # Create branch
+            branch = Branch.objects.create(
+                name=name,
+                code=code,
+                location=location,
+                phone=phone,
+                email=email,
+                manager=manager,
+                is_active=True
+            )
+            
+            # Log creation in AdminAuditLog
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='branch_create',
+                affected_branch=branch,
+                description=f'Created branch: {name} ({code})',
+                new_value=f'Branch: {name}, Code: {code}, Location: {location}'
+            )
+            
+            # Redirect to branch detail
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_branch_detail', branch_id=branch.id)
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_branch_form.html', {
+                'error': f'Error creating branch: {str(e)}',
+                'managers': User.objects.filter(role='manager'),
+            })
+    
+    context = {
+        'managers': User.objects.filter(role='manager'),
+    }
+    return render(request, 'dashboard/admin_branch_form.html', context)
+
+
+@login_required
+def admin_branch_edit(request, branch_id):
+    """Admin view: Edit branch details"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Branch not found'})
+    
+    if request.method == 'POST':
+        try:
+            old_values = {
+                'name': branch.name,
+                'code': branch.code,
+                'location': branch.location,
+                'phone': branch.phone,
+                'email': branch.email,
+                'manager': str(branch.manager) if branch.manager else 'None',
+            }
+            
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            location = request.POST.get('location')
+            phone = request.POST.get('phone', '')
+            email = request.POST.get('email', '')
+            manager_id = request.POST.get('manager')
+            
+            # Validate required fields
+            if not all([name, code, location]):
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Name, code, and location are required',
+                    'branch': branch,
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if new name already exists (excluding current branch)
+            if name != branch.name and Branch.objects.filter(name=name).exists():
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Branch name already exists',
+                    'branch': branch,
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Check if new code already exists (excluding current branch)
+            if code != branch.code and Branch.objects.filter(code=code).exists():
+                return render(request, 'dashboard/admin_branch_form.html', {
+                    'error': 'Branch code already exists',
+                    'branch': branch,
+                    'managers': User.objects.filter(role='manager'),
+                })
+            
+            # Get manager if provided
+            manager = None
+            if manager_id:
+                try:
+                    manager = User.objects.get(id=manager_id, role='manager')
+                except User.DoesNotExist:
+                    return render(request, 'dashboard/admin_branch_form.html', {
+                        'error': 'Invalid manager selected',
+                        'branch': branch,
+                        'managers': User.objects.filter(role='manager'),
+                    })
+            
+            # Update branch
+            branch.name = name
+            branch.code = code
+            branch.location = location
+            branch.phone = phone
+            branch.email = email
+            branch.manager = manager
+            branch.save()
+            
+            # Log changes in AdminAuditLog
+            new_values = {
+                'name': branch.name,
+                'code': branch.code,
+                'location': branch.location,
+                'phone': branch.phone,
+                'email': branch.email,
+                'manager': str(branch.manager) if branch.manager else 'None',
+            }
+            
+            changes = []
+            for key in old_values:
+                if old_values[key] != new_values[key]:
+                    changes.append(f'{key}: {old_values[key]} → {new_values[key]}')
+            
+            if changes:
+                AdminAuditLog.objects.create(
+                    admin_user=user,
+                    action='branch_update',
+                    affected_branch=branch,
+                    description=f'Updated branch: {branch.name}',
+                    old_value=str(old_values),
+                    new_value=str(new_values)
+                )
+            
+            # Redirect to branch detail
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_branch_detail', branch_id=branch.id)
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_branch_form.html', {
+                'error': f'Error updating branch: {str(e)}',
+                'branch': branch,
+                'managers': User.objects.filter(role='manager'),
+            })
+    
+    context = {
+        'branch': branch,
+        'managers': User.objects.filter(role='manager'),
+        'is_edit': True,
+    }
+    return render(request, 'dashboard/admin_branch_form.html', context)
+
+
+@login_required
+def admin_branch_deactivate(request, branch_id):
+    """Admin view: Deactivate a branch"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        branch = Branch.objects.get(id=branch_id)
+    except Branch.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Branch not found'})
+    
+    if request.method == 'POST':
+        try:
+            # Get existing assignments
+            officers = User.objects.filter(
+                role='loan_officer',
+                officer_assignment__branch=branch.name
+            )
+            
+            groups = BorrowerGroup.objects.filter(branch=branch.name)
+            
+            # Deactivate branch
+            branch.is_active = False
+            branch.save()
+            
+            # Log deactivation
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='branch_delete',
+                affected_branch=branch,
+                description=f'Deactivated branch: {branch.name}',
+                old_value=f'is_active: True',
+                new_value=f'is_active: False'
+            )
+            
+            # Redirect to branches list
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_branches_list')
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_branch_deactivate_confirm.html', {
+                'error': f'Error deactivating branch: {str(e)}',
+                'branch': branch,
+            })
+    
+    # Get existing assignments to warn admin
+    officers = User.objects.filter(
+        role='loan_officer',
+        officer_assignment__branch=branch.name
+    )
+    
+    groups = BorrowerGroup.objects.filter(branch=branch.name)
+    
+    context = {
+        'branch': branch,
+        'officers_count': officers.count(),
+        'groups_count': groups.count(),
+    }
+    return render(request, 'dashboard/admin_branch_deactivate_confirm.html', context)
+
+
+# Admin Officer Transfer Views
+
+@login_required
+def admin_officers_list(request):
+    """Admin view: List all loan officers and managers with details"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    officers = User.objects.filter(role__in=['loan_officer', 'manager']).order_by('first_name', 'last_name')
+    
+    # Search by name, email, or username
+    search_query = request.GET.get('search', '')
+    if search_query:
+        officers = officers.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(username__icontains=search_query)
+        )
+    
+    # Filter by role
+    role_filter = request.GET.get('role')
+    if role_filter:
+        officers = officers.filter(role=role_filter)
+    
+    # Filter by status
+    status_filter = request.GET.get('status')
+    if status_filter:
+        if status_filter == 'active':
+            officers = officers.filter(is_active=True)
+        elif status_filter == 'inactive':
+            officers = officers.filter(is_active=False)
+    
+    # Filter by branch (for loan officers)
+    branch_filter = request.GET.get('branch')
+    if branch_filter:
+        officers = officers.filter(officer_assignment__branch=branch_filter)
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(officers, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get branches for filter dropdown
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_obj': page_obj,
+        'officers': page_obj.object_list,
+        'total_officers': officers.count(),
+        'search_query': search_query,
+        'role_filter': role_filter,
+        'status_filter': status_filter,
+        'branch_filter': branch_filter,
+        'branches': branches,
+    }
+    
+    return render(request, 'dashboard/admin_officers_list.html', context)
+
+
+@login_required
+def admin_officer_transfer(request, officer_id):
+    """Admin view: Transfer a loan officer to a different branch"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        officer = User.objects.get(id=officer_id, role='loan_officer')
+    except User.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Officer not found'})
+    
+    # Get current assignment
+    try:
+        assignment = officer.officer_assignment
+        current_branch = assignment.branch
+    except:
+        current_branch = ''
+    
+    # Get groups managed by this officer
+    managed_groups = BorrowerGroup.objects.filter(assigned_officer=officer)
+    
+    if request.method == 'POST':
+        try:
+            destination_branch = request.POST.get('destination_branch')
+            reason = request.POST.get('reason')
+            
+            # Validate required fields
+            if not destination_branch or not reason:
+                return render(request, 'dashboard/admin_officer_transfer_form.html', {
+                    'error': 'Destination branch and reason are required',
+                    'officer': officer,
+                    'current_branch': current_branch,
+                    'managed_groups': managed_groups,
+                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+                })
+            
+            # Validate destination branch exists
+            try:
+                dest_branch_obj = Branch.objects.get(name=destination_branch)
+            except Branch.DoesNotExist:
+                return render(request, 'dashboard/admin_officer_transfer_form.html', {
+                    'error': 'Invalid destination branch',
+                    'officer': officer,
+                    'current_branch': current_branch,
+                    'managed_groups': managed_groups,
+                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+                })
+            
+            # Check for pending approvals or active loans
+            pending_loans = Loan.objects.filter(
+                loan_officer=officer,
+                status__in=['pending', 'approved']
+            )
+            
+            if pending_loans.exists():
+                return render(request, 'dashboard/admin_officer_transfer_form.html', {
+                    'error': f'Officer has {pending_loans.count()} pending/approved loans. Please resolve these before transferring.',
+                    'officer': officer,
+                    'current_branch': current_branch,
+                    'managed_groups': managed_groups,
+                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+                    'pending_loans': pending_loans,
+                })
+            
+            # Get list of group IDs being transferred
+            transferred_group_ids = [g.id for g in managed_groups]
+            
+            # Update officer assignment
+            assignment.branch = destination_branch
+            assignment.save()
+            
+            # Update all groups to new branch
+            managed_groups.update(branch=destination_branch)
+            
+            # Create OfficerTransferLog
+            from clients.models import OfficerTransferLog
+            OfficerTransferLog.objects.create(
+                officer=officer,
+                previous_branch=current_branch,
+                new_branch=destination_branch,
+                transferred_groups=transferred_group_ids,
+                reason=reason,
+                performed_by=user
+            )
+            
+            # Create AdminAuditLog
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='officer_transfer',
+                affected_user=officer,
+                affected_branch=dest_branch_obj,
+                description=f'Transferred officer {officer.full_name} from {current_branch} to {destination_branch}',
+                old_value=f'branch: {current_branch}',
+                new_value=f'branch: {destination_branch}'
+            )
+            
+            # Redirect to transfer history
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_transfer_history')
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_officer_transfer_form.html', {
+                'error': f'Error transferring officer: {str(e)}',
+                'officer': officer,
+                'current_branch': current_branch,
+                'managed_groups': managed_groups,
+                'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+            })
+    
+    context = {
+        'officer': officer,
+        'current_branch': current_branch,
+        'managed_groups': managed_groups,
+        'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+    }
+    return render(request, 'dashboard/admin_officer_transfer_form.html', context)
+
+
+@login_required
+def admin_transfer_history(request):
+    """Admin view: Display all officer transfers with dates, reasons, affected groups"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    from clients.models import OfficerTransferLog
+    transfers = OfficerTransferLog.objects.all().order_by('-timestamp')
+    
+    # Search by officer name
+    search_query = request.GET.get('search', '')
+    if search_query:
+        transfers = transfers.filter(
+            Q(officer__first_name__icontains=search_query) |
+            Q(officer__last_name__icontains=search_query)
+        )
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        transfers = transfers.filter(timestamp__gte=start_date)
+    if end_date:
+        transfers = transfers.filter(timestamp__lte=end_date)
+    
+    # Filter by branch
+    branch_filter = request.GET.get('branch')
+    if branch_filter:
+        transfers = transfers.filter(
+            Q(previous_branch=branch_filter) | Q(new_branch=branch_filter)
+        )
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(transfers, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get branches for filter
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_obj': page_obj,
+        'transfers': page_obj.object_list,
+        'total_transfers': transfers.count(),
+        'search_query': search_query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'branch_filter': branch_filter,
+        'branches': branches,
+    }
+    
+    return render(request, 'dashboard/admin_transfer_history.html', context)
+
+
+# Admin Client Transfer Views
+
+@login_required
+def admin_client_transfer(request):
+    """Admin view: Transfer a client to a different group"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            client_id = request.POST.get('client_id')
+            destination_group_id = request.POST.get('destination_group')
+            reason = request.POST.get('reason')
+            
+            # Validate required fields
+            if not client_id or not destination_group_id or not reason:
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': 'Client, destination group, and reason are required',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get client
+            try:
+                client = User.objects.get(id=client_id, role='borrower')
+            except User.DoesNotExist:
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': 'Client not found',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get destination group
+            try:
+                dest_group = BorrowerGroup.objects.get(id=destination_group_id)
+            except BorrowerGroup.DoesNotExist:
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': 'Destination group not found',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Validate destination group is active
+            if not dest_group.is_active:
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': 'Destination group is not active',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Validate destination group is not at capacity
+            if dest_group.is_full:
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': f'Destination group is at capacity ({dest_group.member_count}/{dest_group.max_members})',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get current group membership
+            try:
+                current_membership = GroupMembership.objects.get(borrower=client, is_active=True)
+                previous_group = current_membership.group
+            except GroupMembership.DoesNotExist:
+                previous_group = None
+            
+            # Check for active loans
+            active_loans = Loan.objects.filter(borrower=client, status='active')
+            if active_loans.exists():
+                return render(request, 'dashboard/admin_client_transfer_form.html', {
+                    'error': f'Client has {active_loans.count()} active loan(s). Cannot transfer client with active loans.',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'active_loans': active_loans,
+                })
+            
+            # Deactivate current membership if exists
+            if previous_group:
+                current_membership.is_active = False
+                current_membership.save()
+            
+            # Create new membership
+            new_membership = GroupMembership.objects.create(
+                borrower=client,
+                group=dest_group,
+                is_active=True,
+                added_by=user
+            )
+            
+            # Create ClientTransferLog
+            from clients.models import ClientTransferLog
+            ClientTransferLog.objects.create(
+                client=client,
+                previous_group=previous_group,
+                new_group=dest_group,
+                reason=reason,
+                performed_by=user
+            )
+            
+            # Create AdminAuditLog
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='client_transfer',
+                affected_user=client,
+                affected_group=dest_group,
+                description=f'Transferred client {client.full_name} from {previous_group.name if previous_group else "no group"} to {dest_group.name}',
+                old_value=f'group: {previous_group.name if previous_group else "none"}',
+                new_value=f'group: {dest_group.name}'
+            )
+            
+            # Redirect to transfer history
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_client_transfer_history')
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_client_transfer_form.html', {
+                'error': f'Error transferring client: {str(e)}',
+                'clients': User.objects.filter(role='borrower'),
+                'groups': BorrowerGroup.objects.filter(is_active=True),
+            })
+    
+    context = {
+        'clients': User.objects.filter(role='borrower'),
+        'groups': BorrowerGroup.objects.filter(is_active=True),
+    }
+    return render(request, 'dashboard/admin_client_transfer_form.html', context)
+
+
+@login_required
+def admin_client_transfer_history(request):
+    """Admin view: Display all client transfers with dates, reasons, affected groups"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    from clients.models import ClientTransferLog
+    transfers = ClientTransferLog.objects.all().order_by('-timestamp')
+    
+    # Search by client name
+    search_query = request.GET.get('search', '')
+    if search_query:
+        transfers = transfers.filter(
+            Q(client__first_name__icontains=search_query) |
+            Q(client__last_name__icontains=search_query)
+        )
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        transfers = transfers.filter(timestamp__gte=start_date)
+    if end_date:
+        transfers = transfers.filter(timestamp__lte=end_date)
+    
+    # Filter by group
+    group_filter = request.GET.get('group')
+    if group_filter:
+        transfers = transfers.filter(
+            Q(previous_group_id=group_filter) | Q(new_group_id=group_filter)
+        )
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(transfers, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get groups for filter
+    groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_obj': page_obj,
+        'transfers': page_obj.object_list,
+        'total_transfers': transfers.count(),
+        'search_query': search_query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'group_filter': group_filter,
+        'groups': groups,
+    }
+    
+    return render(request, 'dashboard/admin_client_transfer_history.html', context)
+
+
+# Admin Group Assignment Override Views
+
+@login_required
+def admin_override_assignment(request):
+    """Admin view: Override or correct group assignments for clients"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method == 'POST':
+        try:
+            client_id = request.POST.get('client_id')
+            destination_group_id = request.POST.get('destination_group')
+            override_reason = request.POST.get('override_reason')
+            
+            # Validate required fields
+            if not client_id or not destination_group_id or not override_reason:
+                return render(request, 'dashboard/admin_override_assignment_form.html', {
+                    'error': 'Client, destination group, and reason are required',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get client
+            try:
+                client = User.objects.get(id=client_id, role='borrower')
+            except User.DoesNotExist:
+                return render(request, 'dashboard/admin_override_assignment_form.html', {
+                    'error': 'Client not found',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get destination group
+            try:
+                dest_group = BorrowerGroup.objects.get(id=destination_group_id)
+            except BorrowerGroup.DoesNotExist:
+                return render(request, 'dashboard/admin_override_assignment_form.html', {
+                    'error': 'Destination group not found',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Validate destination group is active
+            if not dest_group.is_active:
+                return render(request, 'dashboard/admin_override_assignment_form.html', {
+                    'error': 'Destination group is not active',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Validate destination group is not at capacity
+            if dest_group.is_full:
+                return render(request, 'dashboard/admin_override_assignment_form.html', {
+                    'error': f'Destination group is at capacity ({dest_group.member_count}/{dest_group.max_members})',
+                    'clients': User.objects.filter(role='borrower'),
+                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                })
+            
+            # Get current group membership
+            try:
+                current_membership = GroupMembership.objects.get(borrower=client, is_active=True)
+                previous_group = current_membership.group
+            except GroupMembership.DoesNotExist:
+                previous_group = None
+            
+            # Deactivate current membership if exists
+            if previous_group:
+                current_membership.is_active = False
+                current_membership.save()
+            
+            # Create new membership
+            new_membership = GroupMembership.objects.create(
+                borrower=client,
+                group=dest_group,
+                is_active=True,
+                added_by=user
+            )
+            
+            # Create AdminAuditLog with override reason
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='override_assignment',
+                affected_user=client,
+                affected_group=dest_group,
+                description=f'Overrode assignment for {client.full_name}: {previous_group.name if previous_group else "no group"} → {dest_group.name}',
+                old_value=f'group: {previous_group.name if previous_group else "none"}',
+                new_value=f'group: {dest_group.name}, reason: {override_reason}'
+            )
+            
+            # Redirect to success page
+            from django.shortcuts import redirect
+            return redirect('dashboard:admin_branches_list')
+            
+        except Exception as e:
+            return render(request, 'dashboard/admin_override_assignment_form.html', {
+                'error': f'Error overriding assignment: {str(e)}',
+                'clients': User.objects.filter(role='borrower'),
+                'groups': BorrowerGroup.objects.filter(is_active=True),
+            })
+    
+    context = {
+        'clients': User.objects.filter(role='borrower'),
+        'groups': BorrowerGroup.objects.filter(is_active=True),
+    }
+    return render(request, 'dashboard/admin_override_assignment_form.html', context)
+
+
+# Admin High-Value Loan Approval Views
+
+@login_required
+def admin_pending_approvals(request):
+    """Admin view: Display all pending high-value loans awaiting approval"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    from clients.models import LoanApprovalQueue
+    pending_loans = LoanApprovalQueue.objects.filter(status='pending').order_by('-submitted_date')
+    
+    # Search by borrower name or loan ID
+    search_query = request.GET.get('search', '')
+    if search_query:
+        pending_loans = pending_loans.filter(
+            Q(loan__borrower__first_name__icontains=search_query) |
+            Q(loan__borrower__last_name__icontains=search_query) |
+            Q(loan__id__icontains=search_query)
+        )
+    
+    # Filter by branch
+    branch_filter = request.GET.get('branch')
+    if branch_filter:
+        pending_loans = pending_loans.filter(
+            loan__loan_officer__officer_assignment__branch=branch_filter
+        )
+    
+    # Filter by amount range
+    min_amount = request.GET.get('min_amount')
+    max_amount = request.GET.get('max_amount')
+    if min_amount:
+        pending_loans = pending_loans.filter(loan__principal_amount__gte=min_amount)
+    if max_amount:
+        pending_loans = pending_loans.filter(loan__principal_amount__lte=max_amount)
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(pending_loans, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get branches for filter
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'page_obj': page_obj,
+        'pending_loans': page_obj.object_list,
+        'total_pending': pending_loans.count(),
+        'search_query': search_query,
+        'branch_filter': branch_filter,
+        'min_amount': min_amount,
+        'max_amount': max_amount,
+        'branches': branches,
+    }
+    
+    return render(request, 'dashboard/admin_pending_approvals.html', context)
+
+
+@login_required
+def admin_loan_approval_detail(request, loan_id):
+    """Admin view: Display complete loan information for approval decision"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Loan not found'})
+    
+    # Get approval queue entry
+    try:
+        from clients.models import LoanApprovalQueue
+        approval_queue = LoanApprovalQueue.objects.get(loan=loan)
+    except:
+        approval_queue = None
+    
+    # Get borrower details
+    borrower = loan.borrower
+    
+    # Get security deposit
+    try:
+        from loans.models import SecurityDeposit
+        security_deposit = SecurityDeposit.objects.get(loan=loan)
+    except:
+        security_deposit = None
+    
+    # Get group membership
+    try:
+        group_membership = GroupMembership.objects.get(borrower=borrower, is_active=True)
+        group = group_membership.group
+    except:
+        group = None
+    
+    context = {
+        'loan': loan,
+        'approval_queue': approval_queue,
+        'borrower': borrower,
+        'security_deposit': security_deposit,
+        'group': group,
+    }
+    
+    return render(request, 'dashboard/admin_loan_approval_detail.html', context)
+
+
+@login_required
+def admin_loan_approve(request, loan_id):
+    """Admin view: Approve a high-value loan"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method != 'POST':
+        return render(request, 'dashboard/access_denied.html', {'message': 'Invalid request method'})
+    
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Loan not found'})
+    
+    try:
+        from clients.models import LoanApprovalQueue, ApprovalAuditLog
         
-        groups = Group.objects.all().prefetch_related('permissions')
+        reason = request.POST.get('reason', '')
         
-        context['groups'] = groups
-        context['total_permissions'] = Permission.objects.count()
-        context['total_users_in_groups'] = User.objects.filter(groups__isnull=False).distinct().count()
-        # Count groups that have users
-        from accounts.models import User
-        active_group_count = 0
-        for group in groups:
-            if User.objects.filter(groups=group).exists():
-                active_group_count += 1
-        context['active_groups'] = active_group_count
+        # Get approval queue entry
+        approval_queue = LoanApprovalQueue.objects.get(loan=loan, status='pending')
         
-        return context
+        # Update approval queue
+        approval_queue.status = 'approved'
+        approval_queue.decided_by = user
+        approval_queue.decision_date = timezone.now()
+        approval_queue.decision_reason = reason
+        approval_queue.save()
+        
+        # Update loan status to allow disbursement
+        loan.status = 'approved'
+        loan.save()
+        
+        # Create ApprovalAuditLog
+        ApprovalAuditLog.objects.create(
+            loan=loan,
+            action='approved',
+            performed_by=user,
+            reason=reason,
+            ip_address=get_client_ip(request)
+        )
+        
+        # Create AdminAuditLog
+        AdminAuditLog.objects.create(
+            admin_user=user,
+            action='loan_approve',
+            affected_user=loan.borrower,
+            description=f'Approved high-value loan {loan.id} for K{loan.principal_amount}',
+            new_value=f'status: approved, reason: {reason}'
+        )
+        
+        # Redirect to pending approvals
+        from django.shortcuts import redirect
+        return redirect('dashboard:admin_pending_approvals')
+        
+    except Exception as e:
+        return render(request, 'dashboard/access_denied.html', {'message': f'Error approving loan: {str(e)}'})
+
+
+@login_required
+def admin_loan_reject(request, loan_id):
+    """Admin view: Reject a high-value loan"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    if request.method != 'POST':
+        return render(request, 'dashboard/access_denied.html', {'message': 'Invalid request method'})
+    
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Loan not found'})
+    
+    try:
+        from clients.models import LoanApprovalQueue, ApprovalAuditLog
+        
+        reason = request.POST.get('reason', '')
+        
+        if not reason:
+            return render(request, 'dashboard/admin_loan_approval_detail.html', {
+                'error': 'Rejection reason is required',
+                'loan': loan,
+            })
+        
+        # Get approval queue entry
+        approval_queue = LoanApprovalQueue.objects.get(loan=loan, status='pending')
+        
+        # Update approval queue
+        approval_queue.status = 'rejected'
+        approval_queue.decided_by = user
+        approval_queue.decision_date = timezone.now()
+        approval_queue.decision_reason = reason
+        approval_queue.save()
+        
+        # Update loan status to rejected
+        loan.status = 'rejected'
+        loan.save()
+        
+        # Create ApprovalAuditLog
+        ApprovalAuditLog.objects.create(
+            loan=loan,
+            action='rejected',
+            performed_by=user,
+            reason=reason,
+            ip_address=get_client_ip(request)
+        )
+        
+        # Create AdminAuditLog
+        AdminAuditLog.objects.create(
+            admin_user=user,
+            action='loan_reject',
+            affected_user=loan.borrower,
+            description=f'Rejected high-value loan {loan.id} for K{loan.principal_amount}',
+            new_value=f'status: rejected, reason: {reason}'
+        )
+        
+        # Redirect to pending approvals
+        from django.shortcuts import redirect
+        return redirect('dashboard:admin_pending_approvals')
+        
+    except Exception as e:
+        return render(request, 'dashboard/access_denied.html', {'message': f'Error rejecting loan: {str(e)}'})
+
+
+def get_client_ip(request):
+    """Get client IP address from request"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+# Admin Company-Wide Loan Viewing
+
+@login_required
+def admin_all_loans(request):
+    """Admin view: Display all loans across all branches"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    loans = Loan.objects.all().order_by('-created_at')
+    
+    # Search by borrower name or loan ID
+    search_query = request.GET.get('search', '')
+    if search_query:
+        loans = loans.filter(
+            Q(borrower__first_name__icontains=search_query) |
+            Q(borrower__last_name__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Filter by branch
+    branch_filter = request.GET.get('branch')
+    if branch_filter:
+        loans = loans.filter(loan_officer__officer_assignment__branch=branch_filter)
+    
+    # Filter by status
+    status_filter = request.GET.get('status')
+    if status_filter:
+        loans = loans.filter(status=status_filter)
+    
+    # Filter by date range
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    if start_date:
+        loans = loans.filter(created_at__gte=start_date)
+    if end_date:
+        loans = loans.filter(created_at__lte=end_date)
+    
+    # Filter by amount range
+    min_amount = request.GET.get('min_amount')
+    max_amount = request.GET.get('max_amount')
+    if min_amount:
+        loans = loans.filter(principal_amount__gte=min_amount)
+    if max_amount:
+        loans = loans.filter(principal_amount__lte=max_amount)
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(loans, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get branches and statuses for filters
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    statuses = Loan._meta.get_field('status').choices
+    
+    context = {
+        'page_obj': page_obj,
+        'loans': page_obj.object_list,
+        'total_loans': loans.count(),
+        'search_query': search_query,
+        'branch_filter': branch_filter,
+        'status_filter': status_filter,
+        'start_date': start_date,
+        'end_date': end_date,
+        'min_amount': min_amount,
+        'max_amount': max_amount,
+        'branches': branches,
+        'statuses': statuses,
+    }
+    
+    return render(request, 'dashboard/admin_all_loans.html', context)
+
+
+@login_required
+def admin_loan_detail(request, loan_id):
+    """Admin view: Display complete loan information"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        return render(request, 'dashboard/access_denied.html', {'message': 'Loan not found'})
+    
+    # Get borrower
+    borrower = loan.borrower
+    
+    # Get group membership
+    try:
+        group_membership = GroupMembership.objects.get(borrower=borrower, is_active=True)
+        group = group_membership.group
+    except:
+        group = None
+    
+    # Get collections
+    from payments.models import PaymentCollection
+    collections = PaymentCollection.objects.filter(loan=loan).order_by('-collection_date')
+    
+    total_collected = collections.aggregate(total=Sum('collected_amount'))['total'] or 0
+    
+    # Get security deposit
+    try:
+        from loans.models import SecurityDeposit
+        security_deposit = SecurityDeposit.objects.get(loan=loan)
+    except:
+        security_deposit = None
+    
+    context = {
+        'loan': loan,
+        'borrower': borrower,
+        'group': group,
+        'collections': collections,
+        'total_collected': total_collected,
+        'security_deposit': security_deposit,
+    }
+    
+    return render(request, 'dashboard/admin_loan_detail.html', context)
+
+
+@login_required
+def admin_loan_statistics(request):
+    """Admin view: Display portfolio metrics and branch comparison"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get all loans
+    all_loans = Loan.objects.all()
+    
+    # Total metrics
+    total_disbursed = all_loans.filter(
+        status__in=['active', 'completed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    active_loans = all_loans.filter(status='active').count()
+    completed_loans = all_loans.filter(status='completed').count()
+    defaulted_loans = all_loans.filter(status='defaulted').count()
+    total_loans = all_loans.count()
+    
+    # Collection metrics
+    from payments.models import PaymentCollection
+    all_collections = PaymentCollection.objects.filter(status='completed')
+    total_collected = all_collections.aggregate(total=Sum('collected_amount'))['total'] or 0
+    
+    if all_collections.exists():
+        collection_rate = (all_collections.filter(is_partial=False).count() / all_collections.count() * 100)
+    else:
+        collection_rate = 0
+    
+    # Branch performance
+    branches = Branch.objects.filter(is_active=True)
+    branch_stats = []
+    
+    for branch in branches:
+        branch_loans = all_loans.filter(
+            loan_officer__officer_assignment__branch=branch.name
+        )
+        
+        branch_disbursed = branch_loans.filter(
+            status__in=['active', 'completed']
+        ).aggregate(total=Sum('principal_amount'))['total'] or 0
+        
+        branch_active = branch_loans.filter(status='active').count()
+        branch_defaulted = branch_loans.filter(status='defaulted').count()
+        
+        branch_collections = PaymentCollection.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='completed'
+        )
+        
+        if branch_collections.exists():
+            branch_rate = (branch_collections.filter(is_partial=False).count() / branch_collections.count() * 100)
+        else:
+            branch_rate = 0
+        
+        stats = {
+            'name': branch.name,
+            'total_disbursed': branch_disbursed,
+            'active_loans': branch_active,
+            'defaulted_loans': branch_defaulted,
+            'collection_rate': round(branch_rate, 1),
+        }
+        branch_stats.append(stats)
+    
+    context = {
+        'total_disbursed': total_disbursed,
+        'active_loans': active_loans,
+        'completed_loans': completed_loans,
+        'defaulted_loans': defaulted_loans,
+        'total_loans': total_loans,
+        'total_collected': total_collected,
+        'collection_rate': round(collection_rate, 1),
+        'branch_stats': branch_stats,
+        'average_loan_amount': total_disbursed / total_loans if total_loans > 0 else 0,
+        'default_rate': (defaulted_loans / total_loans * 100) if total_loans > 0 else 0,
+        'completion_rate': (completed_loans / total_loans * 100) if total_loans > 0 else 0,
+        'outstanding_amount': total_disbursed - total_collected,
+        'collection_percentage': (total_collected / total_disbursed * 100) if total_disbursed > 0 else 0,
+    }
+    
+    return render(request, 'dashboard/admin_loan_statistics.html', context)

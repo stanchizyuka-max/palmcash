@@ -1,0 +1,431 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Upload Documents - LoanVista{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+                        <i class="fas fa-file-upload text-primary-600 mr-3"></i>
+                        Document Verification
+                    </h1>
+                    <p class="text-lg text-secondary-600">Upload your documents to verify your identity and unlock loan access</p>
+                </div>
+                <div class="hidden md:block">
+                    <div class="bg-primary-100 rounded-full p-6">
+                        <i class="fas fa-shield-alt text-primary-600 text-4xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Upload Section -->
+            <div class="lg:col-span-2">
+                <!-- Status Overview Card -->
+                <div class="bg-gradient-to-r from-info-50 to-info-100 border-2 border-info-200 rounded-2xl p-6 mb-8 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-info-900 mb-1">Verification Status</h3>
+                            <p class="text-info-700">All three documents are required before you can apply for a loan</p>
+                        </div>
+                        <div class="text-4xl font-bold text-info-600">
+                            <span id="progress-count">0</span>/3
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-secondary-100">
+                    <h3 class="text-lg font-bold text-secondary-900 mb-6 flex items-center">
+                        <i class="fas fa-tasks text-primary-600 mr-2"></i>Documents Uploaded
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- NRC Front -->
+                        <div class="text-center p-6 rounded-xl border-2 transition-all duration-200 {% if verification.nrc_front_uploaded %}bg-success-50 border-success-300{% else %}bg-secondary-50 border-secondary-200{% endif %}">
+                            <div class="mb-4 flex justify-center">
+                                {% if verification.nrc_front_uploaded %}
+                                    <div class="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check-circle text-success-600 text-3xl"></i>
+                                    </div>
+                                {% else %}
+                                    <div class="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-id-card text-secondary-400 text-3xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="font-semibold text-secondary-900">NRC Front</p>
+                            <p class="text-xs text-secondary-600 mt-1">Front side of your card</p>
+                            {% if verification.nrc_front_uploaded %}
+                            <span class="inline-block mt-3 px-3 py-1 bg-success-100 text-success-700 text-xs font-bold rounded-full">
+                                <i class="fas fa-check mr-1"></i>Uploaded
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- NRC Back -->
+                        <div class="text-center p-6 rounded-xl border-2 transition-all duration-200 {% if verification.nrc_back_uploaded %}bg-success-50 border-success-300{% else %}bg-secondary-50 border-secondary-200{% endif %}">
+                            <div class="mb-4 flex justify-center">
+                                {% if verification.nrc_back_uploaded %}
+                                    <div class="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check-circle text-success-600 text-3xl"></i>
+                                    </div>
+                                {% else %}
+                                    <div class="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-id-card text-secondary-400 text-3xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="font-semibold text-secondary-900">NRC Back</p>
+                            <p class="text-xs text-secondary-600 mt-1">Back side of your card</p>
+                            {% if verification.nrc_back_uploaded %}
+                            <span class="inline-block mt-3 px-3 py-1 bg-success-100 text-success-700 text-xs font-bold rounded-full">
+                                <i class="fas fa-check mr-1"></i>Uploaded
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Selfie -->
+                        <div class="text-center p-6 rounded-xl border-2 transition-all duration-200 {% if verification.selfie_uploaded %}bg-success-50 border-success-300{% else %}bg-secondary-50 border-secondary-200{% endif %}">
+                            <div class="mb-4 flex justify-center">
+                                {% if verification.selfie_uploaded %}
+                                    <div class="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check-circle text-success-600 text-3xl"></i>
+                                    </div>
+                                {% else %}
+                                    <div class="w-16 h-16 bg-secondary-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-camera text-secondary-400 text-3xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <p class="font-semibold text-secondary-900">Live Selfie</p>
+                            <p class="text-xs text-secondary-600 mt-1">Recent photo of yourself</p>
+                            {% if verification.selfie_uploaded %}
+                            <span class="inline-block mt-3 px-3 py-1 bg-success-100 text-success-700 text-xs font-bold rounded-full">
+                                <i class="fas fa-check mr-1"></i>Uploaded
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Form Card -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-secondary-100">
+                    <div class="bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 px-8 py-6">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="fas fa-cloud-upload-alt mr-3"></i>
+                            Upload Document
+                        </h2>
+                        <p class="text-primary-100 text-sm mt-1">Select a document type and upload your image</p>
+                    </div>
+                    <div class="p-8">
+                        <form method="post" enctype="multipart/form-data" id="uploadForm">
+                            {% csrf_token %}
+                            
+                            <!-- Document Type Selection -->
+                            <div class="mb-8">
+                                <label for="documentType" class="block text-sm font-bold text-secondary-900 mb-3">
+                                    <i class="fas fa-list text-primary-600 mr-2"></i>Select Document Type <span class="text-danger-600">*</span>
+                                </label>
+                                <select class="w-full px-4 py-3 border-2 border-secondary-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 bg-white" id="documentType" name="document_type" required>
+                                    <option value="">-- Choose a document --</option>
+                                    {% for value, label in document_types %}
+                                        <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- File Upload Area -->
+                            <div class="mb-8">
+                                <label class="block text-sm font-bold text-secondary-900 mb-3">
+                                    <i class="fas fa-image text-primary-600 mr-2"></i>Upload Image <span class="text-danger-600">*</span>
+                                </label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- File Input -->
+                                    <div class="relative">
+                                        <input type="file" class="hidden" id="imageInput" name="image" accept="image/jpeg,image/png" required>
+                                        <label for="imageInput" class="flex items-center justify-center w-full px-6 py-8 border-2 border-dashed border-primary-300 rounded-xl cursor-pointer hover:bg-primary-50 transition-colors duration-200 bg-primary-50">
+                                            <div class="text-center">
+                                                <i class="fas fa-cloud-upload-alt text-primary-600 text-3xl mb-2"></i>
+                                                <p class="text-sm font-semibold text-secondary-900">Click to upload</p>
+                                                <p class="text-xs text-secondary-600 mt-1">or drag and drop</p>
+                                                <p class="text-xs text-secondary-500 mt-2">JPG or PNG (Max 5MB)</p>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <!-- Camera Button -->
+                                    <button type="button" id="cameraBtn" class="flex items-center justify-center px-6 py-8 border-2 border-secondary-200 rounded-xl hover:bg-secondary-50 transition-colors duration-200 bg-white">
+                                        <div class="text-center">
+                                            <i class="fas fa-camera text-secondary-600 text-3xl mb-2"></i>
+                                            <p class="text-sm font-semibold text-secondary-900">Use Camera</p>
+                                            <p class="text-xs text-secondary-600 mt-1">Take a photo</p>
+                                            <p class="text-xs text-secondary-500 mt-2">with your device</p>
+                                        </div>
+                                    </button>
+                                </div>
+                                <input type="file" id="cameraInput" name="camera_image" accept="image/*" capture="environment" class="hidden">
+                            </div>
+
+                            <!-- Image Preview -->
+                            <div id="imagePreview" class="mb-8 hidden">
+                                <label class="block text-sm font-bold text-secondary-900 mb-3">
+                                    <i class="fas fa-eye text-primary-600 mr-2"></i>Preview
+                                </label>
+                                <div class="bg-secondary-50 rounded-xl p-4 border-2 border-secondary-200">
+                                    <img id="previewImg" src="" alt="Preview" class="w-full h-auto rounded-lg max-h-96 object-cover">
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="w-full px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 font-bold shadow-lg flex items-center justify-center">
+                                <i class="fas fa-upload mr-2"></i>Upload Document
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Current Documents -->
+                {% if documents %}
+                <div class="bg-white rounded-2xl shadow-xl p-8 mt-8 border border-secondary-100">
+                    <h3 class="text-lg font-bold text-secondary-900 mb-6 flex items-center">
+                        <i class="fas fa-check-circle text-success-600 mr-2"></i>Your Uploaded Documents
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {% for doc_type, doc in documents.items %}
+                        <div class="bg-gradient-to-br from-secondary-50 to-secondary-100 rounded-xl p-6 border-2 border-secondary-200">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <h4 class="font-bold text-secondary-900">{{ doc.get_document_type_display }}</h4>
+                                </div>
+                                {% if doc.status == 'approved' %}
+                                <span class="px-3 py-1 bg-success-100 text-success-700 text-xs font-bold rounded-full">
+                                    <i class="fas fa-check-circle mr-1"></i>Approved
+                                </span>
+                                {% elif doc.status == 'rejected' %}
+                                <span class="px-3 py-1 bg-danger-100 text-danger-700 text-xs font-bold rounded-full">
+                                    <i class="fas fa-times-circle mr-1"></i>Rejected
+                                </span>
+                                {% else %}
+                                <span class="px-3 py-1 bg-warning-100 text-warning-700 text-xs font-bold rounded-full">
+                                    <i class="fas fa-clock mr-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% if doc.status == 'rejected' and doc.verification_notes %}
+                            <div class="bg-danger-50 border-l-4 border-danger-500 rounded p-3 mt-4">
+                                <p class="text-xs text-danger-700"><strong>Reason:</strong> {{ doc.verification_notes }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Requirements Card -->
+                <div class="bg-gradient-to-br from-warning-50 to-warning-100 rounded-2xl shadow-xl p-6 border border-warning-200 mb-6">
+                    <h3 class="text-lg font-bold text-warning-900 mb-4 flex items-center">
+                        <i class="fas fa-clipboard-list text-warning-600 mr-2"></i>Requirements
+                    </h3>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex items-start">
+                            <i class="fas fa-id-card text-warning-600 mr-3 mt-1 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-warning-900">NRC Card - Front</p>
+                                <p class="text-warning-700 text-xs mt-1">Clear photo of the front side</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-id-card text-warning-600 mr-3 mt-1 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-warning-900">NRC Card - Back</p>
+                                <p class="text-warning-700 text-xs mt-1">Clear photo of the back side</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-camera text-warning-600 mr-3 mt-1 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-warning-900">Live Selfie</p>
+                                <p class="text-warning-700 text-xs mt-1">Recent photo of yourself</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-secondary-100 mb-6">
+                    <h3 class="text-lg font-bold text-secondary-900 mb-4 flex items-center">
+                        <i class="fas fa-lightbulb text-info-600 mr-2"></i>Tips for Success
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-success-600 mr-2 mt-1 flex-shrink-0"></i>
+                            <span class="text-secondary-700">Ensure good lighting</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-success-600 mr-2 mt-1 flex-shrink-0"></i>
+                            <span class="text-secondary-700">Keep documents in focus</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-success-600 mr-2 mt-1 flex-shrink-0"></i>
+                            <span class="text-secondary-700">Avoid glare and shadows</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-success-600 mr-2 mt-1 flex-shrink-0"></i>
+                            <span class="text-secondary-700">Use JPG or PNG format</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-success-600 mr-2 mt-1 flex-shrink-0"></i>
+                            <span class="text-secondary-700">Keep file under 5MB</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Info Card -->
+                <div class="bg-gradient-to-br from-info-50 to-info-100 rounded-2xl shadow-xl p-6 border border-info-200">
+                    <h3 class="text-lg font-bold text-info-900 mb-4 flex items-center">
+                        <i class="fas fa-shield-alt text-info-600 mr-2"></i>Your Privacy
+                    </h3>
+                    <p class="text-sm text-info-700 mb-3">Your documents are:</p>
+                    <ul class="space-y-2 text-xs text-info-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-lock text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span>Encrypted and secure</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-lock text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span>Only viewed by admins</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-lock text-info-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                            <span>Never shared with third parties</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Camera Modal -->
+<div id="cameraModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+            <h3 class="text-xl font-bold text-white flex items-center">
+                <i class="fas fa-camera mr-2"></i>Capture Photo
+            </h3>
+        </div>
+        <div class="p-6">
+            <video id="cameraVideo" width="100%" height="400" class="bg-black rounded-lg mb-6"></video>
+            <div class="flex gap-3">
+                <button type="button" id="closeCameraBtn" class="flex-1 px-4 py-3 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition-colors duration-200 font-semibold">
+                    Cancel
+                </button>
+                <button type="button" id="captureBtn" class="flex-1 px-4 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 font-semibold flex items-center justify-center">
+                    <i class="fas fa-camera mr-2"></i>Capture Photo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const imageInput = document.getElementById('imageInput');
+    const previewImg = document.getElementById('previewImg');
+    const imagePreview = document.getElementById('imagePreview');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const cameraInput = document.getElementById('cameraInput');
+    const cameraModal = document.getElementById('cameraModal');
+    const closeCameraBtn = document.getElementById('closeCameraBtn');
+    const cameraVideo = document.getElementById('cameraVideo');
+    const captureBtn = document.getElementById('captureBtn');
+    let stream = null;
+
+    // Image preview on file select
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImg.src = event.target.result;
+                imagePreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Camera button click
+    cameraBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        cameraModal.classList.remove('hidden');
+        startCamera();
+    });
+
+    // Close camera modal
+    closeCameraBtn.addEventListener('click', function() {
+        cameraModal.classList.add('hidden');
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    // Start camera
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' },
+            audio: false 
+        }).then(function(mediaStream) {
+            stream = mediaStream;
+            cameraVideo.srcObject = stream;
+        }).catch(function(err) {
+            alert('Unable to access camera: ' + err.message);
+            cameraModal.classList.add('hidden');
+        });
+    }
+
+    // Capture photo
+    captureBtn.addEventListener('click', function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = cameraVideo.videoWidth;
+        canvas.height = cameraVideo.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(cameraVideo, 0, 0);
+        
+        canvas.toBlob(function(blob) {
+            const file = new File([blob], 'camera_photo.jpg', { type: 'image/jpeg' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
+            
+            // Show preview
+            previewImg.src = canvas.toDataURL();
+            imagePreview.classList.remove('hidden');
+            
+            // Stop camera and close modal
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            cameraModal.classList.add('hidden');
+        }, 'image/jpeg', 0.95);
+    });
+
+    // Update progress count
+    function updateProgressCount() {
+        const count = document.querySelectorAll('[class*="bg-success-50"]').length;
+        document.getElementById('progress-count').textContent = count;
+    }
+    updateProgressCount();
+});
+</script>
+{% endblock %}

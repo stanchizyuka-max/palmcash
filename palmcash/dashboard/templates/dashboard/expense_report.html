@@ -1,0 +1,231 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Expense Report{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'dashboard:expense_list' %}" class="text-primary-600 hover:text-primary-700 mb-4 inline-flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Expenses
+            </a>
+            <h1 class="text-4xl font-bold text-secondary-900 mb-2">
+                <i class="fas fa-chart-bar text-primary-600 mr-3"></i>
+                Expense Report
+            </h1>
+            <p class="text-lg text-secondary-600">View expenses by category and date range</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-secondary-900 mb-4">
+                <i class="fas fa-filter text-primary-600 mr-2"></i>Filter Report
+            </h2>
+
+            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-semibold text-secondary-900 mb-2">Start Date</label>
+                    <input 
+                        type="date" 
+                        id="start_date" 
+                        name="start_date" 
+                        value="{{ start_date }}"
+                        class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                </div>
+
+                <div>
+                    <label for="end_date" class="block text-sm font-semibold text-secondary-900 mb-2">End Date</label>
+                    <input 
+                        type="date" 
+                        id="end_date" 
+                        name="end_date" 
+                        value="{{ end_date }}"
+                        class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                </div>
+
+                <div class="flex items-end">
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                    >
+                        <i class="fas fa-search mr-2"></i>Generate Report
+                    </button>
+                </div>
+
+                <div class="flex items-end">
+                    <button 
+                        type="button" 
+                        onclick="window.print()"
+                        class="w-full bg-secondary-600 hover:bg-secondary-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                    >
+                        <i class="fas fa-print mr-2"></i>Print
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-secondary-600 font-semibold">Total Expenses</p>
+                        <p class="text-3xl font-bold text-secondary-900">K{{ total_expenses|floatformat:2 }}</p>
+                    </div>
+                    <div class="bg-primary-100 rounded-full p-4">
+                        <i class="fas fa-money-bill-wave text-primary-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-secondary-600 font-semibold">Categories</p>
+                        <p class="text-3xl font-bold text-secondary-900">{{ category_totals|length }}</p>
+                    </div>
+                    <div class="bg-info-100 rounded-full p-4">
+                        <i class="fas fa-tags text-info-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-secondary-600 font-semibold">Branch</p>
+                        <p class="text-2xl font-bold text-secondary-900">{{ branch.name }}</p>
+                    </div>
+                    <div class="bg-success-100 rounded-full p-4">
+                        <i class="fas fa-building text-success-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6 border-b border-secondary-300">
+                <h2 class="text-xl font-bold text-secondary-900">
+                    <i class="fas fa-list text-primary-600 mr-2"></i>Expenses by Category
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-100 border-b border-secondary-300">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-sm font-bold text-secondary-900">Category</th>
+                            <th class="px-6 py-3 text-right text-sm font-bold text-secondary-900">Count</th>
+                            <th class="px-6 py-3 text-right text-sm font-bold text-secondary-900">Total Amount</th>
+                            <th class="px-6 py-3 text-right text-sm font-bold text-secondary-900">Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-200">
+                        {% for category, data in category_totals.items %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-200">
+                            <td class="px-6 py-4 text-sm font-semibold text-secondary-900">{{ category }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-900 text-right">{{ data.count }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-secondary-900 text-right">K{{ data.total|floatformat:2 }}</td>
+                            <td class="px-6 py-4 text-sm text-secondary-900 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <div class="w-24 bg-secondary-200 rounded-full h-2">
+                                        <div class="bg-primary-600 h-2 rounded-full" style="width: {{ data.percentage }}%"></div>
+                                    </div>
+                                    <span class="font-bold">{{ data.percentage }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-secondary-600">
+                                <i class="fas fa-inbox text-4xl text-secondary-300 mb-4"></i>
+                                <p class="text-lg">No expenses found for the selected period</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        {% if category_totals %}
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-secondary-900 mb-6">
+                <i class="fas fa-chart-pie text-primary-600 mr-2"></i>Expense Distribution
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Category Cards -->
+                <div class="space-y-4">
+                    {% for category, data in category_totals.items %}
+                    <div class="bg-secondary-50 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-secondary-900">{{ category }}</h3>
+                            <span class="text-sm font-bold text-primary-600">{{ data.percentage }}%</span>
+                        </div>
+                        <div class="w-full bg-secondary-200 rounded-full h-3">
+                            <div class="bg-primary-600 h-3 rounded-full" style="width: {{ data.percentage }}%"></div>
+                        </div>
+                        <p class="text-xs text-secondary-600 mt-2">K{{ data.total|floatformat:2 }} ({{ data.count }} items)</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="space-y-4">
+                    <div class="bg-primary-50 p-6 rounded-lg border-l-4 border-primary-600">
+                        <p class="text-sm text-primary-600 font-semibold">Total Expenses</p>
+                        <p class="text-3xl font-bold text-primary-900">K{{ total_expenses|floatformat:2 }}</p>
+                    </div>
+
+                    <div class="bg-info-50 p-6 rounded-lg border-l-4 border-info-600">
+                        <p class="text-sm text-info-600 font-semibold">Number of Categories</p>
+                        <p class="text-3xl font-bold text-info-900">{{ category_totals|length }}</p>
+                    </div>
+
+                    <div class="bg-success-50 p-6 rounded-lg border-l-4 border-success-600">
+                        <p class="text-sm text-success-600 font-semibold">Number of Expenses</p>
+                        <p class="text-3xl font-bold text-success-900">
+                            {{ total_expenses_count|default:"0" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <a href="{% url 'dashboard:expense_create' %}" class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                <div class="flex items-center">
+                    <div class="bg-primary-100 rounded-full p-4 mr-4">
+                        <i class="fas fa-plus-circle text-primary-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-secondary-900">Add Expense</h3>
+                        <p class="text-secondary-600">Record a new expense</p>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{% url 'dashboard:expense_list' %}" class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                <div class="flex items-center">
+                    <div class="bg-info-100 rounded-full p-4 mr-4">
+                        <i class="fas fa-list text-info-600 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-secondary-900">View All Expenses</h3>
+                        <p class="text-secondary-600">See all recorded expenses</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+[
+  {
+    "model": "loans.loantype",
+    "pk": 1,
+    "fields": {
+      "name": "Daily Loans",
+      "description": "Short-term daily repayment loans with 40% interest rate over 56 days",
+      "interest_rate": "40.00",
+      "max_amount": "50000.00",
+      "min_amount": "1000.00",
+      "repayment_frequency": "daily",
+      "min_term_days": 56,
+      "max_term_days": 56,
+      "min_term_weeks": null,
+      "max_term_weeks": null,
+      "max_term_months": null,
+      "min_term_months": null,
+      "is_active": true,
+      "created_at": "2026-01-04T00:00:00Z"
+    }
+  },
+  {
+    "model": "loans.loantype",
+    "pk": 2,
+    "fields": {
+      "name": "Weekly Loans",
+      "description": "Medium-term weekly repayment loans with 45% interest rate over 21 weeks",
+      "interest_rate": "45.00",
+      "max_amount": "100000.00",
+      "min_amount": "5000.00",
+      "repayment_frequency": "weekly",
+      "min_term_days": null,
+      "max_term_days": null,
+      "min_term_weeks": 21,
+      "max_term_weeks": 21,
+      "max_term_months": null,
+      "min_term_months": null,
+      "is_active": true,
+      "created_at": "2026-01-04T00:00:00Z"
+    }
+  }
+]

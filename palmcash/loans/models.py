@@ -269,7 +269,34 @@ class Loan(models.Model):
     
     def can_be_disbursed(self):
         """Check if loan can be disbursed"""
-        return self.status == 'approved' and self.upfront_payment_verified
+        # Must be approved
+        if self.status != 'approved':
+            return False
+        
+        # Security deposit must be verified
+        if not self.upfront_payment_verified:
+            return False
+        
+        # Client must have verified documents (NRC front, NRC back, selfie)
+        try:
+            from documents.models import ClientVerification
+            verification = ClientVerification.objects.get(client=self.borrower)
+            if not verification.can_apply_for_loan():
+                return False
+        except:
+            # If documents app not available or verification doesn't exist, allow
+            pass
+        
+        # High-value loans (K6,000+) need admin approval
+        if self.principal_amount >= 6000:
+            try:
+                approval_request = self.approval_request
+                if approval_request.status != 'approved':
+                    return False
+            except:
+                return False
+        
+        return True
     
     def has_paid_upfront(self):
         """Check if upfront payment has been made and verified"""
@@ -449,3 +476,253 @@ class SecurityDeposit(models.Model):
         self.verified_by = verified_by_user
         self.verification_date = timezone.now()
         self.save(update_fields=['is_verified', 'verified_by', 'verification_date', 'updated_at'])
+
+
+class SecurityTopUpRequest(models.Model):
+    """Request to add more security deposit to a loan"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    ]
+    
+    loan = models.ForeignKey(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='security_topup_requests'
+    )
+    
+    # Request details
+    requested_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text='Amount to add to security deposit'
+    )
+    reason = models.TextField(
+        help_text='Reason for security top-up request'
+    )
+    
+    # Status and approval
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='requested_topups'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_topups',
+        limit_choices_to={'role__in': ['manager', 'admin']}
+    )
+    
+    # Dates
+    requested_date = models.DateTimeField(auto_now_add=True)
+    approval_date = models.DateTimeField(null=True, blank=True)
+    completion_date = models.DateTimeField(null=True, blank=True)
+    
+    # Additional info
+    approval_notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-requested_date']
+        verbose_name = 'Security Top-Up Request'
+        verbose_name_plural = 'Security Top-Up Requests'
+    
+    def __str__(self):
+        return f"Top-up for {self.loan.application_number} - {self.requested_amount}"
+
+
+class SecurityReturnRequest(models.Model):
+    """Request to return security deposit after loan completion"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    ]
+    
+    loan = models.ForeignKey(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='security_return_requests'
+    )
+    
+    # Return details
+    return_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text='Amount to be returned'
+    )
+    reason = models.TextField(
+        help_text='Reason for security return request'
+    )
+    
+    # Status and approval
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='requested_returns'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_returns',
+        limit_choices_to={'role__in': ['manager', 'admin']}
+    )
+    
+    # Dates
+    requested_date = models.DateTimeField(auto_now_add=True)
+    approval_date = models.DateTimeField(null=True, blank=True)
+    completion_date = models.DateTimeField(null=True, blank=True)
+    
+    # Additional info
+    approval_notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-requested_date']
+        verbose_name = 'Security Return Request'
+        verbose_name_plural = 'Security Return Requests'
+    
+    def __str__(self):
+        return f"Return for {self.loan.application_number} - {self.return_amount}"
+
+
+class LoanApprovalRequest(models.Model):
+    """Track approval requests for high-value loans (K6,000+)"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    loan = models.OneToOneField(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='approval_request'
+    )
+    
+    # Approval details
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='requested_approvals'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_loans',
+        limit_choices_to={'role': 'admin'}
+    )
+    
+    # Dates
+    requested_date = models.DateTimeField(auto_now_add=True)
+    approval_date = models.DateTimeField(null=True, blank=True)
+    
+    # Additional info
+    approval_notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-requested_date']
+        verbose_name = 'Loan Approval Request'
+        verbose_name_plural = 'Loan Approval Requests'
+    
+    def __str__(self):
+        return f"Approval for {self.loan.application_number}"
+
+
+class ApprovalLog(models.Model):
+    """Log all approval actions for security deposits, top-ups, and returns"""
+    
+    APPROVAL_TYPES = [
+        ('security_deposit', 'Security Deposit'),
+        ('security_topup', 'Security Top-Up'),
+        ('security_return', 'Security Return'),
+    ]
+    
+    ACTION_CHOICES = [
+        ('approve', 'Approved'),
+        ('reject', 'Rejected'),
+    ]
+    
+    # Approval details
+    approval_type = models.CharField(
+        max_length=20,
+        choices=APPROVAL_TYPES,
+        help_text="Type of approval"
+    )
+    
+    loan = models.ForeignKey(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='approval_logs'
+    )
+    
+    manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='approval_logs'
+    )
+    
+    action = models.CharField(
+        max_length=10,
+        choices=ACTION_CHOICES,
+        help_text="Approve or Reject"
+    )
+    
+    comments = models.TextField(
+        blank=True,
+        help_text="Optional comments about the approval/rejection"
+    )
+    
+    branch = models.CharField(
+        max_length=100,
+        help_text="Branch where approval was made"
+    )
+    
+    # Timestamp
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Approval Log'
+        verbose_name_plural = 'Approval Logs'
+        indexes = [
+            models.Index(fields=['loan', '-timestamp']),
+            models.Index(fields=['manager', '-timestamp']),
+            models.Index(fields=['branch', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_approval_type_display()} - {self.get_action_display()} by {self.manager.full_name} on {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

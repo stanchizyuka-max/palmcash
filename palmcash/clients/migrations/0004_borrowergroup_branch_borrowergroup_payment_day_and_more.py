@@ -2,6 +2,7 @@
 
 import django.core.validators
 from django.db import migrations, models
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -13,8 +14,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="borrowergroup",
             name="branch",
-            field=models.CharField(
-                blank=True, help_text="Branch location for this group", max_length=100
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Branch this group belongs to",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="groups",
+                to="clients.branch"
             ),
         ),
         migrations.AddField(
@@ -24,6 +30,18 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Day of payment (e.g., Monday, Tuesday for weekly; or specific day number for daily)",
                 max_length=20,
+            ),
+        ),
+        migrations.AddField(
+            model_name="officerassignment",
+            name="branch",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Branch where this loan officer is assigned",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="loan_officers",
+                to="clients.branch"
             ),
         ),
         migrations.AlterField(

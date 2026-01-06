@@ -19,6 +19,15 @@ class RegisterView(CreateView):
         login(self.request, self.object)
         messages.success(self.request, 'Registration successful! Welcome to LoanVista.')
         
+        # Create ClientVerification record for borrowers
+        if self.object.role == 'borrower':
+            try:
+                from documents.models import ClientVerification
+                ClientVerification.objects.get_or_create(client=self.object)
+            except Exception as e:
+                # Log error but don't fail registration
+                print(f"Error creating ClientVerification: {str(e)}")
+        
         # Notify admins about new user registration
         self._notify_admins_of_registration(self.object)
         
