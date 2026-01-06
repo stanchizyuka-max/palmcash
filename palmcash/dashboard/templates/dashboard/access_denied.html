@@ -6,8 +6,12 @@
 <div class="access-denied">
     <div class="error-container">
         <h1>Access Denied</h1>
-        <p>You do not have permission to access this dashboard.</p>
-        <p>Please contact your administrator if you believe this is an error.</p>
+        {% if message %}
+            <p>{{ message }}</p>
+        {% else %}
+            <p>You do not have permission to access this dashboard.</p>
+            <p>Please contact your administrator if you believe this is an error.</p>
+        {% endif %}
         <a href="{% url 'home' %}" class="btn btn-primary">Go Home</a>
     </div>
 </div>

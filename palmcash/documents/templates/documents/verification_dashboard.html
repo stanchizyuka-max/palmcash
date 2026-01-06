@@ -69,7 +69,7 @@
                             <p class="text-muted mb-1">Completion Rate</p>
                             <h3 class="mb-0">
                                 {% if total_clients > 0 %}
-                                    {{ verified_clients|add:pending_clients|mul:100|div:total_clients|floatformat:0 }}%
+                                    {% widthratio verified_clients total_clients 100 %}%
                                 {% else %}
                                     0%
                                 {% endif %}

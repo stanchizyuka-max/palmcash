@@ -13,16 +13,32 @@ from accounts.models import User
 @login_required
 def dashboard(request):
     """Route to appropriate dashboard based on user role"""
-    if request.user.role == 'loan_officer':
+    user = request.user
+    
+    # Debug: Check if user has role
+    if not hasattr(user, 'role') or not user.role:
+        # If role is missing, try to set default role
+        if user.is_superuser:
+            user.role = 'admin'
+            user.save()
+        else:
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'Your user account does not have a role assigned. Please contact your administrator.'
+            })
+    
+    # Route based on role
+    if user.role == 'loan_officer':
         return loan_officer_dashboard(request)
-    elif request.user.role == 'manager':
+    elif user.role == 'manager':
         return manager_dashboard(request)
-    elif request.user.role == 'admin':
+    elif user.role == 'admin':
         return admin_dashboard(request)
-    elif request.user.role == 'borrower':
+    elif user.role == 'borrower':
         return borrower_dashboard(request)
     else:
-        return render(request, 'dashboard/access_denied.html')
+        return render(request, 'dashboard/access_denied.html', {
+            'message': f'Unknown role: {user.role}. Please contact your administrator.'
+        })
 
 
 @login_required
