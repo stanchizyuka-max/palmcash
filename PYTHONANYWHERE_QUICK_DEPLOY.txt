@@ -1,0 +1,73 @@
+================================================================================
+PYTHONANYWHERE QUICK DEPLOYMENT - PALM CASH
+================================================================================
+
+STEP 1: SSH INTO PYTHONANYWHERE
+ssh username@ssh.pythonanywhere.com
+
+STEP 2: NAVIGATE TO PROJECT
+cd /home/username/palmcash
+
+STEP 3: PULL LATEST CODE
+git pull origin main
+
+STEP 4: ACTIVATE VIRTUAL ENVIRONMENT
+source /home/username/.virtualenvs/palmcash/bin/activate
+
+STEP 5: INSTALL DEPENDENCIES
+pip install -r requirements.txt
+
+STEP 6: RUN MIGRATIONS
+python palmcash/manage.py migrate
+
+STEP 7: COLLECT STATIC FILES
+python palmcash/manage.py collectstatic --noinput
+
+STEP 8: RELOAD WEB APP
+Option A: Use PythonAnywhere web console to reload
+Option B: Touch WSGI file:
+touch /var/www/username_pythonanywhere_com_wsgi.py
+
+================================================================================
+VERIFICATION
+================================================================================
+
+After deployment, check:
+1. Visit https://yourdomain.pythonanywhere.com/dashboard/
+2. Verify no error messages
+3. Check that clients appear in dashboard
+4. Test document upload functionality
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If migrations fail:
+python palmcash/manage.py migrate --fake-initial
+
+If static files don't load:
+python palmcash/manage.py collectstatic --clear --noinput
+
+Check error logs:
+- PythonAnywhere web console
+- /var/log/username_pythonanywhere_com.error.log
+
+================================================================================
+RECENT CHANGES (Jan 6, 2026)
+================================================================================
+
+✓ Fixed client visibility issues
+✓ Auto-create ClientVerification on registration
+✓ Dashboard shows clients from groups and direct assignment
+✓ Fixed template errors (sum filter, context variables)
+✓ All system checks pass
+
+================================================================================
+ROLLBACK (if needed)
+================================================================================
+
+git revert HEAD
+git push origin main
+# Then repeat deployment steps
+
+================================================================================
