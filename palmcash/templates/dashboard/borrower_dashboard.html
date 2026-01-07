@@ -220,7 +220,14 @@
                     {% for approval in recent_approvals %}
                     <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg border border-secondary-200">
                         <div class="flex-1">
-                            <p class="font-medium text-secondary-900">Loan #{{ approval.loan.id }} - {{ approval.loan.loan_type.name if approval.loan.loan_type else 'Loan' }}</p>
+                            <p class="font-medium text-secondary-900">
+                                Loan #{{ approval.loan.id }} - 
+                                {% if approval.loan.loan_type %}
+                                    {{ approval.loan.loan_type.name }}
+                                {% else %}
+                                    Loan
+                                {% endif %}
+                            </p>
                             <p class="text-sm text-secondary-600 mt-1">
                                 <i class="fas fa-calendar mr-1"></i>{{ approval.requested_date|date:"M d, Y" }}
                             </p>
