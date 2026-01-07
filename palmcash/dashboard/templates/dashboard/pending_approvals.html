@@ -62,7 +62,7 @@
                         {% for approval in pending_approvals %}
                         <tr class="border-b border-secondary-100 hover:bg-secondary-50 transition-colors">
                             <td class="px-6 py-4 text-sm text-secondary-900">
-                                <a href="{% url 'admin:loans_loan_change' approval.loan.id %}" class="text-primary-600 hover:text-primary-700 font-semibold">
+                                <a href="#" onclick="alert('Loan details: {{ approval.loan.application_number }}')" class="text-primary-600 hover:text-primary-700 font-semibold">
                                     #{{ approval.loan.id }}
                                 </a>
                             </td>
