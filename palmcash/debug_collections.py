@@ -15,6 +15,7 @@ django.setup()
 from django.contrib.auth.models import User
 from payments.models import PaymentCollection
 from loans.models import Loan
+from accounts.models import User as AccountUser
 
 
 def debug_collection_details():
@@ -63,7 +64,6 @@ def debug_collection_details():
     
     # Check loan officers and their assignments
     print(f"\nLoan Officers and their loans:")
-    from accounts.models import User
     officers = User.objects.filter(role='loan_officer')
     for officer in officers:
         officer_loans = Loan.objects.filter(loan_officer=officer)
