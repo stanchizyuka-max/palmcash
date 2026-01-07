@@ -12,10 +12,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palmcash.settings')
 django.setup()
 
-from django.contrib.auth.models import User
+from accounts.models import User
 from payments.models import PaymentCollection
 from loans.models import Loan
-from accounts.models import User as AccountUser
 
 
 def debug_collection_details():
