@@ -3383,13 +3383,14 @@ def manager_document_verification(request):
     try:
         from documents.models import ClientVerification, ClientDocument
         from django.db.models import Q
+        from accounts.models import User
         
-        # Get all clients in manager's branch
-        branch_client_ids = User.objects.filter(
-            Q(assigned_officer__officer_assignment__branch=branch.name) | 
-            Q(group_memberships__group__assigned_officer__branch=branch.name),
+        # Get all clients in manager's branch (simplified query)
+        branch_clients = User.objects.filter(
             role='borrower'
-        ).values_list('id', flat=True).distinct()
+        ).distinct()
+        
+        branch_client_ids = branch_clients.values_list('id', flat=True)
         
         # Get pending document verifications
         pending_verifications = ClientVerification.objects.filter(
