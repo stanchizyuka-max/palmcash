@@ -353,7 +353,9 @@ def manager_dashboard(request):
     total_document_clients = 0
     
     try:
-        from documents.models import ClientVerification
+        from documents.models import ClientVerification, ClientDocument
+        
+        print(f"DEBUG: Branch name = {branch.name}")
         
         # For managers, get all clients in their branch
         from django.db.models import Q
@@ -363,23 +365,52 @@ def manager_dashboard(request):
             role='borrower'
         ).values_list('id', flat=True).distinct()
         
+        print(f"DEBUG: Branch client IDs count = {branch_client_ids.count()}")
+        print(f"DEBUG: Branch client IDs = {list(branch_client_ids[:10])}")  # Show first 10
+        
+        # Check if ClientVerification model exists and has data
+        all_verifications = ClientVerification.objects.all()
+        print(f"DEBUG: Total ClientVerification records = {all_verifications.count()}")
+        
+        # Check ClientDocument model
+        all_documents = ClientDocument.objects.all()
+        print(f"DEBUG: Total ClientDocument records = {all_documents.count()}")
+        
         # Get verification statistics for branch clients
         total_document_clients = ClientVerification.objects.filter(
             client_id__in=branch_client_ids
         ).count()
+        
+        print(f"DEBUG: Total document clients for branch = {total_document_clients}")
+        
+        # Check all verification statuses
+        all_statuses = ClientVerification.objects.values_list('status', flat=True).distinct()
+        print(f"DEBUG: All verification statuses = {list(all_statuses)}")
         
         verified_document_clients = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status='verified'
         ).count()
         
+        print(f"DEBUG: Verified document clients = {verified_document_clients}")
+        
         pending_document_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status__in=['documents_submitted', 'documents_rejected']
         ).count()
         
+        print(f"DEBUG: Pending document verifications = {pending_document_verifications}")
+        
+        # Also check individual documents
+        individual_docs = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids
+        ).count()
+        print(f"DEBUG: Individual documents for branch = {individual_docs}")
+        
     except Exception as e:
         print(f"Error getting document verification stats: {e}")
+        import traceback
+        traceback.print_exc()
         pass
     
     # Calculate verification rate
