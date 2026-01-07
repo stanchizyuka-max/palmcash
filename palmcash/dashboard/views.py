@@ -122,18 +122,23 @@ def loan_officer_dashboard(request):
     # Pending documents for review - get clients in officer's groups with pending documents
     from documents.models import ClientDocument
     
-    # Get all clients in officer's groups or directly assigned
-    clients_in_groups = User.objects.filter(
-        Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
-        Q(assigned_officer=officer),
-        role='borrower'
-    ).values_list('id', flat=True).distinct()
-    
-    # Get pending documents from those clients
-    pending_documents = ClientDocument.objects.filter(
-        client_id__in=clients_in_groups,
-        status='pending'
-    ).select_related('client').distinct()[:10]
+    pending_documents = []
+    try:
+        # Get all clients in officer's groups or directly assigned
+        clients_in_groups = User.objects.filter(
+            Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+            Q(assigned_officer=officer),
+            role='borrower'
+        ).values_list('id', flat=True).distinct()
+        
+        # Get pending documents from those clients
+        pending_documents = ClientDocument.objects.filter(
+            client_id__in=clients_in_groups,
+            status='pending'
+        ).select_related('client').distinct()[:10]
+    except Exception as e:
+        print(f"Error fetching pending documents: {e}")
+        pending_documents = []
     
     context = {
         'groups_count': groups.count(),
