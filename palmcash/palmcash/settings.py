@@ -18,7 +18,15 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
+env_file = BASE_DIR / '.env'
+load_dotenv(env_file)
+
+# Debug: Print what we're loading (remove in production)
+import sys
+print(f"DEBUG: BASE_DIR = {BASE_DIR}", file=sys.stderr)
+print(f"DEBUG: .env file path = {env_file}", file=sys.stderr)
+print(f"DEBUG: .env file exists = {env_file.exists()}", file=sys.stderr)
+print(f"DEBUG: DB_HOST from env = {os.environ.get('DB_HOST', 'NOT SET')}", file=sys.stderr)
 
 
 # Quick-start development settings - unsuitable for production
