@@ -23,7 +23,7 @@ class LoanListView(LoginRequiredMixin, ListView):
 
 class LoanDetailView(LoginRequiredMixin, DetailView):
     model = Loan
-    template_name = 'loans/detail_tailwind.html'
+    template_name = 'loans/detail_simple.html'
     context_object_name = 'loan'
     
     def get_queryset(self):
