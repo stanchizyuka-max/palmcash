@@ -75,7 +75,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm">
-                                <a href="{% url 'admin:loans_loanapprovalrequest_change' approval.id %}" class="text-primary-600 hover:text-primary-700 font-semibold">
+                                <a href="#" onclick="alert('Review approval for: {{ approval.loan.application_number }}')" class="text-primary-600 hover:text-primary-700 font-semibold">
                                     Review
                                 </a>
                             </td>
