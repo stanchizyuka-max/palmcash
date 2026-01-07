@@ -495,7 +495,13 @@
                                         <i class="fas fa-hourglass-half mr-1"></i>Awaiting Payment
                                     </span>
                                 </div>
-                                <p class="text-sm text-secondary-600 mb-3">{{ loan.loan_type.name if loan.loan_type else 'Loan' }}</p>
+                                <p class="text-sm text-secondary-600 mb-3">
+                                    {% if loan.loan_type %}
+                                        {{ loan.loan_type.name }}
+                                    {% else %}
+                                        Loan
+                                    {% endif %}
+                                </p>
                                 
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                     <div>
