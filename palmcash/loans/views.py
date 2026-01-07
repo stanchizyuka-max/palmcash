@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.http import HttpResponse, Http404
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
 from .models import Loan, LoanType, LoanDocument
 from .forms import LoanApplicationForm, LoanDocumentForm, DocumentVerificationForm
 
