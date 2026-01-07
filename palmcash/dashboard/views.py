@@ -347,6 +347,43 @@ def manager_dashboard(request):
     
     print(f"DEBUG: Total disbursed amount = {total_disbursed}")
     
+    # Get document verification statistics
+    pending_document_verifications = 0
+    verified_document_clients = 0
+    total_document_clients = 0
+    
+    try:
+        from documents.models import ClientVerification
+        
+        # For managers, get all clients in their branch
+        from django.db.models import Q
+        branch_client_ids = User.objects.filter(
+            Q(assigned_officer__officer_assignment__branch=branch.name) | 
+            Q(group_memberships__group__assigned_officer__branch=branch.name),
+            role='borrower'
+        ).values_list('id', flat=True).distinct()
+        
+        # Get verification statistics for branch clients
+        total_document_clients = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids
+        ).count()
+        
+        verified_document_clients = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status='verified'
+        ).count()
+        
+        pending_document_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).count()
+        
+    except Exception as e:
+        print(f"Error getting document verification stats: {e}")
+        pass
+    
+    print(f"DEBUG: Document verification stats - Total: {total_document_clients}, Verified: {verified_document_clients}, Pending: {pending_document_verifications}")
+    
     context = {
         'branch': branch,
         'officers_count': officers.count(),
@@ -366,6 +403,9 @@ def manager_dashboard(request):
         'total_deposits': total_deposits,
         'total_funds': total_transfers + total_deposits,
         'total_disbursed': total_disbursed,
+        'pending_document_verifications': pending_document_verifications,
+        'verified_document_clients': verified_document_clients,
+        'total_document_clients': total_document_clients,
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
@@ -3251,3 +3291,83 @@ def analytics(request):
         return render(request, 'dashboard/access_denied.html')
     
     return render(request, 'dashboard/analytics.html')
+
+
+@login_required
+def manager_document_verification(request):
+    """Manager-specific document verification dashboard"""
+    user = request.user
+    
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get manager's branch
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch. Please contact your administrator.'
+            })
+    except:
+        return render(request, 'dashboard/access_denied.html', {
+            'message': 'You have not been assigned to a branch. Please contact your administrator.'
+        })
+    
+    try:
+        from documents.models import ClientVerification, ClientDocument
+        from django.db.models import Q
+        
+        # Get all clients in manager's branch
+        branch_client_ids = User.objects.filter(
+            Q(assigned_officer__officer_assignment__branch=branch.name) | 
+            Q(group_memberships__group__assigned_officer__branch=branch.name),
+            role='borrower'
+        ).values_list('id', flat=True).distinct()
+        
+        # Get pending document verifications
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get recently verified documents
+        recent_verifications = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='approved'
+        ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
+        
+        # Get statistics
+        total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+        verified_clients = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status='verified'
+        ).count()
+        pending_count = pending_verifications.count()
+        
+        # Get documents needing review
+        documents_needing_review = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='pending'
+        ).select_related('client').order_by('-uploaded_at')
+        
+    except Exception as e:
+        print(f"Error in manager document verification: {e}")
+        pending_verifications = []
+        recent_verifications = []
+        documents_needing_review = []
+        total_clients = 0
+        verified_clients = 0
+        pending_count = 0
+    
+    context = {
+        'branch': branch,
+        'pending_verifications': pending_verifications,
+        'recent_verifications': recent_verifications,
+        'documents_needing_review': documents_needing_review,
+        'total_clients': total_clients,
+        'verified_clients': verified_clients,
+        'pending_count': pending_count,
+        'verification_rate': round((verified_clients / total_clients * 100) if total_clients > 0 else 0, 1),
+    }
+    
+    return render(request, 'dashboard/manager_document_verification.html', context)

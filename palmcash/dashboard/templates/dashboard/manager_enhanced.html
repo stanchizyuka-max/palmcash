@@ -193,6 +193,93 @@
             </div>
         </div>
 
+        <!-- Document Verification -->
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-slate-900 flex items-center">
+                    <i class="fas fa-file-check text-teal-600 mr-3"></i>
+                    Document Verification
+                </h3>
+                <a href="{% url 'dashboard:manager_document_verification' %}" class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-semibold">
+                    <i class="fas fa-eye mr-2"></i>Manage Documents
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Total Clients -->
+                <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-700 text-xs font-semibold uppercase mb-1">Total Clients</p>
+                            <p class="text-2xl font-bold text-slate-900">{{ total_document_clients|default:0 }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-slate-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Verified Clients -->
+                <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-700 text-xs font-semibold uppercase mb-1">Verified</p>
+                            <p class="text-2xl font-bold text-green-900">{{ verified_document_clients|default:0 }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pending Verifications -->
+                <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-orange-700 text-xs font-semibold uppercase mb-1">Pending Review</p>
+                            <p class="text-2xl font-bold text-orange-900">{{ pending_document_verifications|default:0 }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-orange-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Verification Rate -->
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-700 text-xs font-semibold uppercase mb-1">Verification Rate</p>
+                            <p class="text-2xl font-bold text-blue-900">
+                                {% if total_document_clients > 0 %}
+                                    {{ verified_document_clients|mul:100|div:total_document_clients|floatformat:1 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if pending_document_verifications > 0 %}
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-amber-600 mr-3"></i>
+                    <p class="text-amber-800 font-semibold">
+                        You have <span class="text-2xl">{{ pending_document_verifications }}</span> document{{ pending_document_verifications|pluralize:" verification, verifications" }} pending review.
+                    </p>
+                    <a href="{% url 'dashboard:manager_document_verification' %}" class="ml-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold">
+                        Review Now
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Expenses and Funds -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <!-- Expenses -->
