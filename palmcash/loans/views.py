@@ -66,7 +66,7 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
         if request.user.role == 'borrower':
             outstanding_loans = Loan.objects.filter(
                 borrower=request.user,
-                status__in=['active', 'approved', 'disbursed']
+                status__in=['pending', 'active', 'approved', 'disbursed']
             )
             
             if outstanding_loans.exists():
@@ -102,7 +102,7 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
             context['user_loans'] = Loan.objects.filter(borrower=self.request.user)
             context['completed_loans'] = context['user_loans'].filter(status='completed').count()
             context['can_apply'] = not context['user_loans'].filter(
-                status__in=['active', 'approved', 'disbursed']
+                status__in=['pending', 'active', 'approved', 'disbursed']
             ).exists()
             
             # Check document verification status
@@ -127,7 +127,7 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
         if self.request.user.role == 'borrower':
             outstanding_loans = Loan.objects.filter(
                 borrower=self.request.user,
-                status__in=['active', 'approved', 'disbursed']
+                status__in=['pending', 'active', 'approved', 'disbursed']
             )
             
             if outstanding_loans.exists():

@@ -217,29 +217,31 @@
             <div class="p-6">
                 {% if recent_approvals %}
                 <div class="space-y-3">
-                    {% for approval in recent_approvals %}
+                    {% for loan in recent_approvals %}
                     <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg border border-secondary-200">
                         <div class="flex-1">
                             <p class="font-medium text-secondary-900">
-                                Loan #{{ approval.loan.id }} - 
-                                {% if approval.loan.loan_type %}
-                                    {{ approval.loan.loan_type.name }}
+                                Loan #{{ loan.id }} - 
+                                {% if loan.loan_type %}
+                                    {{ loan.loan_type.name }}
                                 {% else %}
                                     Loan
                                 {% endif %}
                             </p>
                             <p class="text-sm text-secondary-600 mt-1">
-                                <i class="fas fa-calendar mr-1"></i>{{ approval.requested_date|date:"M d, Y" }}
+                                <i class="fas fa-calendar mr-1"></i>{{ loan.application_date|date:"M d, Y" }}
                             </p>
                         </div>
                         <div class="text-right">
-                            <p class="font-bold text-secondary-900">K{{ approval.loan.principal_amount|floatformat:2 }}</p>
+                            <p class="font-bold text-secondary-900">K{{ loan.principal_amount|floatformat:2 }}</p>
                             <span class="inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium
-                                {% if approval.status == 'pending' %}bg-warning-100 text-warning-800
-                                {% elif approval.status == 'approved' %}bg-success-100 text-success-800
-                                {% elif approval.status == 'rejected' %}bg-danger-100 text-danger-800
+                                {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+                                {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+                                {% elif loan.status == 'active' %}bg-info-100 text-info-800
+                                {% elif loan.status == 'completed' %}bg-secondary-100 text-secondary-800
+                                {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
                                 {% endif %}">
-                                {{ approval.get_status_display }}
+                                {{ loan.get_status_display }}
                             </span>
                         </div>
                     </div>

@@ -5,7 +5,7 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import date, timedelta
 
-from loans.models import Loan, LoanApprovalRequest
+from loans.models import Loan, LoanApprovalRequest, LoanType
 from payments.models import PaymentCollection, DefaultProvision
 from clients.models import BorrowerGroup, Branch, AdminAuditLog
 from accounts.models import User
@@ -518,11 +518,11 @@ def borrower_dashboard(request):
         total=Sum('principal_amount')
     )['total'] or 0
     
-    # Get recent loan activity
-    from loans.models import LoanApprovalRequest
-    recent_approvals = LoanApprovalRequest.objects.filter(
-        loan__borrower=borrower
-    ).order_by('-requested_date')[:5]
+    # Get recent loan activity (actual loans, not approval requests)
+    recent_approvals = loans.order_by('-application_date')[:5]
+    
+    # Get available loan types
+    available_loan_types = LoanType.objects.filter(is_active=True)
     
     context = {
         'total_loans': loans.count(),
@@ -545,6 +545,7 @@ def borrower_dashboard(request):
         'loan_status_summary': loan_status_summary,
         'outstanding_balance': outstanding_balance,
         'recent_approvals': recent_approvals,
+        'available_loan_types': available_loan_types,
     }
     
     return render(request, 'dashboard/borrower_dashboard.html', context)
