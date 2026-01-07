@@ -42,7 +42,7 @@ class Branch(models.Model):
     def loan_officer_count(self):
         """Get number of loan officers in this branch"""
         return OfficerAssignment.objects.filter(
-            branch=self,
+            branch=self.name,
             officer__is_active=True
         ).count()
     
@@ -67,12 +67,9 @@ class BorrowerGroup(models.Model):
     description = models.TextField(blank=True)
     
     # Branch assignment
-    branch = models.ForeignKey(
-        Branch,
-        on_delete=models.SET_NULL,
-        null=True,
+    branch = models.CharField(
+        max_length=100,
         blank=True,
-        related_name='groups',
         help_text='Branch this group belongs to'
     )
     
@@ -233,12 +230,9 @@ class OfficerAssignment(models.Model):
     )
     
     # Branch assignment
-    branch = models.ForeignKey(
-        Branch,
-        on_delete=models.SET_NULL,
-        null=True,
+    branch = models.CharField(
+        max_length=100,
         blank=True,
-        related_name='assigned_officers',
         help_text='Branch where this loan officer is assigned'
     )
     
