@@ -545,7 +545,7 @@ def collection_details(request):
 
 @login_required
 def pending_approvals(request):
-    """Pending Approvals View - Shows loans awaiting approval"""
+    """Pending Approvals View - Shows loans awaiting approval and security deposits"""
     user = request.user
     
     if user.role == 'manager':
@@ -554,28 +554,45 @@ def pending_approvals(request):
         if not branch:
             return render(request, 'dashboard/access_denied.html')
         
-        pending = LoanApprovalRequest.objects.filter(
+        # Get pending loan approvals
+        pending_loans = LoanApprovalRequest.objects.filter(
             status='pending',
             loan__loan_officer__officer_assignment__branch=branch.name
         ).order_by('-requested_date')
+        
+        # Get pending security deposits
+        from loans.models import SecurityDeposit
+        pending_deposits = SecurityDeposit.objects.filter(
+            is_verified=False,
+            loan__loan_officer__officer_assignment__branch=branch.name
+        ).order_by('-payment_date')
+        
     elif user.role == 'admin':
         # Admin sees all pending approvals
-        pending = LoanApprovalRequest.objects.filter(
+        pending_loans = LoanApprovalRequest.objects.filter(
             status='pending'
         ).order_by('-requested_date')
+        
+        # Get all pending security deposits
+        from loans.models import SecurityDeposit
+        pending_deposits = SecurityDeposit.objects.filter(
+            is_verified=False
+        ).order_by('-payment_date')
     else:
         return render(request, 'dashboard/access_denied.html')
     
     # Pagination
     from django.core.paginator import Paginator
-    paginator = Paginator(pending, 50)
+    paginator = Paginator(pending_loans, 50)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
         'pending_approvals': page_obj.object_list,
-        'total_pending': pending.count(),
+        'pending_deposits': pending_deposits,
+        'total_pending': pending_loans.count(),
+        'total_deposits': pending_deposits.count(),
     }
     
     return render(request, 'dashboard/pending_approvals.html', context)
@@ -608,9 +625,19 @@ def manage_officers(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
+    # Get officer assignments for display
+    from clients.models import OfficerAssignment
+    officer_assignments = {}
+    for officer in page_obj.object_list:
+        try:
+            officer_assignments[officer.id] = OfficerAssignment.objects.get(officer=officer)
+        except OfficerAssignment.DoesNotExist:
+            officer_assignments[officer.id] = None
+    
     context = {
         'page_obj': page_obj,
         'officers': page_obj.object_list,
+        'officer_assignments': officer_assignments,
         'total_officers': officers.count(),
     }
     
