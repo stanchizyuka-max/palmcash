@@ -250,13 +250,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-blue-700 text-xs font-semibold uppercase mb-1">Verification Rate</p>
-                            <p class="text-2xl font-bold text-blue-900">
-                                {% if total_document_clients > 0 %}
-                                    {{ verified_document_clients|mul:100|div:total_document_clients|floatformat:1 }}%
-                                {% else %}
-                                    0%
-                                {% endif %}
-                            </p>
+                            <p class="text-2xl font-bold text-blue-900">{{ verification_rate|default:0 }}%</p>
                         </div>
                         <div class="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
                             <i class="fas fa-chart-line text-blue-600"></i>

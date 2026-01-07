@@ -382,7 +382,12 @@ def manager_dashboard(request):
         print(f"Error getting document verification stats: {e}")
         pass
     
-    print(f"DEBUG: Document verification stats - Total: {total_document_clients}, Verified: {verified_document_clients}, Pending: {pending_document_verifications}")
+    # Calculate verification rate
+    verification_rate = 0
+    if total_document_clients > 0:
+        verification_rate = round((verified_document_clients / total_document_clients) * 100, 1)
+    
+    print(f"DEBUG: Document verification stats - Total: {total_document_clients}, Verified: {verified_document_clients}, Pending: {pending_document_verifications}, Rate: {verification_rate}%")
     
     context = {
         'branch': branch,
@@ -406,6 +411,7 @@ def manager_dashboard(request):
         'pending_document_verifications': pending_document_verifications,
         'verified_document_clients': verified_document_clients,
         'total_document_clients': total_document_clients,
+        'verification_rate': verification_rate,
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
