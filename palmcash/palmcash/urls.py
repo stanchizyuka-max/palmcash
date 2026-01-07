@@ -23,14 +23,14 @@ from common.admin import custom_admin_site
 
 def redirect_to_dashboard(request):
     if request.user.is_authenticated:
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard')
     else:
         return redirect('accounts:login')
 
 def home_view(request):
     """Simple home page view"""
     if request.user.is_authenticated:
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard')
     return render(request, 'home_tailwind.html')
 
 urlpatterns = [

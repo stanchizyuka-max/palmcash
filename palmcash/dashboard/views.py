@@ -378,27 +378,34 @@ def admin_dashboard(request):
     defaulted_pct = (defaulted_loans / total_loans * 100) if total_loans > 0 else 0
     
     context = {
-        'branches_count': branches.count(),
-        'officers_count': officers.count(),
-        'active_officers_count': officers.filter(is_active=True).count(),
-        'clients_count': clients.count(),
-        'active_loans_count': active_loans,
-        'total_disbursed': total_disbursed,
-        'system_collection_rate': round(system_collection_rate, 1),
-        'pending_approvals_count': pending_approvals.count(),
-        'approved_this_week': approved_this_week.count(),
-        'branch_stats': branch_stats,
+        'total_users': User.objects.count(),
+        'active_users': User.objects.filter(is_active=True).count(),
+        'total_borrowers': clients.count(),
+        'total_officers': officers.count(),
+        'total_managers': User.objects.filter(role='manager').count(),
         'total_loans': total_loans,
         'active_loans': active_loans,
         'completed_loans': completed_loans,
         'defaulted_loans': defaulted_loans,
+        'pending_documents': 0,  # Will be calculated from ClientDocument
+        'total_disbursed': total_disbursed,
+        'total_repaid': 0,  # Will be calculated from PaymentCollection
+        'overdue_count': 0,  # Will be calculated from PaymentSchedule
+        'monthly_signups': 0,  # Will be calculated
+        'monthly_applications': 0,  # Will be calculated
         'active_pct': round(active_pct, 1),
         'completed_pct': round(completed_pct, 1),
         'defaulted_pct': round(defaulted_pct, 1),
-        'transfers_this_month': 0,  # Will be calculated from OfficerTransferLog
-        'client_transfers_this_month': 0,  # Will be calculated from ClientTransferLog
-        'pending_overrides': 0,  # Will be calculated from pending assignments
+        'system_collection_rate': round(system_collection_rate, 1),
+        'pending_approvals_count': pending_approvals.count(),
+        'approved_this_week': approved_this_week.count(),
+        'branch_stats': branch_stats,
+        'transfers_this_month': 0,
+        'client_transfers_this_month': 0,
+        'pending_overrides': 0,
         'default_rate': round(defaulted_pct, 1),
+        'recent_users': User.objects.all().order_by('-date_joined')[:5],
+        'recent_loans': Loan.objects.all().order_by('-application_date')[:5],
     }
     
     # Add transfer counts from audit logs
@@ -419,7 +426,7 @@ def admin_dashboard(request):
     except:
         pass
     
-    return render(request, 'dashboard/admin_new.html', context)
+    return render(request, 'dashboard/admin_dashboard.html', context)
 
 
 @login_required
@@ -1897,123 +1904,50 @@ def admin_officers_list(request):
 
 
 @login_required
-def admin_officer_transfer(request, officer_id):
+def admin_officer_transfer(request):
     """Admin view: Transfer a loan officer to a different branch"""
     user = request.user
     
     if user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
     
-    try:
-        officer = User.objects.get(id=officer_id, role='loan_officer')
-    except User.DoesNotExist:
-        return render(request, 'dashboard/access_denied.html', {'message': 'Officer not found'})
-    
-    # Get current assignment
-    try:
-        assignment = officer.officer_assignment
-        current_branch = assignment.branch
-    except:
-        current_branch = ''
-    
-    # Get groups managed by this officer
-    managed_groups = BorrowerGroup.objects.filter(assigned_officer=officer)
+    # Get officer_id from query string if provided
+    selected_officer_id = request.GET.get('officer_id')
+    selected_officer = None
+    if selected_officer_id:
+        try:
+            selected_officer = User.objects.get(id=selected_officer_id, role='loan_officer')
+        except User.DoesNotExist:
+            pass
     
     if request.method == 'POST':
+        officer_id = request.POST.get('officer_id')
+        new_branch = request.POST.get('new_branch')
+        reason = request.POST.get('reason')
+        
         try:
-            destination_branch = request.POST.get('destination_branch')
-            reason = request.POST.get('reason')
+            officer = User.objects.get(id=officer_id, role='loan_officer')
+            # Update officer's branch assignment
+            if hasattr(officer, 'officer_assignment'):
+                officer.officer_assignment.branch = new_branch
+                officer.officer_assignment.save()
             
-            # Validate required fields
-            if not destination_branch or not reason:
-                return render(request, 'dashboard/admin_officer_transfer_form.html', {
-                    'error': 'Destination branch and reason are required',
-                    'officer': officer,
-                    'current_branch': current_branch,
-                    'managed_groups': managed_groups,
-                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
-                })
-            
-            # Validate destination branch exists
-            try:
-                dest_branch_obj = Branch.objects.get(name=destination_branch)
-            except Branch.DoesNotExist:
-                return render(request, 'dashboard/admin_officer_transfer_form.html', {
-                    'error': 'Invalid destination branch',
-                    'officer': officer,
-                    'current_branch': current_branch,
-                    'managed_groups': managed_groups,
-                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
-                })
-            
-            # Check for pending approvals or active loans
-            pending_loans = Loan.objects.filter(
-                loan_officer=officer,
-                status__in=['pending', 'approved']
-            )
-            
-            if pending_loans.exists():
-                return render(request, 'dashboard/admin_officer_transfer_form.html', {
-                    'error': f'Officer has {pending_loans.count()} pending/approved loans. Please resolve these before transferring.',
-                    'officer': officer,
-                    'current_branch': current_branch,
-                    'managed_groups': managed_groups,
-                    'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
-                    'pending_loans': pending_loans,
-                })
-            
-            # Get list of group IDs being transferred
-            transferred_group_ids = [g.id for g in managed_groups]
-            
-            # Update officer assignment
-            assignment.branch = destination_branch
-            assignment.save()
-            
-            # Update all groups to new branch
-            managed_groups.update(branch=destination_branch)
-            
-            # Create OfficerTransferLog
-            from clients.models import OfficerTransferLog
-            OfficerTransferLog.objects.create(
-                officer=officer,
-                previous_branch=current_branch,
-                new_branch=destination_branch,
-                transferred_groups=transferred_group_ids,
-                reason=reason,
-                performed_by=user
-            )
-            
-            # Create AdminAuditLog
-            AdminAuditLog.objects.create(
-                admin_user=user,
-                action='officer_transfer',
-                affected_user=officer,
-                affected_branch=dest_branch_obj,
-                description=f'Transferred officer {officer.full_name} from {current_branch} to {destination_branch}',
-                old_value=f'branch: {current_branch}',
-                new_value=f'branch: {destination_branch}'
-            )
-            
-            # Redirect to transfer history
-            from django.shortcuts import redirect
-            return redirect('dashboard:admin_transfer_history')
-            
-        except Exception as e:
-            return render(request, 'dashboard/admin_officer_transfer_form.html', {
-                'error': f'Error transferring officer: {str(e)}',
-                'officer': officer,
-                'current_branch': current_branch,
-                'managed_groups': managed_groups,
-                'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
-            })
+            messages.success(request, f'{officer.full_name} has been transferred to {new_branch}')
+        except User.DoesNotExist:
+            messages.error(request, 'Officer not found')
+        
+        return redirect('dashboard:admin_officers_list')
+    
+    officers = User.objects.filter(role='loan_officer')
+    branches = Branch.objects.all()
     
     context = {
-        'officer': officer,
-        'current_branch': current_branch,
-        'managed_groups': managed_groups,
-        'branches': Branch.objects.filter(is_active=True).exclude(name=current_branch),
+        'officers': officers,
+        'branches': branches,
+        'selected_officer': selected_officer,
     }
-    return render(request, 'dashboard/admin_officer_transfer_form.html', context)
+    
+    return render(request, 'dashboard/admin/officer_transfer.html', context)
 
 
 @login_required
@@ -2820,3 +2754,31 @@ def admin_loan_statistics(request):
     }
     
     return render(request, 'dashboard/admin_loan_statistics.html', context)
+
+
+
+@login_required
+def groups_permissions(request):
+    """Groups and Permissions Management"""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    return render(request, 'dashboard/admin/groups_permissions.html')
+
+
+@login_required
+def system_reports(request):
+    """System Reports View"""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    return render(request, 'dashboard/admin/system_reports.html')
+
+
+@login_required
+def analytics(request):
+    """Analytics Dashboard"""
+    if request.user.role not in ['admin', 'manager']:
+        return render(request, 'dashboard/access_denied.html')
+    
+    return render(request, 'dashboard/analytics.html')

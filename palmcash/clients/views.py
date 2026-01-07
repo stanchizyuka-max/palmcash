@@ -23,7 +23,7 @@ class GroupListView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'Only staff members can access group management.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -54,7 +54,7 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'Only staff members can access group management.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -258,7 +258,7 @@ class OfficerWorkloadView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'Only admins and managers can view officer workload.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -349,7 +349,7 @@ class BorrowerListView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'Only staff members can access borrower management.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -390,7 +390,7 @@ class AssignClientToOfficerView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'Only admins and managers can assign clients.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, client_id):
@@ -464,7 +464,7 @@ class UnassignClientFromOfficerView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin']:
             messages.error(request, 'Only admins can unassign clients.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, client_id):
@@ -508,14 +508,14 @@ class OfficerClientsListView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'Only staff members can access client management.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         
         # Loan officers can only view their own clients
         if request.user.role == 'loan_officer':
             officer_id = kwargs.get('officer_id')
             if int(officer_id) != request.user.id:
                 messages.error(request, 'You can only view your own assigned clients.')
-                return redirect('dashboard:home')
+                return redirect('dashboard:dashboard')
         
         return super().dispatch(request, *args, **kwargs)
     
@@ -606,7 +606,7 @@ class OfficerWorkloadDetailView(LoginRequiredMixin, DetailView):
         
         if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'Only admins and managers can view officer workload.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -669,7 +669,7 @@ class UpdateOfficerCapacityView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin']:
             messages.error(request, 'Only admins can update officer capacity.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, officer_id):
@@ -734,7 +734,7 @@ class VerifyClientView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'You do not have permission to verify clients.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         
         # Loan officers can only verify their assigned clients
         if request.user.role == 'loan_officer':
@@ -787,7 +787,7 @@ class RejectClientVerificationView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'You do not have permission to reject client verification.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         
         # Loan officers can only reject verification for their assigned clients
         if request.user.role == 'loan_officer':
@@ -840,7 +840,7 @@ class UserVerificationManagementView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'You do not have permission to access user verification management.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         
         return super().dispatch(request, *args, **kwargs)
     

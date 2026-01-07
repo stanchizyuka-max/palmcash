@@ -92,7 +92,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             {% if officer.role == 'loan_officer' %}
-                                <a href="{% url 'dashboard:admin_officer_transfer' officer.id %}" class="text-blue-600 hover:text-blue-900">Transfer</a>
+                                <a href="{% url 'dashboard:admin_officer_transfer' %}?officer_id={{ officer.id }}" class="text-blue-600 hover:text-blue-900">Transfer</a>
                             {% endif %}
                         </td>
                     </tr>

@@ -4,9 +4,8 @@ from . import views
 app_name = 'dashboard'
 
 urlpatterns = [
+    # Main dashboard routes
     path('', views.dashboard, name='dashboard'),
-    path('', views.dashboard, name='home'),  # Alias for 'home'
-    path('', views.dashboard, name='list'),  # Alias for 'list'
     path('loan-officer/', views.loan_officer_dashboard, name='loan_officer_dashboard'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('admin/', views.admin_dashboard, name='admin_dashboard'),
@@ -40,14 +39,14 @@ urlpatterns = [
     
     # Admin Branch Management URLs
     path('admin/branches/', views.admin_branches_list, name='admin_branches_list'),
-    path('admin/branches/<int:branch_id>/', views.admin_branch_detail, name='admin_branch_detail'),
     path('admin/branches/create/', views.admin_branch_create, name='admin_branch_create'),
+    path('admin/branches/<int:branch_id>/', views.admin_branch_detail, name='admin_branch_detail'),
     path('admin/branches/<int:branch_id>/edit/', views.admin_branch_edit, name='admin_branch_edit'),
     path('admin/branches/<int:branch_id>/deactivate/', views.admin_branch_deactivate, name='admin_branch_deactivate'),
     
-    # Admin Officer Transfer URLs
+    # Admin Officer Management URLs
     path('admin/officers/', views.admin_officers_list, name='admin_officers_list'),
-    path('admin/officers/<int:officer_id>/transfer/', views.admin_officer_transfer, name='admin_officer_transfer'),
+    path('admin/officers/transfer/', views.admin_officer_transfer, name='admin_officer_transfer'),
     path('admin/transfers/history/', views.admin_transfer_history, name='admin_transfer_history'),
     
     # Admin Client Transfer URLs
@@ -67,4 +66,10 @@ urlpatterns = [
     path('admin/loans/', views.admin_all_loans, name='admin_all_loans'),
     path('admin/loans/<int:loan_id>/', views.admin_loan_detail, name='admin_loan_detail'),
     path('admin/loans/statistics/', views.admin_loan_statistics, name='admin_loan_statistics'),
+    
+    # Admin Management URLs (aliases for dashboard links)
+    path('manage-loans/', views.admin_all_loans, name='manage_loans'),
+    path('groups-permissions/', views.groups_permissions, name='groups_permissions'),
+    path('system-reports/', views.system_reports, name='system_reports'),
+    path('analytics/', views.analytics, name='analytics'),
 ]

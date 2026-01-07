@@ -12,7 +12,7 @@ class RegisterView(CreateView):
     model = User
     form_class = UserRegistrationForm
     template_name = 'accounts/register.html'
-    success_url = reverse_lazy('dashboard:home')
+    success_url = reverse_lazy('dashboard:dashboard')
     
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -144,7 +144,7 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage users.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -192,7 +192,7 @@ class UserEditView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to edit users.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -263,7 +263,7 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['admin', 'manager', 'loan_officer'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to view user details.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         
         # Loan officers can only view clients assigned to them
         if request.user.role == 'loan_officer':
@@ -271,7 +271,7 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
             user_to_view = User.objects.get(pk=user_id)
             if user_to_view.assigned_officer != request.user:
                 messages.error(request, 'You can only view clients assigned to you.')
-                return redirect('dashboard:home')
+                return redirect('dashboard:dashboard')
         
         return super().dispatch(request, *args, **kwargs)
     

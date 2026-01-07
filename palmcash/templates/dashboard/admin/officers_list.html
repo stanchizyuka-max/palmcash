@@ -1,0 +1,145 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}View Officers - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-secondary-900">Loan Officers & Managers</h1>
+                <p class="text-secondary-600 mt-2">View all loan officers and branch managers in the company</p>
+            </div>
+            <a href="{% url 'dashboard:admin_officer_transfer' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
+                <i class="fas fa-exchange-alt"></i>
+                Transfer Officer
+            </a>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Officers</p>
+                        <p class="text-3xl font-bold text-primary-600 mt-2">{{ total_officers }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-tie text-primary-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Branch Managers</p>
+                        <p class="text-3xl font-bold text-success-600 mt-2">{{ total_managers }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users-cog text-success-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-secondary-600 text-sm font-medium">Total Staff</p>
+                        <p class="text-3xl font-bold text-info-600 mt-2">{{ officers.count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-info-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Officers Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 overflow-hidden">
+            <div class="p-6 border-b border-secondary-100">
+                <h3 class="text-lg font-semibold text-secondary-900">All Officers & Managers</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-secondary-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Joined</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-secondary-200">
+                        {% for officer in officers %}
+                        <tr class="hover:bg-secondary-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-primary-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="font-medium text-secondary-900">{{ officer.full_name }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-600">
+                                {{ officer.email }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if officer.role == 'manager' %}bg-success-100 text-success-800
+                                    {% else %}bg-info-100 text-info-800{% endif %}">
+                                    {{ officer.get_role_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if officer.is_active %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Active
+                                </span>
+                                {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">
+                                    <i class="fas fa-times-circle mr-1"></i>Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                                {{ officer.date_joined|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <form method="GET" action="{% url 'dashboard:admin_officer_transfer' %}" class="inline">
+                                    <input type="hidden" name="officer_id" value="{{ officer.id }}">
+                                    <button type="submit" class="text-primary-600 hover:text-primary-800 font-medium">
+                                        <i class="fas fa-exchange-alt mr-1"></i>Transfer
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-secondary-500">
+                                <i class="fas fa-inbox text-4xl mb-4 text-secondary-300"></i>
+                                <p>No officers found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-8">
+            <a href="{% url 'dashboard:admin_dashboard' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

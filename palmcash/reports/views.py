@@ -23,7 +23,7 @@ class ReportListView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access system reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -99,7 +99,7 @@ class MonthlyCollectionTrendView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access system reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -258,7 +258,7 @@ class SystemStatisticsView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access system reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -326,7 +326,7 @@ class LoanReportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access system reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -378,7 +378,7 @@ class LoanExportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -391,7 +391,7 @@ class PaymentReportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access system reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -438,7 +438,7 @@ class PaymentExportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -451,7 +451,7 @@ class FinancialReportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -510,5 +510,5 @@ class FinancialExportView(LoginRequiredMixin, TemplateView):
             from django.contrib import messages
             from django.shortcuts import redirect
             messages.error(request, 'You do not have permission to access reports.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)

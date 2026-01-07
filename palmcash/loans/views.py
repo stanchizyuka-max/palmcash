@@ -104,6 +104,14 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
                 client=self.request.user,
                 status='approved'
             ).exists()
+            
+            # Pre-select loan type if provided in URL
+            loan_type_id = self.request.GET.get('loan_type')
+            if loan_type_id:
+                try:
+                    context['selected_loan_type'] = LoanType.objects.get(id=loan_type_id, is_active=True)
+                except LoanType.DoesNotExist:
+                    pass
         
         return context
     
@@ -867,7 +875,7 @@ class LoanTypesManageView(LoginRequiredMixin, TemplateView):
         
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage loan types.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -945,7 +953,7 @@ class LoanDocumentsManageView(LoginRequiredMixin, TemplateView):
         
         if request.user.role not in ['admin', 'loan_officer', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage loan documents.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):

@@ -74,7 +74,7 @@ def manager_admin_login(request):
     context = {
         'error': error,
         'manager_name': manager_name,
-        'dashboard_url': reverse('dashboard:home'),
+        'dashboard_url': reverse('dashboard:dashboard'),
     }
     
     return render(request, 'admin_auth/manager_login.html', context)
@@ -87,5 +87,5 @@ def admin_access_denied(request):
     """
     return render(request, 'admin_auth/access_denied.html', {
         'user_role': request.user.get_role_display(),
-        'dashboard_url': reverse('dashboard:home'),
+        'dashboard_url': reverse('dashboard:dashboard'),
     })

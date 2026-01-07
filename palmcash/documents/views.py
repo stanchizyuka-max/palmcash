@@ -15,7 +15,7 @@ def client_document_upload(request):
     """Handle client document uploads (NRC front, NRC back, selfie)"""
     if request.user.role != 'borrower':
         messages.error(request, 'Only borrowers can upload documents.')
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard')
     
     # Get or create client verification record
     verification, created = ClientVerification.objects.get_or_create(client=request.user)
@@ -86,7 +86,7 @@ def client_verification_status(request):
     """Show client their verification status"""
     if request.user.role != 'borrower':
         messages.error(request, 'Only borrowers can view verification status.')
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard')
     
     # Get or create verification record
     verification, created = ClientVerification.objects.get_or_create(client=request.user)
@@ -112,7 +112,7 @@ def document_verification_dashboard(request):
     # Check permissions
     if user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to access this dashboard.')
-        return redirect('dashboard:home')
+        return redirect('dashboard:dashboard')
     
     # Filter based on role
     if user.role == 'loan_officer':

@@ -23,7 +23,7 @@ class PalmCashAdminSite(AdminSite):
         
         # Add dashboard URL for the logged-in user
         if request.user.is_authenticated:
-            extra_context['dashboard_url'] = reverse('dashboard:home')
+            extra_context['dashboard_url'] = reverse('dashboard:dashboard')
             extra_context['user_role'] = request.user.get_role_display()
         
         return super().index(request, extra_context=extra_context)
@@ -36,7 +36,7 @@ class PalmCashAdminSite(AdminSite):
         
         # Add dashboard URL to all admin pages
         if request.user.is_authenticated:
-            context['dashboard_url'] = reverse('dashboard:home')
+            context['dashboard_url'] = reverse('dashboard:dashboard')
             context['user_role'] = request.user.get_role_display()
         
         return context

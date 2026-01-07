@@ -23,7 +23,7 @@ class MessageInboxView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -49,7 +49,7 @@ class MessageSentView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -68,7 +68,7 @@ class MessageDetailView(LoginRequiredMixin, DetailView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -94,7 +94,7 @@ class MessageComposeView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get(self, request):
@@ -170,7 +170,7 @@ class MessageReplyView(LoginRequiredMixin, View):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get(self, request, pk):
@@ -247,7 +247,7 @@ class ThreadListView(LoginRequiredMixin, ListView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
@@ -271,7 +271,7 @@ class ThreadDetailView(LoginRequiredMixin, DetailView):
         
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             django_messages.error(request, 'Only staff members can access internal messaging.')
-            return redirect('dashboard:home')
+            return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):

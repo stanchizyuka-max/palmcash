@@ -18,7 +18,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">
+            <a class="navbar-brand" href="{% url 'dashboard:dashboard' %}">
                 <i class="fas fa-tree me-2"></i>Palm Cash
             </a>
             
@@ -30,7 +30,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard:home' %}">
+                        <a class="nav-link" href="{% url 'dashboard:dashboard' %}">
                             <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                         </a>
                     </li>
@@ -144,7 +144,7 @@
                         <li><a href="{% url 'pages:contact' %}" class="text-muted text-decoration-none">Contact Us</a></li>
                         <li><a href="{% url 'pages:terms' %}" class="text-muted text-decoration-none">Terms & Conditions</a></li>
                         {% if user.is_authenticated %}
-                        <li><a href="{% url 'dashboard:home' %}" class="text-muted text-decoration-none">Dashboard</a></li>
+                        <li><a href="{% url 'dashboard:dashboard' %}" class="text-muted text-decoration-none">Dashboard</a></li>
                         {% else %}
                         <li><a href="{% url 'accounts:login' %}" class="text-muted text-decoration-none">Login</a></li>
                         {% endif %}
