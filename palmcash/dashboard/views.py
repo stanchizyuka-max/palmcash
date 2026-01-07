@@ -728,7 +728,7 @@ def borrower_dashboard(request):
 
 @login_required
 def collection_details(request):
-    """Collection Details View - Shows detailed collection information"""
+    """Collection Details View - Shows detailed collection information grouped by loan"""
     user = request.user
     
     if user.role == 'manager':
@@ -751,17 +751,47 @@ def collection_details(request):
     else:
         return render(request, 'dashboard/access_denied.html')
     
+    # Group collections by loan
+    from django.db.models import Sum
+    loans_with_collections = {}
+    
+    for collection in collections:
+        loan_id = collection.loan.id
+        if loan_id not in loans_with_collections:
+            loans_with_collections[loan_id] = {
+                'loan': collection.loan,
+                'collections': [],
+                'total_expected': 0,
+                'total_collected': 0,
+                'completed_count': 0,
+                'scheduled_count': 0
+            }
+        
+        loans_with_collections[loan_id]['collections'].append(collection)
+        loans_with_collections[loan_id]['total_expected'] += collection.expected_amount
+        loans_with_collections[loan_id]['total_collected'] += collection.collected_amount
+        
+        if collection.status == 'completed':
+            loans_with_collections[loan_id]['completed_count'] += 1
+        else:
+            loans_with_collections[loan_id]['scheduled_count'] += 1
+    
+    # Convert to list and sort by loan application number
+    grouped_loans = list(loans_with_collections.values())
+    grouped_loans.sort(key=lambda x: x['loan'].application_number)
+    
     # Pagination
     from django.core.paginator import Paginator
-    paginator = Paginator(collections, 50)
+    paginator = Paginator(grouped_loans, 20)  # 20 loans per page
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
-        'collections': page_obj.object_list,
+        'grouped_loans': page_obj.object_list,
         'total_collections': collections.count(),
         'total_collected': collections.aggregate(total=Sum('collected_amount'))['total'] or 0,
+        'total_loans': len(grouped_loans),
     }
     
     return render(request, 'dashboard/collection_details.html', context)
