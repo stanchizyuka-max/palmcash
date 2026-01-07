@@ -629,18 +629,19 @@ def pending_approvals(request):
         if not branch:
             return render(request, 'dashboard/access_denied.html')
         
-        # Get pending loan approvals
+        # Get pending loan approvals (high-value loans awaiting admin approval)
         pending_loans = LoanApprovalRequest.objects.filter(
             status='pending',
             loan__loan_officer__officer_assignment__branch=branch.name
         ).order_by('-requested_date')
         
-        # Get pending security deposits
+        # Get pending security deposits (paid but not verified)
         from loans.models import SecurityDeposit
         pending_deposits = SecurityDeposit.objects.filter(
             is_verified=False,
+            paid_amount__gt=0,  # Only show deposits that have been paid
             loan__loan_officer__officer_assignment__branch=branch.name
-        ).order_by('-payment_date')
+        ).select_related('loan', 'loan__borrower').order_by('-payment_date')
         
     elif user.role == 'admin':
         # Admin sees all pending approvals
@@ -648,11 +649,12 @@ def pending_approvals(request):
             status='pending'
         ).order_by('-requested_date')
         
-        # Get all pending security deposits
+        # Get all pending security deposits (paid but not verified)
         from loans.models import SecurityDeposit
         pending_deposits = SecurityDeposit.objects.filter(
-            is_verified=False
-        ).order_by('-payment_date')
+            is_verified=False,
+            paid_amount__gt=0  # Only show deposits that have been paid
+        ).select_related('loan', 'loan__borrower').order_by('-payment_date')
     else:
         return render(request, 'dashboard/access_denied.html')
     

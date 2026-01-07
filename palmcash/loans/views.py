@@ -424,16 +424,18 @@ class DisburseLoanView(LoginRequiredMixin, View):
             messages.error(request, 'This loan is already completed with a payment schedule. Cannot disburse again.')
             return redirect('loans:detail', pk=pk)
         
-        # Validate security deposit is verified
-        try:
-            from loans.models import SecurityDeposit
-            security_deposit = loan.security_deposit
-            if not security_deposit.is_verified:
-                messages.error(request, 'Security deposit must be verified before disbursement.')
+        # For approved loans, validate security deposit is verified
+        # For completed loans being fixed, skip this check (legacy data)
+        if loan.status == 'approved':
+            try:
+                from loans.models import SecurityDeposit
+                security_deposit = loan.security_deposit
+                if not security_deposit.is_verified:
+                    messages.error(request, 'Security deposit must be verified before disbursement.')
+                    return redirect('loans:detail', pk=pk)
+            except SecurityDeposit.DoesNotExist:
+                messages.error(request, 'Security deposit not found. Please submit and verify security deposit before disbursement.')
                 return redirect('loans:detail', pk=pk)
-        except SecurityDeposit.DoesNotExist:
-            messages.error(request, 'Security deposit not found. Please submit and verify security deposit before disbursement.')
-            return redirect('loans:detail', pk=pk)
         
         # Validate manager's branch matches loan officer's branch
         try:
