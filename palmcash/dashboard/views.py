@@ -656,6 +656,17 @@ def pending_approvals(request):
     else:
         return render(request, 'dashboard/access_denied.html')
     
+    # Calculate totals for security deposits
+    from django.db.models import Sum
+    deposit_totals = pending_deposits.aggregate(
+        total_required=Sum('required_amount'),
+        total_collected=Sum('paid_amount')
+    )
+    
+    total_required = deposit_totals['total_required'] or 0
+    total_collected = deposit_totals['total_collected'] or 0
+    total_outstanding = total_required - total_collected
+    
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(pending_loans, 50)
@@ -668,6 +679,9 @@ def pending_approvals(request):
         'pending_deposits': pending_deposits,
         'total_pending': pending_loans.count(),
         'total_deposits': pending_deposits.count(),
+        'total_required': total_required,
+        'total_collected': total_collected,
+        'total_outstanding': total_outstanding,
     }
     
     return render(request, 'dashboard/pending_approvals.html', context)
