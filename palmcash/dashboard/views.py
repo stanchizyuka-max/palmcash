@@ -481,6 +481,13 @@ def borrower_dashboard(request):
     # Get pending applications
     pending_applications = loans.filter(status='pending').count()
     
+    # Get approved loans awaiting upfront payment
+    approved_loans = loans.filter(status='approved')
+    loans_awaiting_upfront = []
+    for loan in approved_loans:
+        if not loan.upfront_payment_verified and loan.upfront_payment_paid == 0:
+            loans_awaiting_upfront.append(loan)
+    
     context = {
         'total_loans': loans.count(),
         'active_loans': active_loans,
@@ -496,6 +503,7 @@ def borrower_dashboard(request):
         'repayment_schedule': repayment_schedule,
         'pending_applications': pending_applications,
         'user_loans': loans,
+        'loans_awaiting_upfront': loans_awaiting_upfront,
     }
     
     return render(request, 'dashboard/borrower_dashboard.html', context)
