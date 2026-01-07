@@ -488,6 +488,42 @@ def borrower_dashboard(request):
         if not loan.upfront_payment_verified and loan.upfront_payment_paid == 0:
             loans_awaiting_upfront.append(loan)
     
+    # Get overdue payments
+    from payments.models import PaymentSchedule
+    overdue_payments = PaymentSchedule.objects.filter(
+        loan__borrower=borrower,
+        is_paid=False,
+        due_date__lt=timezone.now().date()
+    )
+    
+    # Get next payment due
+    next_payment = PaymentSchedule.objects.filter(
+        loan__borrower=borrower,
+        is_paid=False,
+        due_date__gte=timezone.now().date()
+    ).order_by('due_date').first()
+    
+    # Get loan status summary
+    loan_status_summary = {
+        'pending': loans.filter(status='pending').count(),
+        'approved': loans.filter(status='approved').count(),
+        'active': loans.filter(status='active').count(),
+        'completed': loans.filter(status='completed').count(),
+        'rejected': loans.filter(status='rejected').count(),
+        'defaulted': loans.filter(status='defaulted').count(),
+    }
+    
+    # Get total outstanding balance
+    outstanding_balance = loans.filter(status='active').aggregate(
+        total=Sum('principal_amount')
+    )['total'] or 0
+    
+    # Get recent loan activity
+    from loans.models import LoanApprovalRequest
+    recent_approvals = LoanApprovalRequest.objects.filter(
+        loan__borrower=borrower
+    ).order_by('-requested_date')[:5]
+    
     context = {
         'total_loans': loans.count(),
         'active_loans': active_loans,
@@ -504,6 +540,11 @@ def borrower_dashboard(request):
         'pending_applications': pending_applications,
         'user_loans': loans,
         'loans_awaiting_upfront': loans_awaiting_upfront,
+        'overdue_payments': overdue_payments,
+        'next_payment': next_payment,
+        'loan_status_summary': loan_status_summary,
+        'outstanding_balance': outstanding_balance,
+        'recent_approvals': recent_approvals,
     }
     
     return render(request, 'dashboard/borrower_dashboard.html', context)
