@@ -128,6 +128,10 @@ def document_verification_dashboard(request):
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents')
         
+        all_verifications = ClientVerification.objects.filter(
+            client_id__in=client_ids
+        ).select_related('client').prefetch_related('client__documents')
+        
         total_clients = ClientVerification.objects.filter(client_id__in=client_ids).count()
         verified_clients = ClientVerification.objects.filter(
             client_id__in=client_ids,
@@ -139,6 +143,8 @@ def document_verification_dashboard(request):
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents')
         
+        all_verifications = ClientVerification.objects.all().select_related('client').prefetch_related('client__documents')
+        
         total_clients = ClientVerification.objects.count()
         verified_clients = ClientVerification.objects.filter(status='verified').count()
     
@@ -146,6 +152,7 @@ def document_verification_dashboard(request):
     
     context = {
         'pending_verifications': pending_verifications,
+        'all_verifications': all_verifications,
         'total_clients': total_clients,
         'verified_clients': verified_clients,
         'pending_clients': pending_clients,

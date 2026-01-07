@@ -253,7 +253,200 @@
                 <p class="text-slate-500 text-sm mt-1">All clients are either verified or awaiting initial submission.</p>
             </div>
             {% endif %}
+        <!-- All Documents Tab -->
+        <div id="all-content" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" style="display: none;">
+            <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-6">
+                <h3 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-folder-open mr-3"></i>
+                    All Client Documents
+                </h3>
+                <p class="text-purple-100 text-sm mt-1">Complete overview of all client document verifications</p>
+            </div>
+
+            {% if all_verifications %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Client</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Documents</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Last Updated</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for verification in all_verifications %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-900">{{ verification.client.full_name }}</p>
+                                        <p class="text-xs text-slate-600">{{ verification.client.email }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if verification.status == 'verified' %}
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                                        <i class="fas fa-check-circle mr-1"></i>Verified
+                                    </span>
+                                {% elif verification.status == 'documents_submitted' %}
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                                        <i class="fas fa-hourglass-half mr-1"></i>Awaiting Review
+                                    </span>
+                                {% elif verification.status == 'documents_rejected' %}
+                                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                                        <i class="fas fa-times mr-1"></i>Rejected
+                                    </span>
+                                {% else %}
+                                    <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
+                                        <i class="fas fa-question mr-1"></i>{{ verification.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex gap-2 flex-wrap">
+                                    {% for doc in verification.client.documents.all %}
+                                        <span class="px-2 py-1 rounded text-xs font-semibold {% if doc.status == 'approved' %}bg-green-100 text-green-700{% elif doc.status == 'rejected' %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %}" title="{{ doc.get_document_type_display }}">
+                                            {% if doc.document_type == 'nrc_front' %}
+                                                NRC-F
+                                            {% elif doc.document_type == 'nrc_back' %}
+                                                NRC-B
+                                            {% elif doc.document_type == 'selfie' %}
+                                                Selfie
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ verification.updated_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button class="inline-flex items-center px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition font-medium text-sm" data-bs-toggle="modal" data-bs-target="#allReviewModal{{ verification.id }}">
+                                    <i class="fas fa-eye mr-2"></i>View Details
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- All Documents Review Modal -->
+                        <div class="modal fade" id="allReviewModal{{ verification.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content rounded-2xl">
+                                    <div class="modal-header bg-gradient-to-r from-purple-500 to-purple-600 border-0">
+                                        <h5 class="modal-title text-white font-bold">
+                                            <i class="fas fa-folder-open mr-2"></i>Documents - {{ verification.client.full_name }}
+                                        </h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-6">
+                                        <!-- Documents Grid -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {% for doc in verification.client.documents.all %}
+                                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                                    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                                                        <h6 class="font-semibold text-slate-900">{{ doc.get_document_type_display }}</h6>
+                                                        {% if doc.status == 'approved' %}
+                                                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Approved</span>
+                                                        {% elif doc.status == 'rejected' %}
+                                                            <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Rejected</span>
+                                                        {% else %}
+                                                            <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pending</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="p-4">
+                                                        {% if doc.image %}
+                                                            <img src="{{ doc.image.url }}" alt="{{ doc.get_document_type_display }}" class="w-full rounded-lg mb-3 max-h-64 object-cover">
+                                                        {% endif %}
+                                                        
+                                                        <p class="text-xs text-slate-600 mb-3">
+                                                            <i class="fas fa-calendar mr-1"></i>Uploaded: {{ doc.uploaded_at|date:"M d, Y H:i" }}
+                                                        </p>
+
+                                                        {% if doc.verification_notes %}
+                                                            <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-3">
+                                                                <p class="text-xs"><strong>Notes:</strong> {{ doc.verification_notes }}</p>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        <!-- Approval/Rejection Forms for pending documents -->
+                                                        {% if doc.status == 'pending' %}
+                                                            <div class="space-y-2">
+                                                                <form method="post" action="{% url 'documents:approve_single_document' doc.id %}">
+                                                                    {% csrf_token %}
+                                                                    <textarea name="notes" class="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-2" placeholder="Optional approval notes" rows="2"></textarea>
+                                                                    <button type="submit" class="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition font-medium text-sm">
+                                                                        <i class="fas fa-check mr-1"></i>Approve
+                                                                    </button>
+                                                                </form>
+                                                                <form method="post" action="{% url 'documents:reject_single_document' doc.id %}">
+                                                                    {% csrf_token %}
+                                                                    <textarea name="reason" class="w-full px-3 py-2 border border-slate-300 rounded text-sm mb-2" placeholder="Reason for rejection" rows="2" required></textarea>
+                                                                    <button type="submit" class="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-medium text-sm">
+                                                                        <i class="fas fa-times mr-1"></i>Reject
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="bg-slate-100 border border-slate-200 rounded p-3 text-center">
+                                                                <p class="text-sm text-slate-600">
+                                                                    {% if doc.status == 'approved' %}
+                                                                        <i class="fas fa-check-circle text-green-600 mr-2"></i>This document has been approved
+                                                                    {% elif doc.status == 'rejected' %}
+                                                                        <i class="fas fa-times-circle text-red-600 mr-2"></i>This document has been rejected
+                                                                    {% endif %}
+                                                                </p>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-slate-50 border-t border-slate-200">
+                                        <button type="button" class="px-4 py-2 bg-slate-300 text-slate-700 rounded hover:bg-slate-400 transition font-medium text-sm" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <i class="fas fa-folder-open text-slate-300 text-5xl mb-4"></i>
+                <p class="text-slate-600 text-lg font-medium">No client documents found</p>
+                <p class="text-slate-500 text-sm mt-1">No document verifications have been created yet.</p>
+            </div>
+            {% endif %}
         </div>
-    </div>
-</div>
-{% endblock %}
+
+        <script>
+        function showTab(tab) {
+            // Hide both content areas
+            document.getElementById('pending-content').style.display = 'none';
+            document.getElementById('all-content').style.display = 'none';
+            
+            // Remove active styles from both tabs
+            document.getElementById('pending-tab').classList.remove('bg-blue-500', 'text-white');
+            document.getElementById('pending-tab').classList.add('text-slate-600', 'hover:bg-slate-100');
+            document.getElementById('all-tab').classList.remove('bg-blue-500', 'text-white');
+            document.getElementById('all-tab').classList.add('text-slate-600', 'hover:bg-slate-100');
+            
+            // Show selected content and highlight tab
+            if (tab === 'pending') {
+                document.getElementById('pending-content').style.display = 'block';
+                document.getElementById('pending-tab').classList.remove('text-slate-600', 'hover:bg-slate-100');
+                document.getElementById('pending-tab').classList.add('bg-blue-500', 'text-white');
+            } else if (tab === 'all') {
+                document.getElementById('all-content').style.display = 'block';
+                document.getElementById('all-tab').classList.remove('text-slate-600', 'hover:bg-slate-100');
+                document.getElementById('all-tab').classList.add('bg-blue-500', 'text-white');
+            }
+        }
+        </script>
