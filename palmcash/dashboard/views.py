@@ -215,10 +215,19 @@ def manager_dashboard(request):
     try:
         from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest, ManagerLoanApproval
         
+        # Fix: Get all pending security deposits that have been paid but not verified
+        # Remove branch filter to see all pending deposits, or use proper branch filtering
         pending_security = SecurityDeposit.objects.filter(
-            loan__loan_officer__officer_assignment__branch=branch.name,
-            is_verified=False
+            is_verified=False,
+            paid_amount__gt=0  # Only show deposits that have actually been paid
         ).count()
+        
+        # Alternative: If you want branch-specific deposits, use this query:
+        # pending_security = SecurityDeposit.objects.filter(
+        #     is_verified=False,
+        #     paid_amount__gt=0,
+        #     loan__loan_officer__officer_assignment__branch=branch.name
+        # ).count()
         
         pending_topups = SecurityTopUpRequest.objects.filter(
             loan__loan_officer__officer_assignment__branch=branch.name,
@@ -300,6 +309,20 @@ def manager_dashboard(request):
         except:
             pass
     
+    # Total disbursed for this branch
+    # Get all officers in this branch
+    branch_officers = User.objects.filter(
+        role='loan_officer',
+        officer_assignment__branch=branch.name
+    ).values_list('id', flat=True)
+    
+    loans = Loan.objects.filter(
+        loan_officer_id__in=branch_officers
+    )
+    total_disbursed = loans.filter(
+        status__in=['active', 'completed', 'disbursed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
     context = {
         'branch': branch,
         'officers_count': officers.count(),
@@ -318,6 +341,7 @@ def manager_dashboard(request):
         'total_transfers': total_transfers,
         'total_deposits': total_deposits,
         'total_funds': total_transfers + total_deposits,
+        'total_disbursed': total_disbursed,
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
@@ -344,7 +368,7 @@ def admin_dashboard(request):
     
     # Total disbursed
     total_disbursed = loans.filter(
-        status__in=['active', 'completed']
+        status__in=['active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
     
     # System collection rate
@@ -365,7 +389,7 @@ def admin_dashboard(request):
             branch_clients = sum(g.member_count for g in branch_groups)
             branch_loans = Loan.objects.filter(
                 loan_officer__officer_assignment__branch=branch.name,
-                status__in=['active', 'completed']
+                status__in=['active', 'completed', 'disbursed']
             )
             branch_disbursed = branch_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
             
@@ -398,6 +422,17 @@ def admin_dashboard(request):
     defaulted_loans = loans.filter(status='defaulted').count()
     total_loans = loans.count()
     
+    # Add pending security deposits count
+    pending_security_deposits = 0
+    try:
+        from loans.models import SecurityDeposit
+        pending_security_deposits = SecurityDeposit.objects.filter(
+            is_verified=False,
+            paid_amount__gt=0  # Only count deposits that have been paid but not verified
+        ).count()
+    except:
+        pass
+    
     active_pct = (active_loans / total_loans * 100) if total_loans > 0 else 0
     completed_pct = (completed_loans / total_loans * 100) if total_loans > 0 else 0
     defaulted_pct = (defaulted_loans / total_loans * 100) if total_loans > 0 else 0
@@ -412,6 +447,7 @@ def admin_dashboard(request):
         'active_loans': active_loans,
         'completed_loans': completed_loans,
         'defaulted_loans': defaulted_loans,
+        'pending_security_deposits': pending_security_deposits,
         'pending_documents': 0,  # Will be calculated from ClientDocument
         'total_disbursed': total_disbursed,
         'total_repaid': 0,  # Will be calculated from PaymentCollection
@@ -1950,7 +1986,7 @@ def admin_branch_detail(request, branch_id):
     )
     
     total_disbursed = loans.filter(
-        status__in=['active', 'completed']
+        status__in=['active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
     
     active_loans = loans.filter(status='active').count()
