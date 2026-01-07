@@ -258,6 +258,14 @@ class LoanEditView(LoginRequiredMixin, View):
             })
 
 class ApproveLoanView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        """Redirect GET requests to loan detail page with helpful message"""
+        messages.info(
+            request,
+            'To approve a loan, please go to the loan detail page and click the "Approve Loan" button.'
+        )
+        return redirect('loans:detail', pk=pk)
+    
     def post(self, request, pk):
         if request.user.role not in ['admin', 'loan_officer']:
             messages.error(request, 'You do not have permission to approve loans.')
@@ -325,6 +333,14 @@ class ApproveLoanView(LoginRequiredMixin, View):
             print(f"Error creating notification: {e}")
 
 class RejectLoanView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        """Redirect GET requests to loan detail page with helpful message"""
+        messages.info(
+            request,
+            'To reject a loan, please go to the loan detail page and click the "Reject Loan" button.'
+        )
+        return redirect('loans:detail', pk=pk)
+    
     def post(self, request, pk):
         if request.user.role not in ['admin', 'loan_officer']:
             messages.error(request, 'You do not have permission to reject loans.')
@@ -380,6 +396,14 @@ class RejectLoanView(LoginRequiredMixin, View):
             print(f"Error creating notification: {e}")
 
 class DisburseLoanView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        """Redirect GET requests to loan detail page with helpful message"""
+        messages.info(
+            request,
+            'To disburse a loan, please go to the loan detail page and click the "Disburse Loan" button.'
+        )
+        return redirect('loans:detail', pk=pk)
+    
     def post(self, request, pk):
         if request.user.role not in ['admin', 'loan_officer']:
             messages.error(request, 'You do not have permission to disburse loans.')
