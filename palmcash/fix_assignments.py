@@ -15,6 +15,7 @@ django.setup()
 from accounts.models import User
 from payments.models import PaymentCollection, Payment
 from loans.models import Loan
+from django.db.models import Sum
 
 
 def assign_loans_to_officer():
