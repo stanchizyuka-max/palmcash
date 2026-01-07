@@ -7,7 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("clients", "0009_add_branch_to_officerassignment"),
+        ("clients", "0008_merge_20260105_2129"),
         ("loans", "0009_approvallog"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
@@ -285,17 +285,6 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Officer Transfer Logs",
                 "ordering": ["-timestamp"],
             },
-        ),
-        migrations.AlterField(
-            model_name="borrowergroup",
-            name="branch",
-            field=models.CharField(
-                blank=True,
-                default="timezone.now",
-                help_text="Branch this group belongs to",
-                max_length=100,
-            ),
-            preserve_default=False,
         ),
         migrations.AddField(
             model_name="approvalauditlog",

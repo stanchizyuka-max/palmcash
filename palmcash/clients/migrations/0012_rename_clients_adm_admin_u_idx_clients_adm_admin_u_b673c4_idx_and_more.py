@@ -25,38 +25,4 @@ class Migration(migrations.Migration):
             new_name="clients_adm_affecte_0f6520_idx",
             old_name="clients_adm_affected_idx",
         ),
-        # First, remove the old CharField columns
-        migrations.RemoveField(
-            model_name='borrowergroup',
-            name='branch',
-        ),
-        migrations.RemoveField(
-            model_name='officerassignment',
-            name='branch',
-        ),
-        # Then add the new ForeignKey fields
-        migrations.AddField(
-            model_name='borrowergroup',
-            name='branch',
-            field=models.ForeignKey(
-                blank=True,
-                help_text="Branch this group belongs to",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="groups",
-                to="clients.branch",
-            ),
-        ),
-        migrations.AddField(
-            model_name='officerassignment',
-            name='branch',
-            field=models.ForeignKey(
-                blank=True,
-                help_text="Branch where this loan officer is assigned",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="assigned_officers",
-                to="clients.branch",
-            ),
-        ),
     ]
