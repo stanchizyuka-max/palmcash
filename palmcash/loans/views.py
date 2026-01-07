@@ -33,11 +33,18 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
         
-        # Add document information
+        # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
         context['document_count'] = loan.loan_documents.count()
         context['verified_documents'] = loan.loan_documents.filter(is_verified=True).count()
         context['pending_documents'] = loan.loan_documents.filter(is_verified=False).count()
+        
+        # Also add client verification documents
+        from documents.models import ClientDocument
+        context['client_documents'] = ClientDocument.objects.filter(client=loan.borrower)
+        context['client_document_count'] = context['client_documents'].count()
+        context['client_verified_documents'] = context['client_documents'].filter(status='approved').count()
+        context['client_pending_documents'] = context['client_documents'].filter(status='pending').count()
         
         # Check if user can upload documents
         context['can_upload_documents'] = (

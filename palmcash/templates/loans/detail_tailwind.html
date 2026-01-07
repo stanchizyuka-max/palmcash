@@ -409,7 +409,7 @@
                         <div class="flex items-center justify-between">
                             <h3 class="text-xl font-bold flex items-center">
                                 <i class="fas fa-file-alt mr-3"></i>
-                                Documents
+                                Loan Documents
                             </h3>
                             <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm font-medium">
                                 {{ document_count }} document{{ document_count|pluralize }}
@@ -437,14 +437,12 @@
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                                 <div class="flex items-center">
                                     <i class="fas fa-file text-gray-400 mr-3"></i>
-                                    <span class="text-sm font-medium text-gray-900">{{ document.document_type.name }}</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ document.get_document_type_display }}</span>
                                 </div>
                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                    {% if document.status == 'approved' %}bg-green-100 text-green-800
-                                    {% elif document.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif document.status == 'rejected' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ document.get_status_display }}
+                                    {% if document.is_verified %}bg-green-100 text-green-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {% if document.is_verified %}Verified{% else %}Pending{% endif %}
                                 </span>
                             </div>
                             {% endfor %}
@@ -453,7 +451,7 @@
                         {% else %}
                         <div class="text-center py-8">
                             <i class="fas fa-file-upload text-4xl text-gray-300 mb-4"></i>
-                            <p class="text-gray-500">No documents uploaded yet</p>
+                            <p class="text-gray-500">No loan documents uploaded yet</p>
                         </div>
                         {% endif %}
                         
@@ -471,6 +469,69 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Client Verification Documents Card -->
+                <div class="detail-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-fade-in" style="animation-delay: 0.35s;">
+                    <div class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold flex items-center">
+                                <i class="fas fa-id-card mr-3"></i>
+                                Verification Documents
+                            </h3>
+                            <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm font-medium">
+                                {{ client_document_count }} document{{ client_document_count|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        {% if client_document_count > 0 %}
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="text-center p-4 bg-green-50 rounded-xl">
+                                <i class="fas fa-check-circle text-3xl text-green-600 mb-2"></i>
+                                <div class="text-2xl font-bold text-green-600">{{ client_verified_documents }}</div>
+                                <div class="text-sm text-gray-600">Approved</div>
+                            </div>
+                            <div class="text-center p-4 bg-yellow-50 rounded-xl">
+                                <i class="fas fa-clock text-3xl text-yellow-600 mb-2"></i>
+                                <div class="text-2xl font-bold text-yellow-600">{{ client_pending_documents }}</div>
+                                <div class="text-sm text-gray-600">Pending</div>
+                            </div>
+                        </div>
+                        
+                        {% if client_documents %}
+                        <div class="space-y-3 mb-6">
+                            {% for document in client_documents %}
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                <div class="flex items-center">
+                                    <i class="fas fa-id-card text-gray-400 mr-3"></i>
+                                    <span class="text-sm font-medium text-gray-900">{{ document.get_document_type_display }}</span>
+                                </div>
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if document.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif document.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif document.status == 'rejected' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ document.get_status_display }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-file-upload text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500">No verification documents uploaded yet</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="space-y-3">
+                            <a href="{% url 'documents:list' %}" class="w-full inline-flex items-center justify-center px-4 py-3 bg-purple-100 text-purple-700 font-medium rounded-xl hover:bg-purple-200 transition-colors duration-200">
+                                <i class="fas fa-id-card mr-2"></i>
+                                View Verification Documents
+                            </a>
+                        </div>
+                    </div>
+                </div></div>
             </div>
         </div>
     </div>
