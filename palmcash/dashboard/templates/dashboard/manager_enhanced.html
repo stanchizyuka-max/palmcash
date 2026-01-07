@@ -243,7 +243,7 @@
                 Quick Actions
             </h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <!-- Approve Security -->
                 <a href="{% url 'dashboard:pending_approvals' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-lg">
                     <i class="fas fa-check-circle text-orange-600 text-3xl mb-3"></i>
@@ -272,6 +272,18 @@
                 <a href="{% url 'clients:user_verification_management' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-lg">
                     <i class="fas fa-user-check text-blue-600 text-3xl mb-3"></i>
                     <span class="font-semibold text-blue-900 text-center text-sm">Verify Users</span>
+                </a>
+
+                <!-- Verify Documents -->
+                <a href="{% url 'documents:verification_dashboard' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-lg border-2 border-red-200 hover:border-red-400 transition hover:shadow-lg">
+                    <i class="fas fa-file-check text-red-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-red-900 text-center text-sm">Verify Documents</span>
+                </a>
+
+                <!-- Manage Users -->
+                <a href="{% url 'accounts:manage_users' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 transition hover:shadow-lg">
+                    <i class="fas fa-users-cog text-indigo-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-indigo-900 text-center text-sm">Manage Users</span>
                 </a>
             </div>
         </div>
