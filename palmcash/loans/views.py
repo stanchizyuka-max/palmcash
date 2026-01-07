@@ -415,8 +415,8 @@ class DisburseLoanView(LoginRequiredMixin, View):
             messages.error(request, 'Only approved or completed loans can be disbursed.')
             return redirect('loans:detail', pk=pk)
         
-        # If loan is completed but has no payment schedule, allow fix
-        if loan.status == 'completed' and loan.payment_schedule.exists():
+        # If loan is completed but has a payment schedule, don't allow re-disbursement
+        if loan.status == 'completed' and loan.payment_schedule.all().exists():
             messages.error(request, 'This loan is already completed with a payment schedule. Cannot disburse again.')
             return redirect('loans:detail', pk=pk)
         
