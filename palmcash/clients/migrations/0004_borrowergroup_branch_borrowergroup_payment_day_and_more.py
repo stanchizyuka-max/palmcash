@@ -14,13 +14,10 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="borrowergroup",
             name="branch",
-            field=models.ForeignKey(
+            field=models.CharField(
                 blank=True,
                 help_text="Branch this group belongs to",
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="groups",
-                to="clients.branch"
+                max_length=100,
             ),
         ),
         migrations.AddField(
@@ -35,13 +32,10 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="officerassignment",
             name="branch",
-            field=models.ForeignKey(
+            field=models.CharField(
                 blank=True,
                 help_text="Branch where this loan officer is assigned",
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="loan_officers",
-                to="clients.branch"
+                max_length=100,
             ),
         ),
         migrations.AlterField(
