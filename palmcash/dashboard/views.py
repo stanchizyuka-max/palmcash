@@ -316,12 +316,36 @@ def manager_dashboard(request):
         officer_assignment__branch=branch.name
     ).values_list('id', flat=True)
     
+    # Debug: Print branch info
+    print(f"DEBUG: Branch name = {branch.name}")
+    print(f"DEBUG: Branch officers count = {branch_officers.count()}")
+    print(f"DEBUG: Branch officer IDs = {list(branch_officers)}")
+    
     loans = Loan.objects.filter(
         loan_officer_id__in=branch_officers
     )
+    
+    # Debug: Check loan counts by status
+    all_loans_count = loans.count()
+    active_loans_count = loans.filter(status='active').count()
+    completed_loans_count = loans.filter(status='completed').count()
+    disbursed_loans_count = loans.filter(status='disbursed').count()
+    
+    print(f"DEBUG: Total loans = {all_loans_count}")
+    print(f"DEBUG: Active loans = {active_loans_count}")
+    print(f"DEBUG: Completed loans = {completed_loans_count}")
+    print(f"DEBUG: Disbursed loans = {disbursed_loans_count}")
+    
+    # Check individual disbursed loans
+    disbursed_loans = loans.filter(status='disbursed')
+    for loan in disbursed_loans[:5]:  # Show first 5
+        print(f"DEBUG: Disbursed loan - ID: {loan.id}, Amount: {loan.principal_amount}, Status: {loan.status}")
+    
     total_disbursed = loans.filter(
         status__in=['active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    print(f"DEBUG: Total disbursed amount = {total_disbursed}")
     
     context = {
         'branch': branch,
@@ -367,9 +391,21 @@ def admin_dashboard(request):
     )
     
     # Total disbursed
+    # Debug: Check loan counts for admin dashboard
+    print(f"DEBUG ADMIN: Total loans in system = {loans.count()}")
+    print(f"DEBUG ADMIN: Active loans = {loans.filter(status='active').count()}")
+    print(f"DEBUG ADMIN: Completed loans = {loans.filter(status='completed').count()}")
+    print(f"DEBUG ADMIN: Disbursed loans = {loans.filter(status='disbursed').count()}")
+    
+    # Check for any loans with different statuses
+    all_statuses = loans.values_list('status', flat=True).distinct()
+    print(f"DEBUG ADMIN: All loan statuses = {list(all_statuses)}")
+    
     total_disbursed = loans.filter(
         status__in=['active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    print(f"DEBUG ADMIN: Total disbursed amount = {total_disbursed}")
     
     # System collection rate
     all_collections = PaymentCollection.objects.filter(status='completed')
