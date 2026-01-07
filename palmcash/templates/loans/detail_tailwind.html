@@ -386,7 +386,7 @@
                             Reject Loan
                         </button>
                         
-                        {% elif user.role != 'borrower' and loan.status == 'approved' %}
+                        {% elif user.role == 'manager' and loan.status == 'approved' %}
                         <!-- Check if upfront payment is verified -->
                         {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
                         <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
@@ -407,7 +407,7 @@
                         </div>
                         {% endif %}
                         
-                        {% elif user.role != 'borrower' and loan.status == 'completed' and not loan.payment_schedule.all %}
+                        {% elif user.role == 'manager' and loan.status == 'completed' and not loan.payment_schedule.all %}
                         <!-- Loan marked as completed but has no payment schedule - allow disbursement -->
                         <div class="mb-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
                             <p class="text-sm text-warning-800 font-semibold mb-2">
