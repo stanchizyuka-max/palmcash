@@ -1,0 +1,69 @@
+HOW TO RUN PENDING APPROVALS DIAGNOSTIC
+========================================
+
+This diagnostic script will help identify why pending approvals aren't showing.
+
+STEP 1: SSH into PythonAnywhere
+-------------------------------
+ssh stan13@ssh.pythonanywhere.com
+
+STEP 2: Navigate to project
+---------------------------
+cd ~/palmcash/palmcash
+
+STEP 3: Run the diagnostic script
+---------------------------------
+python manage.py shell < ../check_pending_approvals.py
+
+STEP 4: Review the output
+-------------------------
+The script will show:
+1. Total SecurityDeposit records
+2. How many are pending (is_verified=False)
+3. Loans with upfront payments recorded
+4. Officer assignments and their branches
+5. Manager branches
+6. Pending deposits for each manager
+
+WHAT TO LOOK FOR:
+-----------------
+
+✓ GOOD SIGNS:
+- "Pending (is_verified=False): X" where X > 0
+- Deposits showing in "PENDING DEPOSITS BY MANAGER" section
+- Manager has a branch assigned
+- Officers have branch assignments
+
+✗ PROBLEM SIGNS:
+- "Pending (is_verified=False): 0" (no pending deposits)
+- "Total SecurityDeposit records: 0" (no deposits created)
+- Manager shows "NO BRANCH ASSIGNED"
+- Officers show no branch assignments
+- Loans with upfront payment: 0
+
+COMMON ISSUES AND FIXES:
+------------------------
+
+Issue 1: No SecurityDeposit records exist
+Fix: SecurityDeposit records are created when a loan is approved.
+     Check if loans are actually being approved.
+
+Issue 2: SecurityDeposits exist but is_verified=True
+Fix: Run this command to fix:
+     python manage.py shell
+     from loans.models import SecurityDeposit
+     SecurityDeposit.objects.filter(is_verified=True).update(is_verified=False)
+     exit()
+
+Issue 3: Manager has no branch assigned
+Fix: Assign the manager to a branch in Django admin
+
+Issue 4: Officers have no branch assignments
+Fix: Create OfficerAssignment records for officers
+
+AFTER RUNNING DIAGNOSTIC:
+--------------------------
+1. Share the output with support
+2. Or use the output to identify which fix to apply
+3. After applying fixes, reload the web app
+4. Test the pending approvals page again
