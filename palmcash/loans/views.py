@@ -407,12 +407,14 @@ class DisburseLoanView(LoginRequiredMixin, View):
         return redirect('loans:detail', pk=pk)
     
     def post(self, request, pk):
-        if request.user.role not in ['admin', 'loan_officer']:
-            messages.error(request, 'You do not have permission to disburse loans.')
+        # Only managers can disburse loans
+        if request.user.role != 'manager':
+            messages.error(request, 'Only managers can disburse loans.')
             return redirect('loans:detail', pk=pk)
         
         loan = get_object_or_404(Loan, pk=pk)
-        # Allow disbursement for approved loans OR completed loans with no payment schedule (data fix)
+        
+        # Validate loan status
         if loan.status not in ['approved', 'completed']:
             messages.error(request, 'Only approved or completed loans can be disbursed.')
             return redirect('loans:detail', pk=pk)
@@ -422,9 +424,45 @@ class DisburseLoanView(LoginRequiredMixin, View):
             messages.error(request, 'This loan is already completed with a payment schedule. Cannot disburse again.')
             return redirect('loans:detail', pk=pk)
         
+        # Validate security deposit is verified
         try:
-            # Update loan status to active
-            loan.status = 'active'
+            from loans.models import SecurityDeposit
+            security_deposit = loan.security_deposit
+            if not security_deposit.is_verified:
+                messages.error(request, 'Security deposit must be verified before disbursement.')
+                return redirect('loans:detail', pk=pk)
+        except SecurityDeposit.DoesNotExist:
+            messages.error(request, 'Security deposit not found. Please submit and verify security deposit before disbursement.')
+            return redirect('loans:detail', pk=pk)
+        
+        # Validate manager's branch matches loan officer's branch
+        try:
+            branch = request.user.managed_branch
+            if not branch:
+                messages.error(request, 'You are not assigned to a branch.')
+                return redirect('loans:detail', pk=pk)
+            
+            if loan.loan_officer.officer_assignment.branch != branch.name:
+                messages.error(request, 'You do not have permission to disburse this loan.')
+                return redirect('loans:detail', pk=pk)
+        except:
+            messages.error(request, 'Error verifying branch assignment.')
+            return redirect('loans:detail', pk=pk)
+        
+        # Validate high-value loans have admin approval
+        if loan.principal_amount >= 6000:
+            try:
+                approval_request = loan.approval_request
+                if approval_request.status != 'approved':
+                    messages.error(request, 'This high-value loan requires admin approval before disbursement.')
+                    return redirect('loans:detail', pk=pk)
+            except:
+                messages.error(request, 'This high-value loan requires admin approval before disbursement.')
+                return redirect('loans:detail', pk=pk)
+        
+        try:
+            # Update loan status to disbursed first
+            loan.status = 'disbursed'
             from django.utils import timezone
             from datetime import timedelta
             loan.disbursement_date = timezone.now()
@@ -440,6 +478,20 @@ class DisburseLoanView(LoginRequiredMixin, View):
             
             loan.save()
             
+            # Log the disbursement action
+            try:
+                from loans.models import ApprovalLog
+                ApprovalLog.objects.create(
+                    approval_type='loan_disbursement',
+                    loan=loan,
+                    manager=request.user,
+                    action='approve',
+                    comments=f'Loan disbursed: {loan.principal_amount}',
+                    branch=branch.name
+                )
+            except Exception as e:
+                print(f"Error logging disbursement: {e}")
+            
             # Generate payment schedule
             try:
                 from .utils import generate_payment_schedule
@@ -449,6 +501,10 @@ class DisburseLoanView(LoginRequiredMixin, View):
                 messages.warning(request, f'Warning: Payment schedule generation encountered an issue: {str(e)}')
                 import traceback
                 traceback.print_exc()
+            
+            # Update loan status to active after payment schedule is created
+            loan.status = 'active'
+            loan.save()
             
             # Send disbursement email
             try:

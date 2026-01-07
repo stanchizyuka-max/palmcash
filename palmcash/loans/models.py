@@ -163,6 +163,10 @@ class Loan(models.Model):
     upfront_payment_date = models.DateTimeField(null=True, blank=True, help_text="Date when upfront payment was made")
     upfront_payment_verified = models.BooleanField(default=False, help_text="Has the upfront payment been verified?")
     
+    # Manager Approval Tracking
+    manager_approval_required = models.BooleanField(default=False, help_text="Whether manager approval is needed")
+    manager_approved_date = models.DateTimeField(null=True, blank=True, help_text="Date when manager approved the loan")
+    
     # Notes
     approval_notes = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
@@ -305,6 +309,44 @@ class Loan(models.Model):
     def can_receive_payments(self):
         """Check if loan can receive payments"""
         return self.status == 'active'
+    
+    def can_be_approved_by_manager(self):
+        """Check if loan can be approved by manager"""
+        # Loan must be in approved status
+        if self.status != 'approved':
+            return False, 'Loan is not in approved status.'
+        
+        # Security deposit must be verified
+        try:
+            if not self.security_deposit.is_verified:
+                return False, 'Security deposit must be verified before approval.'
+        except:
+            return False, 'Security deposit not found.'
+        
+        return True, 'Loan can be approved.'
+    
+    def can_be_disbursed_by_manager(self):
+        """Check if loan can be disbursed by manager"""
+        # Loan must be in approved status
+        if self.status != 'approved':
+            return False, 'Loan is not in approved status.'
+        
+        # Security deposit must be verified
+        try:
+            if not self.security_deposit.is_verified:
+                return False, 'Security deposit must be verified before disbursement.'
+        except:
+            return False, 'Security deposit not found.'
+        
+        # High-value loans must have admin approval
+        if self.principal_amount >= 6000:
+            try:
+                if self.approval_request.status != 'approved':
+                    return False, 'This high-value loan requires admin approval before disbursement.'
+            except:
+                return False, 'This high-value loan requires admin approval before disbursement.'
+        
+        return True, 'Loan can be disbursed.'
     
     class Meta:
         ordering = ['-created_at']
@@ -476,6 +518,23 @@ class SecurityDeposit(models.Model):
         self.verified_by = verified_by_user
         self.verification_date = timezone.now()
         self.save(update_fields=['is_verified', 'verified_by', 'verification_date', 'updated_at'])
+    
+    def is_pending(self):
+        """Check if deposit is pending verification"""
+        return not self.is_verified
+    
+    def can_be_approved(self):
+        """Check if deposit can be approved"""
+        # Deposit must be pending (not yet verified)
+        if self.is_verified:
+            return False, 'Deposit has already been verified.'
+        
+        # Deposit must have been paid
+        if self.paid_amount <= 0:
+            return False, 'No payment has been recorded for this deposit.'
+        
+        return True, 'Deposit can be approved.'
+
 
 
 class SecurityTopUpRequest(models.Model):
@@ -662,12 +721,14 @@ class LoanApprovalRequest(models.Model):
 
 
 class ApprovalLog(models.Model):
-    """Log all approval actions for security deposits, top-ups, and returns"""
+    """Log all approval actions for security deposits, top-ups, returns, loans, and disbursements"""
     
     APPROVAL_TYPES = [
         ('security_deposit', 'Security Deposit'),
         ('security_topup', 'Security Top-Up'),
         ('security_return', 'Security Return'),
+        ('loan_approval', 'Loan Approval'),
+        ('loan_disbursement', 'Loan Disbursement'),
     ]
     
     ACTION_CHOICES = [
@@ -726,3 +787,63 @@ class ApprovalLog(models.Model):
     
     def __str__(self):
         return f"{self.get_approval_type_display()} - {self.get_action_display()} by {self.manager.full_name} on {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+class ManagerLoanApproval(models.Model):
+    """Track manager approval of loans for disbursement"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    loan = models.OneToOneField(
+        Loan,
+        on_delete=models.CASCADE,
+        related_name='manager_approval',
+        help_text='Loan being approved by manager'
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Approval status'
+    )
+    
+    manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='loan_approvals',
+        help_text='Manager who approved the loan'
+    )
+    
+    approved_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Date when loan was approved'
+    )
+    
+    comments = models.TextField(
+        blank=True,
+        help_text='Optional comments about the approval'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Manager Loan Approval'
+        verbose_name_plural = 'Manager Loan Approvals'
+        indexes = [
+            models.Index(fields=['loan', '-created_at']),
+            models.Index(fields=['manager', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Manager Approval for {self.loan.application_number} - {self.get_status_display()}"

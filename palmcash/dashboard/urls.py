@@ -23,6 +23,11 @@ urlpatterns = [
     path('approval/<int:approval_id>/reject/', views.approval_reject, name='approval_reject'),
     path('approval-history/', views.approval_history, name='approval_history'),
     
+    # Manager Loan Approval URLs
+    path('manager/loan/<int:loan_id>/approve/', views.manager_loan_approval_detail, name='manager_loan_approval_detail'),
+    path('manager/loan/<int:loan_id>/approve-action/', views.manager_loan_approve, name='manager_loan_approve'),
+    path('manager/loan/<int:loan_id>/reject/', views.manager_loan_reject, name='manager_loan_reject'),
+    
     # Expense URLs
     path('expenses/', views.expense_list, name='expense_list'),
     path('expenses/create/', views.expense_create, name='expense_create'),

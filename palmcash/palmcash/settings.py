@@ -124,18 +124,21 @@ WSGI_APPLICATION = "palmcash.wsgi.application"
 
 import os
 
+# Determine if we're running tests
+TESTING = 'pytest' in sys.modules or 'test' in sys.argv
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get('DB_NAME', 'palmcash_db'),
-        "USER": os.environ.get('DB_USER', 'root'),
-        "PASSWORD": os.environ.get('DB_PASSWORD', ''),
-        "HOST": os.environ.get('DB_HOST', 'localhost'),
-        "PORT": os.environ.get('DB_PORT', '3306'),
+        "ENGINE": "django.db.backends.sqlite3" if TESTING else "django.db.backends.mysql",
+        "NAME": BASE_DIR / "test_db.sqlite3" if TESTING else os.environ.get('DB_NAME', 'palmcash_db'),
+        "USER": "" if TESTING else os.environ.get('DB_USER', 'root'),
+        "PASSWORD": "" if TESTING else os.environ.get('DB_PASSWORD', ''),
+        "HOST": "" if TESTING else os.environ.get('DB_HOST', 'localhost'),
+        "PORT": "" if TESTING else os.environ.get('DB_PORT', '3306'),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
             "charset": "utf8mb4",
-        },
+        } if not TESTING else {},
     }
 }
 

@@ -204,9 +204,11 @@ def manager_dashboard(request):
     pending_security = 0
     pending_topups = 0
     pending_returns = 0
+    pending_loan_approvals = 0
+    ready_for_disbursement = 0
     
     try:
-        from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest
+        from loans.models import SecurityDeposit, SecurityTopUpRequest, SecurityReturnRequest, ManagerLoanApproval
         
         pending_security = SecurityDeposit.objects.filter(
             loan__loan_officer__officer_assignment__branch=branch.name,
@@ -221,6 +223,21 @@ def manager_dashboard(request):
         pending_returns = SecurityReturnRequest.objects.filter(
             loan__loan_officer__officer_assignment__branch=branch.name,
             status='pending'
+        ).count()
+        
+        # Pending loan approvals (approved loans with verified deposits but not yet approved by manager)
+        pending_loan_approvals = Loan.objects.filter(
+            status='approved',
+            loan_officer__officer_assignment__branch=branch.name,
+            upfront_payment_verified=True
+        ).exclude(
+            manager_approval__status='approved'
+        ).count()
+        
+        # Ready for disbursement (manager approved loans)
+        ready_for_disbursement = ManagerLoanApproval.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='approved'
         ).count()
     except:
         pass
@@ -289,6 +306,8 @@ def manager_dashboard(request):
         'pending_security': pending_security,
         'pending_topups': pending_topups,
         'pending_returns': pending_returns,
+        'pending_loan_approvals': pending_loan_approvals,
+        'ready_for_disbursement': ready_for_disbursement,
         'officer_stats': officer_stats,
         'total_expenses': total_expenses,
         'total_transfers': total_transfers,
@@ -832,7 +851,14 @@ def approval_approve(request, approval_id):
         if approval_type == 'security_deposit':
             approval = SecurityDeposit.objects.get(id=approval_id, is_verified=False)
             approval.is_verified = True
+            approval.verified_by = user
+            approval.verification_date = timezone.now()
             approval.save()
+            
+            # Update loan's upfront payment verified status
+            loan = approval.loan
+            loan.upfront_payment_verified = True
+            loan.save()
             
             # Log the approval
             ApprovalLog.objects.create(
@@ -984,6 +1010,40 @@ def approval_history(request):
     # Get approval logs for this branch
     logs = ApprovalLog.objects.filter(branch=branch.name).order_by('-timestamp')
     
+    # Apply filters
+    approval_type = request.GET.get('approval_type', '')
+    action = request.GET.get('action', '')
+    loan_id = request.GET.get('loan_id', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    if approval_type:
+        logs = logs.filter(approval_type=approval_type)
+    
+    if action:
+        logs = logs.filter(action=action)
+    
+    if loan_id:
+        logs = logs.filter(loan__id=loan_id)
+    
+    if date_from:
+        from datetime import datetime
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            logs = logs.filter(timestamp__gte=date_from_obj)
+        except:
+            pass
+    
+    if date_to:
+        from datetime import datetime, timedelta
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+            # Add one day to include the entire day
+            date_to_obj = date_to_obj + timedelta(days=1)
+            logs = logs.filter(timestamp__lt=date_to_obj)
+        except:
+            pass
+    
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(logs, 50)
@@ -995,9 +1055,247 @@ def approval_history(request):
         'logs': page_obj.object_list,
         'total_logs': logs.count(),
         'branch': branch,
+        'approval_type': approval_type,
+        'action': action,
+        'loan_id': loan_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'approval_types': ApprovalLog.APPROVAL_TYPES,
+        'actions': ApprovalLog.ACTION_CHOICES,
     }
     
     return render(request, 'dashboard/approval_history.html', context)
+
+
+@login_required
+def manager_loan_approval_detail(request, loan_id):
+    """Manager view: Display loan details for approval decision"""
+    from loans.models import Loan, ManagerLoanApproval, SecurityDeposit
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        messages.error(request, 'You do not have permission to approve loans.')
+        return redirect('dashboard:dashboard')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            messages.error(request, 'You are not assigned to a branch.')
+            return redirect('dashboard:dashboard')
+    except:
+        messages.error(request, 'Error accessing branch information.')
+        return redirect('dashboard:dashboard')
+    
+    # Get the loan
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        messages.error(request, 'Loan not found.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Check if loan is in approved status
+    if loan.status != 'approved':
+        messages.error(request, 'Loan is not in approved status.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Check if manager's branch matches loan officer's branch
+    try:
+        if loan.loan_officer.officer_assignment.branch != branch.name:
+            messages.error(request, 'You do not have permission to approve this loan.')
+            return redirect('dashboard:pending_approvals')
+    except:
+        messages.error(request, 'Error verifying loan assignment.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Get security deposit status
+    try:
+        security_deposit = loan.security_deposit
+        deposit_verified = security_deposit.is_verified
+    except:
+        deposit_verified = False
+    
+    # Get manager approval status
+    try:
+        manager_approval = loan.manager_approval
+    except:
+        manager_approval = None
+    
+    context = {
+        'loan': loan,
+        'security_deposit': security_deposit if 'security_deposit' in locals() else None,
+        'deposit_verified': deposit_verified,
+        'manager_approval': manager_approval,
+        'branch': branch,
+    }
+    
+    return render(request, 'dashboard/manager_loan_approval_detail.html', context)
+
+
+@login_required
+def manager_loan_approve(request, loan_id):
+    """Manager view: Approve a loan for disbursement"""
+    from loans.models import Loan, ManagerLoanApproval, ApprovalLog
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('dashboard:pending_approvals')
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        messages.error(request, 'You do not have permission to approve loans.')
+        return redirect('dashboard:dashboard')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            messages.error(request, 'You are not assigned to a branch.')
+            return redirect('dashboard:dashboard')
+    except:
+        messages.error(request, 'Error accessing branch information.')
+        return redirect('dashboard:dashboard')
+    
+    # Get the loan
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        messages.error(request, 'Loan not found.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Validate loan status
+    if loan.status != 'approved':
+        messages.error(request, 'Loan is not in approved status.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Check if manager's branch matches loan officer's branch
+    try:
+        if loan.loan_officer.officer_assignment.branch != branch.name:
+            messages.error(request, 'You do not have permission to approve this loan.')
+            return redirect('dashboard:pending_approvals')
+    except:
+        messages.error(request, 'Error verifying loan assignment.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Validate security deposit is verified
+    try:
+        security_deposit = loan.security_deposit
+        if not security_deposit.is_verified:
+            messages.error(request, 'Security deposit must be verified before loan approval.')
+            return redirect('dashboard:manager_loan_approval_detail', loan_id=loan_id)
+    except:
+        messages.error(request, 'Security deposit not found.')
+        return redirect('dashboard:manager_loan_approval_detail', loan_id=loan_id)
+    
+    # Get comments
+    comments = request.POST.get('comments', '')
+    
+    try:
+        # Create or update manager approval
+        manager_approval, created = ManagerLoanApproval.objects.get_or_create(loan=loan)
+        manager_approval.status = 'approved'
+        manager_approval.manager = user
+        manager_approval.approved_date = timezone.now()
+        manager_approval.comments = comments
+        manager_approval.save()
+        
+        # Log the approval
+        ApprovalLog.objects.create(
+            approval_type='loan_approval',
+            loan=loan,
+            manager=user,
+            action='approve',
+            comments=comments,
+            branch=branch.name
+        )
+        
+        messages.success(request, f'Loan {loan.application_number} has been approved for disbursement.')
+        return redirect('dashboard:pending_approvals')
+        
+    except Exception as e:
+        messages.error(request, f'Error approving loan: {str(e)}')
+        return redirect('dashboard:manager_loan_approval_detail', loan_id=loan_id)
+
+
+@login_required
+def manager_loan_reject(request, loan_id):
+    """Manager view: Reject a loan approval"""
+    from loans.models import Loan, ManagerLoanApproval, ApprovalLog
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('dashboard:pending_approvals')
+    
+    user = request.user
+    
+    # Check if user is manager
+    if user.role != 'manager':
+        messages.error(request, 'You do not have permission to reject loans.')
+        return redirect('dashboard:dashboard')
+    
+    try:
+        branch = user.managed_branch
+        if not branch:
+            messages.error(request, 'You are not assigned to a branch.')
+            return redirect('dashboard:dashboard')
+    except:
+        messages.error(request, 'Error accessing branch information.')
+        return redirect('dashboard:dashboard')
+    
+    # Get the loan
+    try:
+        loan = Loan.objects.get(id=loan_id)
+    except Loan.DoesNotExist:
+        messages.error(request, 'Loan not found.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Validate loan status
+    if loan.status != 'approved':
+        messages.error(request, 'Loan is not in approved status.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Check if manager's branch matches loan officer's branch
+    try:
+        if loan.loan_officer.officer_assignment.branch != branch.name:
+            messages.error(request, 'You do not have permission to reject this loan.')
+            return redirect('dashboard:pending_approvals')
+    except:
+        messages.error(request, 'Error verifying loan assignment.')
+        return redirect('dashboard:pending_approvals')
+    
+    # Get comments (required for rejection)
+    comments = request.POST.get('comments', '')
+    
+    if not comments:
+        messages.error(request, 'Comments are required for rejection.')
+        return redirect('dashboard:manager_loan_approval_detail', loan_id=loan_id)
+    
+    try:
+        # Create or update manager approval
+        manager_approval, created = ManagerLoanApproval.objects.get_or_create(loan=loan)
+        manager_approval.status = 'rejected'
+        manager_approval.manager = user
+        manager_approval.comments = comments
+        manager_approval.save()
+        
+        # Log the rejection
+        ApprovalLog.objects.create(
+            approval_type='loan_approval',
+            loan=loan,
+            manager=user,
+            action='reject',
+            comments=comments,
+            branch=branch.name
+        )
+        
+        messages.success(request, f'Loan {loan.application_number} has been rejected.')
+        return redirect('dashboard:pending_approvals')
+        
+    except Exception as e:
+        messages.error(request, f'Error rejecting loan: {str(e)}')
+        return redirect('dashboard:manager_loan_approval_detail', loan_id=loan_id)
 
 
 # Expense Management Views
