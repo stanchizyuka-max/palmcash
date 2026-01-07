@@ -137,6 +137,15 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
         
         response = super().form_valid(form)
         
+        # Create approval request for high-value loans (K6,000+)
+        if self.object.principal_amount >= 6000:
+            from loans.models import LoanApprovalRequest
+            LoanApprovalRequest.objects.create(
+                loan=self.object,
+                requested_by=self.request.user,
+                status='pending'
+            )
+        
         # Notify admins about new loan application
         self._notify_admins_of_application(self.object)
         
