@@ -410,8 +410,14 @@ class DisburseLoanView(LoginRequiredMixin, View):
             return redirect('loans:detail', pk=pk)
         
         loan = get_object_or_404(Loan, pk=pk)
-        if loan.status != 'approved':
-            messages.error(request, 'Only approved loans can be disbursed.')
+        # Allow disbursement for approved loans OR completed loans with no payment schedule (data fix)
+        if loan.status not in ['approved', 'completed']:
+            messages.error(request, 'Only approved or completed loans can be disbursed.')
+            return redirect('loans:detail', pk=pk)
+        
+        # If loan is completed but has no payment schedule, allow fix
+        if loan.status == 'completed' and loan.payment_schedule.exists():
+            messages.error(request, 'This loan is already completed with a payment schedule. Cannot disburse again.')
             return redirect('loans:detail', pk=pk)
         
         try:

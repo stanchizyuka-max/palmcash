@@ -220,7 +220,7 @@
                 {% endif %}
 
                 <!-- How to Pay Section -->
-                {% if loan.status in 'active,disbursed' %}
+                {% if loan.status == 'active' or loan.status == 'disbursed' %}
                 <div class="detail-card bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg border border-blue-200 overflow-hidden animate-fade-in" style="animation-delay: 0.3s;">
                     <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-6">
                         <h2 class="text-2xl font-bold flex items-center">
@@ -283,7 +283,7 @@
                                     <i class="fas fa-calendar-alt mr-3"></i>
                                     View Payment Schedule
                                 </a>
-                                {% if user.role == 'borrower' and user == loan.borrower and loan.status in 'active,disbursed' %}
+                                {% if user.role == 'borrower' and user == loan.borrower and (loan.status == 'active' or loan.status == 'disbursed') %}
                                 <a href="{% url 'payments:make' loan.pk %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white font-semibold rounded-xl hover:from-success-600 hover:to-success-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex-1 justify-center">
                                     <i class="fas fa-credit-card mr-3"></i>
                                     Make Payment
@@ -296,7 +296,7 @@
                 {% endif %}
 
                 <!-- Payment Progress (for active loans) -->
-                {% if loan.status in 'active,disbursed' %}
+                {% if loan.status == 'active' or loan.status == 'disbursed' %}
                 <div class="detail-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-fade-in" style="animation-delay: 0.4s;">
                     <div class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-6">
                         <h2 class="text-2xl font-bold flex items-center">
@@ -387,15 +387,27 @@
                         </button>
                         
                         {% elif user.role != 'borrower' and loan.status == 'approved' %}
+                        <!-- Check if upfront payment is verified -->
+                        {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
                         <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
                             {% csrf_token %}
-                            <button type="submit" onclick="return confirm('Are you sure you want to disburse this loan?')" class="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                            <button type="submit" onclick="return confirm('Are you sure you want to disburse this loan? This will create the payment schedule.')" class="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                                 <i class="fas fa-money-bill-wave mr-3"></i>
                                 Disburse Loan
                             </button>
                         </form>
+                        {% else %}
+                        <div class="mb-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
+                            <p class="text-sm text-warning-800 font-semibold mb-2">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>Upfront Payment Required
+                            </p>
+                            <p class="text-xs text-warning-700">
+                                The borrower must submit and have their upfront payment (10% of principal) verified before this loan can be disbursed.
+                            </p>
+                        </div>
+                        {% endif %}
                         
-                        {% elif user.role != 'borrower' and loan.status == 'completed' and not loan.payment_schedules.exists %}
+                        {% elif user.role != 'borrower' and loan.status == 'completed' and not loan.payment_schedule.all %}
                         <!-- Loan marked as completed but has no payment schedule - allow disbursement -->
                         <div class="mb-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
                             <p class="text-sm text-warning-800 font-semibold mb-2">
