@@ -3498,39 +3498,34 @@ def manager_document_verification(request):
         
         # For loan officers, show verified documents instead of pending
         if user.role == 'loan_officer':
-            # Get verified client verifications - only for loan officer's assigned clients
+            # Get verified client verifications - show all for now to test
             verified_verifications = ClientVerification.objects.filter(
-                status='verified',
-                client__assigned_officer=user
+                status='verified'
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
-            # Get all verified documents - only for loan officer's assigned clients
+            # Get all verified documents - show all for now to test
             verified_documents = ClientDocument.objects.filter(
-                status='approved',
-                client__assigned_officer=user
+                status='approved'
             ).select_related('client', 'verified_by').order_by('-verification_date')
             
-            # Get statistics - only for loan officer's assigned clients
+            # Get statistics - show all for now to test
             total_clients = ClientVerification.objects.filter(
-                client__assigned_officer=user
+                status='verified'
             ).count()
             verified_clients = ClientVerification.objects.filter(
-                status='verified',
-                client__assigned_officer=user
+                status='verified'
             ).count()
             
             # Get pending verifications for loan officers (documents submitted but not yet verified)
             pending_verifications = ClientVerification.objects.filter(
-                status__in=['documents_submitted', 'documents_rejected'],
-                client__assigned_officer=user
+                status__in=['documents_submitted', 'documents_rejected']
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
             pending_count = pending_verifications.count()
             
             # Get documents needing review
             documents_needing_review = ClientDocument.objects.filter(
-                status='pending',
-                client__assigned_officer=user
+                status='pending'
             ).select_related('client').order_by('-uploaded_at')
             
             # Set empty lists for unused variables
