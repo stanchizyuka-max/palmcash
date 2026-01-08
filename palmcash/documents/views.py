@@ -416,3 +416,49 @@ def client_document_review(request, client_id):
     }
     
     return render(request, 'dashboard/client_document_review.html', context)
+
+
+@login_required
+def client_verification_detail(request, client_id):
+    """Show detailed verification status for a specific client"""
+    user = request.user
+    
+    # Check permissions
+    if user.role not in ['loan_officer', 'manager', 'admin']:
+        messages.error(request, 'You do not have permission to view client verification details.')
+        return redirect('dashboard:dashboard')
+    
+    # Get the client
+    try:
+        client = User.objects.get(id=client_id, role='borrower')
+    except User.DoesNotExist:
+        messages.error(request, 'Client not found.')
+        return redirect('documents:verification_dashboard')
+    
+    # Check if loan officer has permission for this client
+    if user.role == 'loan_officer':
+        from django.db.models import Q
+        if not User.objects.filter(
+            Q(id=client_id, assigned_officer=user) | 
+            Q(id=client_id, group_memberships__group__assigned_officer=user),
+            role='borrower'
+        ).exists():
+            messages.error(request, 'You do not have permission to view this client\'s documents.')
+            return redirect('documents:verification_dashboard')
+    
+    # Get client verification and documents
+    try:
+        verification = ClientVerification.objects.get(client=client)
+    except ClientVerification.DoesNotExist:
+        verification = None
+    
+    documents = ClientDocument.objects.filter(client=client).order_by('-uploaded_at')
+    
+    context = {
+        'client': client,
+        'documents': documents,
+        'verification': verification,
+        'user_role': user.role,
+    }
+    
+    return render(request, 'documents/client_verification_detail.html', context)
