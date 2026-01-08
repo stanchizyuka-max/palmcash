@@ -3498,22 +3498,21 @@ def manager_document_verification(request):
         
         # For loan officers, show verified documents instead of pending
         if user.role == 'loan_officer':
-            # Get verified client verifications
+            # Get verified client verifications - show all verified clients like managers
             verified_verifications = ClientVerification.objects.filter(
-                client_id__in=branch_client_ids,
                 status='verified'
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
-            # Get all verified documents
+            # Get all verified documents - show all approved documents like managers
             verified_documents = ClientDocument.objects.filter(
-                client_id__in=branch_client_ids,
                 status='approved'
             ).select_related('client', 'verified_by').order_by('-verification_date')
             
-            # Get statistics
-            total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+            # Get statistics - show all verified clients like managers
+            total_clients = ClientVerification.objects.filter(
+                status='verified'
+            ).count()
             verified_clients = ClientVerification.objects.filter(
-                client_id__in=branch_client_ids,
                 status='verified'
             ).count()
             pending_count = 0  # Not relevant for loan officers
