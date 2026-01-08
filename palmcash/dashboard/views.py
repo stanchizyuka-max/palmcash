@@ -613,7 +613,7 @@ def borrower_dashboard(request):
     loans = Loan.objects.filter(borrower=borrower)
     active_loans = loans.filter(status='active').count()
     completed_loans = loans.filter(status='completed').count()
-    pending_loans = loans.filter(status='pending').count()
+    pending_loans = active_loans  # Fix: Use active_loans instead of filtering for 'pending'
     
     # Get upcoming payments
     from payments.models import PaymentCollection
