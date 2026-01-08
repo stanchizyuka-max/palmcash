@@ -37,6 +37,9 @@ urlpatterns = [
     path('funds/deposit/', views.fund_deposit_create, name='fund_deposit_create'),
     path('funds/history/', views.fund_history, name='fund_history'),
     
+    # Security Deposit Verification URLs
+    path('verify-security-deposit/<int:pk>/', loans.views.VerifySecurityDepositView.as_view(), name='verify_security_deposit'),
+    
     # User and Branch Management URLs
     path('users/create/', views.user_create, name='user_create'),
     path('branches/create/', views.branch_create, name='branch_create'),
