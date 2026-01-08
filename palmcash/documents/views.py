@@ -365,3 +365,54 @@ def reject_single_document(request, document_id):
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
+
+
+@login_required
+def client_document_review(request, client_id):
+    """Review documents for a specific client"""
+    user = request.user
+    
+    # Check permissions
+    if user.role not in ['loan_officer', 'manager', 'admin']:
+        messages.error(request, 'You do not have permission to review documents.')
+        return redirect('dashboard:dashboard')
+    
+    try:
+        from accounts.models import User
+        client = get_object_or_404(User, id=client_id, role='borrower')
+        
+        # Check if loan officer has access to this client
+        if user.role == 'loan_officer':
+            from django.db.models import Q
+            has_access = User.objects.filter(
+                Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
+                id=client_id,
+                role='borrower'
+            ).exists()
+            if not has_access:
+                messages.error(request, 'You do not have permission to review documents for this client.')
+                return redirect('dashboard:dashboard')
+        
+        # Get all documents for this client
+        documents = ClientDocument.objects.filter(
+            client=client
+        ).select_related('client', 'verified_by').order_by('-uploaded_at')
+        
+        # Get verification status
+        try:
+            verification = ClientVerification.objects.get(client=client)
+        except ClientVerification.DoesNotExist:
+            verification = None
+        
+    except Exception as e:
+        messages.error(request, f'Error loading client documents: {str(e)}')
+        return redirect('dashboard:dashboard')
+    
+    context = {
+        'client': client,
+        'documents': documents,
+        'verification': verification,
+        'user_role': user.role,
+    }
+    
+    return render(request, 'dashboard/client_document_review.html', context)
