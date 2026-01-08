@@ -195,7 +195,7 @@ class Loan(models.Model):
         # Calculate payment amount and total based on frequency
         if self.principal_amount and self.interest_rate:
             # Calculate total with interest
-            interest_amount = self.principal_amount * (self.interest_rate / 100)
+            interest_amount = self.principal_amount * (self.interest_rate / Decimal('100'))
             self.total_amount = self.principal_amount + interest_amount
             
             # Calculate payment amount based on frequency

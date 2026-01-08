@@ -79,7 +79,8 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
         
         # Calculate payment amount (principal + interest) divided by term
         principal = form.cleaned_data['principal_amount']
-        interest_rate = loan_type.interest_rate / 100
+        from decimal import Decimal
+        interest_rate = loan_type.interest_rate / Decimal('100')
         total_interest = principal * interest_rate
         total_repayment = principal + total_interest
         
@@ -185,7 +186,8 @@ def enhanced_loan_application(request):
             
             # Calculate payment amount
             principal = form.cleaned_data['principal_amount']
-            interest_rate = loan_type.interest_rate / 100
+            from decimal import Decimal
+            interest_rate = loan_type.interest_rate / Decimal('100')
             total_interest = principal * interest_rate
             total_repayment = principal + total_interest
             
