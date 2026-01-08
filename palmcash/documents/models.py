@@ -93,7 +93,10 @@ class ClientDocument(models.Model):
     def file_size_mb(self):
         """Get file size in MB"""
         if self.image:
-            return round(self.image.size / (1024 * 1024), 2)
+            try:
+                return round(self.image.size / (1024 * 1024), 2)
+            except (FileNotFoundError, OSError):
+                return 0
         return 0
     
     @property
