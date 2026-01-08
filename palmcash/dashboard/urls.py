@@ -9,6 +9,7 @@ urlpatterns = [
     path('loan-officer/', views.loan_officer_dashboard, name='loan_officer_dashboard'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
+    path('loan-officer/document-verification/', views.manager_document_verification, name='loan_officer_document_verification'),
     path('admin/', views.admin_dashboard, name='admin_dashboard'),
     
     # Action URLs

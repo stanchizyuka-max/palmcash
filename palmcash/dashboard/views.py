@@ -3445,19 +3445,32 @@ def analytics(request):
 
 @login_required
 def manager_document_verification(request):
-    """Manager-specific document verification dashboard"""
+    """Document verification dashboard for managers and loan officers"""
     user = request.user
     
-    if user.role != 'manager':
+    if user.role not in ['manager', 'loan_officer']:
         return render(request, 'dashboard/access_denied.html')
     
-    # Get manager's branch
+    # Get branch based on user role
     try:
-        branch = user.managed_branch
-        if not branch:
-            return render(request, 'dashboard/access_denied.html', {
-                'message': 'You have not been assigned to a branch. Please contact your administrator.'
-            })
+        if user.role == 'manager':
+            branch = user.managed_branch
+            if not branch:
+                return render(request, 'dashboard/access_denied.html', {
+                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
+                })
+        else:  # loan_officer
+            # Get branch from officer assignment
+            officer_assignment = user.officer_assignment
+            if not officer_assignment:
+                return render(request, 'dashboard/access_denied.html', {
+                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
+                })
+            branch_name = officer_assignment.branch
+            # Create a simple branch object for template
+            from collections import namedtuple
+            Branch = namedtuple('Branch', ['name'])
+            branch = Branch(name=branch_name)
     except:
         return render(request, 'dashboard/access_denied.html', {
             'message': 'You have not been assigned to a branch. Please contact your administrator.'
@@ -3468,10 +3481,18 @@ def manager_document_verification(request):
         from django.db.models import Q
         from accounts.models import User
         
-        # Get all clients in manager's branch (simplified query)
-        branch_clients = User.objects.filter(
-            role='borrower'
-        ).distinct()
+        # Get clients based on user role
+        if user.role == 'manager':
+            # Manager sees all clients in their branch
+            branch_clients = User.objects.filter(
+                role='borrower'
+            ).distinct()
+        else:  # loan_officer
+            # Loan officer sees only their assigned clients
+            branch_clients = User.objects.filter(
+                Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
+                role='borrower'
+            ).distinct()
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
@@ -3502,7 +3523,7 @@ def manager_document_verification(request):
         ).select_related('client').order_by('-uploaded_at')
         
     except Exception as e:
-        print(f"Error in manager document verification: {e}")
+        print(f"Error in document verification: {e}")
         pending_verifications = []
         recent_verifications = []
         documents_needing_review = []
@@ -3512,6 +3533,7 @@ def manager_document_verification(request):
     
     context = {
         'branch': branch,
+        'user_role': user.role,
         'pending_verifications': pending_verifications,
         'recent_verifications': recent_verifications,
         'documents_needing_review': documents_needing_review,
