@@ -190,19 +190,26 @@ class Loan(models.Model):
         
         # Calculate upfront payment (10% of principal)
         if self.principal_amount and not self.upfront_payment_required:
-            self.upfront_payment_required = self.principal_amount * Decimal('0.10')
+            from decimal import Decimal
+            principal = Decimal(str(self.principal_amount))
+            self.upfront_payment_required = principal * Decimal('0.10')
         
         # Calculate payment amount and total based on frequency
         if self.principal_amount and self.interest_rate:
+            # Ensure we're working with Decimals
+            from decimal import Decimal
+            principal = Decimal(str(self.principal_amount))
+            interest_rate = Decimal(str(self.interest_rate))
+            
             # Calculate total with interest
-            interest_amount = self.principal_amount * (self.interest_rate / Decimal('100'))
-            self.total_amount = self.principal_amount + interest_amount
+            interest_amount = principal * (interest_rate / Decimal('100'))
+            self.total_amount = principal + interest_amount
             
             # Calculate payment amount based on frequency
             if self.repayment_frequency == 'daily' and self.term_days:
-                self.payment_amount = self.total_amount / self.term_days
+                self.payment_amount = self.total_amount / Decimal(str(self.term_days))
             elif self.repayment_frequency == 'weekly' and self.term_weeks:
-                self.payment_amount = self.total_amount / self.term_weeks
+                self.payment_amount = self.total_amount / Decimal(str(self.term_weeks))
             
         if self.total_amount and not self.balance_remaining:
             self.balance_remaining = self.total_amount - self.amount_paid
