@@ -269,7 +269,7 @@ class ApproveLoanView(LoginRequiredMixin, View):
         return redirect('loans:detail', pk=pk)
     
     def post(self, request, pk):
-        if request.user.role not in ['admin', 'loan_officer']:
+        if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'You do not have permission to approve loans.')
             return redirect('loans:detail', pk=pk)
         
