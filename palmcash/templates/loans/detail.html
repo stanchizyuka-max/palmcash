@@ -135,13 +135,15 @@
                 <h5 class="mb-0">Actions</h5>
             </div>
             <div class="card-body">
-                <!-- Debug info -->
+                <!-- Always show actions for non-borrowers -->
+                {% if user.role != 'borrower' %}
                 <div class="alert alert-info">
-                    <small><strong>Debug:</strong> User Role: {{ user.role }}, Loan Status: {{ loan.status }}</small>
+                    <small><strong>Current Status:</strong> User Role: {{ user.role }}, Loan Status: {{ loan.status }}</small>
                 </div>
                 
-                {% if user.role != 'borrower' and loan.status == 'pending' %}
+                {% if loan.status == 'pending' %}
                 <div class="d-grid gap-2">
+                    <h6 class="text-center">Pending Loan Actions</h6>
                     <form method="post" action="{% url 'loans:approve' loan.pk %}" class="d-inline">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-success w-100" onclick="return confirm('Are you sure you want to approve this loan?')">
@@ -153,8 +155,9 @@
                         <i class="fas fa-times me-2"></i>Reject Loan
                     </button>
                 </div>
-                {% elif user.role != 'borrower' and loan.status == 'approved' %}
+                {% elif loan.status == 'approved' %}
                 <div class="d-grid">
+                    <h6 class="text-center">Approved Loan Actions</h6>
                     <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="d-inline">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary w-100" onclick="return confirm('Are you sure you want to disburse this loan?')">
@@ -162,18 +165,23 @@
                         </button>
                     </form>
                 </div>
-                {% elif user.role != 'borrower' and loan.status == 'disbursed' %}
+                {% elif loan.status == 'disbursed' %}
                 <div class="d-grid">
+                    <h6 class="text-center">Disbursed Loan Actions</h6>
                     <a href="{% url 'payments:make_payment' loan.pk %}" class="btn btn-success w-100">
                         <i class="fas fa-plus me-2"></i>Record Payment
                     </a>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <small>No actions available for loan status: {{ loan.status }}</small>
                 </div>
                 {% endif %}
                 
                 <!-- Security Deposit Management -->
                 {% if user.role in ['admin', 'manager'] %}
                 <hr>
-                <h6 class="mb-3">Security Deposit</h6>
+                <h6 class="mb-3">Security Deposit Management</h6>
                 {% if loan.securitydeposit %}
                     {% if not loan.securitydeposit.is_verified %}
                     <div class="alert alert-warning">
@@ -197,6 +205,11 @@
                         <i class="fas fa-plus me-2"></i>Add Security Deposit
                     </a>
                 {% endif %}
+                {% endif %}
+                {% else %}
+                <div class="alert alert-warning">
+                    <small>Borrowers cannot perform loan management actions</small>
+                </div>
                 {% endif %}
                 
                 <div class="mt-3">
