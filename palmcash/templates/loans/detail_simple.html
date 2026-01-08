@@ -94,8 +94,8 @@
                     <h2 class="text-2xl font-bold mb-6 text-gray-900">Actions</h2>
                     
                     <div class="space-y-4">
-                        <!-- Pending Loan - Loan Officer -->
-                        {% if user.role == 'loan_officer' and loan.status == 'pending' %}
+                        <!-- Pending Loan - Manager (Ready for Approval) -->
+                        {% if user.role == 'manager' and loan.status == 'pending' %}
                         <form method="post" action="{% url 'loans:approve' loan.pk %}" class="w-full">
                             {% csrf_token %}
                             <button type="submit" onclick="return confirm('Approve this loan?')" class="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
@@ -108,7 +108,7 @@
                         </button>
                         {% endif %}
 
-                        <!-- Approved Loan - Manager -->
+                        <!-- Approved Loan - Manager (Ready for Disbursement) -->
                         {% if user.role == 'manager' and loan.status == 'approved' %}
                         {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
                         <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
