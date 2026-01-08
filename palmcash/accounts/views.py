@@ -150,6 +150,9 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage users.')
             return redirect('dashboard:dashboard')
+        
+        # Store request for use in get_context_data
+        self.request = request
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
