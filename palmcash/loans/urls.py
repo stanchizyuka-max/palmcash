@@ -1,11 +1,13 @@
 from django.urls import path
 from . import views
+from .views_enhanced import enhanced_loan_application
 
 app_name = 'loans'
 
 urlpatterns = [
     path('', views.LoanListView.as_view(), name='list'),
     path('apply/', views.LoanApplicationView.as_view(), name='apply'),
+    path('apply-enhanced/', enhanced_loan_application, name='apply_enhanced'),
     path('calculator/', views.LoanCalculatorView.as_view(), name='calculator'),
     path('status-dashboard/', views.LoanStatusDashboardView.as_view(), name='status_dashboard'),
     path('<int:pk>/', views.LoanDetailView.as_view(), name='detail'),

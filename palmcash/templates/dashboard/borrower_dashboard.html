@@ -461,7 +461,7 @@
                         </div>
                     </div>
                     
-                    <a href="{% url 'loans:apply' %}?loan_type={{ loan_type.id }}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium">
+                    <a href="{% url 'loans:apply_enhanced' %}?loan_type={{ loan_type.id }}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium">
                         <i class="fas fa-arrow-right mr-2"></i>Apply Now
                     </a>
                 </div>
@@ -560,7 +560,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
             <div class="p-6 border-b border-secondary-100 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-secondary-900">My Loans</h3>
-                <a href="{% url 'loans:apply' %}" class="btn-primary">
+                <a href="{% url 'loans:apply_enhanced' %}" class="btn-primary">
                     <i class="fas fa-plus mr-2"></i>Apply for Loan
                 </a>
             </div>
@@ -609,7 +609,7 @@
                             <td colspan="5" class="px-6 py-8 text-center text-secondary-500">
                                 <i class="fas fa-inbox text-4xl mb-4 text-secondary-300"></i>
                                 <p>You don't have any loans yet.</p>
-                                <a href="{% url 'loans:apply' %}" class="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
+                                <a href="{% url 'loans:apply_enhanced' %}" class="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
                                     Apply for your first loan <i class="fas fa-arrow-right ml-1"></i>
                                 </a>
                             </td>
