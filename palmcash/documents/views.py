@@ -106,7 +106,7 @@ def client_verification_status(request):
 
 @login_required
 def document_verification_dashboard(request):
-    """Dashboard for verifying client documents - accessible to loan officers, managers, and admins"""
+    """Dashboard for reviewing approved client documents - accessible to loan officers, managers, and admins"""
     user = request.user
     
     # Check permissions
@@ -123,10 +123,17 @@ def document_verification_dashboard(request):
             role='borrower'
         ).values_list('id', flat=True).distinct()
         
+        # Get verified/approved documents (primary focus)
+        verified_verifications = ClientVerification.objects.filter(
+            client_id__in=client_ids,
+            status='verified'
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get pending verifications (secondary)
         pending_verifications = ClientVerification.objects.filter(
             client_id__in=client_ids,
             status__in=['documents_submitted', 'documents_rejected']
-        ).select_related('client').prefetch_related('client__documents')
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
         all_verifications = ClientVerification.objects.filter(
             client_id__in=client_ids
@@ -139,9 +146,13 @@ def document_verification_dashboard(request):
         ).count()
     else:
         # Managers and admins see all documents
+        verified_verifications = ClientVerification.objects.filter(
+            status='verified'
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
         pending_verifications = ClientVerification.objects.filter(
             status__in=['documents_submitted', 'documents_rejected']
-        ).select_related('client').prefetch_related('client__documents')
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
         all_verifications = ClientVerification.objects.all().select_related('client').prefetch_related('client__documents')
         
@@ -151,6 +162,7 @@ def document_verification_dashboard(request):
     pending_clients = pending_verifications.count()
     
     context = {
+        'verified_verifications': verified_verifications,
         'pending_verifications': pending_verifications,
         'all_verifications': all_verifications,
         'total_clients': total_clients,
