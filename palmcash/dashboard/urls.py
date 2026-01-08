@@ -76,9 +76,6 @@ urlpatterns = [
     path('system-reports/', views.system_reports, name='system_reports'),
     path('analytics/', views.analytics, name='analytics'),
     
-    # Document URLs
-    path('documents/', include('documents.urls')),
-    
     # Other app URLs
     path('notifications/', include('notifications.urls')),
     path('messages/', include('internal_messages.urls')),
