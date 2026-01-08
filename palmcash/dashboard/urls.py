@@ -9,16 +9,11 @@ urlpatterns = [
     path('loan-officer/', views.loan_officer_dashboard, name='loan_officer_dashboard'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
-    path('loan-officer/document-verification/', views.loan_officer_document_verification, name='loan_officer_document_verification'),
-    path('admin/', views.admin_dashboard, name='admin_dashboard'),
     
     # Action URLs
     path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
     path('approved-security-deposits/', views.approved_security_deposits, name='approved_security_deposits'),
     path('collection-details/', views.collection_details, name='collection_details'),
-    path('manage-officers/', views.manage_officers, name='manage_officers'),
-    path('manage-branches/', views.manage_branches, name='manage_branches'),
-    path('audit-logs/', views.audit_logs, name='audit_logs'),
     
     # Approval URLs
     path('approval/<int:approval_id>/', views.approval_detail, name='approval_detail'),
@@ -80,4 +75,17 @@ urlpatterns = [
     path('groups-permissions/', views.groups_permissions, name='groups_permissions'),
     path('system-reports/', views.system_reports, name='system_reports'),
     path('analytics/', views.analytics, name='analytics'),
+    
+    # Document URLs
+    path('documents/', include('documents.urls')),
+    
+    # Other app URLs
+    path('notifications/', include('notifications.urls')),
+    path('messages/', include('internal_messages.urls')),
+    path('reports/', include('reports.urls')),
+    path('pages/', include('pages.urls')),
+    path('adminpanel/', include('adminpanel.urls')),
+    path('expenses/', include('expenses.urls')),
+    path('loans/', include('loans.urls')),
+    path('clients/', include('clients.urls')),
 ]
