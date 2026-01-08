@@ -1802,96 +1802,10 @@ def fund_deposit_create(request):
                 'error': f'Error creating deposit: {str(e)}',
                 'branch': branch,
             })
-    
-    context = {
         'branch': branch,
     }
     
     return render(request, 'dashboard/fund_deposit_form.html', context)
-
-
-@login_required
-def fund_history(request):
-    """View fund transfer and deposit history"""
-    from expenses.models import FundsTransfer, BankDeposit
-    
-    user = request.user
-    
-    # Check if user is manager
-    if user.role != 'manager':
-        return render(request, 'dashboard/access_denied.html')
-    
-    try:
-        branch = user.managed_branch
-        if not branch:
-            return render(request, 'dashboard/access_denied.html')
-    except:
-        return render(request, 'dashboard/access_denied.html')
-    
-    # Get transfers for this branch (as source or destination)
-    transfers = FundsTransfer.objects.filter(
-        Q(source_branch=branch.name) | Q(destination_branch=branch.name)
-    ).order_by('-requested_date')
-    
-    # Get deposits for this branch
-    deposits = BankDeposit.objects.filter(source_branch=branch.name).order_by('-requested_date')
-    
-    # Filter by type
-    fund_type = request.GET.get('type')
-    if fund_type == 'transfer':
-        transfers = transfers
-        deposits = BankDeposit.objects.none()
-    elif fund_type == 'deposit':
-        transfers = FundsTransfer.objects.none()
-        deposits = deposits
-    
-    # Filter by date range
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    if start_date:
-        transfers = transfers.filter(requested_date__gte=start_date)
-        deposits = deposits.filter(requested_date__gte=start_date)
-    if end_date:
-        transfers = transfers.filter(requested_date__lte=end_date)
-        deposits = deposits.filter(requested_date__lte=end_date)
-    
-    # Filter by amount range
-    min_amount = request.GET.get('min_amount')
-    max_amount = request.GET.get('max_amount')
-    if min_amount:
-        transfers = transfers.filter(amount__gte=min_amount)
-        deposits = deposits.filter(amount__gte=min_amount)
-    if max_amount:
-        transfers = transfers.filter(amount__lte=max_amount)
-        deposits = deposits.filter(amount__lte=max_amount)
-    
-    # Combine and paginate
-    from django.core.paginator import Paginator
-    from itertools import chain
-    
-    all_records = list(chain(transfers, deposits))
-    all_records.sort(key=lambda x: x.requested_date, reverse=True)
-    
-    paginator = Paginator(all_records, 50)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
-    # Calculate totals
-    total_transfers = transfers.aggregate(Sum('amount'))['amount__sum'] or 0
-    total_deposits = deposits.aggregate(Sum('amount'))['amount__sum'] or 0
-    total_funds = total_transfers + total_deposits
-    
-    context = {
-        'page_obj': page_obj,
-        'records': page_obj.object_list,
-        'total_records': len(all_records),
-        'total_transfers': total_transfers,
-        'total_deposits': total_deposits,
-        'total_funds': total_funds,
-        'branch': branch,
-    }
-    
-    return render(request, 'dashboard/fund_history.html', context)
 
 
 # User Management Views
