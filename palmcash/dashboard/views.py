@@ -3452,21 +3452,25 @@ def loan_officer_document_verification(request):
         return render(request, 'dashboard/access_denied.html')
     
     # Get branch from officer assignment
+    branch = None
     try:
-        officer_assignment = user.officer_assignment
-        if not officer_assignment:
-            return render(request, 'dashboard/access_denied.html', {
-                'message': 'You have not been assigned to a branch. Please contact your administrator.'
-            })
-        branch_name = officer_assignment.branch
-        # Create a simple branch object for template
+        if hasattr(user, 'officer_assignment') and user.officer_assignment:
+            officer_assignment = user.officer_assignment
+            branch_name = officer_assignment.branch
+            # Create a simple branch object for template
+            from collections import namedtuple
+            Branch = namedtuple('Branch', ['name'])
+            branch = Branch(name=branch_name)
+        else:
+            # If no officer assignment, create a default branch object
+            from collections import namedtuple
+            Branch = namedtuple('Branch', ['name'])
+            branch = Branch(name='Unassigned')
+    except Exception as e:
+        print(f"Error getting officer assignment: {e}")
         from collections import namedtuple
         Branch = namedtuple('Branch', ['name'])
-        branch = Branch(name=branch_name)
-    except:
-        return render(request, 'dashboard/access_denied.html', {
-            'message': 'You have not been assigned to a branch. Please contact your administrator.'
-        })
+        branch = Branch(name='Unassigned')
     
     try:
         from documents.models import ClientVerification, ClientDocument
