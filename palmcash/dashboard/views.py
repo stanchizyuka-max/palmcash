@@ -892,7 +892,7 @@ def pending_approvals(request):
         'pending_approvals': page_obj.object_list,
         'pending_deposits': pending_deposits,
         'total_pending': pending_loans.count(),
-        'total_deposits': pending_deposits.count(),
+        'total_deposits': len(pending_deposits) if isinstance(pending_deposits, list) else pending_deposits.count(),
         'total_required': total_required,
         'total_collected': total_collected,
         'total_outstanding': total_outstanding,
