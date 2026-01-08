@@ -57,7 +57,7 @@ class ClientDocument(models.Model):
         null=True,
         blank=True,
         related_name='verified_client_documents',
-        limit_choices_to={'role__in': ['manager', 'admin']},
+        limit_choices_to={'role__in': ['loan_officer', 'manager', 'admin']},
         help_text='User who verified this document'
     )
     
@@ -192,7 +192,7 @@ class ClientVerification(models.Model):
         null=True,
         blank=True,
         related_name='verified_clients',
-        limit_choices_to={'role__in': ['manager', 'admin']},
+        limit_choices_to={'role__in': ['loan_officer', 'manager', 'admin']},
         help_text='User who verified this client'
     )
     
