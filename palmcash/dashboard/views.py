@@ -422,6 +422,7 @@ def manager_dashboard(request):
     
     context = {
         'branch': branch,
+        'today': today,
         'officers_count': officers.count(),
         'groups_count': groups.count(),
         'clients_count': clients_count,
