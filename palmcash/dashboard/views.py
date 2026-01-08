@@ -3496,37 +3496,71 @@ def manager_document_verification(request):
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
-        # Get pending document verifications
-        pending_verifications = ClientVerification.objects.filter(
-            client_id__in=branch_client_ids,
-            status__in=['documents_submitted', 'documents_rejected']
-        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-        
-        # Get recently verified documents
-        recent_verifications = ClientDocument.objects.filter(
-            client_id__in=branch_client_ids,
-            status='approved'
-        ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
-        
-        # Get statistics
-        total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
-        verified_clients = ClientVerification.objects.filter(
-            client_id__in=branch_client_ids,
-            status='verified'
-        ).count()
-        pending_count = pending_verifications.count()
-        
-        # Get documents needing review
-        documents_needing_review = ClientDocument.objects.filter(
-            client_id__in=branch_client_ids,
-            status='pending'
-        ).select_related('client').order_by('-uploaded_at')
+        # For loan officers, show verified documents instead of pending
+        if user.role == 'loan_officer':
+            # Get verified client verifications
+            verified_verifications = ClientVerification.objects.filter(
+                client_id__in=branch_client_ids,
+                status='verified'
+            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+            
+            # Get all verified documents
+            verified_documents = ClientDocument.objects.filter(
+                client_id__in=branch_client_ids,
+                status='approved'
+            ).select_related('client', 'verified_by').order_by('-verification_date')
+            
+            # Get statistics
+            total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+            verified_clients = ClientVerification.objects.filter(
+                client_id__in=branch_client_ids,
+                status='verified'
+            ).count()
+            pending_count = 0  # Not relevant for loan officers
+            
+            # Set empty lists for unused variables
+            pending_verifications = []
+            recent_verifications = []
+            documents_needing_review = []
+            
+        else:  # manager - show pending verifications
+            # Get pending document verifications
+            pending_verifications = ClientVerification.objects.filter(
+                client_id__in=branch_client_ids,
+                status__in=['documents_submitted', 'documents_rejected']
+            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+            
+            # Get recently verified documents
+            recent_verifications = ClientDocument.objects.filter(
+                client_id__in=branch_client_ids,
+                status='approved'
+            ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
+            
+            # Get statistics
+            total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+            verified_clients = ClientVerification.objects.filter(
+                client_id__in=branch_client_ids,
+                status='verified'
+            ).count()
+            pending_count = pending_verifications.count()
+            
+            # Get documents needing review
+            documents_needing_review = ClientDocument.objects.filter(
+                client_id__in=branch_client_ids,
+                status='pending'
+            ).select_related('client').order_by('-uploaded_at')
+            
+            # Set empty lists for unused variables
+            verified_verifications = []
+            verified_documents = []
         
     except Exception as e:
         print(f"Error in document verification: {e}")
         pending_verifications = []
         recent_verifications = []
         documents_needing_review = []
+        verified_verifications = []
+        verified_documents = []
         total_clients = 0
         verified_clients = 0
         pending_count = 0
@@ -3537,6 +3571,8 @@ def manager_document_verification(request):
         'pending_verifications': pending_verifications,
         'recent_verifications': recent_verifications,
         'documents_needing_review': documents_needing_review,
+        'verified_verifications': verified_verifications,
+        'verified_documents': verified_documents,
         'total_clients': total_clients,
         'verified_clients': verified_clients,
         'pending_count': pending_count,
