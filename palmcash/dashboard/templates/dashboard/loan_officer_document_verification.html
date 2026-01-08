@@ -1,0 +1,279 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Document Verification - {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-slate-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-slate-900 mb-2">
+                        <i class="fas fa-file-check text-orange-600 mr-3"></i>
+                        Document Verification
+                    </h1>
+                    <p class="text-lg text-slate-600">Review and approve client documents</p>
+                </div>
+                <a href="{% url 'dashboard:loan_officer_dashboard' %}" class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Total Clients -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-slate-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Total Clients</p>
+                        <p class="text-3xl font-bold text-slate-900">{{ total_clients }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-slate-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verified Clients -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Verified</p>
+                        <p class="text-3xl font-bold text-green-600">{{ verified_clients }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Review -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Pending Review</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ pending_count }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Verification Rate -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Verification Rate</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ verification_rate }}%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Pending Verifications -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Pending Verifications
+                        {% if pending_count > 0 %}
+                        <span class="ml-2 bg-white text-orange-600 px-2 py-1 rounded-full text-xs font-bold">{{ pending_count }}</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                
+                <div class="p-6">
+                    {% if pending_verifications %}
+                    <div class="space-y-4">
+                        {% for verification in pending_verifications %}
+                        <div class="border border-orange-200 rounded-lg p-4 bg-orange-50 hover:bg-orange-100 transition-colors">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-slate-900">{{ verification.client.get_full_name }}</h4>
+                                    <p class="text-sm text-slate-600">{{ verification.client.email }}</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-orange-200 text-orange-800">
+                                    {{ verification.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="text-sm text-slate-600 mb-3">
+                                <p>Documents: 
+                                    {% if verification.client.documents.all %}
+                                        {% for doc in verification.client.documents.all %}
+                                            <span class="inline-block px-2 py-1 bg-slate-100 rounded text-xs mr-1">
+                                                {{ doc.get_document_type_display }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-slate-500">No documents uploaded</span>
+                                    {% endif %}
+                                </p>
+                                <p class="mt-1">Updated: {{ verification.updated_at|date:"M d, Y" }}</p>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <form method="POST" action="{% url 'documents:approve_client_documents' verification.client.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-check mr-1"></i>Approve All
+                                    </button>
+                                </form>
+                                <form method="POST" action="{% url 'documents:reject_client_documents' verification.client.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <textarea name="reason" placeholder="Reason for rejection" class="hidden"></textarea>
+                                    <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-times mr-1"></i>Reject All
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+                        <p class="text-slate-600 font-semibold">No pending verifications</p>
+                        <p class="text-slate-500 text-sm mt-1">All client documents are up to date!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Verified Documents -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Verified Documents
+                        {% if verified_clients > 0 %}
+                        <span class="ml-2 bg-white text-green-600 px-2 py-1 rounded-full text-xs font-bold">{{ verified_clients }}</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                
+                <div class="p-6">
+                    {% if verified_verifications %}
+                    <div class="space-y-4">
+                        {% for verification in verified_verifications %}
+                        <div class="border border-green-200 rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-slate-900">{{ verification.client.get_full_name }}</h4>
+                                    <p class="text-sm text-slate-600">{{ verification.client.email }}</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-200 text-green-800">
+                                    Verified
+                                </span>
+                            </div>
+                            
+                            <div class="text-sm text-slate-600 mb-3">
+                                <p>Documents: 
+                                    {% if verification.client.documents.all %}
+                                        {% for doc in verification.client.documents.all %}
+                                            <span class="inline-block px-2 py-1 bg-slate-100 rounded text-xs mr-1">
+                                                {{ doc.get_document_type_display }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-slate-500">No documents uploaded</span>
+                                    {% endif %}
+                                </p>
+                                <p class="mt-1">Verified: {{ verification.updated_at|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-file-alt text-4xl text-slate-300 mb-3"></i>
+                        <p class="text-slate-600 font-semibold">No verified documents</p>
+                        <p class="text-slate-500 text-sm mt-1">Verified documents will appear here</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Documents Needing Review -->
+        {% if documents_needing_review %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-file-upload mr-2"></i>
+                    Individual Documents Needing Review
+                    <span class="ml-2 bg-white text-amber-600 px-2 py-1 rounded-full text-xs font-bold">{{ documents_needing_review|length }}</span>
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for doc in documents_needing_review %}
+                    <div class="border border-amber-200 rounded-lg p-4 bg-amber-50 hover:bg-amber-100 transition-colors">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-slate-900 text-sm">{{ doc.client.get_full_name }}</h4>
+                            <span class="px-2 py-1 bg-amber-200 text-amber-800 rounded text-xs font-medium">
+                                {{ doc.get_document_type_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="text-sm text-slate-600 mb-3">
+                            <p>Uploaded: {{ doc.uploaded_at|date:"M d, Y H:i" }}</p>
+                            {% if doc.file_size_mb %}
+                            <p>Size: {{ doc.file_size_mb }}MB</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="{{ doc.image.url }}" target="_blank" class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </a>
+                            <form method="POST" action="{% url 'documents:approve_single_document' doc.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-check mr-1"></i>Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'documents:reject_single_document' doc.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <textarea name="reason" placeholder="Reason" class="hidden"></textarea>
+                                <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-times mr-1"></i>Reject
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Info Box -->
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <div class="flex items-start">
+                <i class="fas fa-info-circle text-orange-600 text-xl mr-4 mt-1"></i>
+                <div>
+                    <h4 class="font-semibold text-orange-900 mb-2">Document Verification Tips</h4>
+                    <ul class="text-orange-800 text-sm space-y-1">
+                        <li>• Review all three documents (NRC Front, NRC Back, Selfie) before approving</li>
+                        <li>• Ensure documents are clear and legible</li>
+                        <li>• Verify that the selfie matches the NRC photo</li>
+                        <li>• Reject documents that don't meet quality standards</li>
+                        <li>• Once approved, clients can proceed with loan applications</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

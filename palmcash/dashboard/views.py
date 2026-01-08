@@ -3444,33 +3444,25 @@ def analytics(request):
 
 
 @login_required
-def manager_document_verification(request):
-    """Document verification dashboard for managers and loan officers"""
+def loan_officer_document_verification(request):
+    """Document verification dashboard for loan officers only"""
     user = request.user
     
-    if user.role not in ['manager', 'loan_officer']:
+    if user.role != 'loan_officer':
         return render(request, 'dashboard/access_denied.html')
     
-    # Get branch based on user role
+    # Get branch from officer assignment
     try:
-        if user.role == 'manager':
-            branch = user.managed_branch
-            if not branch:
-                return render(request, 'dashboard/access_denied.html', {
-                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
-                })
-        else:  # loan_officer
-            # Get branch from officer assignment
-            officer_assignment = user.officer_assignment
-            if not officer_assignment:
-                return render(request, 'dashboard/access_denied.html', {
-                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
-                })
-            branch_name = officer_assignment.branch
-            # Create a simple branch object for template
-            from collections import namedtuple
-            Branch = namedtuple('Branch', ['name'])
-            branch = Branch(name=branch_name)
+        officer_assignment = user.officer_assignment
+        if not officer_assignment:
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch. Please contact your administrator.'
+            })
+        branch_name = officer_assignment.branch
+        # Create a simple branch object for template
+        from collections import namedtuple
+        Branch = namedtuple('Branch', ['name'])
+        branch = Branch(name=branch_name)
     except:
         return render(request, 'dashboard/access_denied.html', {
             'message': 'You have not been assigned to a branch. Please contact your administrator.'
@@ -3481,111 +3473,135 @@ def manager_document_verification(request):
         from django.db.models import Q
         from accounts.models import User
         
-        # Get clients based on user role
-        if user.role == 'manager':
-            # Manager sees all clients in their branch
-            branch_clients = User.objects.filter(
-                role='borrower'
-            ).distinct()
-        else:  # loan_officer
-            # Loan officer sees only their assigned clients
-            branch_clients = User.objects.filter(
-                Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
-                role='borrower'
-            ).distinct()
+        # Loan officer sees only their assigned clients
+        branch_clients = User.objects.filter(
+            Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
+            role='borrower'
+        ).distinct()
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
-        # For loan officers, show verified documents instead of pending
-        if user.role == 'loan_officer':
-            # Get verified client verifications - only for loan officer's assigned clients
-            verified_verifications = ClientVerification.objects.filter(
-                status='verified',
-                client__assigned_officer=user
-            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-            
-            # Get all verified documents - only for loan officer's assigned clients
-            verified_documents = ClientDocument.objects.filter(
-                status='approved',
-                client__assigned_officer=user
-            ).select_related('client', 'verified_by').order_by('-verification_date')
-            
-            # Get statistics - only for loan officer's assigned clients
-            total_clients = ClientVerification.objects.filter(
-                client__assigned_officer=user
-            ).count()
-            verified_clients = ClientVerification.objects.filter(
-                status='verified',
-                client__assigned_officer=user
-            ).count()
-            
-            # Get pending verifications for loan officers (documents submitted but not yet verified)
-            pending_verifications = ClientVerification.objects.filter(
-                status__in=['documents_submitted', 'documents_rejected'],
-                client__assigned_officer=user
-            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-            
-            pending_count = pending_verifications.count()
-            
-            # Get documents needing review
-            documents_needing_review = ClientDocument.objects.filter(
-                status='pending',
-                client__assigned_officer=user
-            ).select_related('client').order_by('-uploaded_at')
-            
-            # Set empty lists for unused variables
-            recent_verifications = []
-            
-        else:  # manager - show pending verifications
-            # Get pending document verifications
-            pending_verifications = ClientVerification.objects.filter(
-                client_id__in=branch_client_ids,
-                status__in=['documents_submitted', 'documents_rejected']
-            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-            
-            # Get recently verified documents
-            recent_verifications = ClientDocument.objects.filter(
-                client_id__in=branch_client_ids,
-                status='approved'
-            ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
-            
-            # Get statistics
-            total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
-            verified_clients = ClientVerification.objects.filter(
-                client_id__in=branch_client_ids,
-                status='verified'
-            ).count()
-            pending_count = pending_verifications.count()
-            
-            # Get documents needing review
-            documents_needing_review = ClientDocument.objects.filter(
-                client_id__in=branch_client_ids,
-                status='pending'
-            ).select_related('client').order_by('-uploaded_at')
-            
-            # Set empty lists for unused variables
-            verified_verifications = []
-            verified_documents = []
+        # Get pending verifications for loan officers (documents submitted but not yet verified)
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get verified verifications
+        verified_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status='verified'
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get statistics
+        total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+        verified_clients = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status='verified'
+        ).count()
+        pending_count = pending_verifications.count()
+        
+        # Get documents needing review
+        documents_needing_review = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='pending'
+        ).select_related('client').order_by('-uploaded_at')
         
     except Exception as e:
-        print(f"Error in document verification: {e}")
+        print(f"Error in loan officer document verification: {e}")
         pending_verifications = []
-        recent_verifications = []
-        documents_needing_review = []
         verified_verifications = []
-        verified_documents = []
+        documents_needing_review = []
         total_clients = 0
         verified_clients = 0
         pending_count = 0
     
     context = {
         'branch': branch,
-        'user_role': user.role,
+        'pending_verifications': pending_verifications,
+        'verified_verifications': verified_verifications,
+        'documents_needing_review': documents_needing_review,
+        'total_clients': total_clients,
+        'verified_clients': verified_clients,
+        'pending_count': pending_count,
+        'verification_rate': round((verified_clients / total_clients * 100) if total_clients > 0 else 0, 1),
+    }
+    
+    return render(request, 'dashboard/loan_officer_document_verification.html', context)
+
+
+@login_required
+def manager_document_verification(request):
+    """Document verification dashboard for managers only"""
+    user = request.user
+    
+    if user.role != 'manager':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Get branch
+    try:
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch. Please contact your administrator.'
+            })
+    except:
+        return render(request, 'dashboard/access_denied.html', {
+            'message': 'You have not been assigned to a branch. Please contact your administrator.'
+        })
+    
+    try:
+        from documents.models import ClientVerification, ClientDocument
+        from accounts.models import User
+        
+        # Manager sees all clients in their branch
+        branch_clients = User.objects.filter(
+            role='borrower'
+        ).distinct()
+        
+        branch_client_ids = branch_clients.values_list('id', flat=True)
+        
+        # Get pending document verifications
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get recently verified documents
+        recent_verifications = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='approved'
+        ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
+        
+        # Get statistics
+        total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+        verified_clients = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status='verified'
+        ).count()
+        pending_count = pending_verifications.count()
+        
+        # Get documents needing review
+        documents_needing_review = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='pending'
+        ).select_related('client').order_by('-uploaded_at')
+        
+    except Exception as e:
+        print(f"Error in document verification: {e}")
+        pending_verifications = []
+        recent_verifications = []
+        documents_needing_review = []
+        total_clients = 0
+        verified_clients = 0
+        pending_count = 0
+    
+    context = {
+        'branch': branch,
+        'user_role': 'manager',
         'pending_verifications': pending_verifications,
         'recent_verifications': recent_verifications,
         'documents_needing_review': documents_needing_review,
-        'verified_verifications': verified_verifications,
-        'verified_documents': verified_documents,
         'total_clients': total_clients,
         'verified_clients': verified_clients,
         'pending_count': pending_count,
