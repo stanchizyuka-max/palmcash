@@ -887,6 +887,8 @@ def approved_security_deposits(request):
                 loan__loan_officer__officer_assignment__branch=branch.name
             ).select_related('loan', 'loan__borrower').order_by('-verification_date')
             
+            branch_display_name = branch.name
+            
         except Exception as e:
             # If there's an error with branch assignment, show access denied
             return render(request, 'dashboard/access_denied.html')
@@ -898,7 +900,7 @@ def approved_security_deposits(request):
             is_verified=True
         ).select_related('loan', 'loan__borrower').order_by('-verification_date')
         
-        branch_name = 'All Branches'
+        branch_display_name = 'All Branches'
     else:
         return render(request, 'dashboard/access_denied.html')
     
@@ -924,7 +926,7 @@ def approved_security_deposits(request):
         'total_deposits': approved_deposits.count(),
         'total_required': total_required,
         'total_collected': total_collected,
-        'branch': branch_name if user.role == 'admin' else branch.name,
+        'branch': branch_display_name,
     }
     
     return render(request, 'dashboard/approved_security_deposits.html', context)
