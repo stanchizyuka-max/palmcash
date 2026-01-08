@@ -135,6 +135,11 @@
                 <h5 class="mb-0">Actions</h5>
             </div>
             <div class="card-body">
+                <!-- Debug info -->
+                <div class="alert alert-info">
+                    <small><strong>Debug:</strong> User Role: {{ user.role }}, Loan Status: {{ loan.status }}</small>
+                </div>
+                
                 {% if user.role != 'borrower' and loan.status == 'pending' %}
                 <div class="d-grid gap-2">
                     <form method="post" action="{% url 'loans:approve' loan.pk %}" class="d-inline">
@@ -157,6 +162,41 @@
                         </button>
                     </form>
                 </div>
+                {% elif user.role != 'borrower' and loan.status == 'disbursed' %}
+                <div class="d-grid">
+                    <a href="{% url 'payments:make_payment' loan.pk %}" class="btn btn-success w-100">
+                        <i class="fas fa-plus me-2"></i>Record Payment
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Security Deposit Management -->
+                {% if user.role in ['admin', 'manager'] %}
+                <hr>
+                <h6 class="mb-3">Security Deposit</h6>
+                {% if loan.securitydeposit %}
+                    {% if not loan.securitydeposit.is_verified %}
+                    <div class="alert alert-warning">
+                        <small><strong>Security Deposit:</strong> K{{ loan.securitydeposit.required_amount|floatformat:2 }}</small><br>
+                        <small><strong>Paid:</strong> K{{ loan.securitydeposit.paid_amount|floatformat:2 }}</small><br>
+                        <small><strong>Status:</strong> Pending Verification</small>
+                    </div>
+                    <a href="{% url 'dashboard:verify_security_deposit' loan.securitydeposit.id %}" class="btn btn-info btn-sm w-100">
+                        <i class="fas fa-check me-2"></i>Verify Deposit
+                    </a>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <small><strong>Security Deposit:</strong> Verified</small>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-secondary">
+                        <small>No security deposit record found</small>
+                    </div>
+                    <a href="{% url 'loans:upfront_payment' loan.pk %}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-plus me-2"></i>Add Security Deposit
+                    </a>
+                {% endif %}
                 {% endif %}
                 
                 <div class="mt-3">
