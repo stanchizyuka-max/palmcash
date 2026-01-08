@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from loans.views import VerifySecurityDepositView
 
 app_name = 'dashboard'
 
@@ -38,7 +39,7 @@ urlpatterns = [
     path('funds/history/', views.fund_history, name='fund_history'),
     
     # Security Deposit Verification URLs
-    path('verify-security-deposit/<int:pk>/', loans.views.VerifySecurityDepositView.as_view(), name='verify_security_deposit'),
+    path('verify-security-deposit/<int:pk>/', VerifySecurityDepositView.as_view(), name='verify_security_deposit'),
     
     # User and Branch Management URLs
     path('users/create/', views.user_create, name='user_create'),
