@@ -12,6 +12,7 @@ urlpatterns = [
     path('upload/', views.client_document_upload, name='upload'),  # Alias for borrower dashboard
     path('client/status/', views.client_verification_status, name='client_verification_status'),
     path('verification/dashboard/', views.document_verification_dashboard, name='verification_dashboard'),
+    path('verification/client/<int:client_id>/', views.client_document_review, name='client_document_review'),
     path('verification/approve/<int:client_id>/', views.approve_client_documents, name='approve_client_documents'),
     path('verification/reject/<int:client_id>/', views.reject_client_documents, name='reject_client_documents'),
     path('verification/approve-document/<int:document_id>/', views.approve_single_document, name='approve_single_document'),
