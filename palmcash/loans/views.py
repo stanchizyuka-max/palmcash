@@ -1119,6 +1119,23 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
             loan.upfront_payment_verified = False  # Needs admin verification
             loan.save()
             
+            # Get or create security deposit record and UPDATE the paid amount
+            from .models import SecurityDeposit
+            deposit, created = SecurityDeposit.objects.get_or_create(
+                loan=loan,
+                defaults={
+                    'required_amount': loan.upfront_payment_required or (loan.principal_amount * Decimal('0.10')),
+                    'paid_amount': Decimal('0')
+                }
+            )
+            
+            # Update the security deposit with the actual payment amount
+            deposit.paid_amount = form.cleaned_data['amount_paid']
+            deposit.payment_date = timezone.now()
+            deposit.payment_method = form.cleaned_data.get('payment_method', 'cash')
+            deposit.payment_reference = form.cleaned_data.get('payment_reference', '')
+            deposit.save()
+            
             # Create a notification for admin
             from notifications.models import Notification, NotificationTemplate
             try:
