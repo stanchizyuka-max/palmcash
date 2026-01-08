@@ -864,13 +864,21 @@ def pending_approvals(request):
     
     # Calculate totals for security deposits
     from django.db.models import Sum
-    deposit_totals = pending_deposits.aggregate(
-        total_required=Sum('required_amount'),
-        total_collected=Sum('paid_amount')
-    )
     
-    total_required = deposit_totals['total_required'] or 0
-    total_collected = deposit_totals['total_collected'] or 0
+    # Handle both QuerySet and list cases
+    if isinstance(pending_deposits, list):
+        # If it's a list, calculate totals manually
+        total_required = sum(d.required_amount for d in pending_deposits if d.required_amount)
+        total_collected = sum(d.paid_amount for d in pending_deposits if d.paid_amount)
+    else:
+        # If it's a QuerySet, use aggregate
+        deposit_totals = pending_deposits.aggregate(
+            total_required=Sum('required_amount'),
+            total_collected=Sum('paid_amount')
+        )
+        total_required = deposit_totals['total_required'] or 0
+        total_collected = deposit_totals['total_collected'] or 0
+    
     total_outstanding = total_required - total_collected
     
     # Pagination
