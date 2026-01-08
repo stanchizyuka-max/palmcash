@@ -1866,6 +1866,8 @@ def fund_deposit_create(request):
                 'error': f'Error creating deposit: {str(e)}',
                 'branch': branch,
             })
+    
+    context = {
         'branch': branch,
     }
     
