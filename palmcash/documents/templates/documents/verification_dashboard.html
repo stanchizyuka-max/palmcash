@@ -96,23 +96,21 @@
 
             {% if all_verifications %}
             <div class="p-6">
-                {% regroup all_verifications by client as client_list %}
-                {% for client_group in client_list %}
-                    {% if client_group.grouper.status == 'verified' %}
+                {% for verification in all_verifications %}
+                    {% if verification.status == 'verified' %}
                     <div class="mb-8 border border-green-200 rounded-xl overflow-hidden bg-green-50">
                         <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
                             <h4 class="text-xl font-bold text-white flex items-center">
                                 <i class="fas fa-user-check mr-3"></i>
-                                {{ client_group.grouper.full_name }}
+                                {{ verification.client.full_name }}
                             </h4>
-                            <p class="text-green-100 text-sm mt-1">{{ client_group.grouper.email }}</p>
+                            <p class="text-green-100 text-sm mt-1">{{ verification.client.email }}</p>
                         </div>
                         
                         <div class="p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {% for verification in client_group.list %}
-                                    {% for doc in verification.client.documents.all %}
-                                        {% if doc.status == 'approved' %}
+                                {% for doc in verification.client.documents.all %}
+                                    {% if doc.status == 'approved' %}
                                         <div class="bg-white border border-green-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                             <div class="bg-green-50 px-4 py-3 border-b border-green-200">
                                                 <h5 class="font-semibold text-slate-900 flex items-center justify-between">
@@ -155,9 +153,9 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        {% endif %}
+                                    {% endif %}
                                     {% endfor %}
-                                {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
