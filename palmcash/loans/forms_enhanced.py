@@ -299,10 +299,12 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         ]
     
     def __init__(self, *args, **kwargs):
+        # Extract user from kwargs before calling super().__init__
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         # Pre-fill user information if available
-        if hasattr(self, 'user') and self.user:
+        if self.user:
             self.fields['first_name'].initial = self.user.first_name
             self.fields['last_name'].initial = self.user.last_name
             self.fields['email'].initial = self.user.email
