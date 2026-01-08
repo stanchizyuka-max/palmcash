@@ -3498,29 +3498,38 @@ def manager_document_verification(request):
         
         # For loan officers, show verified documents instead of pending
         if user.role == 'loan_officer':
-            # Get verified client verifications - show all verified clients like managers
+            # Get verified client verifications
             verified_verifications = ClientVerification.objects.filter(
                 status='verified'
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
-            # Get all verified documents - show all approved documents like managers
+            # Get all verified documents
             verified_documents = ClientDocument.objects.filter(
                 status='approved'
             ).select_related('client', 'verified_by').order_by('-verification_date')
             
-            # Get statistics - show all verified clients like managers
+            # Get statistics
             total_clients = ClientVerification.objects.filter(
                 status='verified'
             ).count()
             verified_clients = ClientVerification.objects.filter(
                 status='verified'
             ).count()
-            pending_count = 0  # Not relevant for loan officers
+            
+            # Get pending verifications for loan officers (documents submitted but not yet verified)
+            pending_verifications = ClientVerification.objects.filter(
+                status__in=['documents_submitted', 'documents_rejected']
+            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+            
+            pending_count = pending_verifications.count()
+            
+            # Get documents needing review
+            documents_needing_review = ClientDocument.objects.filter(
+                status='pending'
+            ).select_related('client').order_by('-uploaded_at')
             
             # Set empty lists for unused variables
-            pending_verifications = []
             recent_verifications = []
-            documents_needing_review = []
             
         else:  # manager - show pending verifications
             # Get pending document verifications
