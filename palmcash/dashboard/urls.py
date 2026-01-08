@@ -75,14 +75,4 @@ urlpatterns = [
     path('groups-permissions/', views.groups_permissions, name='groups_permissions'),
     path('system-reports/', views.system_reports, name='system_reports'),
     path('analytics/', views.analytics, name='analytics'),
-    
-    # Other app URLs
-    path('notifications/', include('notifications.urls')),
-    path('messages/', include('internal_messages.urls')),
-    path('reports/', include('reports.urls')),
-    path('pages/', include('pages.urls')),
-    path('adminpanel/', include('adminpanel.urls')),
-    path('expenses/', include('expenses.urls')),
-    path('loans/', include('loans.urls')),
-    path('clients/', include('clients.urls')),
 ]
