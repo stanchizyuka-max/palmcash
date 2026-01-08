@@ -40,6 +40,7 @@ urlpatterns = [
     # User and Branch Management URLs
     path('users/create/', views.user_create, name='user_create'),
     path('branches/create/', views.branch_create, name='branch_create'),
+    path('manage-officers/', views.manage_officers, name='manage_officers'),
     
     # Admin Branch Management URLs
     path('admin/branches/', views.admin_branches_list, name='admin_branches_list'),
