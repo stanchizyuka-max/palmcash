@@ -933,7 +933,7 @@ def approved_security_deposits(request):
     context = {
         'page_obj': page_obj,
         'approved_deposits': page_obj.object_list,
-        'total_deposits': approved_deposits.count(),
+        'total_deposits': len(approved_deposits),
         'total_required': total_required,
         'total_collected': total_collected,
         'branch': branch_display_name,
