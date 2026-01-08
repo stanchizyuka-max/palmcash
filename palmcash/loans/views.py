@@ -28,8 +28,8 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
     
     def get_queryset(self):
         if self.request.user.role == 'borrower':
-            return Loan.objects.filter(borrower=self.request.user)
-        return Loan.objects.all()
+            return Loan.objects.filter(borrower=self.request.user).select_related('securitydeposit', 'borrower')
+        return Loan.objects.all().select_related('securitydeposit', 'borrower')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
