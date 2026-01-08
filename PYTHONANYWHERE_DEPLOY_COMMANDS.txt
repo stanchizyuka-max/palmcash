@@ -1,0 +1,123 @@
+================================================================================
+PYTHONANYWHERE DEPLOYMENT COMMANDS - January 7, 2026
+================================================================================
+
+PURPOSE: Deploy manager dashboard fixes for security deposits and disbursed loans
+
+================================================================================
+STEP 1: SSH INTO PYTHONANYWHERE
+================================================================================
+ssh username@ssh.pythonanywhere.com
+(Replace 'username' with your actual PythonAnywhere username)
+
+================================================================================
+STEP 2: NAVIGATE TO PROJECT
+================================================================================
+cd /home/username/palmcash
+(Replace 'username' with your actual PythonAnywhere username)
+
+================================================================================
+STEP 3: PULL LATEST CHANGES
+================================================================================
+git pull origin main
+
+Expected output:
+From https://github.com/stanchizyuka-max/palmcash
+ * branch            main       -> FETCH_HEAD
+   eb3966e..7933f13  main       -> origin/main
+Updating eb3966e..7933f13
+Fast-forward
+ palmcash/dashboard/views.py                       | 45 +++++++++-
+ palmcash/templates/dashboard/admin_dashboard.html | 19 ++---
+ 2 files changed, 45 insertions(+), 9 deletions(-)
+
+================================================================================
+STEP 4: ACTIVATE VIRTUAL ENVIRONMENT
+================================================================================
+source /home/username/.virtualenvs/palmcash/bin/activate
+(Replace 'username' with your actual PythonAnywhere username)
+
+================================================================================
+STEP 5: INSTALL DEPENDENCIES (if any new ones)
+================================================================================
+pip install -r requirements.txt
+
+================================================================================
+STEP 6: RUN MIGRATIONS (if needed)
+================================================================================
+python palmcash/manage.py migrate
+
+Note: These changes don't require new migrations, but run anyway to be safe
+
+================================================================================
+STEP 7: COLLECT STATIC FILES
+================================================================================
+python palmcash/manage.py collectstatic --noinput
+
+================================================================================
+STEP 8: RELOAD WEB APPLICATION
+================================================================================
+touch /var/www/username_pythonanywhere_com_wsgi.py
+(Replace 'username' with your actual PythonAnywhere username)
+
+OR use PythonAnywhere web interface:
+1. Go to Web tab
+2. Click "Reload" button next to your web app
+
+================================================================================
+VERIFICATION
+================================================================================
+
+After deployment, test the following:
+
+1. Visit your manager dashboard:
+   https://yourdomain.pythonanywhere.com/dashboard/manager/
+
+2. Check admin dashboard:
+   https://yourdomain.pythonanywhere.com/dashboard/admin/
+
+3. Verify fixes:
+   ✓ Pending security deposits should show correct count
+   ✓ Disbursed loans amount should include 'disbursed' status loans
+   ✓ Admin dashboard should show "Pending Security Deposits" card
+
+4. Check for any errors in PythonAnywhere error log
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If deployment fails:
+
+1. Check git status:
+   git status
+
+2. Check error logs:
+   - PythonAnywhere Web tab → Error log
+   - Or: /var/log/username_pythonanywhere_com.error.log
+
+3. If static files don't load:
+   python palmcash/manage.py collectstatic --clear --noinput
+
+4. If migrations fail:
+   python palmcash/manage.py migrate --fake-initial
+
+================================================================================
+ROLLBACK (if needed)
+================================================================================
+git revert HEAD
+git push origin main
+# Then repeat deployment steps
+
+================================================================================
+CHANGES DEPLOYED
+================================================================================
+
+Commit: 7933f13
+Message: "Fix manager dashboard issues: pending security deposits and disbursed loans"
+
+Files changed:
+- palmcash/dashboard/views.py (fixed queries and calculations)
+- palmcash/templates/dashboard/admin_dashboard.html (updated UI)
+
+================================================================================

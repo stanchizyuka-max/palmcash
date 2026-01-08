@@ -13,6 +13,7 @@ urlpatterns = [
     
     # Action URLs
     path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
+    path('approved-security-deposits/', views.approved_security_deposits, name='approved_security_deposits'),
     path('collection-details/', views.collection_details, name='collection_details'),
     path('manage-officers/', views.manage_officers, name='manage_officers'),
     path('manage-branches/', views.manage_branches, name='manage_branches'),

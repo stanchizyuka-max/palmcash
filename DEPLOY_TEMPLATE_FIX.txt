@@ -1,0 +1,61 @@
+================================================================================
+PYTHONANYWHERE DEPLOYMENT - Template Syntax Fix
+================================================================================
+
+PURPOSE: Fix TemplateSyntaxError with 'mul' filter in manager dashboard
+
+================================================================================
+DEPLOYMENT COMMANDS
+================================================================================
+
+SSH into PythonAnywhere:
+ssh username@ssh.pythonanywhere.com
+
+Navigate to project:
+cd /home/username/palmcash
+
+Pull latest changes:
+git pull origin main
+
+Activate virtual environment:
+source /home/username/.virtualenvs/palmcash/bin/activate
+
+Reload web application:
+touch /var/www/username_pythonanywhere_com_wsgi.py
+
+================================================================================
+FIX DETAILS
+================================================================================
+
+Problem:
+- TemplateSyntaxError: Invalid filter: 'mul'
+- Error in manager_enhanced.html line 255
+- Django doesn't have built-in 'mul' filter
+
+Solution:
+- Moved verification rate calculation to view
+- Calculate verification_rate in dashboard/views.py
+- Use simple template variable {{ verification_rate|default:0 }}%
+
+Files Changed:
+- palmcash/dashboard/views.py (added verification_rate calculation)
+- palmcash/dashboard/templates/dashboard/manager_enhanced.html (removed mul filter)
+
+================================================================================
+VERIFICATION
+================================================================================
+
+After deployment, test:
+1. Visit manager dashboard: https://yourdomain.pythonanywhere.com/dashboard/manager/
+2. Verify no TemplateSyntaxError
+3. Check document verification section displays correctly
+4. Confirm verification rate shows proper percentage
+
+================================================================================
+COMMIT INFO
+================================================================================
+
+Commit: d8cc007
+Message: "Fix template syntax error in manager dashboard"
+
+================================================================================

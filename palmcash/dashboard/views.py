@@ -869,6 +869,61 @@ def pending_approvals(request):
 
 
 @login_required
+def approved_security_deposits(request):
+    """View approved security deposits and upfront payments"""
+    user = request.user
+    
+    if user.role == 'manager':
+        # Manager sees approved deposits for their branch
+        branch = user.managed_branch
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+        
+        # Get approved security deposits (verified)
+        from loans.models import SecurityDeposit
+        approved_deposits = SecurityDeposit.objects.filter(
+            is_verified=True,
+            loan__loan_officer__officer_assignment__branch=branch.name
+        ).select_related('loan', 'loan__borrower').order_by('-verification_date')
+        
+    elif user.role == 'admin':
+        # Admin sees all approved deposits
+        from loans.models import SecurityDeposit
+        approved_deposits = SecurityDeposit.objects.filter(
+            is_verified=True
+        ).select_related('loan', 'loan__borrower').order_by('-verification_date')
+    else:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # Calculate totals
+    from django.db.models import Sum
+    deposit_totals = approved_deposits.aggregate(
+        total_required=Sum('required_amount'),
+        total_collected=Sum('paid_amount')
+    )
+    
+    total_required = deposit_totals['total_required'] or 0
+    total_collected = deposit_totals['total_collected'] or 0
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(approved_deposits, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'approved_deposits': page_obj.object_list,
+        'total_deposits': approved_deposits.count(),
+        'total_required': total_required,
+        'total_collected': total_collected,
+        'branch': branch if user.role == 'manager' else 'All Branches',
+    }
+    
+    return render(request, 'dashboard/approved_security_deposits.html', context)
+
+
+@login_required
 def manage_officers(request):
     """Manage Officers View - Shows loan officers and their assignments"""
     user = request.user
