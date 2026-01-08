@@ -205,7 +205,7 @@ class Loan(models.Model):
             interest_amount = principal * (interest_rate / Decimal('100'))
             self.total_amount = principal + interest_amount
             
-            # Calculate payment amount based on frequency
+        # Calculate payment amount based on frequency
             if self.repayment_frequency == 'daily' and self.term_days:
                 self.payment_amount = self.total_amount / Decimal(str(self.term_days))
             elif self.repayment_frequency == 'weekly' and self.term_weeks:
