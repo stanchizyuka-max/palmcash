@@ -120,14 +120,9 @@ def loan_officer_dashboard(request):
     ).select_related('loan__borrower').order_by('-entry_date')[:20]
     
     # Pending documents for review - get clients in officer's groups with pending documents
-    from documents.models import ClientDocument, ClientVerification
+    from documents.models import ClientDocument
     
     pending_documents = []
-    pending_verifications = []
-    verified_verifications = []
-    pending_verification_count = 0
-    verified_client_count = 0
-    
     try:
         # Get all clients in officer's groups or directly assigned
         clients_in_groups = User.objects.filter(
@@ -141,27 +136,9 @@ def loan_officer_dashboard(request):
             client_id__in=clients_in_groups,
             status='pending'
         ).select_related('client').distinct()[:10]
-        
-        # Get pending verifications (documents submitted but not yet verified)
-        pending_verifications = ClientVerification.objects.filter(
-            client_id__in=clients_in_groups,
-            status__in=['documents_submitted', 'documents_rejected']
-        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')[:5]
-        
-        # Get verified verifications
-        verified_verifications = ClientVerification.objects.filter(
-            client_id__in=clients_in_groups,
-            status='verified'
-        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')[:5]
-        
-        pending_verification_count = pending_verifications.count()
-        verified_client_count = verified_verifications.count()
-        
     except Exception as e:
         print(f"Error fetching pending documents: {e}")
         pending_documents = []
-        pending_verifications = []
-        verified_verifications = []
     
     context = {
         'groups_count': groups.count(),
@@ -185,10 +162,6 @@ def loan_officer_dashboard(request):
         'passbook_entries': passbook_entries,
         'pending_documents': pending_documents,
         'pending_documents_count': pending_documents.count(),
-        'pending_verifications': pending_verifications,
-        'verified_verifications': verified_verifications,
-        'pending_verification_count': pending_verification_count,
-        'verified_client_count': verified_client_count,
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
@@ -3525,34 +3498,39 @@ def manager_document_verification(request):
         
         # For loan officers, show verified documents instead of pending
         if user.role == 'loan_officer':
-            # Get verified client verifications - show all for now to test
+            # Get verified client verifications - only for loan officer's assigned clients
             verified_verifications = ClientVerification.objects.filter(
-                status='verified'
+                status='verified',
+                client__assigned_officer=user
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
-            # Get all verified documents - show all for now to test
+            # Get all verified documents - only for loan officer's assigned clients
             verified_documents = ClientDocument.objects.filter(
-                status='approved'
+                status='approved',
+                client__assigned_officer=user
             ).select_related('client', 'verified_by').order_by('-verification_date')
             
-            # Get statistics - show all for now to test
+            # Get statistics - only for loan officer's assigned clients
             total_clients = ClientVerification.objects.filter(
-                status='verified'
+                client__assigned_officer=user
             ).count()
             verified_clients = ClientVerification.objects.filter(
-                status='verified'
+                status='verified',
+                client__assigned_officer=user
             ).count()
             
             # Get pending verifications for loan officers (documents submitted but not yet verified)
             pending_verifications = ClientVerification.objects.filter(
-                status__in=['documents_submitted', 'documents_rejected']
+                status__in=['documents_submitted', 'documents_rejected'],
+                client__assigned_officer=user
             ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
             
             pending_count = pending_verifications.count()
             
             # Get documents needing review
             documents_needing_review = ClientDocument.objects.filter(
-                status='pending'
+                status='pending',
+                client__assigned_officer=user
             ).select_related('client').order_by('-uploaded_at')
             
             # Set empty lists for unused variables
