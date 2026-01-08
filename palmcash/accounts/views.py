@@ -142,6 +142,11 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/users_manage.html'
     
     def dispatch(self, request, *args, **kwargs):
+        # Check if user is authenticated first
+        if not request.user.is_authenticated:
+            return redirect('accounts:login')
+        
+        # Check if user has permission to manage users
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage users.')
             return redirect('dashboard:dashboard')
