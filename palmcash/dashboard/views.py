@@ -817,11 +817,35 @@ def pending_approvals(request):
         
         # Get pending security deposits (paid but not verified)
         from loans.models import SecurityDeposit
-        pending_deposits = SecurityDeposit.objects.filter(
+        all_pending_deposits = SecurityDeposit.objects.filter(
             is_verified=False,
-            paid_amount__gt=0,  # Only show deposits that have been paid
-            loan__loan_officer__officer_assignment__branch=branch.name
+            paid_amount__gt=0  # Only show deposits that have been paid
         ).select_related('loan', 'loan__borrower').order_by('-payment_date')
+        
+        # Debug: Print total pending deposits
+        print(f"DEBUG: Total pending deposits in system: {all_pending_deposits.count()}")
+        for deposit in all_pending_deposits:
+            print(f"DEBUG: Deposit - Loan: {deposit.loan.application_number if deposit.loan else 'No Loan'}, Paid: {deposit.paid_amount}, Verified: {deposit.is_verified}")
+        
+        # Filter by branch if manager
+        if user.role == 'manager':
+            branch_deposits = []
+            print(f"DEBUG: Manager branch: {branch.name}")
+            for deposit in all_pending_deposits:
+                if deposit.loan and hasattr(deposit.loan, 'loan_officer') and deposit.loan.loan_officer:
+                    if hasattr(deposit.loan.loan_officer, 'officer_assignment') and deposit.loan.loan_officer.officer_assignment:
+                        if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
+                            branch_deposits.append(deposit)
+                            print(f"DEBUG: Added deposit for branch: {deposit.loan.application_number}")
+                elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
+                    # Include deposits for loans without loan officers
+                    branch_deposits.append(deposit)
+                    print(f"DEBUG: Added deposit without loan officer: {deposit.loan.application_number}")
+            pending_deposits = branch_deposits
+        else:
+            pending_deposits = all_pending_deposits
+        
+        print(f"DEBUG: Final pending deposits count: {len(pending_deposits)}")
         
     elif user.role == 'admin':
         # Admin sees all pending approvals
