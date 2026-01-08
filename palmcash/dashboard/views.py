@@ -3536,10 +3536,10 @@ def loan_officer_document_verification(request):
 
 @login_required
 def manager_document_verification(request):
-    """Document verification dashboard for managers only"""
+    """Document verification dashboard for managers and loan officers"""
     user = request.user
     
-    if user.role != 'manager':
+    if user.role not in ['manager', 'loan_officer']:
         return render(request, 'dashboard/access_denied.html')
     
     # Get branch

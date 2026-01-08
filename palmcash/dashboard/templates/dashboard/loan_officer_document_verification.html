@@ -79,20 +79,18 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <!-- Verified Documents (Primary Focus) -->
+            <!-- Verified Documents (Only if has data) -->
+            {% if verified_verifications %}
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
                 <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
                     <h3 class="text-xl font-bold text-white flex items-center">
                         <i class="fas fa-check-circle mr-2"></i>
                         Verified Documents
-                        {% if verified_clients > 0 %}
                         <span class="ml-2 bg-white text-green-600 px-2 py-1 rounded-full text-xs font-bold">{{ verified_clients }}</span>
-                        {% endif %}
                     </h3>
                 </div>
                 
                 <div class="p-6">
-                    {% if verified_verifications %}
                     <div class="space-y-4">
                         {% for verification in verified_verifications %}
                         <div class="border border-green-200 rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors">
@@ -123,30 +121,22 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-8">
-                        <i class="fas fa-file-alt text-4xl text-slate-300 mb-3"></i>
-                        <p class="text-slate-600 font-semibold">No verified documents</p>
-                        <p class="text-slate-500 text-sm mt-1">Verified documents will appear here</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Pending Verifications (Secondary) -->
+            <!-- Pending Verifications (Only if has data) -->
+            {% if pending_verifications %}
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
                 <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
                     <h3 class="text-xl font-bold text-white flex items-center">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
                         Pending Verifications
-                        {% if pending_count > 0 %}
                         <span class="ml-2 bg-white text-orange-600 px-2 py-1 rounded-full text-xs font-bold">{{ pending_count }}</span>
-                        {% endif %}
                     </h3>
                 </div>
                 
                 <div class="p-6">
-                    {% if pending_verifications %}
                     <div class="space-y-4">
                         {% for verification in pending_verifications %}
                         <div class="border border-orange-200 rounded-lg p-4 bg-orange-50 hover:bg-orange-100 transition-colors">
@@ -193,18 +183,23 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-8">
-                        <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
-                        <p class="text-slate-600 font-semibold">No pending verifications</p>
-                        <p class="text-slate-500 text-sm mt-1">All client documents are up to date!</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
+            {% endif %}
+
+            <!-- Empty State -->
+            {% if not verified_verifications and not pending_verifications %}
+            <div class="col-span-full">
+                <div class="bg-white rounded-xl shadow-lg p-12 border border-slate-200 text-center">
+                    <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">All Documents Managed</h3>
+                    <p class="text-slate-600">No pending or verified documents to display at this time.</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Individual Documents Needing Review -->
+        <!-- Individual Documents Needing Review (Only if has data) -->
         {% if documents_needing_review %}
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">
             <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
