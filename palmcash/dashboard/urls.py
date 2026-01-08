@@ -74,6 +74,7 @@ urlpatterns = [
     path('admin/loans/statistics/', views.admin_loan_statistics, name='admin_loan_statistics'),
     
     # Admin Management URLs (aliases for dashboard links)
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('manage-loans/', views.admin_all_loans, name='manage_loans'),
     path('groups-permissions/', views.groups_permissions, name='groups_permissions'),
     path('system-reports/', views.system_reports, name='system_reports'),
