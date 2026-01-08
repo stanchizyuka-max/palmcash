@@ -29,75 +29,16 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Main Content -->
-            <div class="lg:col-span-2">
-                <!-- Loan Details -->
-                <div class="bg-white rounded-lg shadow p-8 mb-8">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-900">Loan Details</h2>
-                    
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Application Number</p>
-                            <p class="text-gray-900 font-semibold text-lg">{{ loan.application_number }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Borrower</p>
-                            <p class="text-gray-900 font-semibold text-lg">{{ loan.borrower.full_name }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Loan Type</p>
-                            <p class="text-gray-900 font-semibold text-lg">{{ loan.loan_type.name }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Principal Amount</p>
-                            <p class="text-gray-900 font-bold text-lg">K{{ loan.principal_amount|floatformat:2 }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Interest Rate</p>
-                            <p class="text-gray-900 font-semibold text-lg">{{ loan.interest_rate }}%</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Term</p>
-                            <p class="text-gray-900 font-semibold text-lg">
-                                {% if loan.repayment_frequency == 'daily' %}
-                                    {{ loan.term_days }} days
-                                {% elif loan.repayment_frequency == 'weekly' %}
-                                    {{ loan.term_weeks }} weeks
-                                {% else %}
-                                    {{ loan.term_months }} months
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Monthly Payment</p>
-                            <p class="text-gray-900 font-bold text-lg">K{{ loan.monthly_payment|floatformat:2 }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium">Total Amount</p>
-                            <p class="text-gray-900 font-bold text-lg">K{{ loan.total_amount|floatformat:2 }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Purpose -->
-                {% if loan.purpose %}
-                <div class="bg-white rounded-lg shadow p-8 mb-8">
-                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Purpose</h2>
-                    <p class="text-gray-700">{{ loan.purpose }}</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Sidebar - Actions -->
-            <div>
-                <div class="bg-white rounded-lg shadow p-8 sticky top-8">
+            <!-- Sidebar - Actions (First on mobile, right on desktop) -->
+            <div class="lg:col-span-1 lg:order-last">
+                <div class="bg-white rounded-lg shadow p-8">
                     <h2 class="text-2xl font-bold mb-6 text-gray-900">Actions</h2>
                     
                     <div class="space-y-4">
                         <!-- Debug Info -->
                         <div class="p-3 bg-gray-100 rounded text-xs text-gray-600 mb-4">
-                            <p>User Role: {{ user.role }}</p>
-                            <p>Loan Status: {{ loan.status }}</p>
+                            <p><strong>User Role:</strong> {{ user.role }}</p>
+                            <p><strong>Loan Status:</strong> {{ loan.status }}</p>
                         </div>
 
                         <!-- Pending Loan - Manager (Ready for Approval) -->
@@ -171,6 +112,65 @@
                         </a>
                     </div>
                 </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-2">
+                <!-- Loan Details -->
+                <div class="bg-white rounded-lg shadow p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-900">Loan Details</h2>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Application Number</p>
+                            <p class="text-gray-900 font-semibold text-lg">{{ loan.application_number }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Borrower</p>
+                            <p class="text-gray-900 font-semibold text-lg">{{ loan.borrower.full_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Loan Type</p>
+                            <p class="text-gray-900 font-semibold text-lg">{{ loan.loan_type.name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Principal Amount</p>
+                            <p class="text-gray-900 font-bold text-lg">K{{ loan.principal_amount|floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Interest Rate</p>
+                            <p class="text-gray-900 font-semibold text-lg">{{ loan.interest_rate }}%</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Term</p>
+                            <p class="text-gray-900 font-semibold text-lg">
+                                {% if loan.repayment_frequency == 'daily' %}
+                                    {{ loan.term_days }} days
+                                {% elif loan.repayment_frequency == 'weekly' %}
+                                    {{ loan.term_weeks }} weeks
+                                {% else %}
+                                    {{ loan.term_months }} months
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Monthly Payment</p>
+                            <p class="text-gray-900 font-bold text-lg">K{{ loan.monthly_payment|floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Total Amount</p>
+                            <p class="text-gray-900 font-bold text-lg">K{{ loan.total_amount|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Purpose -->
+                {% if loan.purpose %}
+                <div class="bg-white rounded-lg shadow p-8 mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900">Purpose</h2>
+                    <p class="text-gray-700">{{ loan.purpose }}</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
