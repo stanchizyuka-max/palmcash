@@ -166,9 +166,13 @@ def approve_client_documents(request, client_id):
     """Approve all documents for a client"""
     if request.user.role not in ['loan_officer', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     if request.method != 'POST':
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     try:
@@ -185,7 +189,7 @@ def approve_client_documents(request, client_id):
             ).exists()
             if not has_access:
                 messages.error(request, 'You do not have permission to approve documents for this client.')
-                return redirect('documents:verification_dashboard')
+                return redirect('dashboard:loan_officer_document_verification')
         
         verification = get_object_or_404(ClientVerification, client=client)
         
@@ -193,10 +197,14 @@ def approve_client_documents(request, client_id):
         verification.approve_all_documents(request.user)
         
         messages.success(request, f'All documents for {client.full_name} have been approved.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     except Exception as e:
         messages.error(request, f'Error approving documents: {str(e)}')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
 
 
@@ -205,9 +213,13 @@ def reject_client_documents(request, client_id):
     """Reject all documents for a client"""
     if request.user.role not in ['loan_officer', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     if request.method != 'POST':
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     try:
@@ -224,7 +236,7 @@ def reject_client_documents(request, client_id):
             ).exists()
             if not has_access:
                 messages.error(request, 'You do not have permission to reject documents for this client.')
-                return redirect('documents:verification_dashboard')
+                return redirect('dashboard:loan_officer_document_verification')
         
         verification = get_object_or_404(ClientVerification, client=client)
         
@@ -234,10 +246,14 @@ def reject_client_documents(request, client_id):
         verification.reject_all_documents(request.user, reason)
         
         messages.success(request, f'Documents for {client.full_name} have been rejected.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     except Exception as e:
         messages.error(request, f'Error rejecting documents: {str(e)}')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
 
 
@@ -246,9 +262,13 @@ def approve_single_document(request, document_id):
     """Approve a single document"""
     if request.user.role not in ['loan_officer', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     if request.method != 'POST':
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     try:
@@ -264,7 +284,7 @@ def approve_single_document(request, document_id):
             ).exists()
             if not has_access:
                 messages.error(request, 'You do not have permission to approve documents for this client.')
-                return redirect('documents:verification_dashboard')
+                return redirect('dashboard:loan_officer_document_verification')
         
         notes = request.POST.get('notes', '')
         
@@ -275,10 +295,14 @@ def approve_single_document(request, document_id):
         verification.update_status()
         
         messages.success(request, f'{document.get_document_type_display()} approved.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     except Exception as e:
         messages.error(request, f'Error approving document: {str(e)}')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
 
 
@@ -287,9 +311,13 @@ def reject_single_document(request, document_id):
     """Reject a single document"""
     if request.user.role not in ['loan_officer', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     if request.method != 'POST':
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     try:
@@ -305,7 +333,7 @@ def reject_single_document(request, document_id):
             ).exists()
             if not has_access:
                 messages.error(request, 'You do not have permission to reject documents for this client.')
-                return redirect('documents:verification_dashboard')
+                return redirect('dashboard:loan_officer_document_verification')
         
         reason = request.POST.get('reason', 'Document does not meet requirements.')
         
@@ -316,8 +344,12 @@ def reject_single_document(request, document_id):
         verification.update_status()
         
         messages.success(request, f'{document.get_document_type_display()} rejected.')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
     
     except Exception as e:
         messages.error(request, f'Error rejecting document: {str(e)}')
+        if request.user.role == 'loan_officer':
+            return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
