@@ -1,0 +1,198 @@
+{% extends 'base_tailwind.html' %}
+{% load static %}
+
+{% block title %}Client Documents - {{ client.get_full_name }} - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-slate-900 mb-2">
+                        <i class="fas fa-file-check text-blue-600 mr-3"></i>
+                        Client Documents
+                    </h1>
+                    <p class="text-lg text-slate-600">{{ client.get_full_name }} ({{ client.email }})</p>
+                </div>
+                <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Verification Status -->
+        {% if verification %}
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Verification Status</h2>
+                    <p class="text-slate-600">Overall client verification status</p>
+                </div>
+                <div class="px-4 py-2 rounded-full text-2xl font-bold
+                    {% if verification.status == 'verified' %}
+                        bg-green-100 text-green-800
+                    {% elif verification.status == 'documents_submitted' %}
+                        bg-orange-100 text-orange-800
+                    {% elif verification.status == 'documents_rejected' %}
+                        bg-red-100 text-red-800
+                    {% else %}
+                        bg-slate-100 text-slate-800
+                    {% endif %}">
+                    {{ verification.get_status_display }}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Documents Uploaded</h3>
+                    <div class="space-y-2">
+                        {% for doc_type in 'nrc_front,nrc_back,selfie' %}
+                            {% if verification|attr:doc_type|default:False %}
+                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                    <span class="font-medium text-slate-700">{{ doc_type|title }}</span>
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if verification|attr:doc_type %}
+                                            bg-green-100 text-green-800
+                                        {% else %}
+                                            bg-slate-100 text-slate-800
+                                        {% endif %}">
+                                        {% if verification|attr:doc_type %}
+                                            Uploaded
+                                        {% else %}
+                                            Not Uploaded
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900 mb-2">Verification Details</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Verified By:</span>
+                                <span class="font-medium text-slate-900">
+                                    {% if verification.verified_by %}
+                                        {{ verification.verified_by.get_full_name }}
+                                    {% else %}
+                                        Not yet verified
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if verification.verification_date %}
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Verification Date:</span>
+                                <span class="font-medium text-slate-900">{{ verification.verification_date|date:"M d, Y H:i" }}</span>
+                            </div>
+                            {% endif %}
+                            {% if verification.verification_notes %}
+                            <div>
+                                <span class="text-slate-600">Notes:</span>
+                                <p class="text-slate-900 mt-1">{{ verification.verification_notes }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">No Verification Record</h2>
+                <p class="text-slate-600">This client has not started the verification process.</p>
+            </div>
+        {% endif %}
+
+        <!-- Documents List -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                <h2 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-folder-open mr-3"></i>
+                    Uploaded Documents ({{ documents|length }})
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                {% if documents %}
+                <div class="space-y-4">
+                    {% for document in documents %}
+                    <div class="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="text-lg font-semibold text-slate-900">{{ document.get_document_type_display }}</h3>
+                                <p class="text-sm text-slate-600">Client: {{ document.client.get_full_name }}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if document.status == 'approved' %}
+                                        bg-green-100 text-green-800
+                                    {% elif document.status == 'rejected' %}
+                                        bg-red-100 text-red-800
+                                    {% else %}
+                                        bg-orange-100 text-orange-800
+                                    {% endif %}">
+                                    {{ document.get_status_display }}
+                                </span>
+                                <span class="text-sm text-slate-600">
+                                    Uploaded: {{ document.uploaded_at|date:"M d, Y H:i" }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-sm text-slate-600 mb-3">
+                            {% if document.file_size_mb %}
+                            <p>File Size: {{ document.file_size_mb }}MB</p>
+                            {% endif %}
+                            <p>Uploaded: {{ document.uploaded_at|date:"M d, Y" }}</p>
+                            {% if document.verification_date %}
+                            <p>Verified: {{ document.verification_date|date:"M d, Y" }}</p>
+                            {% endif %}
+                            {% if document.verification_notes %}
+                            <p class="mt-2"><strong>Notes:</strong> {{ document.verification_notes }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <a href="{{ document.image.url }}" target="_blank" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-eye mr-1"></i>View Document
+                            </a>
+                            {% if user.role == 'loan_officer' and document.status == 'pending' %}
+                            <form method="POST" action="{% url 'documents:approve_single_document' document.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-check mr-1"></i>Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="{% url 'documents:reject_single_document' document.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-times mr-1"></i>Reject
+                                </button>
+                            </form>
+                            {% elif user.role == 'manager' or user.role == 'admin' %}
+                            <a href="{{ document.image.url }}" target="_blank" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors">
+                                <i class="fas fa-eye mr-1"></i>View Only
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-folder-open text-4xl text-slate-300 mb-4"></i>
+                    <p class="text-slate-600 font-semibold">No documents uploaded</p>
+                    <p class="text-slate-500 text-sm mt-1">This client hasn't uploaded any documents yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -365,3 +365,61 @@ def reject_single_document(request, document_id):
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
         return redirect('documents:verification_dashboard')
+ 
+ 
+ @ l o g i n _ r e q u i r e d 
+ d e f   c l i e n t _ d o c u m e n t _ r e v i e w ( r e q u e s t ,   c l i e n t _ i d ) : 
+         \  
+ \ \ R e v i e w  
+ d o c u m e n t s  
+ f o r  
+ a  
+ s p e c i f i c  
+ c l i e n t \ \ \ 
+         u s e r   =   r e q u e s t . u s e r 
+         
+         #   C h e c k   p e r m i s s i o n s 
+         i f   u s e r . r o l e   n o t   i n   [ ' l o a n _ o f f i c e r ' ,   ' m a n a g e r ' ,   ' a d m i n ' ] : 
+                 m e s s a g e s . e r r o r ( r e q u e s t ,   ' Y o u   d o   n o t   h a v e   p e r m i s s i o n   t o   r e v i e w   d o c u m e n t s . ' ) 
+                 r e t u r n   r e d i r e c t ( ' d a s h b o a r d : d a s h b o a r d ' ) 
+         
+         t r y : 
+                 f r o m   a c c o u n t s . m o d e l s   i m p o r t   U s e r 
+                 c l i e n t   =   g e t _ o b j e c t _ o r _ 4 0 4 ( U s e r ,   i d = c l i e n t _ i d ,   r o l e = ' b o r r o w e r ' ) 
+                 
+                 #   C h e c k   i f   l o a n   o f f i c e r   h a s   a c c e s s   t o   t h i s   c l i e n t 
+                 i f   u s e r . r o l e   = =   ' l o a n _ o f f i c e r ' : 
+                         f r o m   d j a n g o . d b . m o d e l s   i m p o r t   Q 
+                         h a s _ a c c e s s   =   U s e r . o b j e c t s . f i l t e r ( 
+                                 Q ( a s s i g n e d _ o f f i c e r = u s e r )   |   Q ( g r o u p _ m e m b e r s h i p s _ _ g r o u p _ _ a s s i g n e d _ o f f i c e r = u s e r ) , 
+                                 i d = c l i e n t _ i d , 
+                                 r o l e = ' b o r r o w e r ' 
+                         ) . e x i s t s ( ) 
+                         i f   n o t   h a s _ a c c e s s : 
+                                 m e s s a g e s . e r r o r ( r e q u e s t ,   ' Y o u   d o   n o t   h a v e   p e r m i s s i o n   t o   r e v i e w   d o c u m e n t s   f o r   t h i s   c l i e n t . ' ) 
+                                 r e t u r n   r e d i r e c t ( ' d a s h b o a r d : d a s h b o a r d ' ) 
+                 
+                 #   G e t   a l l   d o c u m e n t s   f o r   t h i s   c l i e n t 
+                 d o c u m e n t s   =   C l i e n t D o c u m e n t . o b j e c t s . f i l t e r ( 
+                         c l i e n t = c l i e n t 
+                 ) . s e l e c t _ r e l a t e d ( ' c l i e n t ' ,   ' v e r i f i e d _ b y ' ) . o r d e r _ b y ( ' - u p l o a d e d _ a t ' ) 
+                 
+                 #   G e t   v e r i f i c a t i o n   s t a t u s 
+                 t r y : 
+                         v e r i f i c a t i o n   =   C l i e n t V e r i f i c a t i o n . o b j e c t s . g e t ( c l i e n t = c l i e n t ) 
+                 e x c e p t   C l i e n t V e r i f i c a t i o n . D o e s N o t E x i s t : 
+                         v e r i f i c a t i o n   =   N o n e 
+                 
+         e x c e p t   E x c e p t i o n   a s   e : 
+                 m e s s a g e s . e r r o r ( r e q u e s t ,   f ' E r r o r   l o a d i n g   c l i e n t   d o c u m e n t s :   { s t r ( e ) } ' ) 
+                 r e t u r n   r e d i r e c t ( ' d a s h b o a r d : d a s h b o a r d ' ) 
+         
+         c o n t e x t   =   { 
+                 ' c l i e n t ' :   c l i e n t , 
+                 ' d o c u m e n t s ' :   d o c u m e n t s , 
+                 ' v e r i f i c a t i o n ' :   v e r i f i c a t i o n , 
+                 ' u s e r _ r o l e ' :   u s e r . r o l e , 
+         } 
+         
+         r e t u r n   r e n d e r ( r e q u e s t ,   ' d a s h b o a r d / c l i e n t _ d o c u m e n t _ r e v i e w . h t m l ' ,   c o n t e x t )  
+ 
