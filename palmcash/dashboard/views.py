@@ -837,10 +837,18 @@ def pending_approvals(request):
                         if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
                             branch_deposits.append(deposit)
                             print(f"DEBUG: Added deposit for branch: {deposit.loan.application_number}")
+                    else:
+                        # Include deposits where loan officer has no branch assignment
+                        branch_deposits.append(deposit)
+                        print(f"DEBUG: Added deposit (loan officer no branch): {deposit.loan.application_number}")
                 elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
                     # Include deposits for loans without loan officers
                     branch_deposits.append(deposit)
                     print(f"DEBUG: Added deposit without loan officer: {deposit.loan.application_number}")
+                elif deposit.loan and deposit.loan.loan_officer:
+                    # Include deposits where loan officer exists but no officer_assignment
+                    branch_deposits.append(deposit)
+                    print(f"DEBUG: Added deposit (loan officer no assignment): {deposit.loan.application_number}")
             pending_deposits = branch_deposits
         else:
             pending_deposits = all_pending_deposits
