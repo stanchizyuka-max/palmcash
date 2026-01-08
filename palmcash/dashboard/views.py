@@ -880,13 +880,24 @@ def approved_security_deposits(request):
             if not branch:
                 return render(request, 'dashboard/access_denied.html')
             
-            # Get approved security deposits (verified)
+            # Get approved security deposits (verified) - try simpler query first
             from loans.models import SecurityDeposit
             approved_deposits = SecurityDeposit.objects.filter(
-                is_verified=True,
-                loan__loan_officer__officer_assignment__branch=branch.name
+                is_verified=True
             ).select_related('loan', 'loan__borrower').order_by('-verification_date')
             
+            # Filter by branch after getting results
+            branch_deposits = []
+            for deposit in approved_deposits:
+                if deposit.loan and hasattr(deposit.loan, 'loan_officer'):
+                    if hasattr(deposit.loan.loan_officer, 'officer_assignment'):
+                        if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
+                            branch_deposits.append(deposit)
+                elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
+                    # If loan has no officer, include it
+                    branch_deposits.append(deposit)
+            
+            approved_deposits = branch_deposits
             branch_display_name = branch.name
             
         except Exception as e:
