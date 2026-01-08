@@ -917,13 +917,12 @@ def approved_security_deposits(request):
     
     # Calculate totals
     from django.db.models import Sum
-    deposit_totals = approved_deposits.aggregate(
-        total_required=Sum('required_amount'),
-        total_collected=Sum('paid_amount')
-    )
-    
-    total_required = deposit_totals['total_required'] or 0
-    total_collected = deposit_totals['total_collected'] or 0
+    if approved_deposits:
+        total_required = sum(deposit.required_amount for deposit in approved_deposits)
+        total_collected = sum(deposit.paid_amount for deposit in approved_deposits)
+    else:
+        total_required = 0
+        total_collected = 0
     
     # Pagination
     from django.core.paginator import Paginator
