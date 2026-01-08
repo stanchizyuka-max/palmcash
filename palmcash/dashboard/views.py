@@ -3485,16 +3485,16 @@ def loan_officer_document_verification(request):
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
-        # Get pending verifications for loan officers (documents submitted but not yet verified)
-        pending_verifications = ClientVerification.objects.filter(
-            client_id__in=branch_client_ids,
-            status__in=['documents_submitted', 'documents_rejected']
-        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-        
-        # Get verified verifications
+        # Get verified verifications (approved documents) - this is the main focus for loan officers
         verified_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status='verified'
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get pending verifications for reference (documents submitted but not yet verified)
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=branch_client_ids,
+            status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
         # Get statistics
