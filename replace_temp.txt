@@ -1,0 +1,12 @@
+{% if user_role == 'loan_officer' %}
+                                <a href="{% url 'documents:verification_dashboard' %}" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-check mr-1"></i>Approve
+                                </a>
+                                <a href="{% url 'documents:verification_dashboard' %}" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors">
+                                    <i class="fas fa-times mr-1"></i>Reject
+                                </a>
+                                {% else %}
+                                <a href="{% url 'documents:verification_dashboard' %}" class="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Review Documents
+                                </a>
+                                {% endif %}
