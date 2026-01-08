@@ -1120,15 +1120,33 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
             loan.save()
             
             # Create a notification for admin
-            from notifications.models import Notification
-            Notification.objects.create(
-                user=loan.loan_officer if loan.loan_officer else request.user,
-                notification_type='payment',
-                subject=f'Upfront Payment Submitted - {loan.application_number}',
-                message=f'{loan.borrower.full_name} has submitted an upfront payment of K{loan.upfront_payment_paid:,.2f} for loan {loan.application_number}. Payment method: {form.cleaned_data["payment_method"]}. Reference: {form.cleaned_data["payment_reference"]}. Please verify the payment.',
-                related_object_type='loan',
-                related_object_id=loan.id
-            )
+            from notifications.models import Notification, NotificationTemplate
+            try:
+                # Get or create payment notification template
+                template, created = NotificationTemplate.objects.get_or_create(
+                    name='Upfront Payment Notification',
+                    defaults={
+                        'notification_type': 'payment',
+                        'channel': 'email',
+                        'subject_template': 'Upfront Payment Submitted - {loan_number}',
+                        'message_template': '{borrower_name} has submitted an upfront payment of K{amount} for loan {loan_number}. Payment method: {payment_method}. Reference: {payment_reference}. Please verify the payment.',
+                        'is_active': True
+                    }
+                )
+                
+                Notification.objects.create(
+                    recipient=loan.loan_officer if loan.loan_officer else request.user,
+                    template=template,
+                    subject=f'Upfront Payment Submitted - {loan.application_number}',
+                    message=f'{loan.borrower.full_name} has submitted an upfront payment of K{loan.upfront_payment_paid:,.2f} for loan {loan.application_number}. Payment method: {form.cleaned_data["payment_method"]}. Reference: {form.cleaned_data["payment_reference"]}. Please verify payment.',
+                    channel='email',
+                    recipient_address=loan.loan_officer.email if loan.loan_officer else request.user.email,
+                    scheduled_at=timezone.now(),
+                    loan=loan
+                )
+            except Exception as e:
+                # Don't fail the payment if notification fails
+                print(f"Notification creation failed: {e}")
             
             messages.success(
                 request,
@@ -1162,15 +1180,33 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
             loan.save()
             
             # Notify borrower
-            from notifications.models import Notification
-            Notification.objects.create(
-                user=loan.borrower,
-                notification_type='payment',
-                subject=f'Upfront Payment Verified - {loan.application_number}',
-                message=f'Your upfront payment of K{loan.upfront_payment_paid:,.2f} has been verified. Your loan application will now proceed to the next stage.',
-                related_object_type='loan',
-                related_object_id=loan.id
-            )
+            from notifications.models import Notification, NotificationTemplate
+            try:
+                # Get or create verification notification template
+                template, created = NotificationTemplate.objects.get_or_create(
+                    name='Upfront Payment Verified',
+                    defaults={
+                        'notification_type': 'payment',
+                        'channel': 'email',
+                        'subject_template': 'Upfront Payment Verified - {loan_number}',
+                        'message_template': 'Your upfront payment of K{amount} has been verified. Your loan application will now proceed to the next stage.',
+                        'is_active': True
+                    }
+                )
+                
+                Notification.objects.create(
+                    recipient=loan.borrower,
+                    template=template,
+                    subject=f'Upfront Payment Verified - {loan.application_number}',
+                    message=f'Your upfront payment of K{loan.upfront_payment_paid:,.2f} has been verified. Your loan application will now proceed to the next stage.',
+                    channel='email',
+                    recipient_address=loan.borrower.email,
+                    scheduled_at=timezone.now(),
+                    loan=loan
+                )
+            except Exception as e:
+                # Don't fail verification if notification fails
+                print(f"Notification creation failed: {e}")
             
             messages.success(request, f'Upfront payment of K{loan.upfront_payment_paid:,.2f} has been verified.')
         
@@ -1181,15 +1217,33 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
             loan.save()
             
             # Notify borrower
-            from notifications.models import Notification
-            Notification.objects.create(
-                user=loan.borrower,
-                notification_type='payment',
-                subject=f'Upfront Payment Rejected - {loan.application_number}',
-                message=f'Your upfront payment has been rejected. Please contact us or submit a new payment with correct details.',
-                related_object_type='loan',
-                related_object_id=loan.id
-            )
+            from notifications.models import Notification, NotificationTemplate
+            try:
+                # Get or create rejection notification template
+                template, created = NotificationTemplate.objects.get_or_create(
+                    name='Upfront Payment Rejected',
+                    defaults={
+                        'notification_type': 'payment',
+                        'channel': 'email',
+                        'subject_template': 'Upfront Payment Rejected - {loan_number}',
+                        'message_template': 'Your upfront payment has been rejected. Please contact us or submit a new payment with correct details.',
+                        'is_active': True
+                    }
+                )
+                
+                Notification.objects.create(
+                    recipient=loan.borrower,
+                    template=template,
+                    subject=f'Upfront Payment Rejected - {loan.application_number}',
+                    message=f'Your upfront payment has been rejected. Please contact us or submit a new payment with correct details.',
+                    channel='email',
+                    recipient_address=loan.borrower.email,
+                    scheduled_at=timezone.now(),
+                    loan=loan
+                )
+            except Exception as e:
+                # Don't fail rejection if notification fails
+                print(f"Notification creation failed: {e}")
             
             messages.warning(request, 'Upfront payment has been rejected.')
         
