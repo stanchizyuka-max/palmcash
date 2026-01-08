@@ -3454,15 +3454,13 @@ def loan_officer_document_verification(request):
     # Get branch from officer assignment
     branch = None
     try:
-        if hasattr(user, 'officer_assignment') and user.officer_assignment:
-            officer_assignment = user.officer_assignment
-            branch_name = officer_assignment.branch
-            # Create a simple branch object for template
+        from clients.models import OfficerAssignment
+        officer_assignment = OfficerAssignment.objects.get(officer=user)
+        if officer_assignment and officer_assignment.branch:
             from collections import namedtuple
             Branch = namedtuple('Branch', ['name'])
-            branch = Branch(name=branch_name)
+            branch = Branch(name=officer_assignment.branch)
         else:
-            # If no officer assignment, create a default branch object
             from collections import namedtuple
             Branch = namedtuple('Branch', ['name'])
             branch = Branch(name='Unassigned')
@@ -3542,26 +3540,49 @@ def manager_document_verification(request):
     if user.role not in ['manager', 'loan_officer']:
         return render(request, 'dashboard/access_denied.html')
     
-    # Get branch
+    # Get branch based on role
+    branch = None
     try:
-        branch = user.managed_branch
-        if not branch:
-            return render(request, 'dashboard/access_denied.html', {
-                'message': 'You have not been assigned to a branch. Please contact your administrator.'
-            })
-    except:
+        if user.role == 'manager':
+            branch = user.managed_branch
+            if not branch:
+                return render(request, 'dashboard/access_denied.html', {
+                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
+                })
+        else:  # loan_officer
+            from clients.models import OfficerAssignment
+            officer_assignment = OfficerAssignment.objects.get(officer=user)
+            if officer_assignment and officer_assignment.branch:
+                from collections import namedtuple
+                Branch = namedtuple('Branch', ['name'])
+                branch = Branch(name=officer_assignment.branch)
+            else:
+                return render(request, 'dashboard/access_denied.html', {
+                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
+                })
+    except Exception as e:
+        print(f"Error getting branch: {e}")
         return render(request, 'dashboard/access_denied.html', {
             'message': 'You have not been assigned to a branch. Please contact your administrator.'
         })
     
     try:
         from documents.models import ClientVerification, ClientDocument
+        from django.db.models import Q
         from accounts.models import User
         
-        # Manager sees all clients in their branch
-        branch_clients = User.objects.filter(
-            role='borrower'
-        ).distinct()
+        # Get clients based on role
+        if user.role == 'manager':
+            # Manager sees all clients
+            branch_clients = User.objects.filter(
+                role='borrower'
+            ).distinct()
+        else:  # loan_officer
+            # Loan officer sees only their assigned clients
+            branch_clients = User.objects.filter(
+                Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
+                role='borrower'
+            ).distinct()
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
