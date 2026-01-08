@@ -82,7 +82,7 @@
                                 {% endif %}
                                 
                                 {% if not doc.is_verified and not doc.is_rejected %}
-                                    {% if user_role in ['admin', 'manager', 'loan_officer'] %}
+                                    {% if user_role == 'admin' or user_role == 'manager' or user_role == 'loan_officer' %}
                                         <form method="POST" action="{% url 'documents:approve_single_document' doc.id %}" style="display: inline;">
                                             {% csrf_token %}
                                             <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors">
@@ -117,7 +117,7 @@
         </div>
 
         <!-- Verification Actions -->
-        {% if user_role in ['admin', 'manager'] %}
+        {% if user_role == 'admin' or user_role == 'manager' %}
             <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
                 <h2 class="text-xl font-bold text-gray-900 mb-4">Verification Actions</h2>
                 
