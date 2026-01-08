@@ -158,7 +158,7 @@ def document_verification_dashboard(request):
         'pending_clients': pending_clients,
     }
     
-    return render(request, 'documents/verification_dashboard.html', context)
+    return render(request, 'dashboard/document_verification.html', context)
 
 
 @login_required
