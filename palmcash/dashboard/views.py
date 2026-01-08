@@ -875,16 +875,21 @@ def approved_security_deposits(request):
     
     if user.role == 'manager':
         # Manager sees approved deposits for their branch
-        branch = user.managed_branch
-        if not branch:
+        try:
+            branch = user.managed_branch
+            if not branch:
+                return render(request, 'dashboard/access_denied.html')
+            
+            # Get approved security deposits (verified)
+            from loans.models import SecurityDeposit
+            approved_deposits = SecurityDeposit.objects.filter(
+                is_verified=True,
+                loan__loan_officer__officer_assignment__branch=branch.name
+            ).select_related('loan', 'loan__borrower').order_by('-verification_date')
+            
+        except Exception as e:
+            # If there's an error with branch assignment, show access denied
             return render(request, 'dashboard/access_denied.html')
-        
-        # Get approved security deposits (verified)
-        from loans.models import SecurityDeposit
-        approved_deposits = SecurityDeposit.objects.filter(
-            is_verified=True,
-            loan__loan_officer__officer_assignment__branch=branch.name
-        ).select_related('loan', 'loan__borrower').order_by('-verification_date')
         
     elif user.role == 'admin':
         # Admin sees all approved deposits
@@ -892,6 +897,8 @@ def approved_security_deposits(request):
         approved_deposits = SecurityDeposit.objects.filter(
             is_verified=True
         ).select_related('loan', 'loan__borrower').order_by('-verification_date')
+        
+        branch_name = 'All Branches'
     else:
         return render(request, 'dashboard/access_denied.html')
     
@@ -917,7 +924,7 @@ def approved_security_deposits(request):
         'total_deposits': approved_deposits.count(),
         'total_required': total_required,
         'total_collected': total_collected,
-        'branch': branch if user.role == 'manager' else 'All Branches',
+        'branch': branch_name if user.role == 'admin' else branch.name,
     }
     
     return render(request, 'dashboard/approved_security_deposits.html', context)
