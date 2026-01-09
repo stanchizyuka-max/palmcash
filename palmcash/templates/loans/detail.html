@@ -179,7 +179,7 @@
                 {% endif %}
                 
                 <!-- Security Deposit Management -->
-                {% if user.role in ['admin', 'manager'] %}
+                {% if user.role == 'admin' or user.role == 'manager' %}
                 <hr>
                 <h6 class="mb-3">Security Deposit Management</h6>
                 {% if loan.securitydeposit %}
