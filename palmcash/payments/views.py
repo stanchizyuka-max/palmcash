@@ -234,6 +234,21 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         self._update_loan_status_if_completed(loan)
         loan.save()
         
+        # Create passbook entry for payment
+        try:
+            from payments.models import PassbookEntry
+            from datetime import date
+            PassbookEntry.objects.create(
+                loan=loan,
+                entry_type='payment',
+                amount=payment.amount,
+                description=f'Payment received for {loan.application_number} (Payment #{payment.payment_number})',
+                entry_date=date.today(),
+                recorded_by=request.user
+            )
+        except Exception as e:
+            print(f"Error creating passbook entry: {e}")
+        
         # Send payment confirmation email
         from common.email_utils import send_payment_received_email
         try:
