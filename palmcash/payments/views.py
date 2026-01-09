@@ -526,12 +526,13 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
             }
         )
         
-        if not created:
-            # Update existing deposit
-            security_deposit.paid_amount = upfront_amount
-            security_deposit.payment_date = timezone.now()
-            security_deposit.is_verified = False
-            security_deposit.save()
+        # Always update the deposit to ensure payment is recorded
+        security_deposit.paid_amount = upfront_amount
+        security_deposit.payment_date = timezone.now()
+        security_deposit.is_verified = False
+        security_deposit.save()
+        
+        print(f"DEBUG: Updated SecurityDeposit - Required: K{security_deposit.required_amount}, Paid: K{security_deposit.paid_amount}, Verified: {security_deposit.is_verified}")
         
         # Notify admins about upfront payment submission
         self._notify_admins_of_upfront_payment(payment)
