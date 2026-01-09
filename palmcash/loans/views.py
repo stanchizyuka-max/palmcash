@@ -468,6 +468,21 @@ class DisburseLoanView(LoginRequiredMixin, View):
             
             loan.save()
             
+            # Create passbook entry for disbursement
+            try:
+                from payments.models import PassbookEntry
+                from datetime import date
+                PassbookEntry.objects.create(
+                    loan=loan,
+                    entry_type='disbursement',
+                    amount=loan.principal_amount,
+                    description=f'Loan disbursement for {loan.application_number}',
+                    entry_date=date.today(),
+                    recorded_by=request.user
+                )
+            except Exception as e:
+                print(f"Error creating passbook entry: {e}")
+            
             # Log the disbursement action
             try:
                 from loans.models import ApprovalLog
