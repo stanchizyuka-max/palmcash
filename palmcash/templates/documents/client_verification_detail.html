@@ -58,11 +58,11 @@
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="font-semibold text-gray-900">{{ doc.get_document_type_display }}</h4>
                                 <span class="px-2 py-1 rounded text-xs font-medium
-                                    {% if doc.is_verified %}bg-green-100 text-green-800
-                                    {% elif doc.is_rejected %}bg-red-100 text-red-800
+                                    {% if doc.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif doc.status == 'rejected' %}bg-red-100 text-red-800
                                     {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                    {% if doc.is_verified %}Verified
-                                    {% elif doc.is_rejected %}Rejected
+                                    {% if doc.status == 'approved' %}Verified
+                                    {% elif doc.status == 'rejected' %}Rejected
                                     {% else %}Pending{% endif %}
                                 </span>
                             </div>
@@ -81,7 +81,7 @@
                                 </a>
                                 {% endif %}
                                 
-                                {% if not doc.is_verified and not doc.is_rejected %}
+                                {% if doc.status == 'pending' %}
                                     {% if user_role == 'admin' or user_role == 'manager' or user_role == 'loan_officer' %}
                                         <form method="POST" action="{% url 'documents:approve_single_document' doc.id %}" style="display: inline;">
                                             {% csrf_token %}
