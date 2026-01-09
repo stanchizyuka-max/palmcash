@@ -396,6 +396,16 @@
                                 Disburse Loan
                             </button>
                         </form>
+                        {% elif user.role == 'loan_officer' and loan.status == 'approved' %}
+                        <!-- Loan Officer can disburse approved loans -->
+                        {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
+                        <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" onclick="return confirm('Are you sure you want to disburse this loan? This will create the payment schedule.')" class="w-full inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                                <i class="fas fa-money-bill-wave mr-3"></i>
+                                Disburse Loan
+                            </button>
+                        </form>
                         {% else %}
                         <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <p class="text-sm text-yellow-800 font-semibold mb-2">
