@@ -194,7 +194,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex gap-2">
-                                        <form method="POST" action="{% url 'dashboard:verify_security_deposit' deposit.id %}" class="inline">
+                                        <form method="POST" action="{% url 'dashboard:verify_security_deposit' deposit.loan.id %}" class="inline">
                                             {% csrf_token %}
                                             <button type="submit" class="px-3 py-1 bg-success-100 text-success-700 rounded hover:bg-success-200 transition-colors duration-150 text-sm font-medium">
                                                 <i class="fas fa-check mr-1"></i>Verify
