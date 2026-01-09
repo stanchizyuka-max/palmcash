@@ -937,21 +937,28 @@ def approved_security_deposits(request):
             
             # Get approved security deposits (verified) - try simpler query first
             from loans.models import SecurityDeposit
-            approved_deposits = SecurityDeposit.objects.filter(
+            all_verified = SecurityDeposit.objects.filter(
                 is_verified=True
             ).select_related('loan', 'loan__borrower').order_by('-verification_date')
             
+            print(f"DEBUG: Total verified deposits in system: {all_verified.count()}")
+            for deposit in all_verified:
+                print(f"DEBUG: Verified deposit - Loan: {deposit.loan.application_number if deposit.loan else 'No Loan'}, Amount: {deposit.paid_amount}")
+            
             # Filter by branch after getting results
             branch_deposits = []
-            for deposit in approved_deposits:
+            for deposit in all_verified:
                 if deposit.loan and hasattr(deposit.loan, 'loan_officer'):
                     if hasattr(deposit.loan.loan_officer, 'officer_assignment'):
                         if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
                             branch_deposits.append(deposit)
+                            print(f"DEBUG: Added verified deposit for branch: {deposit.loan.application_number}")
                 elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
                     # If loan has no officer, include it
                     branch_deposits.append(deposit)
+                    print(f"DEBUG: Added verified deposit (no officer): {deposit.loan.application_number}")
             
+            print(f"DEBUG: Final verified deposits for branch: {len(branch_deposits)}")
             approved_deposits = branch_deposits
             branch_display_name = branch.name
             
