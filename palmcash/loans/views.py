@@ -38,6 +38,9 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         # Debug: Ensure we have the correct loan
         print(f"DEBUG: LoanDetailView - Processing loan {loan.application_number} (ID: {loan.id})")
         
+        # Debug: Check what template will be used
+        print(f"DEBUG: Template to be used: {self.template_name}")
+        
         # Explicitly get the correct security deposit for this loan ONLY
         from .models import SecurityDeposit
         try:
@@ -48,6 +51,11 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         except SecurityDeposit.DoesNotExist:
             loan.security_deposit = None
             print(f"DEBUG: No security deposit found for loan {loan.application_number}")
+        
+        # Debug: Check context for any wrong data
+        print(f"DEBUG: Context keys: {list(context.keys())}")
+        if 'pending_deposits' in context:
+            print(f"DEBUG: WARNING - pending_deposits found in context: {len(context['pending_deposits'])}")
         
         # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
