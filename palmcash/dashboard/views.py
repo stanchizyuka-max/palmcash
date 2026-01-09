@@ -3532,6 +3532,9 @@ def loan_officer_document_verification(request):
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
+        print(f"DEBUG: Loan officer {user.full_name} has {branch_clients.count()} assigned clients")
+        print(f"DEBUG: Client IDs: {list(branch_client_ids)}")
+        
         # Get verified verifications (approved documents) - this is the main focus for loan officers
         verified_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
@@ -3544,11 +3547,15 @@ def loan_officer_document_verification(request):
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
+        print(f"DEBUG: Pending verifications from ClientVerification: {pending_verifications.count()}")
+        
         # Also get clients with pending individual documents
         clients_with_pending_docs = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='pending'
         ).values_list('client_id', flat=True).distinct()
+        
+        print(f"DEBUG: Clients with pending documents: {list(clients_with_pending_docs)}")
         
         # Add these clients to pending verifications if not already there
         pending_verification_client_ids = set(pending_verifications.values_list('client_id', flat=True))
@@ -3558,8 +3565,9 @@ def loan_officer_document_verification(request):
                     verification = ClientVerification.objects.get(client_id=client_id)
                     if verification not in pending_verifications:
                         pending_verifications = list(pending_verifications) + [verification]
+                        print(f"DEBUG: Added verification for client {client_id}")
                 except ClientVerification.DoesNotExist:
-                    pass
+                    print(f"DEBUG: No verification record for client {client_id}")
         
         # Get statistics
         total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
@@ -3568,6 +3576,8 @@ def loan_officer_document_verification(request):
             status='verified'
         ).count()
         pending_count = pending_verifications.count() if isinstance(pending_verifications, list) else pending_verifications.count()
+        
+        print(f"DEBUG: Total clients: {total_clients}, Verified: {verified_clients}, Pending: {pending_count}")
         
         # Get documents needing review
         documents_needing_review = ClientDocument.objects.filter(
