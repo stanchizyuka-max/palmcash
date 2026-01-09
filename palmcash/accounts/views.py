@@ -147,7 +147,7 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
             return redirect('accounts:login')
         
         # Check if user has permission to manage users
-        if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
+        if request.user.role not in ['admin', 'manager', 'loan_officer'] and not request.user.is_superuser:
             messages.error(request, 'You do not have permission to manage users.')
             return redirect('dashboard:dashboard')
         
