@@ -514,6 +514,26 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
             status='pending'  # Will be confirmed by admin
         )
         
+        # Create or update SecurityDeposit record
+        from loans.models import SecurityDeposit
+        security_deposit, created = SecurityDeposit.objects.get_or_create(
+            loan=loan,
+            defaults={
+                'required_amount': upfront_amount,
+                'paid_amount': upfront_amount,
+                'payment_date': timezone.now(),
+                'is_verified': False,
+            }
+        )
+        
+        # Always update the deposit to ensure payment is recorded
+        security_deposit.paid_amount = upfront_amount
+        security_deposit.payment_date = timezone.now()
+        security_deposit.is_verified = False
+        security_deposit.save()
+        
+        print(f"DEBUG: Updated SecurityDeposit - Required: K{security_deposit.required_amount}, Paid: K{security_deposit.paid_amount}, Verified: {security_deposit.is_verified}")
+        
         # Notify admins about upfront payment submission
         self._notify_admins_of_upfront_payment(payment)
         
