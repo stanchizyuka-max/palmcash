@@ -193,7 +193,19 @@
                         </div>
                     </div>
                     
-                    {% if not deposit.is_verified and deposit.paid_amount > 0 %}
+                    {% if not deposit.is_verified and deposit.paid_amount == 0 %}
+                    <div class="mt-3 p-3 bg-orange-100 border border-orange-200 rounded">
+                        <p class="text-sm text-orange-800">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Upfront payment of K {{ deposit.required_amount|floatformat:2 }} is required before loan disbursement.
+                        </p>
+                        <div class="mt-3">
+                            <a href="{% url 'payments:upfront_payment' deposit.loan.id %}" class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
+                                <i class="fas fa-money-bill-wave mr-2"></i>Make Upfront Payment
+                            </a>
+                        </div>
+                    </div>
+                    {% elif not deposit.is_verified and deposit.paid_amount > 0 %}
                     <div class="mt-3 p-3 bg-yellow-100 border border-yellow-200 rounded">
                         <p class="text-sm text-yellow-800">
                             <i class="fas fa-clock mr-2"></i>
