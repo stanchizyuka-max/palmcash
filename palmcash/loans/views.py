@@ -35,16 +35,9 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
         
-        # Debug: Ensure we have the correct loan
-        print(f"DEBUG: LoanDetailView - Processing loan {loan.application_number} (ID: {loan.id})")
-        
-        # Debug: Check what template will be used
-        print(f"DEBUG: Template to be used: {self.template_name}")
-        
         # CRITICAL: Remove any pending_deposits from context to prevent contamination
         if 'pending_deposits' in context:
             del context['pending_deposits']
-            print("DEBUG: REMOVED pending_deposits from context to prevent contamination")
         
         # Explicitly get the correct security deposit for this loan ONLY
         from .models import SecurityDeposit
@@ -52,13 +45,8 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
             # FORCE correct security deposit association
             security_deposit = SecurityDeposit.objects.get(loan=loan)
             loan.security_deposit = security_deposit  # Override any wrong association
-            print(f"DEBUG: Found security deposit ID {security_deposit.id} for loan {loan.application_number}")
         except SecurityDeposit.DoesNotExist:
             loan.security_deposit = None
-            print(f"DEBUG: No security deposit found for loan {loan.application_number}")
-        
-        # Debug: Check context for any wrong data
-        print(f"DEBUG: Context keys: {list(context.keys())}")
         
         # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
