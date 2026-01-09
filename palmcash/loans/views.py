@@ -1323,6 +1323,28 @@ class RecordSecurityDepositView(LoginRequiredMixin, View):
 class VerifySecurityDepositView(LoginRequiredMixin, View):
     """Verify security deposit payment"""
     
+    def get(self, request, pk):
+        """Show verification confirmation page"""
+        if request.user.role not in ['admin', 'manager']:
+            messages.error(request, 'Only admins and managers can verify deposits.')
+            return redirect('loans:detail', pk=pk)
+        
+        loan = get_object_or_404(Loan, pk=pk)
+        
+        try:
+            from .models import SecurityDeposit
+            deposit = SecurityDeposit.objects.get(loan=loan)
+            
+            context = {
+                'loan': loan,
+                'deposit': deposit,
+            }
+            return render(request, 'loans/verify_security_deposit.html', context)
+            
+        except SecurityDeposit.DoesNotExist:
+            messages.error(request, 'No security deposit record found for this loan.')
+            return redirect('loans:detail', pk=pk)
+    
     def post(self, request, pk):
         if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'Only admins and managers can verify deposits.')
