@@ -199,11 +199,10 @@ class UserEditView(LoginRequiredMixin, TemplateView):
     
     def dispatch(self, request, *args, **kwargs):
         user_id = self.kwargs.get('pk')
+        print(f"DEBUG UserEditView: request.user.id={request.user.id}, user_id={user_id}, request.user.role={request.user.role}")
         # Allow users to edit their own profile, or allow admins/managers to edit any user
-        can_edit_own = request.user.id == int(user_id)
-        can_edit_others = request.user.role in ['admin', 'manager'] or request.user.is_superuser
-        
-        if not (can_edit_own or can_edit_others):
+        if request.user.id != int(user_id) and request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
+            print(f"DEBUG: Permission denied - user {request.user.id} trying to edit user {user_id}")
             messages.error(request, 'You do not have permission to edit this user.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)

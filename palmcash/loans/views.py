@@ -420,8 +420,8 @@ class DisburseLoanView(LoginRequiredMixin, View):
         return redirect('loans:detail', pk=pk)
     
     def post(self, request, pk):
-        # Only managers can disburse loans
-        if request.user.role != 'manager':
+        # Only loan officers can disburse loans
+        if request.user.role != 'loan_officer':
             messages.error(request, 'Only managers can disburse loans.')
             return redirect('loans:detail', pk=pk)
         
