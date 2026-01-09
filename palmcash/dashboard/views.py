@@ -615,6 +615,9 @@ def borrower_dashboard(request):
     completed_loans = loans.filter(status='completed').count()
     pending_loans = active_loans  # Fix: Use active_loans instead of filtering for 'pending'
     
+    # Get first active loan for quick payment action
+    first_active_loan = loans.filter(status='active').first()
+    
     # Get upcoming payments
     from payments.models import PaymentCollection
     upcoming_payments = PaymentCollection.objects.filter(
@@ -729,6 +732,7 @@ def borrower_dashboard(request):
         'outstanding_balance': outstanding_balance,
         'recent_approvals': recent_approvals,
         'available_loan_types': available_loan_types,
+        'first_active_loan': first_active_loan,
     }
     
     return render(request, 'dashboard/borrower_dashboard.html', context)
