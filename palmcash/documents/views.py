@@ -176,7 +176,7 @@ def document_verification_dashboard(request):
 @login_required
 def approve_client_documents(request, client_id):
     """Approve all documents for a client"""
-    if request.user.role not in ['loan_officer', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
@@ -223,7 +223,7 @@ def approve_client_documents(request, client_id):
 @login_required
 def reject_client_documents(request, client_id):
     """Reject all documents for a client"""
-    if request.user.role not in ['loan_officer', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
@@ -272,7 +272,7 @@ def reject_client_documents(request, client_id):
 @login_required
 def approve_single_document(request, document_id):
     """Approve a single document"""
-    if request.user.role not in ['loan_officer', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to approve documents.')
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
@@ -321,7 +321,7 @@ def approve_single_document(request, document_id):
 @login_required
 def reject_single_document(request, document_id):
     """Reject a single document"""
-    if request.user.role not in ['loan_officer', 'admin']:
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to reject documents.')
         if request.user.role == 'loan_officer':
             return redirect('dashboard:loan_officer_document_verification')
