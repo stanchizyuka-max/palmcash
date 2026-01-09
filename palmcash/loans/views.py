@@ -35,14 +35,19 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
         
+        # Debug: Ensure we have the correct loan
+        print(f"DEBUG: LoanDetailView - Processing loan {loan.application_number} (ID: {loan.id})")
+        
         # Explicitly get the correct security deposit for this loan ONLY
         from .models import SecurityDeposit
         try:
             # FORCE correct security deposit association
             security_deposit = SecurityDeposit.objects.get(loan=loan)
             loan.security_deposit = security_deposit  # Override any wrong association
+            print(f"DEBUG: Found security deposit ID {security_deposit.id} for loan {loan.application_number}")
         except SecurityDeposit.DoesNotExist:
             loan.security_deposit = None
+            print(f"DEBUG: No security deposit found for loan {loan.application_number}")
         
         # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
