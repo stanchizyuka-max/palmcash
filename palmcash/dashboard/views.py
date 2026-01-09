@@ -76,11 +76,14 @@ def loan_officer_dashboard(request):
     today_defaults = today_collections.filter(is_default=True).count()
     
     # Pending actions
+    # Security deposits awaiting verification - loans with paid deposits but not verified
     pending_security = Loan.objects.filter(
         loan_officer=officer,
+        security_deposit__paid_amount__gt=0,
         security_deposit__is_verified=False
     ).count()
     
+    # Ready to disburse - approved loans with verified deposits
     ready_to_disburse = Loan.objects.filter(
         loan_officer=officer,
         status='approved',
