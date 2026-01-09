@@ -35,6 +35,14 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
         
+        # Explicitly get the correct security deposit for this loan
+        from .models import SecurityDeposit
+        try:
+            security_deposit = SecurityDeposit.objects.get(loan=loan)
+            loan.security_deposit = security_deposit  # Ensure correct association
+        except SecurityDeposit.DoesNotExist:
+            loan.security_deposit = None
+        
         # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
         context['document_count'] = loan.loan_documents.count()
