@@ -637,6 +637,12 @@ def borrower_dashboard(request):
     borrower_documents = ClientDocument.objects.filter(client=borrower)
     has_verified_documents = borrower_documents.filter(status='approved').exists()
     
+    # Get borrower's security deposits for upfront payment tracking
+    from loans.models import SecurityDeposit
+    security_deposits = SecurityDeposit.objects.filter(loan__borrower=borrower).select_related('loan')
+    pending_deposits = security_deposits.filter(is_verified=False, paid_amount__gt=0)
+    verified_deposits = security_deposits.filter(is_verified=True)
+    
     # Get rejected loans
     rejected_loans = loans.filter(status='rejected')
     
@@ -716,6 +722,9 @@ def borrower_dashboard(request):
         'loans_awaiting_upfront': loans_awaiting_upfront,
         'overdue_payments': overdue_payments,
         'next_payment': next_payment,
+        'security_deposits': security_deposits,
+        'pending_deposits': pending_deposits,
+        'verified_deposits': verified_deposits,
         'loan_status_summary': loan_status_summary,
         'outstanding_balance': outstanding_balance,
         'recent_approvals': recent_approvals,

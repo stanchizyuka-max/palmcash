@@ -142,6 +142,78 @@
             </div>
         </div>
 
+        <!-- Upfront Payment Status -->
+        {% if security_deposits %}
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-8">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">
+                    <i class="fas fa-shield-alt mr-2"></i>Upfront Payment Status
+                </h3>
+                <span class="bg-white text-blue-600 px-3 py-1 rounded-lg text-sm font-medium">
+                    {{ security_deposits|length }} Deposit{{ security_deposits|pluralize }}
+                </span>
+            </div>
+            
+            <div class="p-6">
+                {% for deposit in security_deposits %}
+                <div class="border rounded-lg p-4 mb-4 {% if deposit.is_verified %}border-green-200 bg-green-50{% else %}border-yellow-200 bg-yellow-50{% endif %}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="font-semibold text-gray-900">{{ deposit.loan.application_number }}</h4>
+                            <p class="text-sm text-gray-600">Loan Amount: K {{ deposit.loan.principal_amount|floatformat:2 }}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            {% if deposit.is_verified %}bg-green-100 text-green-800
+                            {% elif deposit.paid_amount > 0 %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% if deposit.is_verified %}Verified
+                            {% elif deposit.paid_amount > 0 %}Pending Verification
+                            {% else %}Not Paid{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-600">Required Amount</p>
+                            <p class="font-medium">K {{ deposit.required_amount|floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Paid Amount</p>
+                            <p class="font-medium">K {{ deposit.paid_amount|floatformat:2 }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Payment Date</p>
+                            <p class="font-medium">
+                                {% if deposit.payment_date %}
+                                    {{ deposit.payment_date|date:"M d, Y" }}
+                                {% else %}
+                                    Not paid
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if not deposit.is_verified and deposit.paid_amount > 0 %}
+                    <div class="mt-3 p-3 bg-yellow-100 border border-yellow-200 rounded">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-clock mr-2"></i>
+                            Your upfront payment of K {{ deposit.paid_amount|floatformat:2 }} has been received and is awaiting manager verification.
+                        </p>
+                    </div>
+                    {% elif deposit.is_verified %}
+                    <div class="mt-3 p-3 bg-green-100 border border-green-200 rounded">
+                        <p class="text-sm text-green-800">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Your upfront payment has been verified and your loan is ready for disbursement.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Alerts for Overdue Payments -->
         {% if overdue_payments %}
         <div class="bg-danger-50 border-l-4 border-danger-500 p-4 mb-6 rounded-lg">
