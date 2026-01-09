@@ -35,11 +35,12 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
         
-        # Explicitly get the correct security deposit for this loan
+        # Explicitly get the correct security deposit for this loan ONLY
         from .models import SecurityDeposit
         try:
+            # FORCE correct security deposit association
             security_deposit = SecurityDeposit.objects.get(loan=loan)
-            loan.security_deposit = security_deposit  # Ensure correct association
+            loan.security_deposit = security_deposit  # Override any wrong association
         except SecurityDeposit.DoesNotExist:
             loan.security_deposit = None
         
