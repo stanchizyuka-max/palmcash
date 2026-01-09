@@ -1375,17 +1375,13 @@ class VerifySecurityDepositView(LoginRequiredMixin, View):
             # Also update loan record for backward compatibility
             loan.upfront_payment_verified = True
             
-            # If loan was approved and deposit is now verified, activate the loan
-            if loan.status == 'approved':
-                loan.status = 'active'
-                loan.disbursement_date = timezone.now()
-            
-            loan.save(update_fields=['upfront_payment_verified', 'status', 'disbursement_date'])
+            # Don't auto-activate the loan - manager must explicitly disburse it
+            loan.save(update_fields=['upfront_payment_verified'])
             
             messages.success(
                 request,
                 f'Security deposit for loan {loan.application_number} has been verified. '
-                f'Loan can now be disbursed.'
+                f'Loan is now ready to be disbursed.'
             )
         except SecurityDeposit.DoesNotExist:
             messages.error(request, 'No security deposit record found for this loan.')
