@@ -1378,9 +1378,9 @@ class VerifySecurityDepositView(LoginRequiredMixin, View):
             # If loan was approved and deposit is now verified, activate the loan
             if loan.status == 'approved':
                 loan.status = 'active'
-                loan.activation_date = timezone.now()
+                loan.disbursement_date = timezone.now()
             
-            loan.save(update_fields=['upfront_payment_verified', 'status', 'activation_date'])
+            loan.save(update_fields=['upfront_payment_verified', 'status', 'disbursement_date'])
             
             messages.success(
                 request,
