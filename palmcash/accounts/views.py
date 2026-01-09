@@ -198,8 +198,10 @@ class UserEditView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/user_edit.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
-            messages.error(request, 'You do not have permission to edit users.')
+        user_id = self.kwargs.get('pk')
+        # Allow users to edit their own profile, or allow admins/managers to edit any user
+        if request.user.id != user_id and request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
+            messages.error(request, 'You do not have permission to edit this user.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
