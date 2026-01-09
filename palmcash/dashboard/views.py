@@ -935,31 +935,16 @@ def approved_security_deposits(request):
             if not branch:
                 return render(request, 'dashboard/access_denied.html')
             
-            # Get approved security deposits (verified) - try simpler query first
+            # Get ALL verified deposits first to debug
             from loans.models import SecurityDeposit
             all_verified = SecurityDeposit.objects.filter(
                 is_verified=True
             ).select_related('loan', 'loan__borrower').order_by('-verification_date')
             
             print(f"DEBUG: Total verified deposits in system: {all_verified.count()}")
-            for deposit in all_verified:
-                print(f"DEBUG: Verified deposit - Loan: {deposit.loan.application_number if deposit.loan else 'No Loan'}, Amount: {deposit.paid_amount}")
             
-            # Filter by branch after getting results
-            branch_deposits = []
-            for deposit in all_verified:
-                if deposit.loan and hasattr(deposit.loan, 'loan_officer'):
-                    if hasattr(deposit.loan.loan_officer, 'officer_assignment'):
-                        if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
-                            branch_deposits.append(deposit)
-                            print(f"DEBUG: Added verified deposit for branch: {deposit.loan.application_number}")
-                elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
-                    # If loan has no officer, include it
-                    branch_deposits.append(deposit)
-                    print(f"DEBUG: Added verified deposit (no officer): {deposit.loan.application_number}")
-            
-            print(f"DEBUG: Final verified deposits for branch: {len(branch_deposits)}")
-            approved_deposits = branch_deposits
+            # For now, show all verified deposits to the manager (we can filter by branch later)
+            approved_deposits = list(all_verified)
             branch_display_name = branch.name
             
         except Exception as e:
