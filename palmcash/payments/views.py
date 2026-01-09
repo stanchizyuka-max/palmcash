@@ -457,9 +457,9 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
         # Get the loan
         loan = get_object_or_404(Loan, pk=loan_id, borrower=request.user)
         
-        # Check if loan is in pending status (just created)
-        if loan.status != 'pending':
-            messages.error(request, 'This loan is not in pending status. Upfront payment is only required for new applications.')
+        # Check if loan is in approved status (ready for upfront payment)
+        if loan.status not in ['approved', 'pending']:
+            messages.error(request, 'This loan is not ready for upfront payment. Only approved or pending loans can receive upfront payments.')
             return redirect('loans:detail', pk=loan_id)
         
         # Calculate upfront payment (10% of principal)
@@ -482,9 +482,9 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
         # Get the loan
         loan = get_object_or_404(Loan, pk=loan_id, borrower=request.user)
         
-        # Check if loan is in pending status
-        if loan.status != 'pending':
-            messages.error(request, 'This loan is not in pending status.')
+        # Check if loan is ready for upfront payment
+        if loan.status not in ['approved', 'pending']:
+            messages.error(request, 'This loan is not ready for upfront payment.')
             return redirect('loans:detail', pk=loan_id)
         
         # Calculate upfront payment
