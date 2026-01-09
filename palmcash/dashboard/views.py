@@ -3544,13 +3544,30 @@ def loan_officer_document_verification(request):
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
+        # Also get clients with pending individual documents
+        clients_with_pending_docs = ClientDocument.objects.filter(
+            client_id__in=branch_client_ids,
+            status='pending'
+        ).values_list('client_id', flat=True).distinct()
+        
+        # Add these clients to pending verifications if not already there
+        pending_verification_client_ids = set(pending_verifications.values_list('client_id', flat=True))
+        for client_id in clients_with_pending_docs:
+            if client_id not in pending_verification_client_ids:
+                try:
+                    verification = ClientVerification.objects.get(client_id=client_id)
+                    if verification not in pending_verifications:
+                        pending_verifications = list(pending_verifications) + [verification]
+                except ClientVerification.DoesNotExist:
+                    pass
+        
         # Get statistics
         total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
         verified_clients = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status='verified'
         ).count()
-        pending_count = pending_verifications.count()
+        pending_count = pending_verifications.count() if isinstance(pending_verifications, list) else pending_verifications.count()
         
         # Get documents needing review
         documents_needing_review = ClientDocument.objects.filter(
@@ -3560,6 +3577,8 @@ def loan_officer_document_verification(request):
         
     except Exception as e:
         print(f"Error in loan officer document verification: {e}")
+        import traceback
+        traceback.print_exc()
         pending_verifications = []
         verified_verifications = []
         documents_needing_review = []
