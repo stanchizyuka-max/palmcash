@@ -41,6 +41,11 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         # Debug: Check what template will be used
         print(f"DEBUG: Template to be used: {self.template_name}")
         
+        # CRITICAL: Remove any pending_deposits from context to prevent contamination
+        if 'pending_deposits' in context:
+            del context['pending_deposits']
+            print("DEBUG: REMOVED pending_deposits from context to prevent contamination")
+        
         # Explicitly get the correct security deposit for this loan ONLY
         from .models import SecurityDeposit
         try:
@@ -54,8 +59,6 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
         
         # Debug: Check context for any wrong data
         print(f"DEBUG: Context keys: {list(context.keys())}")
-        if 'pending_deposits' in context:
-            print(f"DEBUG: WARNING - pending_deposits found in context: {len(context['pending_deposits'])}")
         
         # Add loan-specific document information
         context['documents'] = loan.loan_documents.all()[:5]  # Show first 5 documents
