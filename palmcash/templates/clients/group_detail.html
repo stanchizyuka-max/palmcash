@@ -216,6 +216,127 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- Group Loans and Payments Management -->
+                {% if user.role in 'admin,manager,loan_officer' %}
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Loans & Payments Management</h2>
+                        <span class="text-sm text-gray-500">Manage loans and payments for group members</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <a href="{% url 'loans:create' %}?group={{ group.pk }}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
+                            <i class="fas fa-plus-circle text-blue-600 text-2xl mb-2"></i>
+                            <span class="text-sm font-medium text-blue-900">Create Loan for Group Member</span>
+                        </a>
+                        
+                        <a href="{% url 'payments:collection_create' %}?group={{ group.pk }}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition">
+                            <i class="fas fa-money-bill-wave text-green-600 text-2xl mb-2"></i>
+                            <span class="text-sm font-medium text-green-900">Record Payment</span>
+                        </a>
+                        
+                        <a href="{% url 'payments:bulk_approval' %}?group={{ group.pk }}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition">
+                            <i class="fas fa-check-circle text-purple-600 text-2xl mb-2"></i>
+                            <span class="text-sm font-medium text-purple-900">Bulk Approve Payments</span>
+                        </a>
+                    </div>
+                    
+                    <!-- Recent Group Loans -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Recent Group Loans</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Borrower</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Amount</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Disbursement Date</th>
+                                        <th class="px-4 py-3 text-center font-medium text-gray-900">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y">
+                                    {% for loan in group_members_loans|default:group_members_loans %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium text-gray-900">{{ loan.borrower.get_full_name }}</div>
+                                            <div class="text-xs text-gray-500">{{ loan.application_number }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ loan.amount|intcomma }}</td>
+                                        <td class="px-4 py-3">
+                                            {% if loan.status == 'active' %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                                            {% elif loan.status == 'completed' %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Completed</span>
+                                            {% else %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ loan.status|title }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-4 py-3 text-gray-600">{{ loan.disbursement_date|date:"M d, Y"|default:"N/A" }}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:text-blue-900 text-sm">View Details</a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                            <i class="fas fa-inbox text-gray-300 text-2xl mb-2"></i>
+                                            <p>No loans found for group members</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Group Payments -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Recent Group Payments</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Borrower</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Amount</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Payment Date</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Method</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y">
+                                    {% for payment in group_members_payments|default:group_members_payments %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium text-gray-900">{{ payment.loan.borrower.get_full_name }}</div>
+                                            <div class="text-xs text-gray-500">{{ payment.loan.application_number }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ payment.collected_amount|intcomma }}</td>
+                                        <td class="px-4 py-3 text-gray-600">{{ payment.collection_date|date:"M d, Y" }}</td>
+                                        <td class="px-4 py-3 text-gray-600">{{ payment.get_payment_method_display|default:"N/A" }}</td>
+                                        <td class="px-4 py-3">
+                                            {% if payment.status == 'completed' %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Completed</span>
+                                            {% else %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                            <i class="fas fa-inbox text-gray-300 text-2xl mb-2"></i>
+                                            <p>No payments found for group members</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Sidebar -->
