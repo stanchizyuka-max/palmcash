@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from .views_bulk_approval import (
+    BulkCollectionApprovalView,
+    QuickApproveTodayView,
+    GroupCollectionApprovalView
+)
 
 app_name = 'payments'
 
@@ -11,4 +16,9 @@ urlpatterns = [
     path('<int:pk>/confirm/', views.ConfirmPaymentView.as_view(), name='confirm'),
     path('<int:pk>/reject/', views.RejectPaymentView.as_view(), name='reject'),
     path('schedule/<int:loan_id>/', views.PaymentScheduleView.as_view(), name='schedule'),
+    
+    # Bulk Approval URLs
+    path('bulk-approve/', BulkCollectionApprovalView.as_view(), name='bulk_approval'),
+    path('quick-approve-today/', QuickApproveTodayView.as_view(), name='quick_approve_today'),
+    path('group-approve/', GroupCollectionApprovalView.as_view(), name='group_approval'),
 ]
