@@ -157,8 +157,8 @@ class CollectionReportView(LoginRequiredMixin, TemplateView):
         
         # Base query for collections
         collections_query = PaymentCollection.objects.filter(
-            collection_date__date__gte=start_date,
-            collection_date__date__lte=end_date,
+            collection_date__gte=start_date,
+            collection_date__lte=end_date,
             status='completed'
         )
         
@@ -247,8 +247,8 @@ class DepositReportView(LoginRequiredMixin, TemplateView):
         
         # Base query for deposits
         deposits_query = SecurityDeposit.objects.filter(
-            paid_date__date__gte=start_date,
-            paid_date__date__lte=end_date,
+            payment_date__gte=start_date,
+            payment_date__lte=end_date,
             paid_amount__gt=0
         )
         
@@ -346,10 +346,10 @@ class ReturnsReportView(LoginRequiredMixin, TemplateView):
         
         # Base query for returns (overdue payments, defaults, etc.)
         # For this example, we'll consider returns as overdue payments
-        returns_query = Payment.objects.filter(
-            due_date__date__gte=start_date,
-            due_date__date__lte=end_date,
-            status='overdue'
+        returns_query = PaymentSchedule.objects.filter(
+            due_date__gte=start_date,
+            due_date__lte=end_date,
+            is_paid=False
         )
         
         # Filter by loan officer if specified
@@ -376,7 +376,7 @@ class ReturnsReportView(LoginRequiredMixin, TemplateView):
         
         # Calculate totals
         total_amount = returns.aggregate(
-            total=Sum('amount')
+            total=Sum('total_amount')
         )['total'] or Decimal('0.00')
         
         total_count = returns.count()
@@ -386,7 +386,7 @@ class ReturnsReportView(LoginRequiredMixin, TemplateView):
             'loan__loan_officer__first_name',
             'loan__loan_officer__last_name'
         ).annotate(
-            amount=Sum('amount'),
+            amount=Sum('total_amount'),
             count=Count('id')
         ).order_by('-amount')
         
@@ -394,7 +394,7 @@ class ReturnsReportView(LoginRequiredMixin, TemplateView):
         daily_summary = returns.extra({
             'date': 'date(due_date)'
         }).values('date').annotate(
-            amount=Sum('amount'),
+            amount=Sum('total_amount'),
             count=Count('id')
         ).order_by('date')
         

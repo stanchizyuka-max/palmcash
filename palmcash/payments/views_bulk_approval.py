@@ -52,8 +52,8 @@ class BulkCollectionApprovalView(LoginRequiredMixin, View):
         
         # Get collections with loan details
         collections = collections_query.select_related(
-            'loan', 'loan__borrower', 'loan__group_memberships__group'
-        ).order_by('loan__application_number')
+            'loan', 'loan__borrower'
+        ).prefetch_related('loan__borrower__group_memberships__group').order_by('loan__application_number')
         
         # Group by loan
         loans_with_collections = {}
@@ -79,7 +79,7 @@ class BulkCollectionApprovalView(LoginRequiredMixin, View):
                 loans_with_collections[loan_id]['can_approve'] = True
             
             # Get group name
-            group_membership = collection.loan.group_memberships.filter(is_active=True).first()
+            group_membership = collection.loan.borrower.group_memberships.filter(is_active=True).first()
             if group_membership:
                 loans_with_collections[loan_id]['group_name'] = group_membership.group.name
         
@@ -336,9 +336,9 @@ class GroupCollectionApprovalView(LoginRequiredMixin, View):
         # Get collections for this group on the target date
         collections = PaymentCollection.objects.filter(
             collection_date=target_date,
-            loan__group_memberships__group=group,
+            loan__borrower__group_memberships__group=group,
             status='scheduled'
-        ).select_related('loan', 'loan__borrower').order_by('loan__application_number')
+        ).select_related('loan', 'loan__borrower').prefetch_related('loan__borrower__group_memberships__group').order_by('loan__application_number')
         
         # Group by loan
         loans_with_collections = {}
