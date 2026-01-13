@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         approveBtn.disabled = selectedCount === 0;
         if (selectedCount > 0) {
-            approveBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Approve Selected ({selectedCount})`;
+            approveBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Approve Selected (${selectedCount})`;
         } else {
             approveBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Approve Selected';
         }
