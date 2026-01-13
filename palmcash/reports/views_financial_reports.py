@@ -186,7 +186,7 @@ class CollectionReportView(LoginRequiredMixin, TemplateView):
         
         # Calculate totals
         total_amount = collections.aggregate(
-            total=Sum('amount')
+            total=Sum('collected_amount')
         )['total'] or Decimal('0.00')
         
         total_count = collections.count()
@@ -196,7 +196,7 @@ class CollectionReportView(LoginRequiredMixin, TemplateView):
             'loan__loan_officer__first_name',
             'loan__loan_officer__last_name'
         ).annotate(
-            amount=Sum('amount'),
+            amount=Sum('collected_amount'),
             count=Count('id')
         ).order_by('-amount')
         
@@ -204,7 +204,7 @@ class CollectionReportView(LoginRequiredMixin, TemplateView):
         daily_summary = collections.extra({
             'date': 'date(collection_date)'
         }).values('date').annotate(
-            amount=Sum('amount'),
+            amount=Sum('collected_amount'),
             count=Count('id')
         ).order_by('date')
         
@@ -272,7 +272,7 @@ class DepositReportView(LoginRequiredMixin, TemplateView):
         # Get deposits
         deposits = deposits_query.select_related(
             'loan', 'loan__borrower', 'loan__loan_officer'
-        ).order_by('-paid_date')
+        ).order_by('-payment_date')
         
         # Calculate totals
         total_amount = deposits.aggregate(
@@ -298,7 +298,7 @@ class DepositReportView(LoginRequiredMixin, TemplateView):
         
         # Group by date for daily summary
         daily_summary = deposits.extra({
-            'date': 'date(paid_date)'
+            'date': 'date(payment_date)'
         }).values('date').annotate(
             amount=Sum('paid_amount'),
             count=Count('id'),
@@ -514,8 +514,8 @@ def _export_collection_csv(request, start_date, end_date, officer_id):
     
     # Get data (same logic as CollectionReportView)
     collections_query = PaymentCollection.objects.filter(
-        collection_date__date__gte=start_date,
-        collection_date__date__lte=end_date,
+        collection_date__gte=start_date,
+        collection_date__lte=end_date,
         status='completed'
     )
     
@@ -534,7 +534,7 @@ def _export_collection_csv(request, start_date, end_date, officer_id):
             collection.loan.application_number,
             collection.loan.borrower.get_full_name(),
             collection.loan.loan_officer.get_full_name() if collection.loan.loan_officer else '',
-            collection.amount,
+            collection.collected_amount,
             collection.collection_date.strftime('%Y-%m-%d'),
             collection.payment_method,
             collection.status
@@ -561,8 +561,8 @@ def _export_deposit_csv(request, start_date, end_date, officer_id):
     
     # Get data (same logic as DepositReportView)
     deposits_query = SecurityDeposit.objects.filter(
-        paid_date__date__gte=start_date,
-        paid_date__date__lte=end_date,
+        payment_date__gte=start_date,
+        payment_date__lte=end_date,
         paid_amount__gt=0
     )
     
@@ -573,7 +573,7 @@ def _export_deposit_csv(request, start_date, end_date, officer_id):
     
     deposits = deposits_query.select_related(
         'loan', 'loan__borrower', 'loan__loan_officer'
-    ).order_by('-paid_date')
+    ).order_by('-payment_date')
     
     # Data rows
     for deposit in deposits:
@@ -582,7 +582,7 @@ def _export_deposit_csv(request, start_date, end_date, officer_id):
             deposit.loan.borrower.get_full_name(),
             deposit.loan.loan_officer.get_full_name() if deposit.loan.loan_officer else '',
             deposit.paid_amount,
-            deposit.paid_date.strftime('%Y-%m-%d'),
+            deposit.payment_date.strftime('%Y-%m-%d'),
             'Verified' if deposit.is_verified else 'Pending',
             deposit.get_status_display()
         ])
