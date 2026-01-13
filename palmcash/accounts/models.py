@@ -19,6 +19,40 @@ class User(AbstractUser):
     national_id = models.CharField(max_length=50, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
     is_verified = models.BooleanField(default=False)
+    
+    # Employment Information
+    employment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('employed', 'Employed'),
+            ('self_employed', 'Self Employed'),
+            ('unemployed', 'Unemployed'),
+            ('student', 'Student'),
+            ('retired', 'Retired'),
+        ],
+        blank=True
+    )
+    employer_name = models.CharField(max_length=255, blank=True)
+    employer_address = models.TextField(blank=True)
+    employment_duration = models.IntegerField(blank=True, null=True, help_text='Employment duration in years')
+    monthly_income = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    
+    # Business Information
+    business_name = models.CharField(max_length=255, blank=True)
+    business_address = models.TextField(blank=True)
+    business_duration = models.IntegerField(blank=True, null=True, help_text='Business duration in years')
+    
+    # Residential Information
+    residential_duration = models.IntegerField(blank=True, null=True, help_text='Residential duration in years')
+    
+    # References
+    reference1_name = models.CharField(max_length=255, blank=True)
+    reference1_phone = models.CharField(max_length=20, blank=True)
+    reference1_relationship = models.CharField(max_length=100, blank=True)
+    reference2_name = models.CharField(max_length=255, blank=True)
+    reference2_phone = models.CharField(max_length=20, blank=True)
+    reference2_relationship = models.CharField(max_length=100, blank=True)
+    
     assigned_officer = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
