@@ -312,3 +312,7 @@ class PassbookEntry(models.Model):
     
     def __str__(self):
         return f"{self.get_entry_type_display()} - {self.loan.application_number} - {self.amount}"
+
+
+# Import multi-schedule payment models
+from .multi_schedule_payment import MultiSchedulePayment, MultiSchedulePaymentAssignment
