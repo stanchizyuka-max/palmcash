@@ -1,0 +1,356 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }} - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                        {{ title }}
+                    </h1>
+                    <p class="text-gray-600 mt-1">Approve multiple collections at once for clients who have paid their required amounts</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="quickApproveBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                        <i class="fas fa-bolt mr-2"></i>Quick Approve Today
+                    </button>
+                    <a href="{% url 'dashboard:collection_details' %}" 
+                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Collections
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+            <form method="get" class="space-y-4">
+                <div class="flex items-end gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Date</label>
+                        <input type="date" name="date" value="{{ target_date|date:"Y-m-d" }}" 
+                               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Loans</p>
+                        <p class="text-3xl font-bold text-blue-600 mt-2">{{ total_loans|intcomma }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-file-contract text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Expected</p>
+                        <p class="text-3xl font-bold text-purple-600 mt-2">K{{ total_expected|floatformat:2|intcomma }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calculator text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Collected</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2">K{{ total_collected|floatformat:2|intcomma }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-arrow-down text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Approvable</p>
+                        <p class="text-3xl font-bold text-orange-600 mt-2">{{ total_approvable|intcomma }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Form -->
+        <form id="bulkApprovalForm" method="post" class="space-y-6">
+            <input type="hidden" name="date" value="{{ target_date|date:"Y-m-d" }}">
+            
+            {% if grouped_loans %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-900">Select Loans to Approve</h2>
+                        <div class="flex items-center gap-4">
+                            <button type="button" id="selectAllBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                                <i class="fas fa-check-square mr-2"></i>Select All
+                            </button>
+                            <button type="button" id="clearAllBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                                <i class="fas fa-times-circle mr-2"></i>Clear All
+                            </button>
+                            <button type="submit" id="approveBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                                <i class="fas fa-check-circle mr-2"></i>Approve Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">
+                                    <input type="checkbox" id="selectAllCheckbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Loan #</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Borrower</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Group</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Expected</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Collected</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for loan in grouped_loans %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" name="selected_loans" value="{{ loan.loan.id }}" 
+                                           class="loan-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                           {% if not loan.can_approve %}disabled{% endif %}>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ loan.loan.application_number }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ loan.loan.borrower.get_full_name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ loan.group_name|default:"No group" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-purple-600">
+                                    K{{ loan.total_expected|floatformat:2|intcomma }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                                    K{{ loan.total_collected|floatformat:2|intcomma }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if loan.can_approve %}
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            Ready to Approve
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                            Partial Payment
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="bg-white rounded-xl shadow-sm p-12 border border-gray-200 text-center">
+                    <i class="fas fa-inbox text-gray-300 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No Collections Found</h3>
+                    <p class="text-gray-500">No collections found for the selected date and criteria.</p>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const approveBtn = document.getElementById('approveBtn');
+    const quickApproveBtn = document.getElementById('quickApproveBtn');
+    const loanCheckboxes = document.querySelectorAll('.loan-checkbox');
+    
+    // Select all functionality
+    selectAllBtn.addEventListener('click', function() {
+        loanCheckboxes.forEach(checkbox => {
+            if (!checkbox.disabled) {
+                checkbox.checked = true;
+            }
+        });
+        updateApproveButton();
+    });
+    
+    // Clear all functionality
+    clearAllBtn.addEventListener('click', function() {
+        loanCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateApproveButton();
+    });
+    
+    // Individual checkbox change
+    loanCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateApproveButton);
+    });
+    
+    // Quick approve today
+    quickApproveBtn.addEventListener('click', function() {
+        quickApproveToday();
+    });
+    
+    // Approve form submission
+    document.getElementById('bulkApprovalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const selectedLoans = Array.from(document.querySelectorAll('.loan-checkbox:checked:not(:disabled)')).map(cb => cb.value);
+        
+        if (selectedLoans.length === 0) {
+            alert('Please select at least one loan to approve.');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        selectedLoans.forEach(loanId => {
+            formData.append('selected_loans', loanId);
+        });
+        
+        // Show loading state
+        approveBtn.disabled = true;
+        approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Approving...';
+        
+        fetch('/payments/bulk-approve/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg z-50';
+                successDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle mr-3"></i>
+                        <div>
+                            <div class="font-semibold text-green-800">${data.message}</div>
+                            <div class="text-sm text-green-600 mt-1">Page will refresh in 3 seconds...</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(successDiv);
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-800 px-6 py-4 rounded-lg shadow-lg z-50';
+                errorDiv.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-3"></i>
+                        <div>
+                            <div class="font-semibold text-red-800">Error</div>
+                            <div class="text-sm text-red-600 mt-1">${data.error}</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    document.body.removeChild(errorDiv);
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            approveBtn.disabled = false;
+            approveBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Approve Selected';
+        });
+    });
+    
+    function updateApproveButton() {
+        const selectedCount = document.querySelectorAll('.loan-checkbox:checked:not(:disabled)').length;
+        
+        approveBtn.disabled = selectedCount === 0;
+        if (selectedCount > 0) {
+            approveBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Approve Selected ({selectedCount})`;
+        } else {
+            approveBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Approve Selected';
+        }
+    }
+    
+    function quickApproveToday() {
+        if (!confirm('Are you sure you want to approve all fully paid collections for today?')) {
+            fetch('/payments/quick-approve-today/', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg z-50';
+                    successDiv.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle mr-3"></i>
+                            <div>
+                                <div class="font-semibold text-green-800">${data.message}</div>
+                                <div class="text-sm text-green-600 mt-1">Page will refresh in 3 seconds...</div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(successDiv);
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    // Show error message
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-800 px-6 py-4 rounded-lg shadow-lg z-50';
+                    errorDiv.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle mr-3"></i>
+                            <div>
+                                <div class="font-semibold text-red-800">Error</div>
+                                <div class="text-sm text-red-600 mt-1">${data.error}</div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(errorDiv);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(errorDiv);
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

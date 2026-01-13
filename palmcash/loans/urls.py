@@ -1,6 +1,11 @@
 from django.urls import path
 from . import views
 from .views_enhanced import enhanced_loan_application
+from .views_application_review import (
+    ClientApplicationListView, 
+    ClientApplicationDetailView, 
+    download_application_pdf
+)
 
 app_name = 'loans'
 
@@ -30,4 +35,9 @@ urlpatterns = [
     # Admin management URLs
     path('manage/loan-types/', views.LoanTypesManageView.as_view(), name='manage_loan_types'),
     path('manage/loan-documents/', views.LoanDocumentsManageView.as_view(), name='manage_loan_documents'),
+    
+    # Application review URLs
+    path('applications/review/', ClientApplicationListView.as_view(), name='application_review_list'),
+    path('applications/<int:pk>/review/', ClientApplicationDetailView.as_view(), name='application_review_detail'),
+    path('applications/<int:pk>/download/', download_application_pdf, name='download_application_pdf'),
 ]

@@ -400,6 +400,8 @@ class AdminAuditLog(models.Model):
         ('officer_update', 'Update Officer'),
         ('group_transfer', 'Transfer Group'),
         ('client_transfer', 'Transfer Client'),
+        ('loan_transfer', 'Transfer Loan'),
+        ('loan_transfer_batch', 'Transfer Multiple Loans'),
         ('loan_approve', 'Approve Loan'),
         ('loan_reject', 'Reject Loan'),
         ('override_assignment', 'Override Assignment'),

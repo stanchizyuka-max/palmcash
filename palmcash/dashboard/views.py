@@ -2782,14 +2782,24 @@ def admin_client_transfer(request):
             except GroupMembership.DoesNotExist:
                 previous_group = None
             
-            # Check for active loans
+            # Check for active loans (but allow transfer with option to transfer loans)
             active_loans = Loan.objects.filter(borrower=client, status='active')
-            if active_loans.exists():
+            pending_loans = Loan.objects.filter(borrower=client, status='pending')
+            
+            # Get all loans that could be transferred
+            transferable_loans = Loan.objects.filter(borrower=client).exclude(status__in=['completed', 'rejected'])
+            
+            if transferable_loans.exists() and not request.POST.get('transfer_loans'):
+                # Show confirmation form for loan transfer
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
-                    'error': f'Client has {active_loans.count()} active loan(s). Cannot transfer client with active loans.',
+                    'show_loan_transfer_confirm': True,
+                    'client': client,
+                    'dest_group': dest_group,
+                    'transferable_loans': transferable_loans,
+                    'active_loans': active_loans,
+                    'pending_loans': pending_loans,
                     'clients': User.objects.filter(role='borrower'),
                     'groups': BorrowerGroup.objects.filter(is_active=True),
-                    'active_loans': active_loans,
                 })
             
             # Deactivate current membership if exists
@@ -2804,6 +2814,28 @@ def admin_client_transfer(request):
                 is_active=True,
                 added_by=user
             )
+            
+            # Transfer loans if requested
+            transferred_loans = []
+            if request.POST.get('transfer_loans') == 'yes':
+                new_officer = dest_group.assigned_officer
+                if new_officer:
+                    # Transfer all transferable loans to new loan officer
+                    for loan in transferable_loans:
+                        old_officer = loan.loan_officer
+                        loan.loan_officer = new_officer
+                        loan.save()
+                        transferred_loans.append(loan)
+                        
+                        # Create loan transfer audit log
+                        AdminAuditLog.objects.create(
+                            admin_user=user,
+                            action='loan_transfer',
+                            affected_user=client,
+                            description=f'Transferred loan {loan.application_number} from {old_officer.get_full_name() if old_officer else "unassigned"} to {new_officer.get_full_name()}',
+                            old_value=f'loan_officer: {old_officer.get_full_name() if old_officer else "none"}',
+                            new_value=f'loan_officer: {new_officer.get_full_name()}'
+                        )
             
             # Create ClientTransferLog
             from clients.models import ClientTransferLog
@@ -2825,6 +2857,17 @@ def admin_client_transfer(request):
                 old_value=f'group: {previous_group.name if previous_group else "none"}',
                 new_value=f'group: {dest_group.name}'
             )
+            
+            # Add loan transfer info to description if loans were transferred
+            if transferred_loans:
+                AdminAuditLog.objects.create(
+                    admin_user=user,
+                    action='loan_transfer_batch',
+                    affected_user=client,
+                    description=f'Transferred {len(transferred_loans)} loan(s) with client {client.full_name} to {dest_group.assigned_officer.get_full_name() if dest_group.assigned_officer else "new officer"}',
+                    old_value=f'loans: {[loan.application_number for loan in transferred_loans]}',
+                    new_value=f'new_officer: {dest_group.assigned_officer.get_full_name() if dest_group.assigned_officer else "unassigned"}'
+                )
             
             # Redirect to transfer history
             from django.shortcuts import redirect
@@ -3532,6 +3575,9 @@ def loan_officer_document_verification(request):
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
+        print(f"DEBUG: Loan officer {user.full_name} has {branch_clients.count()} assigned clients")
+        print(f"DEBUG: Client IDs: {list(branch_client_ids)}")
+        
         # Get verified verifications (approved documents) - this is the main focus for loan officers
         verified_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
@@ -3544,11 +3590,15 @@ def loan_officer_document_verification(request):
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
+        print(f"DEBUG: Pending verifications from ClientVerification: {pending_verifications.count()}")
+        
         # Also get clients with pending individual documents
         clients_with_pending_docs = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='pending'
         ).values_list('client_id', flat=True).distinct()
+        
+        print(f"DEBUG: Clients with pending documents: {list(clients_with_pending_docs)}")
         
         # Add these clients to pending verifications if not already there
         pending_verification_client_ids = set(pending_verifications.values_list('client_id', flat=True))
@@ -3558,8 +3608,9 @@ def loan_officer_document_verification(request):
                     verification = ClientVerification.objects.get(client_id=client_id)
                     if verification not in pending_verifications:
                         pending_verifications = list(pending_verifications) + [verification]
+                        print(f"DEBUG: Added verification for client {client_id}")
                 except ClientVerification.DoesNotExist:
-                    pass
+                    print(f"DEBUG: No verification record for client {client_id}")
         
         # Get statistics
         total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
@@ -3568,6 +3619,8 @@ def loan_officer_document_verification(request):
             status='verified'
         ).count()
         pending_count = pending_verifications.count() if isinstance(pending_verifications, list) else pending_verifications.count()
+        
+        print(f"DEBUG: Total clients: {total_clients}, Verified: {verified_clients}, Pending: {pending_count}")
         
         # Get documents needing review
         documents_needing_review = ClientDocument.objects.filter(
