@@ -92,6 +92,29 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
         # Save the loan application
         response = super().form_valid(form)
         
+        # Save employment, business, and reference information to the borrower's user profile
+        borrower = self.request.user
+        borrower.employment_status = form.cleaned_data.get('employment_status', '')
+        borrower.employer_name = form.cleaned_data.get('employer_name', '')
+        borrower.employer_address = form.cleaned_data.get('employer_address', '')
+        borrower.employment_duration = form.cleaned_data.get('employment_duration')
+        borrower.monthly_income = form.cleaned_data.get('monthly_income')
+        
+        borrower.business_name = form.cleaned_data.get('business_name', '')
+        borrower.business_address = form.cleaned_data.get('business_address', '')
+        borrower.business_duration = form.cleaned_data.get('business_duration')
+        
+        borrower.residential_duration = form.cleaned_data.get('residential_duration')
+        
+        borrower.reference1_name = form.cleaned_data.get('reference1_name', '')
+        borrower.reference1_phone = form.cleaned_data.get('reference1_phone', '')
+        borrower.reference1_relationship = form.cleaned_data.get('reference1_relationship', '')
+        borrower.reference2_name = form.cleaned_data.get('reference2_name', '')
+        borrower.reference2_phone = form.cleaned_data.get('reference2_phone', '')
+        borrower.reference2_relationship = form.cleaned_data.get('reference2_relationship', '')
+        
+        borrower.save()
+        
         # Store application data in session for document upload
         self.request.session['loan_application_data'] = {
             'application_number': form.instance.application_number,
