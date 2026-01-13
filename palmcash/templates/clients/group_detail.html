@@ -232,7 +232,7 @@
                             <span class="text-sm font-medium text-blue-900">Create Loan for Group Member</span>
                         </a>
                         
-                        <a href="{% url 'payments:collection_create' %}?group={{ group.pk }}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition">
+                        <a href="{% url 'payments:make' 0 %}?group={{ group.pk }}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition">
                             <i class="fas fa-money-bill-wave text-green-600 text-2xl mb-2"></i>
                             <span class="text-sm font-medium text-green-900">Record Payment</span>
                         </a>
