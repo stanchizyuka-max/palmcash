@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import F
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -236,7 +237,7 @@ class QuickApproveTodayView(LoginRequiredMixin, View):
                 collections_query = PaymentCollection.objects.filter(
                     collection_date=today,
                     status='scheduled',
-                    collected_amount__gte=models.F('expected_amount')
+                    collected_amount__gte=F('expected_amount')
                 )
                 
                 # Filter by user role
