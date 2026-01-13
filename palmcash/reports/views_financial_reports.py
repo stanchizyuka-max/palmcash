@@ -33,11 +33,11 @@ class FinancialReportsView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get available loan officers for filtering
-        if request.user.role in ['admin', 'manager']:
+        if self.request.user.role in ['admin', 'manager']:
             loan_officers = User.objects.filter(role='loan_officer', is_active=True)
         else:
             # Loan officers can only see their own reports
-            loan_officers = User.objects.filter(id=request.user.id)
+            loan_officers = User.objects.filter(id=self.request.user.id)
         
         context['loan_officers'] = loan_officers
         context['title'] = 'Financial Reports'
