@@ -91,7 +91,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600">Average Collection</p>
-                        <p class="text-3xl font-bold text-purple-600 mt-2">K{{ total_amount|div:total_count|floatformat:2|intcomma }}</p>
+                        <p class="text-3xl font-bold text-purple-600 mt-2">K{{ total_amount|floatformat:2|intcomma }}</p>
                     </div>
                     <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-calculator text-purple-600 text-xl"></i>
@@ -129,7 +129,7 @@
                                 K{{ officer.amount|floatformat:2|intcomma }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                K{{ officer.amount|div:officer.count|floatformat:2|intcomma }}
+                                K{{ officer.amount|floatformat:2|intcomma }}
                             </td>
                         </tr>
                         {% endfor %}
