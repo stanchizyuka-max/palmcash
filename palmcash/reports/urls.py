@@ -32,5 +32,5 @@ urlpatterns = [
     path('returns-report/', ReturnsReportView.as_view(), name='returns_report'),
     
     # Export Functions
-    path('export/<str:report_type>/', export_financial_report, name='export_disbursement_csv'),
+    path('export/<str:report_type>/', export_financial_report, name='export'),
 ]
