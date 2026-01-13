@@ -1,0 +1,134 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Financial Reports - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <i class="fas fa-chart-line text-blue-600 mr-3"></i>
+                Financial Reports
+            </h1>
+            <p class="text-gray-600 mt-1">Comprehensive financial reporting with date range filtering</p>
+        </div>
+
+        <!-- Report Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Disbursement Report -->
+            <a href="{% url 'reports:disbursement_report' %}" class="group">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-blue-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors duration-200">
+                            <i class="fas fa-arrow-up text-blue-600 text-xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400 group-hover:text-blue-600 transition-colors duration-200"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">Disbursement Report</h3>
+                    <p class="text-sm text-gray-600 mt-2">View loan disbursements by date range and officer</p>
+                </div>
+            </a>
+
+            <!-- Collection Report -->
+            <a href="{% url 'reports:collection_report' %}" class="group">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-green-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors duration-200">
+                            <i class="fas fa-arrow-down text-green-600 text-xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400 group-hover:text-green-600 transition-colors duration-200"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-200">Collection Report</h3>
+                    <p class="text-sm text-gray-600 mt-2">View payment collections by date range and officer</p>
+                </div>
+            </a>
+
+            <!-- Deposit Report -->
+            <a href="{% url 'reports:deposit_report' %}" class="group">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-purple-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors duration-200">
+                            <i class="fas fa-shield-alt text-purple-600 text-xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400 group-hover:text-purple-600 transition-colors duration-200"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors duration-200">Deposit Report</h3>
+                    <p class="text-sm text-gray-600 mt-2">View security deposits by date range and officer</p>
+                </div>
+            </a>
+
+            <!-- Returns Report -->
+            <a href="{% url 'reports:returns_report' %}" class="group">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-orange-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors duration-200">
+                            <i class="fas fa-exclamation-triangle text-orange-600 text-xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400 group-hover:text-orange-600 transition-colors duration-200"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors duration-200">Returns Report</h3>
+                    <p class="text-sm text-gray-600 mt-2">View overdue payments and returns by date range</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Quick Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600">{{ loan_officers.count }}</div>
+                    <div class="text-sm text-gray-600">Active Loan Officers</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600">{{ today|date:"F j, Y" }}</div>
+                    <div class="text-sm text-gray-600">Today's Date</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600">{{ user.role|title }}</div>
+                    <div class="text-sm text-gray-600">Your Role</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600">4</div>
+                    <div class="text-sm text-gray-600">Report Types</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-200">
+            <h3 class="text-lg font-semibold text-blue-900 mb-3">
+                <i class="fas fa-info-circle mr-2"></i>How to Use Financial Reports
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium text-blue-800 mb-2">Date Range Filtering</h4>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• Select custom date ranges (e.g., Jan 2-10)</li>
+                        <li>• Default shows last 30 days</li>
+                        <li>• View daily totals and summaries</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-blue-800 mb-2">Officer Filtering</h4>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• Admins: View all officers</li>
+                        <li>• Managers: View branch officers</li>
+                        <li>• Officers: View own reports only</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h4 class="font-medium text-blue-800 mb-2">Export Options</h4>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li>• Export any report to CSV</li>
+                    <li>• Includes all filtered data</li>
+                    <li>• Download for offline analysis</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
