@@ -1,0 +1,251 @@
+{% extends 'base_tailwind.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Pay Multiple Schedules - {{ loan.application_number }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-calendar-check text-blue-600 mr-3"></i>
+                        Pay Multiple Schedules
+                    </h1>
+                    <p class="text-gray-600 mt-2">
+                        Loan #{{ loan.application_number }} - {{ loan.borrower.get_full_name }}
+                    </p>
+                </div>
+                <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:text-blue-900">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Loan
+                </a>
+            </div>
+        </div>
+
+        <!-- Loan Summary -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ loan.amount|intcomma }}</div>
+                    <div class="text-sm text-gray-600">Loan Amount</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ loan.balance_remaining|intcomma }}</div>
+                    <div class="text-sm text-gray-600">Balance Remaining</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ unpaid_schedules.count }}</div>
+                    <div class="text-sm text-gray-600">Unpaid Schedules</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-orange-600">{{ total_unpaid|floatformat:2|intcomma }}</div>
+                    <div class="text-sm text-gray-600">Total Unpaid Amount</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Alert -->
+        {% if overdue_schedules %}
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl mr-3 mt-0.5"></i>
+                <div>
+                    <h3 class="text-red-800 font-semibold">Overdue Schedules</h3>
+                    <p class="text-red-700 text-sm mt-1">
+                        You have {{ overdue_schedules.count }} overdue schedule(s) totaling K{{ total_overdue|floatformat:2|intcomma }}.
+                        Consider paying these first to avoid penalties.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if can_pay %}
+        <!-- Payment Schedule Selection -->
+        <form method="post" action="{% url 'payments:create_multi_payment' loan.pk %}" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Schedule Selection -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Select Payment Schedules</h2>
+                
+                <div class="space-y-3">
+                    {% for schedule in unpaid_schedules %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <input type="checkbox" 
+                                       name="schedules" 
+                                       value="{{ schedule.pk }}"
+                                       id="schedule_{{ schedule.pk }}"
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="schedule_{{ schedule.pk }}" class="cursor-pointer">
+                                    <div class="font-medium text-gray-900">
+                                        Schedule #{{ schedule.installment_number }}
+                                        {% if schedule.is_overdue %}
+                                            <span class="ml-2 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Overdue</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        Due: {{ schedule.due_date|date:"M d, Y" }}
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-gray-900">K{{ schedule.total_amount|floatformat:2|intcomma }}</div>
+                                <div class="text-sm text-gray-600">
+                                    K{{ schedule.principal_amount|floatformat:2 }} principal + 
+                                    K{{ schedule.interest_amount|floatformat:2 }} interest
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Selection Summary -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm font-medium text-blue-900">
+                            <span id="selected-count">0</span> schedules selected
+                        </div>
+                        <div class="text-lg font-bold text-blue-900">
+                            Total: K<span id="selected-total">0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Details</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.total_amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Payment Amount *
+                        </label>
+                        {{ form.total_amount|add_class:"w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
+                        {% if form.total_amount.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.total_amount.errors }}</div>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Amount must be at least the total of selected schedules</p>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Payment Method *
+                        </label>
+                        {{ form.payment_method|add_class:"w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
+                        {% if form.payment_method.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.payment_method.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.reference_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Reference Number
+                        </label>
+                        {{ form.reference_number|add_class:"w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
+                        {% if form.reference_number.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.reference_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Notes
+                        </label>
+                        {{ form.notes|add_class:"w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
+                        {% if form.notes.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.notes.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end">
+                <button type="submit" 
+                        id="submit-btn"
+                        disabled
+                        class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    Submit Payment
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <!-- No Unpaid Schedules -->
+        <div class="bg-white rounded-xl shadow-sm p-12 border border-gray-200 text-center">
+            <i class="fas fa-check-circle text-green-500 text-6xl mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">All Schedules Paid</h3>
+            <p class="text-gray-600 mb-6">
+                All payment schedules for this loan have been paid. The loan status is {{ loan.get_status_display }}.
+            </p>
+            <a href="{% url 'loans:detail' loan.pk %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Loan Details
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="schedules"]');
+    const selectedCount = document.getElementById('selected-count');
+    const selectedTotal = document.getElementById('selected-total');
+    const submitBtn = document.getElementById('submit-btn');
+    const amountInput = document.getElementById('{{ form.total_amount.id_for_label }}');
+    
+    // Schedule amounts data
+    const scheduleAmounts = {{ schedule_amounts_json|safe }};
+    
+    function updateSelection() {
+        let count = 0;
+        let total = 0;
+        
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                count++;
+                total += scheduleAmounts[checkbox.value];
+            }
+        });
+        
+        selectedCount.textContent = count;
+        selectedTotal.textContent = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        
+        // Update amount input minimum
+        amountInput.min = total.toFixed(2);
+        amountInput.placeholder = `Minimum: K${total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+        
+        // Enable/disable submit button
+        submitBtn.disabled = count === 0;
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Initial update
+    updateSelection();
+    
+    // Validate amount on input
+    amountInput.addEventListener('input', function() {
+        const minAmount = parseFloat(this.min);
+        const enteredAmount = parseFloat(this.value);
+        
+        if (enteredAmount < minAmount) {
+            this.setCustomValidity(`Amount must be at least K${minAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`);
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+{% endblock %}
