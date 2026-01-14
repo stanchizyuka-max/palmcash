@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
 from .models import Loan, LoanType, LoanDocument
 from .forms import LoanApplicationForm, LoanDocumentForm, DocumentVerificationForm
+from .forms_enhanced import EnhancedLoanApplicationForm
 
 class LoanListView(LoginRequiredMixin, ListView):
     model = Loan
@@ -72,14 +73,20 @@ class LoanDetailView(LoginRequiredMixin, DetailView):
 
 class LoanApplicationView(LoginRequiredMixin, CreateView):
     model = Loan
-    form_class = LoanApplicationForm
-    template_name = 'loans/apply.html'
+    form_class = EnhancedLoanApplicationForm
+    template_name = 'loans/enhanced_apply.html'
     success_url = reverse_lazy('loans:list')
     
     def dispatch(self, request, *args, **kwargs):
         # Allow borrowers to apply for loans without document verification
         # Documents will be required after loan approval
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        """Pass user to form for pre-filling"""
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -107,29 +114,16 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
                 except LoanType.DoesNotExist:
                     pass
         
+        # Pass user to form for pre-filling
+        form = self.get_form()
+        if hasattr(form, 'user'):
+            form.user = self.request.user
+        
         return context
     
     def form_valid(self, form):
-        # Save the loan application
+        # Save the loan application using enhanced form
         loan = form.save(commit=False)
-        
-        # Set interest rate from loan type if not already set
-        if loan.loan_type and not loan.interest_rate:
-            loan.interest_rate = loan.loan_type.interest_rate
-        
-        # Set repayment frequency from loan type
-        if loan.loan_type:
-            loan.repayment_frequency = loan.loan_type.repayment_frequency
-        
-        # Set term based on frequency
-        term = form.cleaned_data.get('term')
-        if term:
-            if loan.repayment_frequency == 'daily':
-                loan.term_days = term
-                loan.term_weeks = None
-            else:  # weekly
-                loan.term_weeks = term
-                loan.term_days = None
         
         # Set borrower and initial status
         loan.borrower = self.request.user
