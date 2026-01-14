@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 from loans.models import Loan
 from payments.models import Payment, PaymentSchedule
 from accounts.models import User
+from documents.models import ClientDocument
 from common.utils import (
     get_system_launch_date, 
     get_monthly_periods_since_launch, 
@@ -279,7 +280,7 @@ class SystemStatisticsView(LoginRequiredMixin, TemplateView):
         ).order_by('role')
         
         # Document statistics from system launch
-        context['document_stats'] = Document.objects.filter(
+        context['document_stats'] = ClientDocument.objects.filter(
             uploaded_at__date__gte=system_launch
         ).values('status').annotate(
             count=Count('id')
@@ -301,7 +302,7 @@ class SystemStatisticsView(LoginRequiredMixin, TemplateView):
         while current <= date.today():
             day_loans = Loan.objects.filter(application_date__date=current).count()
             day_payments = Payment.objects.filter(payment_date__date=current, status='completed').count()
-            day_documents = Document.objects.filter(uploaded_at__date=current).count()
+            day_documents = ClientDocument.objects.filter(uploaded_at__date=current).count()
             
             daily_activity.append({
                 'date': current.strftime('%Y-%m-%d'),
