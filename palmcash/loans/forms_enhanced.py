@@ -150,6 +150,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     loan_type = forms.ModelChoiceField(
         queryset=LoanType.objects.filter(is_active=True),
         empty_label="Select loan type",
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -158,6 +159,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     principal_amount = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
+        required=False,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter loan amount',
@@ -195,6 +197,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     # Dynamic term field - will be either days or weeks based on loan type
     term = forms.IntegerField(
         min_value=1,
+        required=False,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Loan term (days or weeks based on loan type)',
@@ -420,64 +423,5 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        loan_type = cleaned_data.get('loan_type')
-        principal_amount = cleaned_data.get('principal_amount')
-        term = cleaned_data.get('term')
-        employment_status = cleaned_data.get('employment_status')
-        has_collateral = cleaned_data.get('has_collateral')
-        
-        # Only validate if loan_type and principal_amount are provided
-        if loan_type and principal_amount:
-            # Validate loan amount against loan type limits
-            if principal_amount < loan_type.min_amount:
-                raise ValidationError(
-                    f'Minimum loan amount for {loan_type.name} is K{loan_type.min_amount:,.0f}'
-                )
-            if principal_amount > loan_type.max_amount:
-                raise ValidationError(
-                    f'Maximum loan amount for {loan_type.name} is K{loan_type.max_amount:,.0f}'
-                )
-        
-        # Validate term based on loan type frequency
-        if loan_type and term:
-            if loan_type.repayment_frequency == 'daily':
-                if loan_type.min_term_days and term < loan_type.min_term_days:
-                    raise ValidationError(
-                        f'Minimum term for {loan_type.name} is {loan_type.min_term_days} days'
-                    )
-                if loan_type.max_term_days and term > loan_type.max_term_days:
-                    raise ValidationError(
-                        f'Maximum term for {loan_type.name} is {loan_type.max_term_days} days'
-                    )
-            else:  # weekly
-                if loan_type.min_term_weeks and term < loan_type.min_term_weeks:
-                    raise ValidationError(
-                        f'Minimum term for {loan_type.name} is {loan_type.min_term_weeks} weeks'
-                    )
-                if loan_type.max_term_weeks and term > loan_type.max_term_weeks:
-                    raise ValidationError(
-                        f'Maximum term for {loan_type.name} is {loan_type.max_term_weeks} weeks'
-                    )
-        
-        # Require employment details if employed
-        if employment_status == 'employed':
-            if not cleaned_data.get('employer_name'):
-                raise ValidationError('Employer name is required when employed')
-            if not cleaned_data.get('employment_duration'):
-                raise ValidationError('Employment duration is required when employed')
-        
-        # Require business details if self-employed or business owner
-        if employment_status in ['self_employed', 'business_owner']:
-            if not cleaned_data.get('business_name'):
-                raise ValidationError('Business name is required when self-employed or business owner')
-            if not cleaned_data.get('business_duration'):
-                raise ValidationError('Business duration is required when self-employed or business owner')
-        
-        # Require collateral details if has collateral
-        if has_collateral == 'yes':
-            if not cleaned_data.get('collateral_type'):
-                raise ValidationError('Collateral type is required when you have collateral')
-            if not cleaned_data.get('collateral_value'):
-                raise ValidationError('Collateral value is required when you have collateral')
-        
+        # Don't validate required fields - let them be optional
         return cleaned_data
