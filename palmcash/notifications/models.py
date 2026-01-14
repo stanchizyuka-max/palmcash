@@ -49,19 +49,19 @@ class Notification(models.Model):
     ]
     
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
-    template = models.ForeignKey(NotificationTemplate, on_delete=models.CASCADE)
+    template = models.ForeignKey(NotificationTemplate, on_delete=models.CASCADE, null=True, blank=True)
     
     # Message Content
     subject = models.CharField(max_length=200, blank=True)
-    message = models.TextField()
+    message = models.TextField(blank=True)
     
     # Delivery Information
-    channel = models.CharField(max_length=20, choices=NotificationTemplate.CHANNEL_CHOICES)
-    recipient_address = models.CharField(max_length=200)  # email or phone number
+    channel = models.CharField(max_length=20, choices=NotificationTemplate.CHANNEL_CHOICES, default='in_app')
+    recipient_address = models.CharField(max_length=200, blank=True)  # email or phone number
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Timestamps
-    scheduled_at = models.DateTimeField()
+    scheduled_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)

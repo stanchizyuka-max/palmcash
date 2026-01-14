@@ -42,6 +42,30 @@ class FinancialReportsView(LoginRequiredMixin, TemplateView):
         context['loan_officers'] = loan_officers
         context['title'] = 'Financial Reports'
         
+        # Add system statistics
+        from django.utils import timezone
+        context['today'] = timezone.now()
+        
+        # Get system stats
+        total_loans = Loan.objects.count()
+        active_loans = Loan.objects.filter(status='active').count()
+        total_disbursed = Loan.objects.filter(status='disbursed').aggregate(
+            total=Sum('principal_amount')
+        )['total'] or Decimal('0')
+        
+        total_collected = Payment.objects.filter(
+            payment_date__date=timezone.now().date()
+        ).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0')
+        
+        context.update({
+            'total_loans': total_loans,
+            'active_loans': active_loans,
+            'total_disbursed': total_disbursed,
+            'total_collected': total_collected,
+        })
+        
         return context
 
 
