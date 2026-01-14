@@ -3578,24 +3578,24 @@ def loan_officer_document_verification(request):
     if user.role != 'loan_officer':
         return render(request, 'dashboard/access_denied.html')
     
-    # Get branch from officer assignment
+    # Get branch from officer assignment (optional now)
     branch = None
     try:
         from clients.models import OfficerAssignment
-        officer_assignment = OfficerAssignment.objects.get(officer=user)
+        officer_assignment = OfficerAssignment.objects.filter(officer=user).first()
         if officer_assignment and officer_assignment.branch:
             from collections import namedtuple
             Branch = namedtuple('Branch', ['name'])
-            branch = Branch(name=officer_assignment.branch)
+            branch = Branch(name=officer_assignment.branch.name)
         else:
             from collections import namedtuple
             Branch = namedtuple('Branch', ['name'])
-            branch = Branch(name='Unassigned')
+            branch = Branch(name='All Clients')
     except Exception as e:
         print(f"Error getting officer assignment: {e}")
         from collections import namedtuple
         Branch = namedtuple('Branch', ['name'])
-        branch = Branch(name='Unassigned')
+        branch = Branch(name='All Clients')
     
     try:
         from documents.models import ClientVerification, ClientDocument
