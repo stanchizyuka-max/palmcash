@@ -16,202 +16,327 @@
     .flatpickr-day.today {
         border-color: #3b82f6;
     }
+    
+    .group-card {
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .group-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #3b82f6;
+    }
+    
+    .stat-card {
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring-circle {
+        transition: stroke-dashoffset 0.35s;
+        transform-origin: 50% 50%;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-secondary-50 py-8">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8 flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-secondary-900">Borrower Groups</h1>
-                <p class="text-secondary-600 mt-2">Manage borrower groups and loan officer assignments</p>
+        
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-users text-blue-600 mr-3"></i>
+                        Borrower Groups
+                    </h1>
+                    <p class="text-gray-600 mt-2 text-lg">Manage borrower groups and loan officer assignments</p>
+                </div>
+                {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
+                <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create Group
+                </a>
+                {% endif %}
             </div>
-            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
-            <a href="{% url 'clients:group_create' %}" class="btn-primary">
-                <i class="fas fa-plus mr-2"></i>Create Group
-            </a>
-            {% endif %}
         </div>
 
-        <!-- Statistics and Calendar -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Statistics Cards -->
-            <div class="lg:col-span-3">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-secondary-600 text-sm font-medium">Total Groups</p>
-                                <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_groups }}</p>
-                            </div>
-                            <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-users text-primary-600 text-xl"></i>
-                            </div>
-                        </div>
+        <!-- Statistics Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Groups -->
+            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Groups</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ total_groups }}</p>
+                        <p class="text-sm text-green-600 mt-2">
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            <span>{{ active_groups }} active</span>
+                        </p>
                     </div>
-
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-secondary-600 text-sm font-medium">Active Groups</p>
-                                <p class="text-3xl font-bold text-success-600 mt-2">{{ active_groups }}</p>
-                            </div>
-                            <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-check-circle text-success-600 text-xl"></i>
-                            </div>
-                        </div>
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-2xl"></i>
                     </div>
+                </div>
+            </div>
 
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-secondary-600 text-sm font-medium">Officer Workload</p>
-                                <p class="text-sm font-medium text-info-600 mt-2">
-                                    <a href="{% url 'clients:officer_workload' %}" class="hover:underline">
-                                        View Dashboard <i class="fas fa-arrow-right ml-1"></i>
-                                    </a>
-                                </p>
-                            </div>
-                            <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-chart-bar text-info-600 text-xl"></i>
-                            </div>
-                        </div>
+            <!-- Active Groups -->
+            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Active Groups</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2">{{ active_groups }}</p>
+                        <p class="text-sm text-gray-600 mt-2">
+                            {% if total_groups > 0 %}
+                            {% widthratio active_groups total_groups 100 as percentage %}
+                            {{ percentage }}% of total
+                            {% else %}
+                            0% of total
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Members -->
+            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Members</p>
+                        <p class="text-3xl font-bold text-purple-600 mt-2">
+                            {% for group in groups %}
+                                {{ group.member_count }}
+                                {% if not forloop.last %}+{% endif %}
+                            {% endfor %}
+                        </p>
+                        <p class="text-sm text-gray-600 mt-2">Across all groups</p>
+                    </div>
+                    <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center">
+                        <i class="fas fa-user-friends text-purple-600 text-2xl"></i>
                     </div>
                 </div>
             </div>
 
             <!-- Calendar Widget -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
                 <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-secondary-900 flex items-center">
-                        <i class="fas fa-calendar-alt mr-2 text-primary-600"></i>
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-calendar-alt mr-2 text-blue-600"></i>
                         Calendar
                     </h3>
                 </div>
                 <input type="text" id="groupCalendar" class="w-full" placeholder="Select date">
-                <div class="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-200">
-                    <p class="text-xs text-secondary-600 mb-2">Selected Date:</p>
-                    <p id="selectedDate" class="text-sm font-semibold text-primary-900">Today</p>
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-xs text-gray-600 mb-1">Selected Date:</p>
+                    <p id="selectedDate" class="text-sm font-semibold text-blue-900">Today</p>
                 </div>
             </div>
         </div>
 
-        <!-- Groups List -->
-        <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
-            <div class="p-6 border-b border-secondary-100">
-                <h2 class="text-xl font-semibold text-secondary-900">All Groups</h2>
-            </div>
-
-            {% if groups %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-secondary-200">
-                    <thead class="bg-secondary-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Group Name
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Assigned Officer
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Members
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-secondary-200">
-                        {% for group in groups %}
-                        <tr class="hover:bg-secondary-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas fa-users text-primary-600"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-medium text-secondary-900">{{ group.name }}</div>
-                                        <div class="text-sm text-secondary-500">{{ group.description|truncatewords:10 }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if group.assigned_officer %}
-                                <div class="text-sm text-secondary-900">{{ group.assigned_officer.full_name }}</div>
-                                <div class="text-sm text-secondary-500">{{ group.assigned_officer.email }}</div>
-                                {% else %}
-                                <span class="text-sm text-secondary-400 italic">Unassigned</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-secondary-900">{{ group.member_count }} members</div>
-                                {% if group.max_members %}
-                                <div class="text-xs text-secondary-500">Max: {{ group.max_members }}</div>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if group.is_active %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success-100 text-success-800">
-                                    Active
-                                </span>
-                                {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-secondary-100 text-secondary-800">
-                                    Inactive
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{% url 'clients:group_detail' group.pk %}" class="text-primary-600 hover:text-primary-900 mr-3">
-                                    <i class="fas fa-eye mr-1"></i>View
-                                </a>
-                                {% if user.role == 'admin' or user.role == 'manager' %}
-                                <a href="{% url 'clients:group_edit' group.pk %}" class="text-info-600 hover:text-info-900">
-                                    <i class="fas fa-edit mr-1"></i>Edit
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            {% if is_paginated %}
-            <div class="px-6 py-4 border-t border-secondary-200">
-                <div class="flex justify-between items-center">
-                    <div class="text-sm text-secondary-700">
-                        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} groups
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="{% url 'clients:officer_workload' %}" class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200">
+                    <i class="fas fa-chart-bar text-blue-600 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm font-medium text-blue-900">Officer Workload</p>
+                        <p class="text-xs text-blue-700">View dashboard</p>
                     </div>
-                    <div class="flex space-x-2">
-                        {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}" class="btn-outline-primary">Previous</a>
-                        {% endif %}
-                        {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}" class="btn-primary">Next</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            {% else %}
-            <div class="p-12 text-center">
-                <i class="fas fa-users text-secondary-300 text-6xl mb-4"></i>
-                <p class="text-secondary-500 text-lg mb-4">No groups found</p>
-                {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
-                <a href="{% url 'clients:group_create' %}" class="btn-primary">
-                    <i class="fas fa-plus mr-2"></i>Create First Group
                 </a>
-                {% endif %}
+                
+                <a href="{% url 'clients:officer_clients' user.id %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200">
+                    <i class="fas fa-user-tie text-green-600 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm font-medium text-green-900">My Clients</p>
+                        <p class="text-xs text-green-700">Manage clients</p>
+                    </div>
+                </a>
+                
+                <button onclick="window.print()" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-purple-200 transition-all duration-200">
+                    <i class="fas fa-print text-purple-600 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm font-medium text-purple-900">Print Report</p>
+                        <p class="text-xs text-purple-700">Export data</p>
+                    </div>
+                </button>
             </div>
+        </div>
+
+        <!-- Groups Grid -->
+        {% if groups %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for group in groups %}
+            <div class="group-card bg-white rounded-xl shadow-lg overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-users text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white">{{ group.name }}</h3>
+                                <p class="text-blue-100 text-sm">{{ group.description|truncatewords:8 }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            {% if group.is_active %}
+                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="px-3 py-1 bg-gray-500 text-white text-xs font-semibold rounded-full">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <!-- Officer Assignment -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-500 font-medium">Assigned Officer</span>
+                            {% if group.assigned_officer %}
+                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Assigned</span>
+                            {% else %}
+                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">Unassigned</span>
+                            {% endif %}
+                        </div>
+                        {% if group.assigned_officer %}
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+                                <i class="fas fa-user text-gray-600 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ group.assigned_officer.get_full_name }}</p>
+                                <p class="text-xs text-gray-500">{{ group.assigned_officer.email }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="flex items-center text-gray-400">
+                            <i class="fas fa-user-slash mr-2"></i>
+                            <span class="text-sm">No officer assigned</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Member Stats -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-500 font-medium">Members</span>
+                            <span class="text-xs text-blue-600">{{ group.member_count }} members</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            {% if group.max_members %}
+                            {% widthratio group.member_count group.max_members 100 as percentage %}
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ percentage }}%"></div>
+                            {% else %}
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 100%"></div>
+                            {% endif %}
+                        </div>
+                        {% if group.max_members %}
+                        <p class="text-xs text-gray-500 mt-1">{{ group.member_count }} of {{ group.max_members }} capacity</p>
+                        {% else %}
+                        <p class="text-xs text-gray-500 mt-1">No capacity limit</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Branch Info -->
+                    {% if group.branch %}
+                    <div class="mb-4">
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>{{ group.branch }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Payment Schedule -->
+                    {% if group.payment_day %}
+                    <div class="mb-4">
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i class="fas fa-calendar-day mr-2"></i>
+                            <span>Payment Day: {{ group.payment_day }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="px-6 pb-6">
+                    <div class="flex gap-2">
+                        <a href="{% url 'clients:group_detail' group.pk %}" class="flex-1 items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            <i class="fas fa-eye mr-2"></i>
+                            View Details
+                        </a>
+                        {% if user.role == 'admin' or user.role == 'manager' %}
+                        <a href="{% url 'clients:group_edit' group.pk %}" class="flex-1 items-center justify-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                            <i class="fas fa-edit mr-2"></i>
+                            Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-sm text-gray-700">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} groups
+                </div>
+                <div class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Previous
+                    </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                        Next<i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-100">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-users text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">No Groups Found</h3>
+            <p class="text-gray-600 mb-6">Get started by creating your first borrower group</p>
+            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
+            <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                <i class="fas fa-plus mr-2"></i>
+                Create First Group
+            </a>
             {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 
