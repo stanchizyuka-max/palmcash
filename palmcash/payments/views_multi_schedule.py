@@ -12,8 +12,7 @@ import json
 from decimal import Decimal
 
 from loans.models import Loan
-from payments.models import PaymentSchedule
-from .multi_schedule_payment import MultiSchedulePayment, MultiSchedulePaymentAssignment
+from .models import PaymentSchedule, MultiSchedulePayment, MultiSchedulePaymentAssignment
 
 
 class MultiSchedulePaymentView(LoginRequiredMixin, DetailView):
