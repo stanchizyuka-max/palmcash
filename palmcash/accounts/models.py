@@ -43,6 +43,7 @@ class User(AbstractUser):
     business_duration = models.IntegerField(blank=True, null=True, help_text='Business duration in years')
     
     # Residential Information
+    residential_address = models.TextField(blank=True)
     residential_duration = models.IntegerField(blank=True, null=True, help_text='Residential duration in years')
     
     # References
