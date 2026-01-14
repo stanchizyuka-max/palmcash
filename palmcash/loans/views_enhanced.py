@@ -36,20 +36,7 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
             )
             return redirect('loans:list')
         
-        # Check if user has verified documents
-        has_verified_documents = ClientVerification.objects.filter(
-            client=request.user,
-            status='verified'
-        ).exists()
-        
-        if not has_verified_documents:
-            messages.error(
-                request,
-                'You must upload and have at least one document verified by an administrator '
-                'before you can apply for a loan. Please upload your documents first.'
-            )
-            return redirect('documents:list')
-        
+        # Allow users to fill in the form first, documents can be uploaded after
         return super().dispatch(request, *args, **kwargs)
     
     def get_form_kwargs(self):
