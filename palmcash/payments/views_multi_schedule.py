@@ -20,6 +20,7 @@ class MultiSchedulePaymentView(LoginRequiredMixin, DetailView):
     model = Loan
     template_name = 'payments/multi_schedule_payment.html'
     context_object_name = 'loan'
+    pk_url_kwarg = 'loan_id'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
