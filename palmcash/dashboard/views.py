@@ -3706,20 +3706,13 @@ def manager_document_verification(request):
                     'message': 'You have not been assigned to a branch. Please contact your administrator.'
                 })
         else:  # loan_officer
-            from clients.models import OfficerAssignment
-            officer_assignment = OfficerAssignment.objects.get(officer=user)
-            if officer_assignment and officer_assignment.branch:
-                from collections import namedtuple
-                Branch = namedtuple('Branch', ['name'])
-                branch = Branch(name=officer_assignment.branch)
-            else:
-                return render(request, 'dashboard/access_denied.html', {
-                    'message': 'You have not been assigned to a branch. Please contact your administrator.'
-                })
+            # Loan officers can access this page without a branch assignment
+            # They will see their assigned clients
+            branch = None
     except Exception as e:
         print(f"Error getting branch: {e}")
         return render(request, 'dashboard/access_denied.html', {
-            'message': 'You have not been assigned to a branch. Please contact your administrator.'
+            'message': 'Error accessing document verification. Please contact your administrator.'
         })
     
     try:
