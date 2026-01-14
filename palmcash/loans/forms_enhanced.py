@@ -303,12 +303,43 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         """
         Save the loan and update user profile with employment/business/reference info
         """
-        instance = super().save(commit=False)
+        # Create a new Loan instance instead of calling super().save()
+        from loans.models import Loan
+        import uuid
         
-        # Set loan details from form
+        instance = Loan()
+        
+        # Set required loan details from form
         instance.loan_type = self.cleaned_data.get('loan_type')
         instance.principal_amount = self.cleaned_data.get('principal_amount')
-        instance.purpose = self.cleaned_data.get('purpose')
+        instance.purpose = self.cleaned_data.get('purpose', '')
+        instance.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
+        
+        # Set repayment frequency and terms based on loan type
+        loan_type = self.cleaned_data.get('loan_type')
+        term = self.cleaned_data.get('term')
+        
+        if loan_type and term:
+            instance.repayment_frequency = loan_type.repayment_frequency
+            
+            if loan_type.repayment_frequency == 'daily':
+                instance.term_days = term
+                instance.term_weeks = None
+            else:  # weekly
+                instance.term_weeks = term
+                instance.term_days = None
+            
+            # Calculate payment amount (principal + interest) divided by term
+            principal = self.cleaned_data.get('principal_amount')
+            from decimal import Decimal
+            interest_rate = loan_type.interest_rate / Decimal('100')
+            total_interest = principal * interest_rate
+            total_repayment = principal + total_interest
+            
+            if loan_type.repayment_frequency == 'daily':
+                instance.payment_amount = total_repayment / term
+            else:  # weekly
+                instance.payment_amount = total_repayment / term
         
         if commit:
             instance.save()
