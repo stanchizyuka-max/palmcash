@@ -144,6 +144,37 @@ def loan_officer_dashboard(request):
         print(f"Error fetching pending documents: {e}")
         pending_documents = []
     
+    # Document verification - get pending and verified verifications
+    from documents.models import ClientVerification
+    try:
+        # Get all clients in officer's groups or directly assigned
+        clients_in_groups = User.objects.filter(
+            Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+            Q(assigned_officer=officer),
+            role='borrower'
+        ).values_list('id', flat=True).distinct()
+        
+        # Get pending verifications (documents submitted but not yet verified)
+        pending_verifications = ClientVerification.objects.filter(
+            client_id__in=clients_in_groups,
+            status__in=['documents_submitted', 'documents_rejected']
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        # Get verified verifications (approved documents)
+        verified_verifications = ClientVerification.objects.filter(
+            client_id__in=clients_in_groups,
+            status='verified'
+        ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+        
+        pending_verification_count = pending_verifications.count()
+        verified_client_count = verified_verifications.count()
+    except Exception as e:
+        print(f"Error fetching document verifications: {e}")
+        pending_verifications = []
+        verified_verifications = []
+        pending_verification_count = 0
+        verified_client_count = 0
+    
     context = {
         'groups_count': groups.count(),
         'clients_count': clients.count(),
@@ -166,6 +197,10 @@ def loan_officer_dashboard(request):
         'passbook_entries': passbook_entries,
         'pending_documents': pending_documents,
         'pending_documents_count': pending_documents.count(),
+        'pending_verifications': pending_verifications,
+        'verified_verifications': verified_verifications,
+        'pending_verification_count': pending_verification_count,
+        'verified_client_count': verified_client_count,
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
