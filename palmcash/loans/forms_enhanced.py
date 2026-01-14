@@ -1,18 +1,19 @@
 from django import forms
-from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
-from .models import Loan, LoanType, LoanDocument
+from .models import Loan, LoanType
 import re
 from datetime import date
 
-class EnhancedLoanApplicationForm(forms.ModelForm):
+class EnhancedLoanApplicationForm(forms.Form):
     """
-    Comprehensive loan application form with all required fields
+    Comprehensive loan application form - NOT a ModelForm
+    All fields are regular form fields, not model fields
     """
     
     # Personal Information
     first_name = forms.CharField(
         max_length=100,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your first name'
@@ -21,6 +22,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     last_name = forms.CharField(
         max_length=100,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your last name'
@@ -28,6 +30,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     email = forms.EmailField(
+        required=True,
         widget=forms.EmailInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your email address'
@@ -36,6 +39,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     phone_number = forms.CharField(
         max_length=20,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your phone number (e.g., 0976123456)'
@@ -43,6 +47,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     date_of_birth = forms.DateField(
+        required=True,
         widget=forms.DateInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'type': 'date'
@@ -51,6 +56,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     # Address Information
     residential_address = forms.CharField(
+        required=True,
         widget=forms.Textarea(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your residential address',
@@ -59,6 +65,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     residential_duration = forms.IntegerField(
+        required=True,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Years at current address',
@@ -77,13 +84,14 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             ('student', 'Student'),
             ('retired', 'Retired'),
         ],
-        required=False,
+        required=True,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
     )
     
     employer_name = forms.CharField(
+        max_length=255,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -112,6 +120,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     monthly_income = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
+        required=True,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter your monthly income',
@@ -119,8 +128,9 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         })
     )
     
-    # Business Information (if self-employed/business owner)
+    # Business Information
     business_name = forms.CharField(
+        max_length=255,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -149,8 +159,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     # Loan Details
     loan_type = forms.ModelChoiceField(
         queryset=LoanType.objects.filter(is_active=True),
-        empty_label="Select loan type",
-        required=False,
+        required=True,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -159,7 +168,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     principal_amount = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
-        required=False,
+        required=True,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Enter loan amount',
@@ -169,7 +178,6 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     purpose = forms.ChoiceField(
         choices=[
-            ('', 'Select loan purpose'),
             ('personal', 'Personal'),
             ('business', 'Business'),
             ('education', 'Education'),
@@ -179,7 +187,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             ('debt_consolidation', 'Debt Consolidation'),
             ('other', 'Other'),
         ],
-        required=False,
+        required=True,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -194,10 +202,9 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         })
     )
     
-    # Dynamic term field - will be either days or weeks based on loan type
     term = forms.IntegerField(
         min_value=1,
-        required=False,
+        required=True,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Loan term (days or weeks based on loan type)',
@@ -208,17 +215,17 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     # Collateral Information
     has_collateral = forms.ChoiceField(
         choices=[
-            ('', 'Do you have collateral?'),
             ('yes', 'Yes'),
             ('no', 'No'),
         ],
-        required=False,
+        required=True,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
     )
     
     collateral_type = forms.CharField(
+        max_length=255,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -227,9 +234,9 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     collateral_value = forms.DecimalField(
-        required=False,
         max_digits=12,
         decimal_places=2,
+        required=False,
         widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Estimated collateral value',
@@ -239,6 +246,8 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     # References
     reference1_name = forms.CharField(
+        max_length=255,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Reference 1 Full Name'
@@ -246,6 +255,8 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     reference1_phone = forms.CharField(
+        max_length=20,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Reference 1 Phone Number'
@@ -253,6 +264,8 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     reference1_relationship = forms.CharField(
+        max_length=100,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
             'placeholder': 'Reference 1 Relationship (e.g., Friend, Family, Colleague)'
@@ -260,6 +273,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     reference2_name = forms.CharField(
+        max_length=255,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -268,6 +282,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     reference2_phone = forms.CharField(
+        max_length=20,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -276,6 +291,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     )
     
     reference2_relationship = forms.CharField(
+        max_length=100,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -298,59 +314,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         })
     )
     
-    class Meta:
-        model = Loan
-        fields = []  # We're handling all fields manually
-    
-    def save(self, commit=True):
-        """
-        Save the loan and update user profile with employment/business/reference info
-        """
-        # Create a new Loan instance instead of calling super().save()
-        from loans.models import Loan
-        import uuid
-        
-        instance = Loan()
-        
-        # Set required loan details from form
-        instance.loan_type = self.cleaned_data.get('loan_type')
-        instance.principal_amount = self.cleaned_data.get('principal_amount')
-        instance.purpose = self.cleaned_data.get('purpose', '')
-        instance.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
-        
-        # Set repayment frequency and terms based on loan type
-        loan_type = self.cleaned_data.get('loan_type')
-        term = self.cleaned_data.get('term')
-        
-        if loan_type and term:
-            instance.repayment_frequency = loan_type.repayment_frequency
-            
-            if loan_type.repayment_frequency == 'daily':
-                instance.term_days = term
-                instance.term_weeks = None
-            else:  # weekly
-                instance.term_weeks = term
-                instance.term_days = None
-            
-            # Calculate payment amount (principal + interest) divided by term
-            principal = self.cleaned_data.get('principal_amount')
-            from decimal import Decimal
-            interest_rate = loan_type.interest_rate / Decimal('100')
-            total_interest = principal * interest_rate
-            total_repayment = principal + total_interest
-            
-            if loan_type.repayment_frequency == 'daily':
-                instance.payment_amount = total_repayment / term
-            else:  # weekly
-                instance.payment_amount = total_repayment / term
-        
-        if commit:
-            instance.save()
-        
-        return instance
-    
     def __init__(self, *args, **kwargs):
-        # Extract user from kwargs before calling super().__init__
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
@@ -359,69 +323,143 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             self.fields['first_name'].initial = self.user.first_name
             self.fields['last_name'].initial = self.user.last_name
             self.fields['email'].initial = self.user.email
-        
-        # Make certain fields required based on employment status
-        self.fields['employer_name'].required = False
-        self.fields['employer_address'].required = False
-        self.fields['employment_duration'].required = False
-        self.fields['business_name'].required = False
-        self.fields['business_address'].required = False
-        self.fields['business_duration'].required = False
-        self.fields['collateral_type'].required = False
-        self.fields['collateral_value'].required = False
-        self.fields['reference2_name'].required = False
-        self.fields['reference2_phone'].required = False
-        self.fields['reference2_relationship'].required = False
     
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
         if phone:
-            # Remove any non-digit characters
             phone_digits = re.sub(r'\D', '', phone)
-            
-            # Validate Zambian phone number format
             if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError(
-                    'Please enter a valid Zambian phone number (e.g., 0976123456)'
-                )
-            
+                raise ValidationError('Please enter a valid Zambian phone number (e.g., 0976123456)')
             return phone_digits
+        return phone
     
     def clean_reference1_phone(self):
         phone = self.cleaned_data.get('reference1_phone')
         if phone:
             phone_digits = re.sub(r'\D', '', phone)
             if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError(
-                    'Please enter a valid Zambian phone number for reference 1'
-                )
+                raise ValidationError('Please enter a valid Zambian phone number for reference 1')
             return phone_digits
+        return phone
     
     def clean_reference2_phone(self):
         phone = self.cleaned_data.get('reference2_phone')
         if phone:
             phone_digits = re.sub(r'\D', '', phone)
             if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError(
-                    'Please enter a valid Zambian phone number for reference 2'
-                )
+                raise ValidationError('Please enter a valid Zambian phone number for reference 2')
             return phone_digits
+        return phone
     
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get('date_of_birth')
         if dob:
             today = date.today()
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            
             if age < 18:
                 raise ValidationError('You must be at least 18 years old to apply for a loan')
-            
-            if age > 70:
-                raise ValidationError('Applicants must be 70 years old or younger')
-        
         return dob
     
     def clean(self):
         cleaned_data = super().clean()
-        # Don't validate required fields - let them be optional
+        employment_status = cleaned_data.get('employment_status')
+        has_collateral = cleaned_data.get('has_collateral')
+        
+        # Require employment details if employed
+        if employment_status == 'employed':
+            if not cleaned_data.get('employer_name'):
+                raise ValidationError('Employer name is required when employed')
+            if not cleaned_data.get('employment_duration'):
+                raise ValidationError('Employment duration is required when employed')
+        
+        # Require business details if self-employed or business owner
+        if employment_status in ['self_employed', 'business_owner']:
+            if not cleaned_data.get('business_name'):
+                raise ValidationError('Business name is required when self-employed or business owner')
+            if not cleaned_data.get('business_duration'):
+                raise ValidationError('Business duration is required when self-employed or business owner')
+        
+        # Require collateral details if has collateral
+        if has_collateral == 'yes':
+            if not cleaned_data.get('collateral_type'):
+                raise ValidationError('Collateral type is required when you have collateral')
+            if not cleaned_data.get('collateral_value'):
+                raise ValidationError('Collateral value is required when you have collateral')
+        
         return cleaned_data
+    
+    def save_loan(self, borrower):
+        """
+        Create and save a Loan instance from the form data
+        """
+        import uuid
+        from decimal import Decimal
+        
+        cleaned_data = self.cleaned_data
+        loan_type = cleaned_data.get('loan_type')
+        principal_amount = cleaned_data.get('principal_amount')
+        term = cleaned_data.get('term')
+        
+        # Create loan instance
+        loan = Loan()
+        loan.borrower = borrower
+        loan.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
+        loan.loan_type = loan_type
+        loan.principal_amount = principal_amount
+        loan.purpose = cleaned_data.get('purpose', '')
+        
+        # Set repayment frequency and terms
+        if loan_type and term:
+            loan.repayment_frequency = loan_type.repayment_frequency
+            
+            if loan_type.repayment_frequency == 'daily':
+                loan.term_days = term
+                loan.term_weeks = None
+            else:  # weekly
+                loan.term_weeks = term
+                loan.term_days = None
+            
+            # Calculate payment amount
+            interest_rate = loan_type.interest_rate / Decimal('100')
+            total_interest = principal_amount * interest_rate
+            total_repayment = principal_amount + total_interest
+            
+            if loan_type.repayment_frequency == 'daily':
+                loan.payment_amount = total_repayment / term
+            else:
+                loan.payment_amount = total_repayment / term
+        
+        # Set collateral info
+        if cleaned_data.get('has_collateral') == 'yes':
+            loan.collateral_description = cleaned_data.get('collateral_type', '')
+            loan.collateral_value = cleaned_data.get('collateral_value')
+        
+        loan.save()
+        
+        # Update user profile with all the information
+        borrower.first_name = cleaned_data.get('first_name', '')
+        borrower.last_name = cleaned_data.get('last_name', '')
+        borrower.email = cleaned_data.get('email', '')
+        borrower.residential_address = cleaned_data.get('residential_address', '')
+        borrower.residential_duration = cleaned_data.get('residential_duration')
+        
+        borrower.employment_status = cleaned_data.get('employment_status', '')
+        borrower.employer_name = cleaned_data.get('employer_name', '')
+        borrower.employer_address = cleaned_data.get('employer_address', '')
+        borrower.employment_duration = cleaned_data.get('employment_duration')
+        borrower.monthly_income = cleaned_data.get('monthly_income')
+        
+        borrower.business_name = cleaned_data.get('business_name', '')
+        borrower.business_address = cleaned_data.get('business_address', '')
+        borrower.business_duration = cleaned_data.get('business_duration')
+        
+        borrower.reference1_name = cleaned_data.get('reference1_name', '')
+        borrower.reference1_phone = cleaned_data.get('reference1_phone', '')
+        borrower.reference1_relationship = cleaned_data.get('reference1_relationship', '')
+        borrower.reference2_name = cleaned_data.get('reference2_name', '')
+        borrower.reference2_phone = cleaned_data.get('reference2_phone', '')
+        borrower.reference2_relationship = cleaned_data.get('reference2_relationship', '')
+        
+        borrower.save()
+        
+        return loan
