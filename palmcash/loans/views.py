@@ -100,12 +100,12 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
             ).exists()
             
             if not verified_documents:
-                messages.error(
+                messages.warning(
                     request,
-                    'You must upload and have at least one document verified by an administrator '
-                    'before you can apply for a loan. Please upload your documents first.'
+                    'For faster processing, we recommend uploading your documents first. '
+                    'However, you can still submit your loan application below.'
                 )
-                return redirect('documents:list')
+                # Don't redirect - allow them to see the form
         
         return super().dispatch(request, *args, **kwargs)
     
