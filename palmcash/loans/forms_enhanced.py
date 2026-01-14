@@ -294,9 +294,23 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
     
     class Meta:
         model = Loan
-        fields = [
-            'loan_type', 'principal_amount', 'purpose'
-        ]
+        fields = []  # We're handling all fields manually
+    
+    def save(self, commit=True):
+        """
+        Save the loan and update user profile with employment/business/reference info
+        """
+        instance = super().save(commit=False)
+        
+        # Set loan details from form
+        instance.loan_type = self.cleaned_data.get('loan_type')
+        instance.principal_amount = self.cleaned_data.get('principal_amount')
+        instance.purpose = self.cleaned_data.get('purpose')
+        
+        if commit:
+            instance.save()
+        
+        return instance
     
     def __init__(self, *args, **kwargs):
         # Extract user from kwargs before calling super().__init__

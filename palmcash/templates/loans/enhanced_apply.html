@@ -5,42 +5,21 @@
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header Section -->
         <div class="mb-8 text-center">
             <h1 class="text-4xl font-bold text-gray-900 mb-4">
                 <i class="fas fa-hand-holding-usd text-blue-600 mr-3"></i>
                 Loan Application Form
             </h1>
-            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                Please fill in all the required information below to apply for your loan. 
-                All fields marked with * are mandatory.
+            <p class="text-lg text-gray-600">
+                Please fill in all the required information below to apply for your loan.
             </p>
-        </div>
-
-        <!-- Progress Indicator -->
-        <div class="mb-8">
-            <div class="flex items-center justify-center">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                    <span class="ml-2 text-sm font-medium text-gray-900">Application Form</span>
-                </div>
-                <div class="w-16 h-1 bg-gray-300 mx-4"></div>
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                    <span class="ml-2 text-sm text-gray-500">Document Upload</span>
-                </div>
-                <div class="w-16 h-1 bg-gray-300 mx-4"></div>
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-                    <span class="ml-2 text-sm text-gray-500">Review & Submit</span>
-                </div>
-            </div>
         </div>
 
         <!-- Application Form -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <form method="post" id="loanApplicationForm" class="space-y-8">
+            <form method="post" id="loanApplicationForm" class="space-y-0">
                 {% csrf_token %}
                 
                 <!-- Personal Information Section -->
@@ -49,80 +28,44 @@
                         <i class="fas fa-user mr-3"></i>
                         Personal Information
                     </h2>
-                    <p class="text-blue-100 text-sm mt-1">Please provide your personal details</p>
                 </div>
                 
-                <div class="p-8">
+                <div class="p-8 space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                First Name *
-                            </label>
-                            {{ form.first_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.first_name.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                            {{ form.first_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.first_name.errors %}<p class="text-red-600 text-sm mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Last Name *
-                            </label>
-                            {{ form.last_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.last_name.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                            {{ form.last_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.last_name.errors %}<p class="text-red-600 text-sm mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Email Address *
-                            </label>
-                            {{ form.email|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.email.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            {{ form.email|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.email.errors %}<p class="text-red-600 text-sm mt-1">{{ form.email.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Phone Number *
-                            </label>
-                            {{ form.phone_number|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.phone_number.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
-                            {% endif %}
-                            <p class="mt-1 text-sm text-gray-500">Format: 0976123456</p>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                            {{ form.phone_number|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.phone_number.errors %}<p class="text-red-600 text-sm mt-1">{{ form.phone_number.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Date of Birth *
-                            </label>
-                            {{ form.date_of_birth|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.date_of_birth.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
+                            {{ form.date_of_birth|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.date_of_birth.errors %}<p class="text-red-600 text-sm mt-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Years at Current Address *
-                            </label>
-                            {{ form.residential_duration|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.residential_duration.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.residential_duration.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Years at Current Address *</label>
+                            {{ form.residential_duration|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.residential_duration.errors %}<p class="text-red-600 text-sm mt-1">{{ form.residential_duration.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Residential Address *
-                            </label>
-                            {{ form.residential_address|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" }}
-                            {% if form.residential_address.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.residential_address.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Residential Address *</label>
+                            {{ form.residential_address|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.residential_address.errors %}<p class="text-red-600 text-sm mt-1">{{ form.residential_address.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
                 </div>
@@ -133,93 +76,29 @@
                         <i class="fas fa-briefcase mr-3"></i>
                         Employment Information
                     </h2>
-                    <p class="text-green-100 text-sm mt-1">Tell us about your employment status</p>
                 </div>
                 
-                <div class="p-8">
+                <div class="p-8 space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Employment Status *
-                            </label>
-                            {{ form.employment_status|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                            {% if form.employment_status.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.employment_status.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Employment Status *</label>
+                            {{ form.employment_status|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.employment_status.errors %}<p class="text-red-600 text-sm mt-1">{{ form.employment_status.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Monthly Income *
-                            </label>
-                            {{ form.monthly_income|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                            {% if form.monthly_income.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.monthly_income.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Income *</label>
+                            {{ form.monthly_income|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.monthly_income.errors %}<p class="text-red-600 text-sm mt-1">{{ form.monthly_income.errors.0 }}</p>{% endif %}
                         </div>
-                        
-                        <div id="employer-fields">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Employer Name
-                                </label>
-                                {{ form.employer_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                                {% if form.employer_name.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.employer_name.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Years with Current Employer
-                                </label>
-                                {{ form.employment_duration|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                                {% if form.employment_duration.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.employment_duration.errors.0 }}</p>
-                                {% endif %}
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Employer Name</label>
+                            {{ form.employer_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.employer_name.errors %}<p class="text-red-600 text-sm mt-1">{{ form.employer_name.errors.0 }}</p>{% endif %}
                         </div>
-                        
-                        <div id="business-fields" style="display: none;">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Business Name
-                                </label>
-                                {{ form.business_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                                {% if form.business_name.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.business_name.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Years in Business
-                                </label>
-                                {{ form.business_duration|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                                {% if form.business_duration.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.business_duration.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Employer Address
-                            </label>
-                            {{ form.employer_address|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                            {% if form.employer_address.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.employer_address.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="md:col-span-2" id="business-address" style="display: none;">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Business Address
-                            </label>
-                            {{ form.business_address|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" }}
-                            {% if form.business_address.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.business_address.errors.0 }}</p>
-                            {% endif %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Years with Employer</label>
+                            {{ form.employment_duration|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.employment_duration.errors %}<p class="text-red-600 text-sm mt-1">{{ form.employment_duration.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
                 </div>
@@ -230,316 +109,44 @@
                         <i class="fas fa-money-bill-wave mr-3"></i>
                         Loan Details
                     </h2>
-                    <p class="text-purple-100 text-sm mt-1">Specify your loan requirements</p>
                 </div>
                 
-                <div class="p-8">
+                <div class="p-8 space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Loan Type *
-                            </label>
-                            {{ form.loan_type|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" }}
-                            {% if form.loan_type.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.loan_type.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loan Type *</label>
+                            {{ form.loan_type|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.loan_type.errors %}<p class="text-red-600 text-sm mt-1">{{ form.loan_type.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Loan Amount *
-                            </label>
-                            {{ form.principal_amount|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" }}
-                            {% if form.principal_amount.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.principal_amount.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Principal Amount (K) *</label>
+                            {{ form.principal_amount|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.principal_amount.errors %}<p class="text-red-600 text-sm mt-1">{{ form.principal_amount.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Loan Purpose *
-                            </label>
-                            {{ form.purpose|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" }}
-                            {% if form.purpose.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.purpose.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loan Term *</label>
+                            {{ form.term|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.term.errors %}<p class="text-red-600 text-sm mt-1">{{ form.term.errors.0 }}</p>{% endif %}
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Loan Term *
-                            </label>
-                            {{ form.term|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" }}
-                            {% if form.term.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.term.errors.0 }}</p>
-                            {% endif %}
-                            <p class="mt-1 text-sm text-gray-500" id="term-help-text">Days or weeks based on loan type</p>
-                        </div>
-                        
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Purpose Description
-                            </label>
-                            {{ form.purpose_description|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" }}
-                            {% if form.purpose_description.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.purpose_description.errors.0 }}</p>
-                            {% endif %}
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Purpose *</label>
+                            {{ form.purpose|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg" }}
+                            {% if form.purpose.errors %}<p class="text-red-600 text-sm mt-1">{{ form.purpose.errors.0 }}</p>{% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- Collateral Information Section -->
-                <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center">
-                        <i class="fas fa-shield-alt mr-3"></i>
-                        Collateral Information
-                    </h2>
-                    <p class="text-orange-100 text-sm mt-1">Provide collateral details if applicable</p>
-                </div>
-                
-                <div class="p-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Do you have collateral? *
-                            </label>
-                            {{ form.has_collateral|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" }}
-                            {% if form.has_collateral.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.has_collateral.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div id="collateral-fields" style="display: none;">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Collateral Type
-                                </label>
-                                {{ form.collateral_type|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" }}
-                                {% if form.collateral_type.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.collateral_type.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Estimated Collateral Value
-                                </label>
-                                {{ form.collateral_value|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" }}
-                                {% if form.collateral_value.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.collateral_value.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- References Section -->
-                <div class="bg-gradient-to-r from-teal-500 to-teal-600 px-8 py-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center">
-                        <i class="fas fa-users mr-3"></i>
-                        References
-                    </h2>
-                    <p class="text-teal-100 text-sm mt-1">Provide at least one reference</p>
-                </div>
-                
-                <div class="p-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 1 Full Name *
-                            </label>
-                            {{ form.reference1_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference1_name.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference1_name.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 1 Phone Number *
-                            </label>
-                            {{ form.reference1_phone|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference1_phone.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference1_phone.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 1 Relationship *
-                            </label>
-                            {{ form.reference1_relationship|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference1_relationship.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference1_relationship.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 2 Full Name (Optional)
-                            </label>
-                            {{ form.reference2_name|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference2_name.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference2_name.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 2 Phone Number (Optional)
-                            </label>
-                            {{ form.reference2_phone|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference2_phone.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference2_phone.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Reference 2 Relationship (Optional)
-                            </label>
-                            {{ form.reference2_relationship|add_class:"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" }}
-                            {% if form.reference2_relationship.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.reference2_relationship.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Declarations Section -->
-                <div class="bg-gradient-to-r from-red-500 to-red-600 px-8 py-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center">
-                        <i class="fas fa-file-contract mr-3"></i>
-                        Declarations
-                    </h2>
-                    <p class="text-red-100 text-sm mt-1">Please read and accept the terms</p>
-                </div>
-                
-                <div class="p-8">
-                    <div class="space-y-4">
-                        <div class="flex items-start">
-                            {{ form.agree_terms|add_class:"w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1" }}
-                            <label for="{{ form.agree_terms.id_for_label }}" class="ml-3 text-sm text-gray-700">
-                                I agree to the <a href="#" class="text-blue-600 hover:text-blue-800 underline">Terms and Conditions</a> of the loan application and understand that providing false information may result in rejection of my application.
-                            </label>
-                        </div>
-                        {% if form.agree_terms.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.agree_terms.errors.0 }}</p>
-                        {% endif %}
-                        
-                        <div class="flex items-start">
-                            {{ form.declare_true_info|add_class:"w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1" }}
-                            <label for="{{ form.declare_true_info.id_for_label }}" class="ml-3 text-sm text-gray-700">
-                                I declare that all information provided in this application is true and correct to the best of my knowledge. I authorize PalmCash to verify this information.
-                            </label>
-                        </div>
-                        {% if form.declare_true_info.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.declare_true_info.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Submit Section -->
-                <div class="bg-gray-50 px-8 py-6 border-t border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="text-sm text-gray-600">
-                            <i class="fas fa-lock mr-1"></i>
-                            Your information is secure and will be kept confidential
-                        </div>
-                        <div class="space-x-4">
-                            <button type="button" onclick="window.history.back()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                                <i class="fas fa-arrow-left mr-2"></i>
-                                Cancel
-                            </button>
-                            <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                                <i class="fas fa-paper-plane mr-2"></i>
-                                Submit Application
-                            </button>
-                        </div>
-                    </div>
+                <!-- Submit Button -->
+                <div class="bg-gray-50 px-8 py-6 border-t border-gray-200 flex gap-4">
+                    <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors">
+                        <i class="fas fa-check mr-2"></i>Submit Application
+                    </button>
+                    <a href="{% url 'loans:list' %}" class="px-8 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-semibold transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle employment status changes
-    const employmentStatus = document.getElementById('id_employment_status');
-    const employerFields = document.getElementById('employer-fields');
-    const businessFields = document.getElementById('business-fields');
-    const businessAddress = document.getElementById('business-address');
-    
-    function toggleEmploymentFields() {
-        const status = employmentStatus.value;
-        
-        // Hide all fields first
-        employerFields.style.display = 'none';
-        businessFields.style.display = 'none';
-        businessAddress.style.display = 'none';
-        
-        if (status === 'employed') {
-            employerFields.style.display = 'block';
-        } else if (status === 'self_employed' || status === 'business_owner') {
-            businessFields.style.display = 'block';
-            businessAddress.style.display = 'block';
-        }
-    }
-    
-    employmentStatus.addEventListener('change', toggleEmploymentFields);
-    
-    // Handle collateral changes
-    const hasCollateral = document.getElementById('id_has_collateral');
-    const collateralFields = document.getElementById('collateral-fields');
-    
-    function toggleCollateralFields() {
-        const hasCollateralValue = hasCollateral.value;
-        collateralFields.style.display = hasCollateralValue === 'yes' ? 'block' : 'none';
-    }
-    
-    hasCollateral.addEventListener('change', toggleCollateralFields);
-    
-    // Handle loan type changes
-    const loanType = document.getElementById('id_loan_type');
-    const termHelpText = document.getElementById('term-help-text');
-    
-    function updateTermHelpText() {
-        const selectedOption = loanType.options[loanType.selectedIndex];
-        if (selectedOption && selectedOption.value) {
-            // This would need to be populated with loan type data
-            termHelpText.textContent = 'Days or weeks based on loan type';
-        }
-    }
-    
-    loanType.addEventListener('change', updateTermHelpText);
-    
-    // Initialize
-    toggleEmploymentFields();
-    toggleCollateralFields();
-    updateTermHelpText();
-    
-    // Form validation
-    const form = document.getElementById('loanApplicationForm');
-    form.addEventListener('submit', function(e) {
-        // Basic client-side validation
-        const requiredFields = form.querySelectorAll('[required]');
-        let isValid = true;
-        
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.classList.add('border-red-500');
-            } else {
-                field.classList.remove('border-red-500');
-            }
-        });
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields.');
-        }
-    });
-});
-</script>
 {% endblock %}
