@@ -277,6 +277,11 @@
                     <a href="{% url 'clients:group_list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-users mr-2"></i>Clients
                     </a>
+                    {% if user.role == 'loan_officer' %}
+                    <a href="{% url 'documents:verification_dashboard' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-file-alt mr-2"></i>Documents
+                    </a>
+                    {% endif %}
                     <a href="{% url 'payments:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-credit-card mr-2"></i>Payments
                     </a>
