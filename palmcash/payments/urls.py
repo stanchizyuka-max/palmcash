@@ -25,11 +25,11 @@ urlpatterns = [
     path('schedule/<int:loan_id>/', views.PaymentScheduleView.as_view(), name='schedule'),
     
     # Multi-Schedule Payment URLs
-    path('multi-schedule/<int:loan_id>/', MultiSchedulePaymentView.as_view(), name='multi_schedule_payment'),
-    path('multi-schedule/create/<int:loan_id>/', CreateMultiSchedulePaymentView.as_view(), name='create_multi_payment'),
-    path('multi-schedule/<int:pk>/', MultiSchedulePaymentDetailView.as_view(), name='multi_payment_detail'),
+    path('multi-schedule/list/', MultiSchedulePaymentListView.as_view(), name='multi_payment_list'),
+    path('multi-schedule/<int:loan_id>/select/', MultiSchedulePaymentView.as_view(), name='multi_schedule_payment'),
+    path('multi-schedule/<int:loan_id>/create/', CreateMultiSchedulePaymentView.as_view(), name='create_multi_payment'),
+    path('multi-schedule/<int:pk>/detail/', MultiSchedulePaymentDetailView.as_view(), name='multi_payment_detail'),
     path('multi-schedule/<int:pk>/approve/', ApproveMultiSchedulePaymentView.as_view(), name='approve_multi_payment'),
-    path('multi-schedule/', MultiSchedulePaymentListView.as_view(), name='multi_payment_list'),
     
     # Bulk Approval URLs
     path('bulk-approve/', BulkCollectionApprovalView.as_view(), name='bulk_approval'),
