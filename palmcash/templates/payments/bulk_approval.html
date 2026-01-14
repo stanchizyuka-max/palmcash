@@ -96,6 +96,7 @@
 
         <!-- Approval Form -->
         <form id="bulkApprovalForm" method="post" class="space-y-6">
+            {% csrf_token %}
             <input type="hidden" name="date" value="{{ target_date|date:"Y-m-d" }}">
             
             {% if grouped_loans %}
