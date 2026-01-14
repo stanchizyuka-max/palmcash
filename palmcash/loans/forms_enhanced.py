@@ -77,6 +77,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             ('student', 'Student'),
             ('retired', 'Retired'),
         ],
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -176,6 +177,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             ('debt_consolidation', 'Debt Consolidation'),
             ('other', 'Other'),
         ],
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -207,6 +209,7 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
             ('yes', 'Yes'),
             ('no', 'No'),
         ],
+        required=False,
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
@@ -392,8 +395,9 @@ class EnhancedLoanApplicationForm(forms.ModelForm):
         employment_status = cleaned_data.get('employment_status')
         has_collateral = cleaned_data.get('has_collateral')
         
-        # Validate loan amount against loan type limits
+        # Only validate if loan_type and principal_amount are provided
         if loan_type and principal_amount:
+            # Validate loan amount against loan type limits
             if principal_amount < loan_type.min_amount:
                 raise ValidationError(
                     f'Minimum loan amount for {loan_type.name} is K{loan_type.min_amount:,.0f}'
