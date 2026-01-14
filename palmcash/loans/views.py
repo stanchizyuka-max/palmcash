@@ -77,36 +77,8 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('loans:list')
     
     def dispatch(self, request, *args, **kwargs):
-        # Check if borrower has outstanding loans
-        if request.user.role == 'borrower':
-            outstanding_loans = Loan.objects.filter(
-                borrower=request.user,
-                status__in=['pending', 'active', 'approved', 'disbursed']
-            )
-            
-            if outstanding_loans.exists():
-                messages.error(
-                    request, 
-                    'You cannot apply for a new loan while you have outstanding loans. '
-                    'Please complete your current loan payments before applying for a new loan.'
-                )
-                return redirect('loans:list')
-            
-            # Check if borrower has verified documents
-            from documents.models import ClientDocument
-            verified_documents = ClientDocument.objects.filter(
-                client=request.user,
-                status='approved'
-            ).exists()
-            
-            if not verified_documents:
-                messages.warning(
-                    request,
-                    'For faster processing, we recommend uploading your documents first. '
-                    'However, you can still submit your loan application below.'
-                )
-                # Don't redirect - allow them to see the form
-        
+        # Allow borrowers to apply for loans without document verification
+        # Documents will be required after loan approval
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
@@ -138,37 +110,42 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        # Double-check before saving (security measure)
-        if self.request.user.role == 'borrower':
-            outstanding_loans = Loan.objects.filter(
-                borrower=self.request.user,
-                status__in=['pending', 'active', 'approved', 'disbursed']
-            )
+        # Save the loan application
+        loan = super().save(commit=False)
+        
+        # Set interest rate from loan type if not already set
+        if loan.loan_type and not loan.interest_rate:
+            loan.interest_rate = loan.loan_type.interest_rate
+        
+        # Set repayment frequency from loan type
+        if loan.loan_type:
+            loan.repayment_frequency = loan.loan_type.repayment_frequency
+        
+        # Set term based on frequency
+        term = self.cleaned_data.get('term')
+        if term:
+            if loan.repayment_frequency == 'daily':
+                loan.term_days = term
+                loan.term_weeks = None
+            else:  # weekly
+                loan.term_weeks = term
+                loan.term_days = None
+        
+        # Set borrower and initial status
+        loan.borrower = self.request.user
+        loan.status = 'pending'  # Will require document verification before approval
+        
+        if self.request.method == 'POST':
+            loan.save()
             
-            if outstanding_loans.exists():
-                messages.error(
-                    self.request,
-                    'Cannot submit application: You have outstanding loans that must be completed first.'
-                )
-                return redirect('loans:list')
-        
-        form.instance.borrower = self.request.user
-        # Set interest rate from loan type
-        if form.instance.loan_type:
-            form.instance.interest_rate = form.instance.loan_type.interest_rate
-        
-        response = super().form_valid(form)
-        
-        # Create approval request for high-value loans (K6,000+)
-        if self.object.principal_amount >= 6000:
-            from loans.models import LoanApprovalRequest
-            LoanApprovalRequest.objects.create(
-                loan=self.object,
-                requested_by=self.request.user,
-                status='pending'
+            # Success message with next steps
+            messages.success(
+                self.request,
+                'Loan application submitted successfully! '
+                'Please upload your verification documents (NRC and photos) to complete your application. '
+                'Your loan will be reviewed after document verification.'
             )
         
-        # Notify admins about new loan application
         self._notify_admins_of_application(self.object)
         
         messages.success(self.request, 'Loan application submitted successfully! Please proceed to pay the 10% upfront payment.')
