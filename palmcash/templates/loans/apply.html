@@ -37,28 +37,31 @@
                         <p class="text-primary-100 text-sm mt-1">Fill in your loan details below</p>
                     </div>
                     <div class="p-8">
-                    <!-- Eligibility Alerts -->
-                    {% if not has_verified_documents %}
-                    <div class="bg-gradient-to-r from-warning-50 to-warning-100 border-l-4 border-warning-500 rounded-xl p-6 mb-8 shadow-sm">
+                    <!-- Document Upload Guidance -->
+                    <div class="bg-gradient-to-r from-info-50 to-info-100 border-l-4 border-info-500 rounded-xl p-6 mb-8 shadow-sm">
                         <div class="flex items-start">
                             <div class="flex-shrink-0">
-                                <i class="fas fa-exclamation-triangle text-warning-600 text-2xl mt-1"></i>
+                                <i class="fas fa-info-circle text-info-600 text-2xl mt-1"></i>
                             </div>
                             <div class="ml-4">
-                                <h3 class="text-lg font-bold text-warning-900 mb-1">Document Verification Recommended</h3>
-                                <p class="text-warning-700 mb-4">While you can submit your loan application below, we strongly recommend uploading your documents first. This helps us verify your identity and process your application faster.</p>
-                                <div class="flex gap-3">
-                                    <a href="{% url 'documents:list' %}" class="inline-flex items-center px-4 py-2 bg-warning-600 text-white rounded-lg hover:bg-warning-700 transition-colors duration-200 font-medium">
-                                        <i class="fas fa-upload mr-2"></i>Upload Documents First
-                                    </a>
-                                    <button onclick="document.getElementById('loan-application-form').scrollIntoView({behavior: 'smooth'})" class="inline-flex items-center px-4 py-2 bg-warning-100 text-warning-800 rounded-lg hover:bg-warning-200 transition-colors duration-200 font-medium">
-                                        <i class="fas fa-arrow-right mr-2"></i>Continue to Application
-                                    </button>
+                                <h3 class="text-lg font-bold text-info-900 mb-1">Next Steps After Application</h3>
+                                <p class="text-info-700 mb-4">After submitting your loan application, you will need to upload your verification documents (NRC, photos) before your loan can be approved and disbursed.</p>
+                                <div class="bg-white rounded-lg p-3 border border-info-200">
+                                    <h4 class="font-semibold text-info-900 mb-2">Required Documents:</h4>
+                                    <ul class="text-sm text-info-800 space-y-1">
+                                        <li class="flex items-center">
+                                            <i class="fas fa-id-card mr-2"></i>
+                                            National ID Card (Front and Back)
+                                        </li>
+                                        <li class="flex items-center">
+                                            <i class="fas fa-camera mr-2"></i>
+                                            Live Photo/Selfie
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
 
                     {% if user_loans and not can_apply %}
                     <div class="bg-gradient-to-r from-danger-50 to-danger-100 border-l-4 border-danger-500 rounded-xl p-6 mb-8 shadow-sm">
