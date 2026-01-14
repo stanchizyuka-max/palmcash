@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views_enhanced import enhanced_loan_application
+from .views_enhanced import enhanced_loan_application, EnhancedLoanApplicationView
 from .views_application_review import (
     ClientApplicationListView, 
     ClientApplicationDetailView, 
@@ -11,7 +11,7 @@ app_name = 'loans'
 
 urlpatterns = [
     path('', views.LoanListView.as_view(), name='list'),
-    path('apply/', views.LoanApplicationView.as_view(), name='apply'),
+    path('apply/', EnhancedLoanApplicationView.as_view(), name='apply'),
     path('apply-enhanced/', enhanced_loan_application, name='apply_enhanced'),
     path('calculator/', views.LoanCalculatorView.as_view(), name='calculator'),
     path('status-dashboard/', views.LoanStatusDashboardView.as_view(), name='status_dashboard'),
