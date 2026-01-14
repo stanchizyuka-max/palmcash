@@ -174,16 +174,16 @@
                                 <span class="font-medium text-gray-900">{{ loan.borrower.address }}</span>
                             </div>
                             {% endif %}
-                            {% if loan.borrower.occupation %}
+                            {% if loan.borrower.employment_status %}
                             <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Occupation:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.occupation }}</span>
+                                <span class="text-gray-600">Employment Status:</span>
+                                <span class="font-medium text-gray-900">{{ loan.borrower.get_employment_status_display }}</span>
                             </div>
                             {% endif %}
-                            {% if loan.borrower.employer %}
+                            {% if loan.borrower.employer_name %}
                             <div class="flex justify-between py-2 border-b border-gray-100">
                                 <span class="text-gray-600">Employer:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.employer }}</span>
+                                <span class="font-medium text-gray-900">{{ loan.borrower.employer_name }}</span>
                             </div>
                             {% endif %}
                             {% if loan.borrower.monthly_income %}
