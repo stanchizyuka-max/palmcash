@@ -111,7 +111,7 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         # Save the loan application
-        loan = super().save(commit=False)
+        loan = form.save(commit=False)
         
         # Set interest rate from loan type if not already set
         if loan.loan_type and not loan.interest_rate:
@@ -122,7 +122,7 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
             loan.repayment_frequency = loan.loan_type.repayment_frequency
         
         # Set term based on frequency
-        term = self.cleaned_data.get('term')
+        term = form.cleaned_data.get('term')
         if term:
             if loan.repayment_frequency == 'daily':
                 loan.term_days = term
@@ -135,23 +135,20 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
         loan.borrower = self.request.user
         loan.status = 'pending'  # Will require document verification before approval
         
-        if self.request.method == 'POST':
-            loan.save()
-            
-            # Success message with next steps
-            messages.success(
-                self.request,
-                'Loan application submitted successfully! '
-                'Please upload your verification documents (NRC and photos) to complete your application. '
-                'Your loan will be reviewed after document verification.'
-            )
+        loan.save()
         
-        self._notify_admins_of_application(self.object)
+        # Success message with next steps
+        messages.success(
+            self.request,
+            'Loan application submitted successfully! '
+            'Please upload your verification documents (NRC and photos) to complete your application. '
+            'Your loan will be reviewed after document verification.'
+        )
         
-        messages.success(self.request, 'Loan application submitted successfully! Please proceed to pay the 10% upfront payment.')
+        self._notify_admins_of_application(loan)
         
         # Redirect to upfront payment page instead of loans list
-        return redirect('payments:upfront_payment', loan_id=self.object.pk)
+        return redirect('payments:upfront_payment', loan_id=loan.pk)
     
     def _notify_admins_of_application(self, loan):
         """Notify admins, managers, and loan officers about new loan application"""
