@@ -3360,10 +3360,13 @@ def admin_all_loans(request):
             Q(id__icontains=search_query)
         )
     
-    # Filter by branch
+    # Filter by branch - include both officer-assigned loans and group-member loans
     branch_filter = request.GET.get('branch')
     if branch_filter:
-        loans = loans.filter(loan_officer__officer_assignment__branch=branch_filter)
+        loans = loans.filter(
+            Q(loan_officer__officer_assignment__branch=branch_filter) |
+            Q(borrower__group_memberships__group__branch=branch_filter)
+        ).distinct()
     
     # Filter by status
     status_filter = request.GET.get('status')
