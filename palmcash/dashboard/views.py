@@ -3563,7 +3563,54 @@ def system_reports(request):
     if request.user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
     
-    return render(request, 'dashboard/admin/system_reports.html')
+    from datetime import timedelta
+    from django.db.models import Count, Sum
+    from documents.models import ClientDocument
+    
+    # System health overview
+    total_users = User.objects.count()
+    total_loans = Loan.objects.count()
+    pending_documents = ClientDocument.objects.filter(status='pending').count()
+    
+    system_health = {
+        'total_users': total_users,
+        'total_loans': total_loans,
+        'pending_documents': pending_documents,
+    }
+    
+    # User activity (last 30 days)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    new_users_30d = User.objects.filter(date_joined__gte=thirty_days_ago).count()
+    active_users_30d = User.objects.filter(last_login__gte=thirty_days_ago).count()
+    total_logins = User.objects.filter(last_login__isnull=False).count()
+    
+    user_activity = {
+        'new_users_30d': new_users_30d,
+        'active_users_30d': active_users_30d,
+        'total_logins': total_logins,
+    }
+    
+    # Loan performance (last 30 days)
+    applications_30d = Loan.objects.filter(application_date__gte=thirty_days_ago).count()
+    approvals_30d = Loan.objects.filter(
+        approval_date__gte=thirty_days_ago,
+        approval_date__isnull=False
+    ).count()
+    approval_rate = (approvals_30d / applications_30d * 100) if applications_30d > 0 else 0
+    
+    loan_performance = {
+        'applications_30d': applications_30d,
+        'approvals_30d': approvals_30d,
+        'approval_rate': approval_rate,
+    }
+    
+    context = {
+        'system_health': system_health,
+        'user_activity': user_activity,
+        'loan_performance': loan_performance,
+    }
+    
+    return render(request, 'dashboard/admin/system_reports.html', context)
 
 
 @login_required
