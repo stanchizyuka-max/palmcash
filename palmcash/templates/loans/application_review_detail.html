@@ -334,10 +334,13 @@
                         </a>
                         
                         {% if application.status == 'pending' %}
-                            <a href="{% url 'loans:approve' application.pk %}" 
-                               class="w-full inline-flex items-center justify-center px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors duration-200">
-                                <i class="fas fa-check mr-2"></i>Approve Application
-                            </a>
+                            <form method="post" action="{% url 'loans:approve' application.pk %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="w-full inline-flex items-center justify-center px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors duration-200">
+                                    <i class="fas fa-check mr-2"></i>Approve Application
+                                </button>
+                            </form>
                             
                             <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" 
                                     class="w-full inline-flex items-center justify-center px-4 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-200">
