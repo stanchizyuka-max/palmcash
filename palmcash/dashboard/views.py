@@ -230,15 +230,19 @@ def manager_dashboard(request):
     
     # Branch metrics
     officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
-    groups = BorrowerGroup.objects.filter(branch=branch.name)
+    # Get groups either assigned to the branch OR assigned to officers in this branch
+    groups = BorrowerGroup.objects.filter(
+        Q(branch=branch.name) | Q(assigned_officer__officer_assignment__branch=branch.name)
+    ).distinct()
     clients_count = sum(g.member_count for g in groups)
     
-    # Today's collections
+    # Today's collections - include both officer-assigned loans and group member loans
     today = date.today()
     today_collections = PaymentCollection.objects.filter(
-        loan__loan_officer__officer_assignment__branch=branch.name,
+        Q(loan__loan_officer__officer_assignment__branch=branch.name) |
+        Q(loan__borrower__group_memberships__group__branch=branch.name),
         collection_date=today
-    )
+    ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
     today_collected = sum(c.collected_amount for c in today_collections) or 0
