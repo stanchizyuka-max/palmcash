@@ -3572,7 +3572,71 @@ def analytics(request):
     if request.user.role not in ['admin', 'manager']:
         return render(request, 'dashboard/access_denied.html')
     
-    return render(request, 'dashboard/analytics.html')
+    # Get loan status distribution
+    loan_status_data = []
+    statuses = ['pending', 'approved', 'active', 'completed', 'rejected', 'disbursed']
+    for status in statuses:
+        count = Loan.objects.filter(status=status).count()
+        if count > 0:
+            loan_status_data.append({
+                'status': status,
+                'count': count
+            })
+    
+    # Get payment performance
+    from payments.models import PaymentCollection
+    all_collections = PaymentCollection.objects.all()
+    total_due = sum(c.expected_amount for c in all_collections) or 0
+    total_paid = sum(c.collected_amount for c in all_collections) or 0
+    collection_rate = (total_paid / total_due * 100) if total_due > 0 else 0
+    
+    payment_performance = {
+        'total_due': total_due,
+        'total_paid': total_paid,
+        'collection_rate': collection_rate,
+    }
+    
+    # Get monthly disbursements for last 12 months
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Sum
+    
+    monthly_disbursements = []
+    today = date.today()
+    
+    for i in range(11, -1, -1):
+        # Calculate month start and end
+        month_start = today.replace(day=1) - timedelta(days=i*30)
+        month_start = month_start.replace(day=1)
+        
+        if i == 0:
+            month_end = today
+        else:
+            month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        # Get loans disbursed in this month
+        month_loans = Loan.objects.filter(
+            status__in=['active', 'completed', 'disbursed'],
+            disbursement_date__gte=month_start,
+            disbursement_date__lte=month_end
+        )
+        
+        count = month_loans.count()
+        total = month_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
+        
+        if count > 0:
+            monthly_disbursements.append({
+                'month': month_start.strftime('%B %Y'),
+                'count': count,
+                'total': total,
+            })
+    
+    context = {
+        'loan_status_data': loan_status_data,
+        'payment_performance': payment_performance,
+        'monthly_disbursements': monthly_disbursements,
+    }
+    
+    return render(request, 'dashboard/analytics.html', context)
 
 
 @login_required
