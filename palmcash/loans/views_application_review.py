@@ -1,7 +1,7 @@
 """
 Views for reviewing and downloading client loan applications
 """
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView
 from django.http import HttpResponse
