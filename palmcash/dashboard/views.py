@@ -387,7 +387,7 @@ def manager_dashboard(request):
         print(f"DEBUG: Disbursed loan - ID: {loan.id}, Amount: {loan.principal_amount}, Status: {loan.status}")
     
     total_disbursed = loans.filter(
-        status__in=['active', 'completed', 'disbursed']
+        status__in=['pending', 'approved', 'active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
     
     print(f"DEBUG: Total disbursed amount = {total_disbursed}")
