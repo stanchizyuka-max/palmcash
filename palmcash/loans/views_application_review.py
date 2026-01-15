@@ -99,19 +99,24 @@ class ClientApplicationDetailView(LoginRequiredMixin, DetailView):
             'borrower', 'loan_type', 'loan_officer'
         )
         
-        if self.request.user.role == 'loan_officer':
-            # Loan officers see applications for their assigned clients
+        if self.request.user.role == 'admin':
+            # Admins see all applications
+            pass
+        elif self.request.user.role == 'loan_officer':
+            # Loan officers see applications for their assigned clients OR unassigned applications
             queryset = queryset.filter(
                 Q(loan_officer=self.request.user) |
-                Q(borrower__group_memberships__group__assigned_officer=self.request.user)
+                Q(borrower__group_memberships__group__assigned_officer=self.request.user) |
+                Q(loan_officer__isnull=True)  # Include unassigned applications
             ).distinct()
         elif self.request.user.role == 'manager':
-            # Managers see applications in their branch
+            # Managers see applications in their branch OR unassigned applications
             if hasattr(self.request.user, 'officer_assignment'):
                 branch_name = self.request.user.officer_assignment.branch
                 queryset = queryset.filter(
                     Q(loan_officer__officer_assignment__branch=branch_name) |
-                    Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch_name)
+                    Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch_name) |
+                    Q(loan_officer__isnull=True)  # Include unassigned applications
                 ).distinct()
         
         return queryset
