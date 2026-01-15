@@ -367,7 +367,8 @@ def manager_dashboard(request):
     # Get loans from officers in this branch OR from borrowers in this branch's groups
     loans = Loan.objects.filter(
         Q(loan_officer_id__in=branch_officers) | 
-        Q(borrower__group_memberships__group__branch=branch.name)
+        Q(borrower__group_memberships__group__branch=branch.name) |
+        Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch.name)
     ).distinct()
     
     # Debug: Check loan counts by status
