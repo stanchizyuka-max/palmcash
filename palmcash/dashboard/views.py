@@ -60,16 +60,16 @@ def loan_officer_dashboard(request):
     ).distinct()
     
     active_loans = Loan.objects.filter(
-        loan_officer=officer,
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
         status='active'
-    )
+    ).distinct()
     
     # Today's collections
     today = date.today()
     today_collections = PaymentCollection.objects.filter(
-        loan__loan_officer=officer,
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         collection_date=today
-    )
+    ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
     today_collected = sum(c.collected_amount for c in today_collections) or 0
@@ -78,17 +78,17 @@ def loan_officer_dashboard(request):
     # Pending actions
     # Security deposits awaiting verification - loans with paid deposits but not verified
     pending_security = Loan.objects.filter(
-        loan_officer=officer,
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
         security_deposit__paid_amount__gt=0,
         security_deposit__is_verified=False
-    ).count()
+    ).distinct().count()
     
     # Ready to disburse - approved loans with verified deposits
     ready_to_disburse = Loan.objects.filter(
-        loan_officer=officer,
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
         status='approved',
         security_deposit__is_verified=True
-    ).count()
+    ).distinct().count()
     
     # Outstanding balance
     outstanding_balance = active_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
@@ -103,8 +103,8 @@ def loan_officer_dashboard(request):
     # Recent transactions (from passbook/payment records)
     from payments.models import PaymentCollection as PC
     recent_transactions = PC.objects.filter(
-        loan__loan_officer=officer
-    ).select_related('loan__borrower').order_by('-collection_date')[:10]
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+    ).select_related('loan__borrower').order_by('-collection_date')[:10].distinct()
     
     # Format recent transactions for display
     formatted_transactions = []
@@ -120,8 +120,8 @@ def loan_officer_dashboard(request):
     # Passbook entries - get recent entries across all loans
     from payments.models import PassbookEntry
     passbook_entries = PassbookEntry.objects.filter(
-        loan__loan_officer=officer
-    ).select_related('loan__borrower').order_by('-entry_date')[:20]
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+    ).select_related('loan__borrower').order_by('-entry_date')[:20].distinct()
     
     # Pending documents for review - get clients in officer's groups with pending documents
     from documents.models import ClientDocument
@@ -187,9 +187,9 @@ def loan_officer_dashboard(request):
         'pending_security': pending_security,
         'ready_to_disburse': ready_to_disburse,
         'defaults_to_follow': DefaultProvision.objects.filter(
-            loan__loan_officer=officer,
+            Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
             status='active'
-        ).count(),
+        ).distinct().count(),
         'outstanding_balance': outstanding_balance,
         'workload_percentage': workload_percentage,
         'clients_expected_today': clients_expected_today,
@@ -322,13 +322,13 @@ def manager_dashboard(request):
         try:
             assignment = officer.officer_assignment
             officer_loans = Loan.objects.filter(
-                loan_officer=officer,
+                Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
                 status='active'
-            )
+            ).distinct()
             officer_collections = PaymentCollection.objects.filter(
-                loan__loan_officer=officer,
+                Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
                 status='completed'
-            )
+            ).distinct()
             
             if officer_collections.exists():
                 collection_rate_officer = (
@@ -360,9 +360,12 @@ def manager_dashboard(request):
     print(f"DEBUG: Branch officers count = {branch_officers.count()}")
     print(f"DEBUG: Branch officer IDs = {list(branch_officers)}")
     
+    # Get loans from officers in this branch OR from borrowers in this branch's groups
+    from django.db.models import Q
     loans = Loan.objects.filter(
-        loan_officer_id__in=branch_officers
-    )
+        Q(loan_officer_id__in=branch_officers) | 
+        Q(borrower__group_memberships__group__branch=branch.name)
+    ).distinct()
     
     # Debug: Check loan counts by status
     all_loans_count = loans.count()
@@ -541,15 +544,17 @@ def admin_dashboard(request):
             branch_groups = BorrowerGroup.objects.filter(branch=branch.name)
             branch_clients = sum(g.member_count for g in branch_groups)
             branch_loans = Loan.objects.filter(
-                loan_officer__officer_assignment__branch=branch.name,
+                Q(loan_officer__officer_assignment__branch=branch.name) |
+                Q(borrower__group_memberships__group__branch=branch.name),
                 status__in=['active', 'completed', 'disbursed']
-            )
+            ).distinct()
             branch_disbursed = branch_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
             
             branch_collections = PaymentCollection.objects.filter(
-                loan__loan_officer__officer_assignment__branch=branch.name,
+                Q(loan__loan_officer__officer_assignment__branch=branch.name) |
+                Q(loan__borrower__group_memberships__group__branch=branch.name),
                 status='completed'
-            )
+            ).distinct()
             
             if branch_collections.exists():
                 branch_rate = (
