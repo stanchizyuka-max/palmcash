@@ -91,11 +91,20 @@ class DisbursementReportView(LoginRequiredMixin, TemplateView):
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         
-        # Base query for disbursements
+        # Base query for disbursements - use application_date as fallback if disbursement_date is null
+        from django.db.models import Q
         disbursements_query = Loan.objects.filter(
-            disbursement_date__date__gte=start_date,
-            disbursement_date__date__lte=end_date,
-            status__in=['active', 'disbursed', 'completed']
+            Q(
+                disbursement_date__date__gte=start_date,
+                disbursement_date__date__lte=end_date,
+                status__in=['active', 'disbursed', 'completed']
+            ) |
+            Q(
+                application_date__date__gte=start_date,
+                application_date__date__lte=end_date,
+                status__in=['active', 'disbursed', 'completed'],
+                disbursement_date__isnull=True
+            )
         )
         
         # Filter by loan officer if specified
@@ -103,14 +112,17 @@ class DisbursementReportView(LoginRequiredMixin, TemplateView):
             disbursements_query = disbursements_query.filter(loan_officer_id=officer_id)
         elif self.request.user.role == 'loan_officer':
             # Loan officers can only see their own disbursements
-            disbursements_query = disbursements_query.filter(loan_officer=self.request.user)
+            disbursements_query = disbursements_query.filter(
+                Q(loan_officer=self.request.user) | 
+                Q(borrower__group_memberships__group__assigned_officer=self.request.user)
+            ).distinct()
         elif self.request.user.role == 'manager':
             # Managers see disbursements in their branch
-            if hasattr(self.request.user, 'officer_assignment'):
-                branch_name = self.request.user.officer_assignment.branch
+            if hasattr(self.request.user, 'managed_branch') and self.request.user.managed_branch:
+                branch_name = self.request.user.managed_branch.name
                 disbursements_query = disbursements_query.filter(
                     Q(loan_officer__officer_assignment__branch=branch_name) |
-                    Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch_name)
+                    Q(borrower__group_memberships__group__branch=branch_name)
                 ).distinct()
         
         # Get disbursements
