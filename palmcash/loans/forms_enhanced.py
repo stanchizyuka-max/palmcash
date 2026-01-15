@@ -406,7 +406,8 @@ class EnhancedLoanApplicationForm(forms.Form):
         loan.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
         loan.loan_type = loan_type
         loan.principal_amount = principal_amount
-        loan.purpose = cleaned_data.get('purpose', '')
+        loan.purpose = cleaned_data.get('purpose', 'Not specified')
+        loan.status = 'pending'  # Set initial status
         
         # Set repayment frequency and terms
         if loan_type and term:
@@ -428,13 +429,22 @@ class EnhancedLoanApplicationForm(forms.Form):
                 loan.payment_amount = total_repayment / term
             else:
                 loan.payment_amount = total_repayment / term
+        else:
+            # Fallback values if loan_type or term is missing
+            loan.repayment_frequency = 'weekly'
+            loan.term_weeks = 1
+            loan.payment_amount = principal_amount if principal_amount else Decimal('0')
         
         # Set collateral info
         if cleaned_data.get('has_collateral') == 'yes':
             loan.collateral_description = cleaned_data.get('collateral_type', '')
             loan.collateral_value = cleaned_data.get('collateral_value')
         
-        loan.save()
+        try:
+            loan.save()
+        except Exception as e:
+            print(f"Error saving loan: {e}")
+            raise
         
         # Update user profile with all the information
         borrower.first_name = cleaned_data.get('first_name', '')
@@ -460,6 +470,10 @@ class EnhancedLoanApplicationForm(forms.Form):
         borrower.reference2_phone = cleaned_data.get('reference2_phone', '')
         borrower.reference2_relationship = cleaned_data.get('reference2_relationship', '')
         
-        borrower.save()
+        try:
+            borrower.save()
+        except Exception as e:
+            print(f"Error saving borrower: {e}")
+            raise
         
         return loan

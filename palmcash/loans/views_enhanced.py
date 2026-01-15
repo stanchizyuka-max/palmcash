@@ -45,24 +45,31 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
         return kwargs
     
     def form_valid(self, form):
-        # Create and save the loan using the form's save_loan method
-        loan = form.save_loan(self.request.user)
-        
-        # Store application data in session for document upload
-        self.request.session['loan_application_data'] = {
-            'application_number': loan.application_number,
-            'principal_amount': str(loan.principal_amount),
-            'loan_type': loan.loan_type.name if loan.loan_type else '',
-            'purpose': form.cleaned_data.get('purpose', ''),
-        }
-        
-        messages.success(
-            self.request,
-            f'Loan application submitted successfully! Application Number: {loan.application_number}. '
-            'Please upload your required documents to complete the application process.'
-        )
-        
-        return redirect('documents:upload')
+        try:
+            # Create and save the loan using the form's save_loan method
+            loan = form.save_loan(self.request.user)
+            
+            # Store application data in session for document upload
+            self.request.session['loan_application_data'] = {
+                'application_number': loan.application_number,
+                'principal_amount': str(loan.principal_amount),
+                'loan_type': loan.loan_type.name if loan.loan_type else '',
+                'purpose': form.cleaned_data.get('purpose', ''),
+            }
+            
+            messages.success(
+                self.request,
+                f'Loan application submitted successfully! Application Number: {loan.application_number}. '
+                'Please upload your required documents to complete the application process.'
+            )
+            
+            return redirect('documents:upload')
+        except Exception as e:
+            import traceback
+            print(f"Error in form_valid: {e}")
+            print(traceback.format_exc())
+            messages.error(self.request, f'Error submitting application: {str(e)}')
+            return self.form_invalid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
