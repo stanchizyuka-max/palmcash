@@ -367,7 +367,8 @@ def manager_dashboard(request):
     # Get loans from officers in this branch OR from borrowers in this branch's groups
     loans = Loan.objects.filter(
         Q(loan_officer_id__in=branch_officers) | 
-        Q(borrower__group_memberships__group__branch=branch.name)
+        Q(borrower__group_memberships__group__branch=branch.name) |
+        Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch.name)
     ).distinct()
     
     # Debug: Check loan counts by status
@@ -387,7 +388,7 @@ def manager_dashboard(request):
         print(f"DEBUG: Disbursed loan - ID: {loan.id}, Amount: {loan.principal_amount}, Status: {loan.status}")
     
     total_disbursed = loans.filter(
-        status__in=['active', 'completed', 'disbursed']
+        status__in=['pending', 'approved', 'active', 'completed', 'disbursed']
     ).aggregate(total=Sum('principal_amount'))['total'] or 0
     
     print(f"DEBUG: Total disbursed amount = {total_disbursed}")
