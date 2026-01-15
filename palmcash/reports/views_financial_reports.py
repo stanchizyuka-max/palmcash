@@ -91,7 +91,8 @@ class DisbursementReportView(LoginRequiredMixin, TemplateView):
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
         
-        # Base query for disbursements - use application_date as fallback if disbursement_date is null
+        # Base query for disbursements
+        # Include loans with disbursement_date in range, OR loans with application_date in range and status is disbursed/active/completed
         from django.db.models import Q
         disbursements_query = Loan.objects.filter(
             Q(
@@ -102,10 +103,9 @@ class DisbursementReportView(LoginRequiredMixin, TemplateView):
             Q(
                 application_date__date__gte=start_date,
                 application_date__date__lte=end_date,
-                status__in=['active', 'disbursed', 'completed'],
-                disbursement_date__isnull=True
+                status__in=['active', 'disbursed', 'completed']
             )
-        )
+        ).distinct()
         
         # Filter by loan officer if specified
         if officer_id and officer_id != 'all':
@@ -146,9 +146,9 @@ class DisbursementReportView(LoginRequiredMixin, TemplateView):
             count=Count('id')
         ).order_by('-amount')
         
-        # Group by date for daily summary
+        # Group by date for daily summary - use disbursement_date if available, else application_date
         daily_summary = disbursements.extra({
-            'date': 'date(disbursement_date)'
+            'date': 'COALESCE(date(disbursement_date), date(application_date))'
         }).values('date').annotate(
             amount=Sum('principal_amount'),
             count=Count('id')
