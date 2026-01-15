@@ -46,61 +46,47 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         try:
-            # Get cleaned data
-            cleaned_data = form.cleaned_data
-            
-            # Create loan directly without using save_loan method
             import uuid
             from decimal import Decimal
             
-            loan_type = cleaned_data.get('loan_type')
-            principal_amount = cleaned_data.get('principal_amount')
-            term = cleaned_data.get('term')
+            # Get form data
+            loan_type = form.cleaned_data.get('loan_type')
+            principal_amount = form.cleaned_data.get('principal_amount')
+            term = form.cleaned_data.get('term')
             
-            # Create loan
+            # Create loan with minimal required fields
             loan = Loan(
                 borrower=self.request.user,
                 application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
                 loan_type=loan_type,
-                principal_amount=principal_amount,
-                purpose=cleaned_data.get('purpose', 'Not specified'),
+                principal_amount=principal_amount if principal_amount else Decimal('0'),
+                purpose=form.cleaned_data.get('purpose', 'Not specified'),
                 status='pending',
                 repayment_frequency=loan_type.repayment_frequency if loan_type else 'weekly',
-                term_weeks=term if loan_type and loan_type.repayment_frequency == 'weekly' else None,
-                term_days=term if loan_type and loan_type.repayment_frequency == 'daily' else None,
+                payment_amount=Decimal('0'),  # Will be calculated below
             )
             
-            # Calculate payment amount
+            # Set term based on frequency
+            if loan_type:
+                if loan_type.repayment_frequency == 'daily':
+                    loan.term_days = term
+                else:
+                    loan.term_weeks = term
+            
+            # Calculate payment amount if we have all required data
             if loan_type and principal_amount and term:
                 interest_rate = loan_type.interest_rate / Decimal('100')
                 total_interest = principal_amount * interest_rate
                 total_repayment = principal_amount + total_interest
                 loan.payment_amount = total_repayment / term
-            else:
-                loan.payment_amount = principal_amount if principal_amount else Decimal('0')
             
+            # Save the loan
             loan.save()
             
             # Update user profile
-            self.request.user.first_name = cleaned_data.get('first_name', '')
-            self.request.user.last_name = cleaned_data.get('last_name', '')
-            self.request.user.email = cleaned_data.get('email', '')
-            self.request.user.residential_address = cleaned_data.get('residential_address', '')
-            self.request.user.residential_duration = cleaned_data.get('residential_duration')
-            self.request.user.employment_status = cleaned_data.get('employment_status', '')
-            self.request.user.employer_name = cleaned_data.get('employer_name', '')
-            self.request.user.employer_address = cleaned_data.get('employer_address', '')
-            self.request.user.employment_duration = cleaned_data.get('employment_duration')
-            self.request.user.monthly_income = cleaned_data.get('monthly_income')
-            self.request.user.business_name = cleaned_data.get('business_name', '')
-            self.request.user.business_address = cleaned_data.get('business_address', '')
-            self.request.user.business_duration = cleaned_data.get('business_duration')
-            self.request.user.reference1_name = cleaned_data.get('reference1_name', '')
-            self.request.user.reference1_phone = cleaned_data.get('reference1_phone', '')
-            self.request.user.reference1_relationship = cleaned_data.get('reference1_relationship', '')
-            self.request.user.reference2_name = cleaned_data.get('reference2_name', '')
-            self.request.user.reference2_phone = cleaned_data.get('reference2_phone', '')
-            self.request.user.reference2_relationship = cleaned_data.get('reference2_relationship', '')
+            self.request.user.first_name = form.cleaned_data.get('first_name', '')
+            self.request.user.last_name = form.cleaned_data.get('last_name', '')
+            self.request.user.email = form.cleaned_data.get('email', '')
             self.request.user.save()
             
             messages.success(
@@ -112,9 +98,10 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
             return redirect('documents:upload')
         except Exception as e:
             import traceback
-            print(f"Error in form_valid: {e}")
+            error_msg = str(e)
+            print(f"Error in form_valid: {error_msg}")
             print(traceback.format_exc())
-            messages.error(self.request, f'Error submitting application: {str(e)}')
+            messages.error(self.request, f'Error submitting application: {error_msg}')
             return self.form_invalid(form)
     
     def get_context_data(self, **kwargs):
