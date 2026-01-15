@@ -33,20 +33,28 @@ class ClientApplicationListView(LoginRequiredMixin, ListView):
             'borrower', 'loan_type', 'loan_officer'
         ).order_by('-application_date')
         
-        if self.request.user.role == 'loan_officer':
-            # Loan officers see applications for their assigned clients
+        if self.request.user.role == 'admin':
+            # Admins see all applications
+            pass  # No filtering needed
+        elif self.request.user.role == 'loan_officer':
+            # Loan officers see applications for their assigned clients OR unassigned applications
             queryset = queryset.filter(
                 Q(loan_officer=self.request.user) |
-                Q(borrower__group_memberships__group__assigned_officer=self.request.user)
+                Q(borrower__group_memberships__group__assigned_officer=self.request.user) |
+                Q(loan_officer__isnull=True)  # Include unassigned applications
             ).distinct()
         elif self.request.user.role == 'manager':
-            # Managers see applications in their branch
-            if hasattr(self.request.user, 'officer_assignment'):
+            # Managers see applications in their branch OR unassigned applications
+            if hasattr(self.request.user, 'officer_assignment') and self.request.user.officer_assignment.branch:
                 branch_name = self.request.user.officer_assignment.branch
                 queryset = queryset.filter(
                     Q(loan_officer__officer_assignment__branch=branch_name) |
-                    Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch_name)
+                    Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch=branch_name) |
+                    Q(loan_officer__isnull=True)  # Include unassigned applications
                 ).distinct()
+            else:
+                # Manager without branch assignment sees all applications
+                pass
         
         return queryset
     
@@ -176,7 +184,7 @@ class ClientApplicationDetailView(LoginRequiredMixin, DetailView):
             },
             'application_info': {
                 'application_number': loan.application_number,
-                'submitted_date': loan.created_at,
+                'submitted_date': loan.application_date,
                 'status': loan.status,
                 'loan_officer': loan.loan_officer.get_full_name() if loan.loan_officer else '',
             }
