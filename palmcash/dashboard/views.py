@@ -403,7 +403,6 @@ def manager_dashboard(request):
         print(f"DEBUG: Branch name = {branch.name}")
         
         # For managers, get all clients in their branch
-        from django.db.models import Q
         branch_client_ids = User.objects.filter(
             Q(assigned_officer__officer_assignment__branch=branch.name) | 
             Q(group_memberships__group__assigned_officer__branch=branch.name),
