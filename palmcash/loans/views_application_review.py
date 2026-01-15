@@ -31,7 +31,7 @@ class ClientApplicationListView(LoginRequiredMixin, ListView):
         """Filter applications based on user role"""
         queryset = Loan.objects.select_related(
             'borrower', 'loan_type', 'loan_officer'
-        ).order_by('-created_at')
+        ).order_by('-application_date')
         
         if self.request.user.role == 'loan_officer':
             # Loan officers see applications for their assigned clients

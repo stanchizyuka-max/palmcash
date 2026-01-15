@@ -46,3 +46,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'✓ You can now log in with:'))
         self.stdout.write(f'  Username: {username}')
         self.stdout.write(f'  Password: {password}')
+
