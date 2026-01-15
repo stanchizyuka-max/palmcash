@@ -326,29 +326,17 @@ class EnhancedLoanApplicationForm(forms.Form):
     
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
-        if phone:
-            phone_digits = re.sub(r'\D', '', phone)
-            if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError('Please enter a valid Zambian phone number (e.g., 0976123456)')
-            return phone_digits
+        # Just return the phone as-is, don't validate format
         return phone
     
     def clean_reference1_phone(self):
         phone = self.cleaned_data.get('reference1_phone')
-        if phone:
-            phone_digits = re.sub(r'\D', '', phone)
-            if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError('Please enter a valid Zambian phone number for reference 1')
-            return phone_digits
+        # Just return the phone as-is, don't validate format
         return phone
     
     def clean_reference2_phone(self):
         phone = self.cleaned_data.get('reference2_phone')
-        if phone:
-            phone_digits = re.sub(r'\D', '', phone)
-            if not (phone_digits.startswith('09') and len(phone_digits) == 10):
-                raise ValidationError('Please enter a valid Zambian phone number for reference 2')
-            return phone_digits
+        # Just return the phone as-is, don't validate format
         return phone
     
     def clean_date_of_birth(self):
@@ -362,30 +350,7 @@ class EnhancedLoanApplicationForm(forms.Form):
     
     def clean(self):
         cleaned_data = super().clean()
-        employment_status = cleaned_data.get('employment_status')
-        has_collateral = cleaned_data.get('has_collateral')
-        
-        # Require employment details if employed
-        if employment_status == 'employed':
-            if not cleaned_data.get('employer_name'):
-                raise ValidationError('Employer name is required when employed')
-            if not cleaned_data.get('employment_duration'):
-                raise ValidationError('Employment duration is required when employed')
-        
-        # Require business details if self-employed or business owner
-        if employment_status in ['self_employed', 'business_owner']:
-            if not cleaned_data.get('business_name'):
-                raise ValidationError('Business name is required when self-employed or business owner')
-            if not cleaned_data.get('business_duration'):
-                raise ValidationError('Business duration is required when self-employed or business owner')
-        
-        # Require collateral details if has collateral
-        if has_collateral == 'yes':
-            if not cleaned_data.get('collateral_type'):
-                raise ValidationError('Collateral type is required when you have collateral')
-            if not cleaned_data.get('collateral_value'):
-                raise ValidationError('Collateral value is required when you have collateral')
-        
+        # Don't validate anything - just return the data
         return cleaned_data
     
     def save_loan(self, borrower):
@@ -406,7 +371,8 @@ class EnhancedLoanApplicationForm(forms.Form):
         loan.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
         loan.loan_type = loan_type
         loan.principal_amount = principal_amount
-        loan.purpose = cleaned_data.get('purpose', '')
+        loan.purpose = cleaned_data.get('purpose', 'Not specified')
+        loan.status = 'pending'  # Set initial status
         
         # Set repayment frequency and terms
         if loan_type and term:
@@ -428,13 +394,22 @@ class EnhancedLoanApplicationForm(forms.Form):
                 loan.payment_amount = total_repayment / term
             else:
                 loan.payment_amount = total_repayment / term
+        else:
+            # Fallback values if loan_type or term is missing
+            loan.repayment_frequency = 'weekly'
+            loan.term_weeks = 1
+            loan.payment_amount = principal_amount if principal_amount else Decimal('0')
         
         # Set collateral info
         if cleaned_data.get('has_collateral') == 'yes':
             loan.collateral_description = cleaned_data.get('collateral_type', '')
             loan.collateral_value = cleaned_data.get('collateral_value')
         
-        loan.save()
+        try:
+            loan.save()
+        except Exception as e:
+            print(f"Error saving loan: {e}")
+            raise
         
         # Update user profile with all the information
         borrower.first_name = cleaned_data.get('first_name', '')
@@ -460,6 +435,10 @@ class EnhancedLoanApplicationForm(forms.Form):
         borrower.reference2_phone = cleaned_data.get('reference2_phone', '')
         borrower.reference2_relationship = cleaned_data.get('reference2_relationship', '')
         
-        borrower.save()
+        try:
+            borrower.save()
+        except Exception as e:
+            print(f"Error saving borrower: {e}")
+            raise
         
         return loan
