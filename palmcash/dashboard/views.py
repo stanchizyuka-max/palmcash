@@ -3613,11 +3613,11 @@ def analytics(request):
         else:
             month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         
-        # Get loans disbursed in this month
+        # Get loans created/applied in this month (use application_date since disbursement_date may be null)
         month_loans = Loan.objects.filter(
-            status__in=['active', 'completed', 'disbursed'],
-            disbursement_date__gte=month_start,
-            disbursement_date__lte=month_end
+            status__in=['active', 'completed', 'disbursed', 'approved'],
+            application_date__gte=month_start,
+            application_date__lte=month_end
         )
         
         count = month_loans.count()
