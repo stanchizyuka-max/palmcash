@@ -104,7 +104,7 @@ def loan_officer_dashboard(request):
     from payments.models import PaymentCollection as PC
     recent_transactions = PC.objects.filter(
         Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
-    ).select_related('loan__borrower').order_by('-collection_date')[:10].distinct()
+    ).select_related('loan__borrower').order_by('-collection_date').distinct()[:10]
     
     # Format recent transactions for display
     formatted_transactions = []
@@ -121,7 +121,7 @@ def loan_officer_dashboard(request):
     from payments.models import PassbookEntry
     passbook_entries = PassbookEntry.objects.filter(
         Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
-    ).select_related('loan__borrower').order_by('-entry_date')[:20].distinct()
+    ).select_related('loan__borrower').order_by('-entry_date').distinct()[:20]
     
     # Pending documents for review - get clients in officer's groups with pending documents
     from documents.models import ClientDocument
