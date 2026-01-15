@@ -230,7 +230,10 @@ def manager_dashboard(request):
     
     # Branch metrics
     officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
-    groups = BorrowerGroup.objects.filter(branch=branch.name)
+    # Get groups either assigned to the branch OR assigned to officers in this branch
+    groups = BorrowerGroup.objects.filter(
+        Q(branch=branch.name) | Q(assigned_officer__officer_assignment__branch=branch.name)
+    ).distinct()
     clients_count = sum(g.member_count for g in groups)
     
     # Today's collections - include both officer-assigned loans and group member loans

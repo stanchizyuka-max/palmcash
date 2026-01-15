@@ -131,9 +131,12 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         
-        # If loan officer is creating, auto-assign them as the officer
+        # If loan officer is creating, auto-assign them as the officer and set branch
         if self.request.user.role == 'loan_officer' and not form.instance.assigned_officer:
             form.instance.assigned_officer = self.request.user
+            # Set branch from officer's assignment
+            if hasattr(self.request.user, 'officer_assignment') and self.request.user.officer_assignment:
+                form.instance.branch = self.request.user.officer_assignment.branch
         
         messages.success(self.request, f'Group "{form.instance.name}" created successfully!')
         return super().form_valid(form)
