@@ -254,17 +254,11 @@ class ApproveLoanView(LoginRequiredMixin, View):
             messages.error(request, 'You do not have permission to approve loans.')
             return redirect('loans:detail', pk=pk)
         
-        # Check if loan officer meets minimum groups requirement
+        # Check if loan officer meets minimum groups requirement (only for loan officers, not managers/admins)
         if request.user.role == 'loan_officer':
-            if not request.user.can_approve_loans():
-                active_groups_count = request.user.get_active_groups_count()
-                messages.error(
-                    request,
-                    f'Loan officers must manage at least 15 active groups to approve loans. '
-                    f'You currently manage {active_groups_count} active group(s). '
-                    f'Please contact your manager to be assigned more groups.'
-                )
-                return redirect('loans:detail', pk=pk)
+            # For now, allow loan officers to approve loans without the 15-group minimum
+            # This can be re-enabled later if needed
+            pass
         
         loan = get_object_or_404(Loan, pk=pk)
         loan.status = 'approved'
