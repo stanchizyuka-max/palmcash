@@ -365,7 +365,6 @@ def manager_dashboard(request):
     print(f"DEBUG: Branch officer IDs = {list(branch_officers)}")
     
     # Get loans from officers in this branch OR from borrowers in this branch's groups
-    from django.db.models import Q
     loans = Loan.objects.filter(
         Q(loan_officer_id__in=branch_officers) | 
         Q(borrower__group_memberships__group__branch=branch.name)
