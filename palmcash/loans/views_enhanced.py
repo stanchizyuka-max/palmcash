@@ -46,16 +46,62 @@ class EnhancedLoanApplicationView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         try:
-            # Create and save the loan using the form's save_loan method
-            loan = form.save_loan(self.request.user)
+            # Get cleaned data
+            cleaned_data = form.cleaned_data
             
-            # Store application data in session for document upload
-            self.request.session['loan_application_data'] = {
-                'application_number': loan.application_number,
-                'principal_amount': str(loan.principal_amount),
-                'loan_type': loan.loan_type.name if loan.loan_type else '',
-                'purpose': form.cleaned_data.get('purpose', ''),
-            }
+            # Create loan directly without using save_loan method
+            import uuid
+            from decimal import Decimal
+            
+            loan_type = cleaned_data.get('loan_type')
+            principal_amount = cleaned_data.get('principal_amount')
+            term = cleaned_data.get('term')
+            
+            # Create loan
+            loan = Loan(
+                borrower=self.request.user,
+                application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
+                loan_type=loan_type,
+                principal_amount=principal_amount,
+                purpose=cleaned_data.get('purpose', 'Not specified'),
+                status='pending',
+                repayment_frequency=loan_type.repayment_frequency if loan_type else 'weekly',
+                term_weeks=term if loan_type and loan_type.repayment_frequency == 'weekly' else None,
+                term_days=term if loan_type and loan_type.repayment_frequency == 'daily' else None,
+            )
+            
+            # Calculate payment amount
+            if loan_type and principal_amount and term:
+                interest_rate = loan_type.interest_rate / Decimal('100')
+                total_interest = principal_amount * interest_rate
+                total_repayment = principal_amount + total_interest
+                loan.payment_amount = total_repayment / term
+            else:
+                loan.payment_amount = principal_amount if principal_amount else Decimal('0')
+            
+            loan.save()
+            
+            # Update user profile
+            self.request.user.first_name = cleaned_data.get('first_name', '')
+            self.request.user.last_name = cleaned_data.get('last_name', '')
+            self.request.user.email = cleaned_data.get('email', '')
+            self.request.user.residential_address = cleaned_data.get('residential_address', '')
+            self.request.user.residential_duration = cleaned_data.get('residential_duration')
+            self.request.user.employment_status = cleaned_data.get('employment_status', '')
+            self.request.user.employer_name = cleaned_data.get('employer_name', '')
+            self.request.user.employer_address = cleaned_data.get('employer_address', '')
+            self.request.user.employment_duration = cleaned_data.get('employment_duration')
+            self.request.user.monthly_income = cleaned_data.get('monthly_income')
+            self.request.user.business_name = cleaned_data.get('business_name', '')
+            self.request.user.business_address = cleaned_data.get('business_address', '')
+            self.request.user.business_duration = cleaned_data.get('business_duration')
+            self.request.user.reference1_name = cleaned_data.get('reference1_name', '')
+            self.request.user.reference1_phone = cleaned_data.get('reference1_phone', '')
+            self.request.user.reference1_relationship = cleaned_data.get('reference1_relationship', '')
+            self.request.user.reference2_name = cleaned_data.get('reference2_name', '')
+            self.request.user.reference2_phone = cleaned_data.get('reference2_phone', '')
+            self.request.user.reference2_relationship = cleaned_data.get('reference2_relationship', '')
+            self.request.user.save()
             
             messages.success(
                 self.request,
@@ -114,24 +160,76 @@ def enhanced_loan_application(request):
     if request.method == 'POST':
         form = EnhancedLoanApplicationForm(request.POST, user=request.user)
         if form.is_valid():
-            # Create and save the loan using the form's save_loan method
-            loan = form.save_loan(request.user)
-            
-            # Store application data in session
-            request.session['loan_application_data'] = {
-                'application_number': loan.application_number,
-                'principal_amount': str(loan.principal_amount),
-                'loan_type': loan.loan_type.name if loan.loan_type else '',
-                'purpose': form.cleaned_data.get('purpose', ''),
-            }
-            
-            messages.success(
-                request,
-                f'Loan application submitted successfully! Application Number: {loan.application_number}. '
-                'Please upload your required documents to complete the application process.'
-            )
-            
-            return redirect('documents:upload')
+            try:
+                # Get cleaned data
+                cleaned_data = form.cleaned_data
+                
+                # Create loan directly
+                import uuid
+                from decimal import Decimal
+                
+                loan_type = cleaned_data.get('loan_type')
+                principal_amount = cleaned_data.get('principal_amount')
+                term = cleaned_data.get('term')
+                
+                # Create loan
+                loan = Loan(
+                    borrower=request.user,
+                    application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
+                    loan_type=loan_type,
+                    principal_amount=principal_amount,
+                    purpose=cleaned_data.get('purpose', 'Not specified'),
+                    status='pending',
+                    repayment_frequency=loan_type.repayment_frequency if loan_type else 'weekly',
+                    term_weeks=term if loan_type and loan_type.repayment_frequency == 'weekly' else None,
+                    term_days=term if loan_type and loan_type.repayment_frequency == 'daily' else None,
+                )
+                
+                # Calculate payment amount
+                if loan_type and principal_amount and term:
+                    interest_rate = loan_type.interest_rate / Decimal('100')
+                    total_interest = principal_amount * interest_rate
+                    total_repayment = principal_amount + total_interest
+                    loan.payment_amount = total_repayment / term
+                else:
+                    loan.payment_amount = principal_amount if principal_amount else Decimal('0')
+                
+                loan.save()
+                
+                # Update user profile
+                request.user.first_name = cleaned_data.get('first_name', '')
+                request.user.last_name = cleaned_data.get('last_name', '')
+                request.user.email = cleaned_data.get('email', '')
+                request.user.residential_address = cleaned_data.get('residential_address', '')
+                request.user.residential_duration = cleaned_data.get('residential_duration')
+                request.user.employment_status = cleaned_data.get('employment_status', '')
+                request.user.employer_name = cleaned_data.get('employer_name', '')
+                request.user.employer_address = cleaned_data.get('employer_address', '')
+                request.user.employment_duration = cleaned_data.get('employment_duration')
+                request.user.monthly_income = cleaned_data.get('monthly_income')
+                request.user.business_name = cleaned_data.get('business_name', '')
+                request.user.business_address = cleaned_data.get('business_address', '')
+                request.user.business_duration = cleaned_data.get('business_duration')
+                request.user.reference1_name = cleaned_data.get('reference1_name', '')
+                request.user.reference1_phone = cleaned_data.get('reference1_phone', '')
+                request.user.reference1_relationship = cleaned_data.get('reference1_relationship', '')
+                request.user.reference2_name = cleaned_data.get('reference2_name', '')
+                request.user.reference2_phone = cleaned_data.get('reference2_phone', '')
+                request.user.reference2_relationship = cleaned_data.get('reference2_relationship', '')
+                request.user.save()
+                
+                messages.success(
+                    request,
+                    f'Loan application submitted successfully! Application Number: {loan.application_number}. '
+                    'Please upload your required documents to complete the application process.'
+                )
+                
+                return redirect('documents:upload')
+            except Exception as e:
+                import traceback
+                print(f"Error: {e}")
+                print(traceback.format_exc())
+                messages.error(request, f'Error submitting application: {str(e)}')
     else:
         form = EnhancedLoanApplicationForm(user=request.user)
     
