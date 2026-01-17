@@ -306,6 +306,29 @@ class ApproveLoanView(LoginRequiredMixin, View):
                     loan=loan,
                     status='sent'
                 )
+            else:
+                # Create notification without template if template doesn't exist
+                if notification_type == 'loan_approved':
+                    subject = 'Loan Approved'
+                    message = f'Your loan application {loan.application_number} for K{loan.principal_amount} has been approved.'
+                elif notification_type == 'loan_rejected':
+                    subject = 'Loan Rejected'
+                    message = f'Your loan application {loan.application_number} has been rejected.'
+                else:
+                    subject = 'Loan Update'
+                    message = f'Update on your loan {loan.application_number}.'
+                
+                Notification.objects.create(
+                    recipient=loan.borrower,
+                    template=None,
+                    subject=subject,
+                    message=message,
+                    channel='in_app',
+                    recipient_address=loan.borrower.email or '',
+                    scheduled_at=timezone.now(),
+                    loan=loan,
+                    status='sent'
+                )
         except Exception as e:
             print(f"Error creating notification: {e}")
 
