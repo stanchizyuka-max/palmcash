@@ -14,6 +14,7 @@ urlpatterns = [
     path('apply/', EnhancedLoanApplicationView.as_view(), name='apply'),
     path('apply-enhanced/', enhanced_loan_application, name='apply_enhanced'),
     path('calculator/', views.LoanCalculatorView.as_view(), name='calculator'),
+    path('history/', views.LoanHistoryView.as_view(), name='history'),
     path('status-dashboard/', views.LoanStatusDashboardView.as_view(), name='status_dashboard'),
     path('<int:pk>/', views.LoanDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', views.LoanEditView.as_view(), name='edit'),
