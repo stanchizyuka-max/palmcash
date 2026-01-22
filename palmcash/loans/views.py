@@ -1354,6 +1354,76 @@ class LoanHistoryView(LoginRequiredMixin, ListView):
         return context
 
 
+class LoanApplicationDetailView(LoginRequiredMixin, DetailView):
+    """View for complete loan application details including borrower profile information"""
+    model = Loan
+    template_name = 'loans/application_detail.html'
+    context_object_name = 'loan'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        loan = self.get_object()
+        borrower = loan.borrower
+        
+        # Add comprehensive borrower information
+        context['borrower_info'] = {
+            'personal': {
+                'full_name': borrower.get_full_name(),
+                'email': borrower.email,
+                'phone_number': borrower.phone_number,
+                'date_of_birth': borrower.date_of_birth,
+                'national_id': borrower.national_id,
+                'is_verified': borrower.is_verified,
+            },
+            'employment': {
+                'status': borrower.get_employment_status_display() if borrower.employment_status else 'Not specified',
+                'employer_name': borrower.employer_name,
+                'employer_address': borrower.employer_address,
+                'employment_duration': borrower.employment_duration,
+                'monthly_income': borrower.monthly_income,
+            },
+            'business': {
+                'name': borrower.business_name,
+                'address': borrower.business_address,
+                'duration': borrower.business_duration,
+            },
+            'residential': {
+                'address': borrower.address,
+                'duration': borrower.residential_duration,
+            },
+            'references': {
+                'reference1': {
+                    'name': borrower.reference1_name,
+                    'phone': borrower.reference1_phone,
+                    'relationship': borrower.reference1_relationship,
+                },
+                'reference2': {
+                    'name': borrower.reference2_name,
+                    'phone': borrower.reference2_phone,
+                    'relationship': borrower.reference2_relationship,
+                },
+            }
+        }
+        
+        # Add loan application details
+        context['application_details'] = {
+            'loan_type': loan.loan_type.name if loan.loan_type else 'Not specified',
+            'principal_amount': loan.principal_amount,
+            'interest_rate': loan.interest_rate,
+            'repayment_frequency': loan.get_repayment_frequency_display(),
+            'term_days': loan.term_days,
+            'term_weeks': loan.term_weeks,
+            'payment_amount': loan.payment_amount,
+            'purpose': loan.purpose,
+            'collateral_description': loan.collateral_description,
+            'collateral_value': loan.collateral_value,
+            'application_date': loan.application_date,
+            'status': loan.get_status_display(),
+        }
+        
+        return context
+
+
 class VerifySecurityDepositView(LoginRequiredMixin, View):
     """Verify security deposit payment"""
     

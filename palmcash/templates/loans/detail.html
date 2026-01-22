@@ -337,6 +337,9 @@
                         <a href="{% url 'documents:upload' %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                             <i class="fas fa-id-card mr-2"></i>Upload Verification Docs
                         </a>
+                        <a href="{% url 'loans:application_detail' loan.pk %}" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                            <i class="fas fa-file-contract mr-2"></i>View Application Form
+                        </a>
                     </div>
                 </div>
 

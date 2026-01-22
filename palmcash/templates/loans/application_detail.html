@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Loan Application Details - {{ loan.application_number }} - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-8">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Loan Application Details</h1>
+            <p class="text-gray-600 mt-2">Complete application information for {{ loan.application_number }}</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'loans:detail' loan.pk %}" class="text-primary-600 hover:text-primary-900 font-medium">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Loan Details
+            </a>
+        </div>
+    </div>
+
+    <!-- Application Status Badge -->
+    <div class="mb-6">
+        <span class="px-4 py-2 rounded-full text-sm font-medium
+            {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
+            {% elif loan.status == 'approved' %}bg-success-100 text-success-800
+            {% elif loan.status == 'active' %}bg-info-100 text-info-800
+            {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+            {% elif loan.status == 'completed' %}bg-secondary-100 text-secondary-800
+            {% endif %}">
+            Status: {{ loan.get_status_display }}
+        </span>
+        <span class="ml-3 text-sm text-gray-600">
+            Applied on {{ loan.application_date|date:"F d, Y g:i A" }}
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-user mr-2 text-blue-600"></i>Personal Information
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">Full Name:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.personal.full_name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Email Address:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.personal.email }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Phone Number:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.personal.phone_number }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Date of Birth:</span>
+                            <p class="font-medium text-gray-900">
+                                {% if borrower_info.personal.date_of_birth %}
+                                    {{ borrower_info.personal.date_of_birth|date:"F d, Y" }}
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">National ID:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.personal.national_id|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Verification Status:</span>
+                            <p class="font-medium">
+                                {% if borrower_info.personal.is_verified %}
+                                    <span class="text-green-600">
+                                        <i class="fas fa-check-circle mr-1"></i>Verified
+                                    </span>
+                                {% else %}
+                                    <span class="text-yellow-600">
+                                        <i class="fas fa-clock mr-1"></i>Pending Verification
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Address:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.residential.address|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Residential Duration:</span>
+                            <p class="font-medium text-gray-900">
+                                {% if borrower_info.residential.duration %}
+                                    {{ borrower_info.residential.duration }} years
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Information -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-briefcase mr-2 text-green-600"></i>Employment Information
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">Employment Status:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.employment.status }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Employer Name:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.employment.employer_name|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Employer Address:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.employment.employer_address|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">Employment Duration:</span>
+                            <p class="font-medium text-gray-900">
+                                {% if borrower_info.employment.employment_duration %}
+                                    {{ borrower_info.employment.employment_duration }} years
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Monthly Income:</span>
+                            <p class="font-medium text-gray-900">
+                                {% if borrower_info.employment.monthly_income %}
+                                    K{{ borrower_info.employment.monthly_income|floatformat:2|intcomma }}
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Information (if applicable) -->
+            {% if borrower_info.business.name %}
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-store mr-2 text-purple-600"></i>Business Information
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">Business Name:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.business.name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Business Address:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.business.address|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-gray-600">Business Duration:</span>
+                            <p class="font-medium text-gray-900">
+                                {% if borrower_info.business.duration %}
+                                    {{ borrower_info.business.duration }} years
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- References -->
+            {% if borrower_info.references.reference1.name or borrower_info.references.reference2.name %}
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-users mr-2 text-orange-600"></i>References
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% if borrower_info.references.reference1.name %}
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-gray-900">Reference 1</h3>
+                        <div>
+                            <span class="text-gray-600">Name:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference1.name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Phone:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference1.phone|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Relationship:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference1.relationship|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if borrower_info.references.reference2.name %}
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-gray-900">Reference 2</h3>
+                        <div>
+                            <span class="text-gray-600">Name:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference2.name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Phone:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference2.phone|default:"Not provided" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Relationship:</span>
+                            <p class="font-medium text-gray-900">{{ borrower_info.references.reference2.relationship|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Loan Application Details -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-file-contract mr-2 text-blue-600"></i>Loan Details
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-gray-600">Application Number:</span>
+                        <p class="font-medium text-gray-900">{{ loan.application_number }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Loan Type:</span>
+                        <p class="font-medium text-gray-900">{{ application_details.loan_type }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Principal Amount:</span>
+                        <p class="font-medium text-gray-900">K{{ application_details.principal_amount|floatformat:2|intcomma }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Interest Rate:</span>
+                        <p class="font-medium text-gray-900">{{ application_details.interest_rate }}% per annum</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Repayment Frequency:</span>
+                        <p class="font-medium text-gray-900">{{ application_details.repayment_frequency }}</p>
+                    </div>
+                    {% if application_details.term_days %}
+                    <div>
+                        <span class="text-gray-600">Term:</span>
+                        <p class="font-medium text-gray-900">{{ application_details.term_days }} days</p>
+                    </div>
+                    {% endif %}
+                    {% if application_details.term_weeks %}
+                    <div>
+                        <span class="text-gray-600">Term:</span>
+                        <p class="font-medium text-gray-900">{{ application_details.term_weeks }} weeks</p>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <span class="text-gray-600">Payment Amount:</span>
+                        <p class="font-medium text-gray-900">
+                            {% if application_details.payment_amount %}
+                                K{{ application_details.payment_amount|floatformat:2|intcomma }}
+                            {% else %}
+                                Not calculated
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purpose and Collateral -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-bullseye mr-2 text-green-600"></i>Purpose & Collateral
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-gray-600">Loan Purpose:</span>
+                        <p class="font-medium text-gray-900 mt-1">{{ application_details.purpose }}</p>
+                    </div>
+                    {% if application_details.collateral_description %}
+                    <div>
+                        <span class="text-gray-600">Collateral Description:</span>
+                        <p class="font-medium text-gray-900 mt-1">{{ application_details.collateral_description }}</p>
+                    </div>
+                    {% endif %}
+                    {% if application_details.collateral_value %}
+                    <div>
+                        <span class="text-gray-600">Collateral Value:</span>
+                        <p class="font-medium text-gray-900">K{{ application_details.collateral_value|floatformat:2|intcomma }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-cogs mr-2 text-purple-600"></i>Actions
+                </h2>
+                <div class="space-y-3">
+                    <a href="{% url 'loans:detail' loan.pk %}" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center block">
+                        <i class="fas fa-eye mr-2"></i>View Loan Details
+                    </a>
+                    
+                    {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' %}
+                        {% if loan.status == 'pending' %}
+                        <a href="{% url 'loans:approve' loan.pk %}" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center block">
+                            <i class="fas fa-check mr-2"></i>Approve Loan
+                        </a>
+                        <a href="{% url 'loans:reject' loan.pk %}" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-center block">
+                            <i class="fas fa-times mr-2"></i>Reject Loan
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <a href="{% url 'documents:upload' %}" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-center block">
+                        <i class="fas fa-upload mr-2"></i>Upload Documents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
