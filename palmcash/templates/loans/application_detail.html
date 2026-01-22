@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Loan Application Details - {{ loan.application_number }} - Palm Cash{% endblock %}
 
@@ -139,7 +140,7 @@
                             <span class="text-gray-600">Monthly Income:</span>
                             <p class="font-medium text-gray-900">
                                 {% if borrower_info.employment.monthly_income %}
-                                    K{{ borrower_info.employment.monthly_income|floatformat:2|intcomma }}
+                                    K{{ borrower_info.employment.monthly_income|floatformat:2 }}
                                 {% else %}
                                     Not provided
                                 {% endif %}
@@ -247,7 +248,7 @@
                     </div>
                     <div>
                         <span class="text-gray-600">Principal Amount:</span>
-                        <p class="font-medium text-gray-900">K{{ application_details.principal_amount|floatformat:2|intcomma }}</p>
+                        <p class="font-medium text-gray-900">K{{ application_details.principal_amount|floatformat:2 }}</p>
                     </div>
                     <div>
                         <span class="text-gray-600">Interest Rate:</span>
@@ -273,7 +274,7 @@
                         <span class="text-gray-600">Payment Amount:</span>
                         <p class="font-medium text-gray-900">
                             {% if application_details.payment_amount %}
-                                K{{ application_details.payment_amount|floatformat:2|intcomma }}
+                                K{{ application_details.payment_amount|floatformat:2 }}
                             {% else %}
                                 Not calculated
                             {% endif %}
@@ -301,7 +302,7 @@
                     {% if application_details.collateral_value %}
                     <div>
                         <span class="text-gray-600">Collateral Value:</span>
-                        <p class="font-medium text-gray-900">K{{ application_details.collateral_value|floatformat:2|intcomma }}</p>
+                        <p class="font-medium text-gray-900">K{{ application_details.collateral_value|floatformat:2 }}</p>
                     </div>
                     {% endif %}
                 </div>
