@@ -1,0 +1,273 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}My Dashboard - Palm Cash{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <!-- Animated Background Pattern -->
+    <div class="fixed inset-0 opacity-10">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-600 opacity-20 animate-pulse"></div>
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-blue-400 to-purple-600"></div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Header -->
+        <div class="mb-8 text-center">
+            <div class="inline-flex items-center justify-center p-2 bg-white rounded-full shadow-lg mb-4">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-white text-2xl"></i>
+                </div>
+            </div>
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Welcome back, {{ user.get_full_name|default:user.username }}!
+            </h1>
+            <p class="text-gray-600 mt-2 text-lg">Manage your loans and payments with ease</p>
+        </div>
+
+        <!-- Alerts Section -->
+        {% if not has_verified_documents %}
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 p-6 mb-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center animate-bounce">
+                    <i class="fas fa-exclamation-triangle text-amber-500 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-amber-800">Document Verification Required</h3>
+                    <p class="text-amber-700 mt-1">Please upload and verify your documents to unlock full loan features.</p>
+                    <a href="{% url 'documents:upload' %}" class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium">
+                        <i class="fas fa-upload mr-2"></i>Upload Documents Now
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if rejected_loans %}
+        <div class="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 p-6 mb-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-times-circle text-red-500 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-red-800">Loan Application Update</h3>
+                    <p class="text-red-700 mt-1">Your recent loan application needs attention.</p>
+                    <a href="{% url 'loans:list' %}" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                        <i class="fas fa-eye mr-2"></i>View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Key Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Active Loans Card -->
+            <div class="group bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Active Loans</p>
+                        <p class="text-4xl font-bold text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text">{{ active_loans }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-gradient-to-r from-green-100 to-green-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 bg-gradient-to-r from-green-400 to-green-600 rounded-full opacity-20"></div>
+            </div>
+
+            <!-- Total Borrowed Card -->
+            <div class="group bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Borrowed</p>
+                        <p class="text-4xl font-bold text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text">K {{ total_borrowed|floatformat:0 }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-gradient-to-r from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fas fa-money-bill-wave text-blue-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full opacity-20"></div>
+            </div>
+
+            <!-- Outstanding Balance Card -->
+            <div class="group bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Outstanding Balance</p>
+                        <p class="text-4xl font-bold text-transparent bg-gradient-to-r from-red-400 to-red-600 bg-clip-text">K {{ outstanding_balance|floatformat:0 }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-gradient-to-r from-red-100 to-red-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fas fa-chart-line text-red-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 bg-gradient-to-r from-red-400 to-red-600 rounded-full opacity-20"></div>
+            </div>
+
+            <!-- Pending Applications Card -->
+            <div class="group bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Pending Applications</p>
+                        <p class="text-4xl font-bold text-transparent bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text">{{ pending_applications }}</p>
+                    </div>
+                    <div class="w-14 h-14 bg-gradient-to-r from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <i class="fas fa-clock text-amber-600 text-2xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4 h-2 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full opacity-20"></div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Section -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Quick Actions</h2>
+                <div class="w-24 h-1 bg-gradient-to-r from-blue-400 to-purple-600 rounded-full mx-auto"></div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {% if first_active_loan %}
+                <a href="{% url 'payments:make' first_active_loan.id %}" class="group relative overflow-hidden bg-gradient-to-r from-green-400 to-green-600 rounded-2xl p-6 text-white hover:from-green-500 hover:to-green-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-money-bill-wave text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Make Payment</span>
+                </a>
+                {% endif %}
+                
+                <a href="{% url 'loans:calculator' %}" class="group relative overflow-hidden bg-gradient-to-r from-blue-400 to-blue-600 rounded-2xl p-6 text-white hover:from-blue-500 hover:to-blue-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-calculator text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Loan Calculator</span>
+                </a>
+                
+                <a href="{% url 'loans:apply' %}" class="group relative overflow-hidden bg-gradient-to-r from-purple-400 to-purple-600 rounded-2xl p-6 text-white hover:from-purple-500 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-plus-circle text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Apply for Loan</span>
+                </a>
+                
+                <a href="{% url 'documents:upload' %}" class="group relative overflow-hidden bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-2xl p-6 text-white hover:from-indigo-500 hover:to-indigo-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-upload text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Upload Documents</span>
+                </a>
+                
+                <a href="{% url 'loans:history' %}" class="group relative overflow-hidden bg-gradient-to-r from-orange-400 to-orange-600 rounded-2xl p-6 text-white hover:from-orange-500 hover:to-orange-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-history text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Loan History</span>
+                </a>
+                
+                {% if first_active_loan %}
+                <a href="{% url 'loans:application_detail' first_active_loan.id %}" class="group relative overflow-hidden bg-gradient-to-r from-pink-400 to-rose-600 rounded-2xl p-6 text-white hover:from-pink-500 hover:to-rose-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-file-contract text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">View Application</span>
+                </a>
+                {% endif %}
+                
+                <a href="{% url 'accounts:profile' %}" class="group relative overflow-hidden bg-gradient-to-r from-teal-400 to-teal-600 rounded-2xl p-6 text-white hover:from-teal-500 hover:to-teal-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-user-edit text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">Update Profile</span>
+                </a>
+                
+                <a href="{% url 'payments:list' %}" class="group relative overflow-hidden bg-gradient-to-r from-cyan-400 to-cyan-600 rounded-2xl p-6 text-white hover:from-cyan-500 hover:to-cyan-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                    <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <i class="fas fa-credit-card text-3xl mb-3 relative z-10"></i>
+                    <span class="text-lg font-semibold relative z-10">My Payments</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Loans Section -->
+        {% if user_loans %}
+        <div class="bg-white rounded-2xl shadow-xl p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Your Recent Loans</h2>
+                <a href="{% url 'loans:history' %}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                    <i class="fas fa-arrow-right mr-2"></i>View All Loans
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for loan in user_loans|slice:":6" %}
+                <div class="group bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Loan #{{ loan.id }}</p>
+                            <p class="text-lg font-bold text-gray-900">{{ loan.application_number }}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            {% if loan.status == 'pending' %}bg-amber-100 text-amber-800
+                            {% elif loan.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
+                            {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
+                            {% elif loan.status == 'completed' %}bg-gray-100 text-gray-800
+                            {% endif %}">
+                            {{ loan.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div>
+                            <span class="text-sm text-gray-500">Amount</span>
+                            <p class="text-xl font-bold text-gray-900">K {{ loan.principal_amount|floatformat:0 }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500">Applied</span>
+                            <p class="text-sm text-gray-700">{{ loan.application_date|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <a href="{% url 'loans:detail' loan.id %}" class="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            <i class="fas fa-eye mr-2"></i>View Details
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-2xl shadow-xl p-12 text-center">
+            <div class="max-w-md mx-auto">
+                <div class="w-24 h-24 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-hand-holding-usd text-blue-600 text-4xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">No Loans Yet</h3>
+                <p class="text-gray-600 mb-8 text-lg">Ready to get started? Apply for your first loan and take control of your finances!</p>
+                <div class="space-y-4">
+                    <a href="{% url 'loans:apply' %}" class="group relative overflow-hidden bg-gradient-to-r from-blue-400 to-purple-600 rounded-2xl p-6 text-white hover:from-blue-500 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                        <i class="fas fa-rocket text-3xl mb-3 relative z-10"></i>
+                        <span class="text-xl font-semibold relative z-10">Apply for Your First Loan</span>
+                    </a>
+                    <a href="{% url 'documents:upload' %}" class="group relative overflow-hidden bg-gradient-to-r from-green-400 to-teal-600 rounded-2xl p-6 text-white hover:from-green-500 hover:to-teal-700 transform hover:scale-105 transition-all duration-300 shadow-lg">
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                        <i class="fas fa-shield-alt text-3xl mb-3 relative z-10"></i>
+                        <span class="text-xl font-semibold relative z-10">Complete Verification</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+</style>
+{% endblock %}
