@@ -288,6 +288,36 @@ PHONENUMBER_DEFAULT_REGION = 'ZM'  # Zambia
 CURRENCY_CODE = 'ZMW'
 CURRENCY_SYMBOL = 'K'
 
+# Django Allauth Configuration
+SITE_ID = 1
+
+# Account Settings
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300
+
+# Social Account Settings
+SOCIALACCOUNT_LOGIN_ON_GET = False
+SOCIALACCOUNT_REQUEST_EMAILS = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'optional'
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+
+# Google OAuth Settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
 # Palm Cash Specific Settings
 LOAN_INTEREST_RATE_DEFAULT = 15.0  # Default annual interest rate
 LOAN_PENALTY_RATE_DEFAULT = 2.0   # Default penalty rate for late payments
