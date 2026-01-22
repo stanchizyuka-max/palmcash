@@ -119,8 +119,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.unread_notifications",
-                "allauth.template_context_processors.account",
-                "allauth.template_context_processors.socialaccount",
             ],
         },
     },
