@@ -7,6 +7,7 @@ app_name = 'dashboard'
 urlpatterns = [
     # Main dashboard routes
     path('', views.dashboard, name='dashboard'),
+    path('borrower/', views.borrower_dashboard, name='borrower_dashboard'),
     path('loan-officer/', views.loan_officer_dashboard, name='loan_officer_dashboard'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
