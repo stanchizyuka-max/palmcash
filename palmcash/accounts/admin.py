@@ -57,7 +57,6 @@ def register_admin_models():
     custom_admin_site.register(Permission, PermissionAdmin)
     custom_admin_site.register(ContentType, ContentTypeAdmin)
     custom_admin_site.register(DjangoUser, DjangoUserAdmin)
-    custom_admin_site.register(SocialApp)
 
 
 # Call registration function
