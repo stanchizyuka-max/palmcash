@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Permission, User as DjangoUser
 from django.contrib.contenttypes.models import ContentType
+from allauth.socialaccount.models import SocialApp
 from .models import User
 
 
@@ -57,6 +58,7 @@ def register_admin_models():
     custom_admin_site.register(Permission, PermissionAdmin)
     custom_admin_site.register(ContentType, ContentTypeAdmin)
     custom_admin_site.register(DjangoUser, DjangoUserAdmin)
+    custom_admin_site.register(SocialApp)
 
 
 # Call registration function

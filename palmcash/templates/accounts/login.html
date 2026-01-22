@@ -171,6 +171,7 @@
                 </form>
                 
                 <!-- Social Login Divider -->
+                {% if socialaccount.providers.google %}
                 <div class="relative my-6">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-secondary-200"></div>
@@ -194,6 +195,7 @@
                         <span class="font-medium text-secondary-700">Continue with Google</span>
                     </button>
                 </form>
+                {% endif %}
                 
                 <div class="text-center mt-4">
                     <a href="{% url 'accounts:password_reset' %}" 
