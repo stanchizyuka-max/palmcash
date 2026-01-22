@@ -38,7 +38,6 @@ urlpatterns = [
     path('admin-auth/', include('palmcash.admin_urls')),
     path('', home_view, name='home'),
     path('home/', home_view, name='home_alt'),  # Handle /home/ requests
-    path('accounts/', include('allauth.urls')),
     path('accounts/', include('accounts.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('loans/', include('loans.urls')),
