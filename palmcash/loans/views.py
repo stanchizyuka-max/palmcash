@@ -2,11 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, View, TemplateView
 from django.contrib import messages
-from django.urls import reverse_lazy
-from django.http import HttpResponse, Http404
-from django.utils import timezone
-from django.views.decorators.csrf import csrf_protect
-from django.utils.decorators import method_decorator
+from django.urls import reverse
+from django.db.models import Q
 from .models import Loan, LoanType, LoanDocument
 from .forms import LoanApplicationForm, LoanDocumentForm, DocumentVerificationForm
 from .forms_enhanced import EnhancedLoanApplicationForm
@@ -1331,6 +1328,30 @@ class RecordSecurityDepositView(LoginRequiredMixin, View):
             messages.error(request, f'Invalid payment amount: {e}')
         
         return redirect('loans:detail', pk=pk)
+
+
+class LoanHistoryView(LoginRequiredMixin, ListView):
+    """View for borrower's loan history"""
+    model = Loan
+    template_name = 'loans/history.html'
+    context_object_name = 'loans'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        if self.request.user.role == 'borrower':
+            return Loan.objects.filter(borrower=self.request.user).order_by('-application_date')
+        return Loan.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.role == 'borrower':
+            context['total_loans'] = self.get_queryset().count()
+            context['active_loans'] = self.get_queryset().filter(status__in=['active', 'disbursed']).count()
+            context['completed_loans'] = self.get_queryset().filter(status='completed').count()
+            context['total_borrowed'] = self.get_queryset().aggregate(
+                total=models.Sum('principal_amount')
+            )['total'] or 0
+        return context
 
 
 class VerifySecurityDepositView(LoginRequiredMixin, View):
