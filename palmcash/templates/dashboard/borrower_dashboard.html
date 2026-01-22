@@ -3,12 +3,87 @@
 {% block title %}My Dashboard - LoanVista{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-secondary-50 py-8">
+<div class="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-secondary-900">Welcome, {{ user.get_full_name|default:user.username }}!</h1>
-            <p class="text-secondary-600 mt-2">Manage your loans and payments</p>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h1 class="text-4xl font-bold text-secondary-900 flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-tachometer-alt text-white text-xl"></i>
+                        </div>
+                        Welcome, {{ user.get_full_name|default:user.username }}!
+                    </h1>
+                    <p class="text-secondary-600 mt-2 ml-16">Manage your loans and payments efficiently</p>
+                </div>
+                
+                {% if user.can_apply_for_loan %}
+                <a href="{% url 'loans:apply' %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:from-primary-600 hover:to-primary-700 shadow-lg hover:shadow-xl transition-all duration-200">
+                    <i class="fas fa-plus mr-2"></i>Apply for Loan
+                </a>
+                {% else %}
+                <div class="relative group">
+                    <button class="inline-flex items-center px-6 py-3 bg-secondary-300 text-secondary-600 font-semibold rounded-xl cursor-not-allowed opacity-75" disabled>
+                        <i class="fas fa-lock mr-2"></i>Apply for Loan
+                    </button>
+                    <div class="absolute right-0 top-full mt-2 w-64 bg-warning-50 border border-warning-200 rounded-lg p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <p class="text-xs text-warning-800">Complete your current loan before applying for a new one</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-secondary-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-secondary-600 font-medium uppercase">Total Loans</p>
+                            <p class="text-2xl font-bold text-secondary-900 mt-1">{{ total_loans }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-invoice text-primary-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-secondary-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-success-600 font-medium uppercase">Active</p>
+                            <p class="text-2xl font-bold text-success-600 mt-1">{{ active_loans }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-success-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-secondary-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-warning-600 font-medium uppercase">Pending</p>
+                            <p class="text-2xl font-bold text-warning-600 mt-1">{{ pending_applications }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-warning-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-secondary-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-info-600 font-medium uppercase">Total Borrowed</p>
+                            <p class="text-2xl font-bold text-info-600 mt-1">K{{ total_borrowed|floatformat:0 }}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-info-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-info-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Alerts -->
