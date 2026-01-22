@@ -730,6 +730,12 @@
                     <i class="fas fa-history text-orange-600 text-2xl mb-2"></i>
                     <span class="text-sm font-medium text-orange-900">Loan History</span>
                 </a>
+                {% if first_active_loan %}
+                <a href="{% url 'loans:application_detail' first_active_loan.id %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors duration-200">
+                    <i class="fas fa-file-contract text-indigo-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-indigo-900">View Application</span>
+                </a>
+                {% endif %}
                 <a href="{% url 'accounts:profile' %}" class="flex flex-col items-center p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors duration-200">
                     <i class="fas fa-user-edit text-pink-600 text-2xl mb-2"></i>
                     <span class="text-sm font-medium text-pink-900">Update Profile</span>
@@ -737,11 +743,6 @@
                 <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-4 bg-success-50 rounded-lg hover:bg-success-100 transition-colors duration-200">
                     <i class="fas fa-credit-card text-success-600 text-2xl mb-2"></i>
                     <span class="text-sm font-medium text-success-900">My Payments</span>
-                </a>
-                </a>
-                <a href="{% url 'accounts:profile' %}" class="flex flex-col items-center p-4 bg-warning-50 rounded-lg hover:bg-warning-100 transition-colors duration-200">
-                    <i class="fas fa-user-circle text-warning-600 text-2xl mb-2"></i>
-                    <span class="text-sm font-medium text-warning-900">My Profile</span>
                 </a>
             </div>
         </div>

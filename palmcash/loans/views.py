@@ -1360,6 +1360,14 @@ class LoanApplicationDetailView(LoginRequiredMixin, DetailView):
     template_name = 'loans/application_detail.html'
     context_object_name = 'loan'
     
+    def get_object(self):
+        """Ensure borrowers can only access their own loans"""
+        loan = super().get_object()
+        if self.request.user.role == 'borrower' and loan.borrower != self.request.user:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("You can only view your own loan applications.")
+        return loan
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         loan = self.get_object()
