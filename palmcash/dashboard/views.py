@@ -782,7 +782,7 @@ def borrower_dashboard(request):
         'first_active_loan': first_active_loan,
     }
     
-    return render(request, 'dashboard/borrower_dashboard.html', context)
+    return render(request, 'dashboard/borrower_dashboard_restored.html', context)
 
 
 # Action Views for Dashboard Links
