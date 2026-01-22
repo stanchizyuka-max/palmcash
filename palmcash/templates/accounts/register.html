@@ -368,6 +368,7 @@
                     </form>
                     
                     <!-- Social Login Divider -->
+                    {% if socialaccount.providers.google %}
                     <div class="text-center my-3">
                         <div class="position-relative d-inline-block w-100">
                             <div class="border-top border-secondary"></div>
@@ -390,6 +391,7 @@
                             Sign up with Google
                         </button>
                     </form>
+                    {% endif %}
                     
                     <div class="text-center">
                         <p class="text-muted mb-1" style="font-size: 0.75rem;">Have an account?</p>
