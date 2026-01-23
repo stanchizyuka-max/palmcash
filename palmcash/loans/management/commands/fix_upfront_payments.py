@@ -28,12 +28,12 @@ class Command(BaseCommand):
         """Fix upfront payment for a specific borrower"""
         try:
             from accounts.models import User
-            # Try to find by username first, then by full name
+            # Try to find by username first, then by first_name
             try:
                 borrower = User.objects.get(username=username)
             except User.DoesNotExist:
-                # Try searching by full name
-                borrower = User.objects.get(full_name__icontains=username)
+                # Try searching by first_name
+                borrower = User.objects.get(first_name__iexact=username)
             
             # Find all loans for this borrower
             loans = Loan.objects.filter(borrower=borrower)
