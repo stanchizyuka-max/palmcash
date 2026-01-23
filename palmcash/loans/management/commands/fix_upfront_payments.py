@@ -28,18 +28,23 @@ class Command(BaseCommand):
         """Fix upfront payment for a specific borrower"""
         try:
             from accounts.models import User
-            borrower = User.objects.get(username=username)
+            # Try to find by username first, then by full name
+            try:
+                borrower = User.objects.get(username=username)
+            except User.DoesNotExist:
+                # Try searching by full name
+                borrower = User.objects.get(full_name__icontains=username)
             
             # Find all loans for this borrower
             loans = Loan.objects.filter(borrower=borrower)
             
-            self.stdout.write(f"Found {loans.count()} loans for {username}")
+            self.stdout.write(f"Found {loans.count()} loans for {borrower.get_full_name()}")
             
             for loan in loans:
                 self.fix_loan_upfront(loan)
                 
         except User.DoesNotExist:
-            self.stdout.write(self.style.ERROR(f'User {username} not found'))
+            self.stdout.write(self.style.ERROR(f'User "{username}" not found'))
     
     def fix_all_upfront_payments(self):
         """Fix upfront payments for all loans"""
