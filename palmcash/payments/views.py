@@ -230,6 +230,18 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         if loan.balance_remaining:
             loan.balance_remaining -= payment.amount
         
+        # Check if this is an upfront payment (security deposit)
+        # If the loan has an upfront payment requirement and hasn't been fully paid yet
+        if (loan.upfront_payment_required and 
+            loan.upfront_payment_paid < loan.upfront_payment_required and
+            not payment.payment_schedule):  # No payment schedule = upfront/security deposit
+            
+            # Update upfront payment amount
+            upfront_remaining = loan.upfront_payment_required - loan.upfront_payment_paid
+            upfront_amount = min(payment.amount, upfront_remaining)
+            loan.upfront_payment_paid += upfront_amount
+            loan.upfront_payment_date = payment.payment_date
+        
         # Check if loan is fully paid and update status
         self._update_loan_status_if_completed(loan)
         loan.save()
