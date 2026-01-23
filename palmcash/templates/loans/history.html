@@ -1,190 +1,205 @@
-{% extends 'base.html' %}
+{% extends 'base_tailwind.html' %}
 {% load static %}
 {% load widget_tweaks %}
 
 {% block title %}Loan History - Palm Cash{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-8">
-    <!-- Page Header -->
-    <div class="flex items-center justify-between mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Loan History</h1>
-            <p class="text-gray-600 mt-2">View your complete loan history and track your borrowing activity</p>
-        </div>
-        <div class="flex items-center space-x-4">
-            <a href="{% url 'dashboard:borrower_dashboard' %}" class="text-primary-600 hover:text-primary-900 font-medium">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-            </a>
-        </div>
-    </div>
-
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div class="flex items-center">
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <i class="fas fa-list text-blue-600 text-2xl"></i>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-slate-900 mb-2">
+                        <i class="fas fa-history text-green-600 mr-3"></i>
+                        Loan History
+                    </h1>
+                    <p class="text-lg text-slate-600">View your complete loan history and track your borrowing activity</p>
                 </div>
-                <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Total Loans</h3>
-                    <p class="text-3xl font-bold text-blue-600">{{ total_loans }}</p>
-                    <p class="text-sm text-gray-600">All loan applications</p>
-                </div>
+                <a href="{% url 'dashboard:borrower_dashboard' %}" class="inline-flex items-center px-6 py-3 bg-white border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition-colors duration-200 font-semibold shadow-md">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div class="flex items-center">
-                <div class="p-3 bg-green-100 rounded-full">
-                    <i class="fas fa-chart-line text-green-600 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Active Loans</h3>
-                    <p class="text-3xl font-bold text-green-600">{{ active_loans }}</p>
-                    <p class="text-sm text-gray-600">Currently active or disbursed</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div class="flex items-center">
-                <div class="p-3 bg-purple-100 rounded-full">
-                    <i class="fas fa-check-circle text-purple-600 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Completed Loans</h3>
-                    <p class="text-3xl font-bold text-purple-600">{{ completed_loans }}</p>
-                    <p class="text-sm text-gray-600">Fully paid off</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div class="flex items-center">
-                <div class="p-3 bg-orange-100 rounded-full">
-                    <i class="fas fa-money-bill-wave text-orange-600 text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-gray-900">Total Borrowed</h3>
-                    <p class="text-3xl font-bold text-orange-600">K {{ total_borrowed|floatformat:2 }}</p>
-                    <p class="text-sm text-gray-600">Total amount borrowed</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loans Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-semibold text-gray-900">Your Loans</h2>
-                <div class="text-sm text-gray-600">
-                    {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} loans
-                </div>
-            </div>
-
-            {% if page_obj %}
-                <div class="overflow-x-auto">
-                    <table class="w-full bg-white">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan #</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            {% for loan in page_obj.object_list %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    #{{ loan.id }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {% if loan.loan_type %}
-                                        {{ loan.loan_type.name }}
-                                    {% else %}
-                                        Loan
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    K {{ loan.principal_amount|floatformat:2 }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-3 py-1 rounded-full text-xs font-medium
-                                        {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
-                                        {% elif loan.status == 'approved' %}bg-success-100 text-success-800
-                                        {% elif loan.status == 'active' %}bg-info-100 text-info-800
-                                        {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
-                                        {% elif loan.status == 'completed' %}bg-secondary-100 text-secondary-800
-                                        {% endif %}">
-                                        {{ loan.get_status_display }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ loan.application_date|date:"M d, Y" }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <a href="{% url 'loans:detail' loan.id %}" class="text-primary-600 hover:text-primary-900 mr-3">
-                                        <i class="fas fa-eye"></i> View Details
-                                    </a>
-                                    <a href="{% url 'loans:application_detail' loan.id %}" class="text-green-600 hover:text-green-900">
-                                        <i class="fas fa-file-contract"></i> View Application
-                                    </a>
-                                </td>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                {% if page_obj.has_other_pages %}
-                    <div class="flex items-center justify-between mt-6">
-                        <div class="text-sm text-gray-600">
-                            Showing loans {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-                        </div>
-                        <div class="flex space-x-2">
-                            {% if page_obj.has_previous %}
-                                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                                    <i class="fas fa-chevron-left mr-1"></i>Previous
-                                </a>
-                            {% endif %}
-                            
-                            {% for num in page_obj.page_range %}
-                                {% if num == page_obj.number %}
-                                    <span class="px-3 py-2 bg-primary-600 text-white rounded-md text-sm font-medium">{{ num }}</span>
-                                {% else %}
-                                    <a href="?page={{ num }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">{{ num }}</a>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700">
-                                    Next<i class="fas fa-chevron-right ml-1"></i>
-                                </a>
-                            {% endif %}
-                        </div>
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Loans -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1 uppercase tracking-wide">Total Loans</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ total_loans }}</p>
+                        <p class="text-xs text-slate-500 mt-1">All loan applications</p>
                     </div>
-                {% endif %}
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-list text-blue-600 text-xl"></i>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    {% else %}
-        <div class="text-center py-16">
-            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-                <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
-                <h3 class="text-xl font-semibold text-gray-900 mb-4">No Loans Found</h3>
-                <p class="text-gray-600 mb-6">You haven't applied for any loans yet.</p>
-                <div class="mt-6">
-                    <a href="{% url 'loans:apply' %}" class="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium">
-                        <i class="fas fa-plus mr-2"></i>Apply for Your First Loan
-                    </a>
+
+            <!-- Active Loans -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1 uppercase tracking-wide">Active Loans</p>
+                        <p class="text-3xl font-bold text-green-600">{{ active_loans }}</p>
+                        <p class="text-xs text-slate-500 mt-1">Currently active or disbursed</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Loans -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1 uppercase tracking-wide">Completed Loans</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ completed_loans }}</p>
+                        <p class="text-xs text-slate-500 mt-1">Fully paid off</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-double text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Borrowed -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1 uppercase tracking-wide">Total Borrowed</p>
+                        <p class="text-3xl font-bold text-orange-600">K{{ total_borrowed|floatformat:0 }}</p>
+                        <p class="text-xs text-slate-500 mt-1">Total amount borrowed</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-orange-600 text-xl"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    {% endif %}
+
+        <!-- Loans Table -->
+        {% if page_obj %}
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <!-- Table Header -->
+            <div class="bg-gradient-to-r from-slate-50 to-blue-50 px-8 py-6 border-b border-slate-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-bold text-slate-900 flex items-center">
+                        <i class="fas fa-file-invoice text-green-600 mr-3"></i>
+                        Your Loans
+                    </h2>
+                    <div class="text-sm text-slate-600">
+                        <span class="font-semibold">{{ page_obj.start_index }}-{{ page_obj.end_index }}</span> of <span class="font-semibold">{{ page_obj.paginator.count }}</span> loans
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Loan #</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Application Date</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for loan in page_obj.object_list %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold text-slate-900">#{{ loan.id }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-700">
+                                {% if loan.loan_type %}
+                                    {{ loan.loan_type.name }}
+                                {% else %}
+                                    Loan
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold text-slate-900">K{{ loan.principal_amount|floatformat:2 }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold
+                                    {% if loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif loan.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
+                                    {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
+                                    {% elif loan.status == 'completed' %}bg-slate-100 text-slate-800
+                                    {% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-slate-600">
+                                {{ loan.application_date|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                                <a href="{% url 'loans:detail' loan.id %}" class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium">
+                                    <i class="fas fa-eye mr-1"></i>View Details
+                                </a>
+                                <a href="{% url 'loans:application_detail' loan.id %}" class="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition font-medium">
+                                    <i class="fas fa-file-contract mr-1"></i>Application
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-slate-50 px-8 py-6 border-t border-slate-200 flex items-center justify-between">
+                <div class="text-sm text-slate-600">
+                    Showing loans <span class="font-semibold">{{ page_obj.start_index }}</span> to <span class="font-semibold">{{ page_obj.end_index }}</span> of <span class="font-semibold">{{ page_obj.paginator.count }}</span>
+                </div>
+                <div class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium text-slate-700 transition">
+                            <i class="fas fa-chevron-left mr-1"></i>Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.page_range %}
+                        {% if num == page_obj.number %}
+                            <span class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium">{{ num }}</span>
+                        {% else %}
+                            <a href="?page={{ num }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium text-slate-700 transition">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium text-slate-700 transition">
+                            Next<i class="fas fa-chevron-right ml-1"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-12 text-center">
+            <div class="max-w-md mx-auto">
+                <div class="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <i class="fas fa-inbox text-slate-400 text-4xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900 mb-4">No Loans Found</h3>
+                <p class="text-slate-600 mb-8">You haven't applied for any loans yet.</p>
+                <a href="{% url 'loans:apply' %}" class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl">
+                    <i class="fas fa-plus mr-2"></i>Apply for Your First Loan
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
