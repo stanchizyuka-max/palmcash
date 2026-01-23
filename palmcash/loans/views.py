@@ -1351,6 +1351,12 @@ class LoanHistoryView(LoginRequiredMixin, ListView):
             context['total_borrowed'] = self.get_queryset().aggregate(
                 total=Sum('principal_amount')
             )['total'] or 0
+            
+            # Add payment history
+            from payments.models import Payment
+            context['payments'] = Payment.objects.filter(
+                loan__borrower=self.request.user
+            ).order_by('-payment_date')[:50]  # Show last 50 payments
         return context
 
 
