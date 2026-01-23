@@ -232,6 +232,17 @@ LOGOUT_REDIRECT_URL = '/'  # Redirect to home page after logout
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Palm Cash Specific Settings
+LOAN_INTEREST_RATE_DEFAULT = 15.0  # Default annual interest rate
+LOAN_PENALTY_RATE_DEFAULT = 2.0   # Default penalty rate for late payments
+LOAN_GRACE_PERIOD_DAYS = 7        # Grace period before penalties apply
+LOAN_UPFRONT_PAYMENT_PERCENTAGE = 10.0  # Upfront payment required (10% of principal)
+
 # Phone Number Configuration
 PHONENUMBER_DEFAULT_REGION = 'ZM'  # Zambia
 
@@ -239,11 +250,6 @@ PHONENUMBER_DEFAULT_REGION = 'ZM'  # Zambia
 CURRENCY_CODE = 'ZMW'
 CURRENCY_SYMBOL = 'K'
 
-# Palm Cash Specific Settings
-LOAN_INTEREST_RATE_DEFAULT = 15.0  # Default annual interest rate
-LOAN_PENALTY_RATE_DEFAULT = 2.0   # Default penalty rate for late payments
-LOAN_GRACE_PERIOD_DAYS = 7        # Grace period before penalties apply
-LOAN_UPFRONT_PAYMENT_PERCENTAGE = 10.0  # Upfront payment required (10% of principal)
 
 # Jazzmin Configuration
 JAZZMIN_SETTINGS = {

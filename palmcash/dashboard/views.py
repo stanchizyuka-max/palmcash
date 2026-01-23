@@ -1116,6 +1116,18 @@ def audit_logs(request):
     
     logs = AdminAuditLog.objects.all().order_by('-timestamp')
     
+    # Calculate statistics
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    
+    total_logs = logs.count()
+    today_logs = logs.filter(timestamp__date=today).count()
+    week_logs = logs.filter(timestamp__date__gte=week_ago).count()
+    active_admins = logs.values('admin_user').distinct().count()
+    
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(logs, 50)
@@ -1125,7 +1137,10 @@ def audit_logs(request):
     context = {
         'page_obj': page_obj,
         'logs': page_obj.object_list,
-        'total_logs': logs.count(),
+        'total_logs': total_logs,
+        'today_logs': today_logs,
+        'week_logs': week_logs,
+        'active_admins': active_admins,
     }
     
     return render(request, 'dashboard/audit_logs.html', context)
@@ -2125,6 +2140,14 @@ def user_create(request):
                 role=role,
                 phone_number=phone_number or '',
                 is_active=True
+            )
+            
+            # Log user creation in AdminAuditLog
+            AdminAuditLog.objects.create(
+                admin_user=request.user,
+                action='other',
+                affected_user=new_user,
+                description=f'Created user: {new_user.get_full_name()} ({role})'
             )
             
             # If loan officer, create officer assignment

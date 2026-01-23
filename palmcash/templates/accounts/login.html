@@ -169,6 +169,21 @@
                     </button>
                 </form>
                 
+                <!-- Social Login Divider -->
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-secondary-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4 bg-white text-secondary-500">Or continue with</span>
+                    </div>
+                </div>
+                
+                <!-- Traditional Login Only -->
+                <div class="mt-4 text-center text-sm text-secondary-600">
+                    <p>Use your email and password to sign in to your account.</p>
+                </div>
+                
                 <div class="text-center mt-4">
                     <a href="{% url 'accounts:password_reset' %}" 
                        class="text-xs text-primary-800 hover:text-primary-900 font-medium">

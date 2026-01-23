@@ -366,6 +366,22 @@
                         </div>
                     </form>
                     
+                    <!-- Registration Divider -->
+                    <div class="text-center my-3">
+                        <div class="position-relative d-inline-block w-100">
+                            <div class="border-top border-secondary"></div>
+                            <span class="position-absolute top-0 start-50 translate-middle bg-white px-3 text-muted small">
+                                Or register with
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Traditional Registration Only -->
+                    <div class="mt-4 text-center text-sm text-secondary-600">
+                        <p>Fill out the form below to create your Palm Cash account.</p>
+                    </div>
+                    {% endif %}
+                    
                     <div class="text-center">
                         <p class="text-muted mb-1" style="font-size: 0.75rem;">Have an account?</p>
                         <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary btn-sm px-2" style="font-size: 0.75rem;">
