@@ -78,8 +78,21 @@ class MakePaymentView(LoginRequiredMixin, CreateView):
                 payment_schedule = PaymentSchedule.objects.get(id=schedule_id, loan=loan)
                 form.instance.payment_schedule = payment_schedule
             except (ValueError, TypeError, PaymentSchedule.DoesNotExist):
-                # Invalid schedule_id or schedule doesn't exist, just ignore it
-                pass
+                # Invalid schedule_id or schedule doesn't exist, try to auto-link to oldest unpaid schedule
+                oldest_unpaid = PaymentSchedule.objects.filter(
+                    loan=loan,
+                    is_paid=False
+                ).order_by('due_date').first()
+                if oldest_unpaid:
+                    form.instance.payment_schedule = oldest_unpaid
+        else:
+            # If no schedule_id provided, try to auto-link to oldest unpaid schedule
+            oldest_unpaid = PaymentSchedule.objects.filter(
+                loan=loan,
+                is_paid=False
+            ).order_by('due_date').first()
+            if oldest_unpaid:
+                form.instance.payment_schedule = oldest_unpaid
         
         # Save the payment first
         response = super().form_valid(form)
