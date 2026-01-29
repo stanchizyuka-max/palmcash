@@ -42,6 +42,8 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'stan13.pythonanywhere.com',
+    'pashcashloans.site',
+    'www.pashcashloans.site',
 ]
 
 # CSRF Configuration for Development
@@ -49,6 +51,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://stan13.pythonanywhere.com',
+    'https://pashcashloans.site',
+    'https://www.pashcashloans.site',
 ]
 
 # Palm Cash System Configuration
