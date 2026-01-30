@@ -44,6 +44,7 @@ ALLOWED_HOSTS = [
     'stan13.pythonanywhere.com',
     'pashcashloans.site',
     'www.pashcashloans.site',
+    '139.177.199.13',
 ]
 
 # CSRF Configuration for Development
@@ -53,6 +54,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://stan13.pythonanywhere.com',
     'https://pashcashloans.site',
     'https://www.pashcashloans.site',
+    'https://139.177.199.13',
 ]
 
 # Palm Cash System Configuration
