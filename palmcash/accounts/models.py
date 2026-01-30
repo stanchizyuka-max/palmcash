@@ -1,8 +1,8 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
-class UserManager(models.Manager):
+class UserManager(DjangoUserManager):
     """Custom manager for User model"""
     
     def create_superuser(self, username, email, password, **extra_fields):
