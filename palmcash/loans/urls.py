@@ -30,9 +30,4 @@ urlpatterns = [
     # Admin management URLs
     path('manage/loan-types/', views.LoanTypesManageView.as_view(), name='manage_loan_types'),
     path('manage/loan-documents/', views.LoanDocumentsManageView.as_view(), name='manage_loan_documents'),
-    
-    # Application review URLs
-    path('applications/review/', views.ClientApplicationListView.as_view(), name='application_review_list'),
-    path('applications/<int:pk>/review/', views.ClientApplicationDetailView.as_view(), name='application_review_detail'),
-    path('applications/<int:pk>/download/', views.download_application_pdf, name='download_application_pdf'),
 ]
