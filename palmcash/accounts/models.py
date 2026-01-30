@@ -2,6 +2,22 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
 
+class UserManager(models.Manager):
+    """Custom manager for User model"""
+    
+    def create_superuser(self, username, email, password, **extra_fields):
+        """Create a superuser with admin role"""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')  # Set role to admin
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self.create_user(username, email, password, **extra_fields)
+
 class User(AbstractUser):
     """Extended User model for LoanVista"""
     
@@ -65,6 +81,8 @@ class User(AbstractUser):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    objects = UserManager()
     
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
