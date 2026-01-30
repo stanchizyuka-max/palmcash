@@ -48,7 +48,6 @@ urlpatterns = [
     path('messages/', include('internal_messages.urls')),
     path('reports/', include('reports.urls')),
     path('pages/', include('pages.urls')),
-    path('adminpanel/', include('adminpanel.urls')),
     path('expenses/', include('expenses.urls')),
 ]
 
