@@ -38,6 +38,15 @@ SECRET_KEY = "django-insecure-e%=%uz+trm+49+27jn)5q_2l910i1ny2m5$6u$h&cl@2%eh^mw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Security settings for production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
@@ -228,6 +237,16 @@ PASSWORD_RESET_TIMEOUT = 3600  # 1 hour in seconds
 # Celery Configuration (for background tasks)
 CELERY_BROKER_URL = 'redis://localhost:6379'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+
+# Session Configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
