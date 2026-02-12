@@ -51,16 +51,22 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'stan13.pythonanywhere.com',
+    'palmcashloans.site',
+    'www.palmcashloans.site',
     'pashcashloans.site',
     'www.pashcashloans.site',
     '139.177.199.13',
 ]
 
-# CSRF Configuration for Development
+# CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://stan13.pythonanywhere.com',
+    'https://palmcashloans.site',
+    'https://www.palmcashloans.site',
+    'http://palmcashloans.site',
+    'http://www.palmcashloans.site',
     'https://pashcashloans.site',
     'https://www.pashcashloans.site',
     'https://139.177.199.13',
@@ -244,9 +250,11 @@ SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_DOMAIN = None  # Let Django auto-detect from request
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_DOMAIN = None  # Let Django auto-detect from request
 
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
