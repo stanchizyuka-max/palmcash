@@ -72,6 +72,9 @@ CSRF_TRUSTED_ORIGINS = [
     'https://139.177.199.13',
 ]
 
+# CSRF Failure View
+CSRF_FAILURE_VIEW = 'common.views.csrf_failure'
+
 # Palm Cash System Configuration
 SYSTEM_LAUNCH_DATE = '2025-09-30'  # System development completion date
 
@@ -115,6 +118,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "palmcash.admin_auth.AdminAccessMiddleware",
+    "palmcash.middleware.EnsureCsrfCookieMiddleware",
 ]
 
 ROOT_URLCONF = "palmcash.urls"
