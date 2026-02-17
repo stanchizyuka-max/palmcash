@@ -1,22 +1,13 @@
-"""
-Custom middleware for Palm Cash application
-"""
-from django.middleware.csrf import get_token
+from django.middleware.csrf import CsrfViewMiddleware
 
 
-class EnsureCsrfCookieMiddleware:
+class EnsureCsrfCookieMiddleware(CsrfViewMiddleware):
     """
-    Middleware to ensure CSRF token is always set in cookies.
-    This fixes CSRF validation issues on POST requests.
+    Middleware that ensures CSRF cookie is set on all responses.
+    This helps prevent CSRF 403 errors on login and other forms.
     """
-    
-    def __init__(self, get_response):
-        self.get_response = get_response
-    
-    def __call__(self, request):
-        # Ensure CSRF token is set for all GET requests
-        if request.method == 'GET':
-            get_token(request)
-        
-        response = self.get_response(request)
-        return response
+    def process_response(self, request, response):
+        # Ensure CSRF cookie is set
+        if not request.META.get('CSRF_COOKIE'):
+            self.process_request(request)
+        return super().process_response(request, response)
