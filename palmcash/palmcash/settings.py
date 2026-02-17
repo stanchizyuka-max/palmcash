@@ -115,7 +115,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "palmcash.admin_auth.AdminAccessMiddleware",
-    "palmcash.middleware.EnsureCsrfCookieMiddleware",
 ]
 
 ROOT_URLCONF = "palmcash.urls"
