@@ -15,10 +15,10 @@ import os
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load environment variables from .env file
-env_file = BASE_DIR / '.env'
+env_file = BASE_DIR / 'palmcash' / '.env'
 load_dotenv(env_file)
 
 # Debug: Print what we're loading (remove in production)
