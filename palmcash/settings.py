@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
 env_file = BASE_DIR / 'palmcash' / '.env'
@@ -150,9 +150,9 @@ TESTING = 'pytest' in sys.modules or 'test' in sys.argv
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3" if TESTING else "django.db.backends.mysql",
-        "NAME": BASE_DIR / "test_db.sqlite3" if TESTING else os.environ.get('DB_NAME', 'palmcash_db'),
-        "USER": "" if TESTING else os.environ.get('DB_USER', 'root'),
-        "PASSWORD": "" if TESTING else os.environ.get('DB_PASSWORD', ''),
+        "NAME": BASE_DIR / "test_db.sqlite3" if TESTING else os.environ.get('DB_NAME', 'iwnd349_palmcash'),
+        "USER": "" if TESTING else os.environ.get('DB_USER', 'palmcash'),
+        "PASSWORD": "" if TESTING else os.environ.get('DB_PASSWORD', 'palmcash2026'),
         "HOST": "" if TESTING else os.environ.get('DB_HOST', 'localhost'),
         "PORT": "" if TESTING else os.environ.get('DB_PORT', '3306'),
         "OPTIONS": {
