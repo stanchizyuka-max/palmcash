@@ -57,6 +57,7 @@ Thumbs.db
 
 ecosystem.config.js
 server.py
+.venv
 
 # Migrations (optional - uncomment if you don't want to track migrations)
 # */migrations/*.py
