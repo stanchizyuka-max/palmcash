@@ -63,7 +63,7 @@
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
                         <i class="fas fa-filter mr-2"></i>Apply Filters
                     </button>
-                    <a href="{% url 'loans:application_review_list' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                    <a href="{% url 'loans:document_review_dashboard' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
                         <i class="fas fa-times mr-2"></i>Clear
                     </a>
                 </div>
@@ -224,7 +224,7 @@
                     <h3 class="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
                     <p class="text-gray-500">No client applications match your current filters.</p>
                     <div class="mt-6">
-                        <a href="{% url 'loans:application_review_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <a href="{% url 'loans:document_review_dashboard' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             <i class="fas fa-times mr-2"></i>Clear Filters
                         </a>
                     </div>
