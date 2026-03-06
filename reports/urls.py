@@ -13,4 +13,9 @@ urlpatterns = [
     path('payments/export/', views.PaymentExportView.as_view(), name='payments_export'),
     path('financial/', views.FinancialReportView.as_view(), name='financial'),
     path('financial/export/', views.FinancialExportView.as_view(), name='financial_export'),
+    # Alias URLs for backward compatibility
+    path('disbursement/', views.LoanExportView.as_view(), name='disbursement_report'),
+    path('collection/', views.PaymentReportView.as_view(), name='collection_report'),
+    path('deposit/', views.FinancialReportView.as_view(), name='deposit_report'),
+    path('returns/', views.FinancialReportView.as_view(), name='returns_report'),
 ]
