@@ -537,7 +537,11 @@ class OfficerClientsListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         officer_id = self.kwargs.get('officer_id')
-        officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
+        # Admins can view any user's clients, others must be loan officers
+        if self.request.user.role == 'admin':
+            officer = get_object_or_404(User, pk=officer_id)
+        else:
+            officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
         
         from django.db.models import Q
         
@@ -586,7 +590,11 @@ class OfficerClientsListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         officer_id = self.kwargs.get('officer_id')
-        officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
+        # Admins can view any user's clients, others must be loan officers
+        if self.request.user.role == 'admin':
+            officer = get_object_or_404(User, pk=officer_id)
+        else:
+            officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
         
         context['officer'] = officer
         context['total_clients'] = self.get_queryset().count()
