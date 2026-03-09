@@ -2162,6 +2162,7 @@ def user_create(request):
                 try:
                     OfficerAssignment.objects.create(
                         officer=new_user,
+                        branch_id='',  # Set branch_id to empty string
                         max_groups=15,
                         max_clients=50,
                         is_accepting_assignments=True
