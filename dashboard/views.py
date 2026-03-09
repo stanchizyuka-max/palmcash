@@ -3583,7 +3583,17 @@ def groups_permissions(request):
     if request.user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
     
-    return render(request, 'dashboard/admin/groups_permissions.html')
+    from django.contrib.auth.models import Group, Permission
+    
+    groups = Group.objects.all()
+    permissions = Permission.objects.all()
+    
+    context = {
+        'groups': groups,
+        'permissions': permissions,
+    }
+    
+    return render(request, 'dashboard/admin/groups_permissions.html', context)
 
 
 @login_required
