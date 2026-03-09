@@ -2091,8 +2091,8 @@ def user_create(request):
     """Create a new user (officer or manager)"""
     user = request.user
     
-    # Check if user is admin
-    if user.role != 'admin':
+    # Check if user is admin or manager
+    if user.role not in ['admin', 'manager']:
         return render(request, 'dashboard/access_denied.html')
     
     if request.method == 'POST':
@@ -2105,6 +2105,12 @@ def user_create(request):
             role = request.POST.get('role')
             password = request.POST.get('password')
             password_confirm = request.POST.get('password_confirm')
+            
+            # Managers can only create loan officers, not other managers or admins
+            if user.role == 'manager' and role not in ['loan_officer']:
+                return render(request, 'dashboard/user_form.html', {
+                    'error': 'Managers can only create loan officers',
+                })
             
             # Validate required fields
             if not all([username, email, first_name, last_name, role, password]):
