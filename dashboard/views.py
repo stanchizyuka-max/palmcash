@@ -2158,25 +2158,17 @@ def user_create(request):
             
             # If loan officer, create officer assignment
             if role == 'loan_officer':
-                from clients.models import OfficerAssignment, Branch
-                
-                # Get the manager's branch if they're a manager, otherwise use first branch
-                if user.role == 'manager':
-                    try:
-                        branch = user.managed_branch
-                    except:
-                        branch = Branch.objects.first()
-                else:
-                    branch = Branch.objects.first()
-                
-                if branch:
+                from clients.models import OfficerAssignment
+                try:
                     OfficerAssignment.objects.create(
                         officer=new_user,
-                        branch=branch,
                         max_groups=15,
                         max_clients=50,
                         is_accepting_assignments=True
                     )
+                except Exception as assignment_error:
+                    # Log the error but don't fail user creation
+                    print(f"Warning: Could not create OfficerAssignment: {assignment_error}")
             
             # Redirect to manage officers
             from django.shortcuts import redirect
