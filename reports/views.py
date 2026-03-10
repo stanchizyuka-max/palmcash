@@ -322,7 +322,6 @@ class LoanReportView(LoginRequiredMixin, TemplateView):
     template_name = 'reports/loan_report.html'
     
     def dispatch(self, request, *args, **kwargs):
-        # Only admins and managers can access system reports
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             from django.contrib import messages
             from django.shortcuts import redirect
@@ -333,10 +332,24 @@ class LoanReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get all loans
-        all_loans = Loan.objects.all().select_related('borrower', 'loan_officer').order_by('-application_date')
+        if self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                
+                branch_borrowers = User.objects.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch),
+                    role='borrower'
+                ).values_list('id', flat=True).distinct()
+                
+                all_loans = Loan.objects.filter(
+                    borrower_id__in=branch_borrowers
+                ).select_related('borrower', 'loan_officer').order_by('-application_date')
+            except:
+                all_loans = Loan.objects.none()
+        else:
+            all_loans = Loan.objects.all().select_related('borrower', 'loan_officer').order_by('-application_date')
         
-        # Loan statistics
         context['total_loans'] = all_loans.count()
         context['total_disbursed'] = all_loans.filter(status__in=['active', 'completed']).aggregate(total=Sum('principal_amount'))['total'] or 0
         context['active_loans'] = all_loans.filter(status='active').count()
@@ -344,10 +357,8 @@ class LoanReportView(LoginRequiredMixin, TemplateView):
         context['pending_loans'] = all_loans.filter(status='pending').count()
         context['rejected_loans'] = all_loans.filter(status='rejected').count()
         
-        # Recent loans (last 50)
         context['recent_loans'] = all_loans[:50]
         
-        # Monthly loan summary
         monthly_loans = all_loans.annotate(
             month=TruncMonth('application_date')
         ).values('month').annotate(
@@ -357,14 +368,12 @@ class LoanReportView(LoginRequiredMixin, TemplateView):
         
         context['monthly_loans'] = monthly_loans
         
-        # Loan status breakdown
         status_breakdown = all_loans.values('status').annotate(
             count=Count('id'),
             total_amount=Sum('principal_amount')
         )
         context['status_breakdown'] = status_breakdown
         
-        # Approval rate
         total_applications = all_loans.count()
         approved_loans = all_loans.filter(status__in=['approved', 'active', 'completed']).count()
         context['approval_rate'] = (approved_loans / total_applications * 100) if total_applications > 0 else 0
@@ -387,7 +396,6 @@ class PaymentReportView(LoginRequiredMixin, TemplateView):
     template_name = 'reports/payment_report.html'
     
     def dispatch(self, request, *args, **kwargs):
-        # Only admins and managers can access system reports
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             from django.contrib import messages
             from django.shortcuts import redirect
@@ -398,19 +406,32 @@ class PaymentReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get all payments
-        all_payments = Payment.objects.all().select_related('loan', 'loan__borrower').order_by('-payment_date')
+        if self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                from clients.models import BorrowerGroup
+                
+                branch_borrowers = User.objects.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch),
+                    role='borrower'
+                ).values_list('id', flat=True).distinct()
+                
+                all_payments = Payment.objects.filter(
+                    loan__borrower_id__in=branch_borrowers
+                ).select_related('loan', 'loan__borrower').order_by('-payment_date')
+            except:
+                all_payments = Payment.objects.none()
+        else:
+            all_payments = Payment.objects.all().select_related('loan', 'loan__borrower').order_by('-payment_date')
         
-        # Payment statistics
         context['total_payments'] = all_payments.count()
         context['total_amount'] = all_payments.aggregate(total=Sum('amount'))['total'] or 0
         context['completed_payments'] = all_payments.filter(status='completed').count()
         context['pending_payments'] = all_payments.filter(status='pending').count()
         
-        # Recent payments (last 50)
         context['recent_payments'] = all_payments[:50]
         
-        # Monthly payment summary
         monthly_payments = all_payments.filter(
             status='completed'
         ).annotate(
@@ -422,7 +443,6 @@ class PaymentReportView(LoginRequiredMixin, TemplateView):
         
         context['monthly_payments'] = monthly_payments
         
-        # Payment status breakdown
         status_breakdown = all_payments.values('status').annotate(
             count=Count('id'),
             total_amount=Sum('amount')
@@ -447,7 +467,6 @@ class FinancialReportView(LoginRequiredMixin, TemplateView):
     template_name = 'reports/financial_report.html'
     
     def dispatch(self, request, *args, **kwargs):
-        # Only admins and managers can access system reports
         if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
             from django.contrib import messages
             from django.shortcuts import redirect
@@ -458,9 +477,32 @@ class FinancialReportView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Financial overview
-        total_disbursed = Loan.objects.filter(status__in=['active', 'completed']).aggregate(total=Sum('principal_amount'))['total'] or 0
-        total_collected = Payment.objects.filter(status='completed').aggregate(total=Sum('amount'))['total'] or 0
+        if self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                
+                branch_borrowers = User.objects.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch),
+                    role='borrower'
+                ).values_list('id', flat=True).distinct()
+                
+                total_disbursed = Loan.objects.filter(
+                    borrower_id__in=branch_borrowers,
+                    status__in=['active', 'completed']
+                ).aggregate(total=Sum('principal_amount'))['total'] or 0
+                
+                total_collected = Payment.objects.filter(
+                    loan__borrower_id__in=branch_borrowers,
+                    status='completed'
+                ).aggregate(total=Sum('amount'))['total'] or 0
+            except:
+                total_disbursed = 0
+                total_collected = 0
+        else:
+            total_disbursed = Loan.objects.filter(status__in=['active', 'completed']).aggregate(total=Sum('principal_amount'))['total'] or 0
+            total_collected = Payment.objects.filter(status='completed').aggregate(total=Sum('amount'))['total'] or 0
+        
         outstanding_balance = total_disbursed - total_collected
         
         context['total_disbursed'] = total_disbursed
@@ -468,21 +510,47 @@ class FinancialReportView(LoginRequiredMixin, TemplateView):
         context['outstanding_balance'] = outstanding_balance
         context['collection_rate'] = (total_collected / total_disbursed * 100) if total_disbursed > 0 else 0
         
-        # Monthly financial data
         monthly_financial = []
         for i in range(12):
             month_date = date.today().replace(day=1) - timedelta(days=30*i)
-            month_disbursed = Loan.objects.filter(
-                disbursement_date__year=month_date.year,
-                disbursement_date__month=month_date.month,
-                status__in=['active', 'completed']
-            ).aggregate(total=Sum('principal_amount'))['total'] or 0
             
-            month_collected = Payment.objects.filter(
-                payment_date__year=month_date.year,
-                payment_date__month=month_date.month,
-                status='completed'
-            ).aggregate(total=Sum('amount'))['total'] or 0
+            if self.request.user.role == 'manager':
+                try:
+                    manager_branch = self.request.user.managed_branch.name
+                    branch_borrowers = User.objects.filter(
+                        Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                        Q(assigned_officer__officerassignment__branch=manager_branch),
+                        role='borrower'
+                    ).values_list('id', flat=True).distinct()
+                    
+                    month_disbursed = Loan.objects.filter(
+                        borrower_id__in=branch_borrowers,
+                        disbursement_date__year=month_date.year,
+                        disbursement_date__month=month_date.month,
+                        status__in=['active', 'completed']
+                    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+                    
+                    month_collected = Payment.objects.filter(
+                        loan__borrower_id__in=branch_borrowers,
+                        payment_date__year=month_date.year,
+                        payment_date__month=month_date.month,
+                        status='completed'
+                    ).aggregate(total=Sum('amount'))['total'] or 0
+                except:
+                    month_disbursed = 0
+                    month_collected = 0
+            else:
+                month_disbursed = Loan.objects.filter(
+                    disbursement_date__year=month_date.year,
+                    disbursement_date__month=month_date.month,
+                    status__in=['active', 'completed']
+                ).aggregate(total=Sum('principal_amount'))['total'] or 0
+                
+                month_collected = Payment.objects.filter(
+                    payment_date__year=month_date.year,
+                    payment_date__month=month_date.month,
+                    status='completed'
+                ).aggregate(total=Sum('amount'))['total'] or 0
             
             monthly_financial.append({
                 'month': month_date.strftime('%B %Y'),
@@ -493,11 +561,28 @@ class FinancialReportView(LoginRequiredMixin, TemplateView):
         
         context['monthly_financial'] = list(reversed(monthly_financial))
         
-        # Overdue analysis
-        overdue_schedules = PaymentSchedule.objects.filter(
-            due_date__lt=date.today(),
-            is_paid=False
-        )
+        if self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                branch_borrowers = User.objects.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch),
+                    role='borrower'
+                ).values_list('id', flat=True).distinct()
+                
+                overdue_schedules = PaymentSchedule.objects.filter(
+                    loan__borrower_id__in=branch_borrowers,
+                    due_date__lt=date.today(),
+                    is_paid=False
+                )
+            except:
+                overdue_schedules = PaymentSchedule.objects.none()
+        else:
+            overdue_schedules = PaymentSchedule.objects.filter(
+                due_date__lt=date.today(),
+                is_paid=False
+            )
+        
         context['overdue_amount'] = overdue_schedules.aggregate(total=Sum('total_amount'))['total'] or 0
         context['overdue_count'] = overdue_schedules.count()
         
