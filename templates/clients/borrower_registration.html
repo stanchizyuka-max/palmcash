@@ -128,5 +128,17 @@
     .form-control {
         @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
     }
+    
+    select.form-control {
+        @apply appearance-none bg-white cursor-pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        padding-right: 2.5rem;
+    }
+    
+    textarea.form-control {
+        @apply resize-vertical;
+    }
 </style>
 {% endblock %}
