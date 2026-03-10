@@ -36,7 +36,16 @@ def dashboard(request):
     elif user.role == 'admin':
         return admin_dashboard(request)
     elif user.role == 'borrower':
-        return borrower_dashboard(request)
+        # Redirect borrowers to loan officer's borrower management
+        # Find their assigned loan officer
+        if user.assigned_officer:
+            from django.shortcuts import redirect
+            return redirect('clients:officer_clients', officer_id=user.assigned_officer.id)
+        else:
+            # If no officer assigned, show a message
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a loan officer. Please contact your administrator.'
+            })
     else:
         return render(request, 'dashboard/access_denied.html', {
             'message': f'Unknown role: {user.role}. Please contact your administrator.'
