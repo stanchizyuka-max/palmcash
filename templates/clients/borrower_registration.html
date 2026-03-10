@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Register New Borrower</h1>
         <p class="text-gray-600 mb-8">Collect borrower information for PalmCash system</p>
         
@@ -16,7 +16,7 @@
             {% endfor %}
         {% endif %}
         
-        <form method="post" class="space-y-8">
+        <form method="post" class="space-y-6">
             {% csrf_token %}
             
             <!-- Personal Information Section -->
@@ -30,7 +30,7 @@
                                     {{ field.label }}
                                     {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
                                 </label>
-                                {% if field.name in 'gender,marital_status,employment_status' %}
+                                {% if field.name in 'gender,marital_status' %}
                                     <select name="{{ field.name }}" id="{{ field.id_for_label }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white cursor-pointer" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%23333%22 d=%22M6 9L1 4h10z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.5rem;" {% if field.field.required %}required{% endif %}>
                                         <option value="">---------</option>
                                         {% for value, label in field.field.choices %}
@@ -146,7 +146,7 @@
             <!-- Form Actions -->
             <div class="flex gap-3 pt-4 border-t">
                 <button type="submit" class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                    Register Borrower
+                    Continue to Photo Upload
                 </button>
                 <a href="{% url 'clients:group_list' %}" class="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium text-center">
                     Cancel

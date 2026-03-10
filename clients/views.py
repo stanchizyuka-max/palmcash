@@ -953,7 +953,6 @@ class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('clients:group_list')
     
     def dispatch(self, request, *args, **kwargs):
-        # Only loan officers, managers, and admins can register borrowers
         if request.user.role not in ['loan_officer', 'manager', 'admin']:
             messages.error(request, 'Only loan officers can register borrowers.')
             return redirect('dashboard:dashboard')
@@ -969,16 +968,13 @@ class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        # Set role to borrower
         form.instance.role = 'borrower'
         form.instance.is_active = True
         
-        # Set a default password
         import secrets
         password = secrets.token_urlsafe(12)
         form.instance.set_password(password)
         
-        # If loan officer, assign them as the officer
         if self.request.user.role == 'loan_officer':
             form.instance.assigned_officer = self.request.user
         
@@ -987,7 +983,59 @@ class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
         messages.success(
             self.request, 
             f'Borrower "{form.instance.get_full_name()}" registered successfully! '
-            f'Temporary password has been set. They can reset it on first login.'
+            f'Please upload the required photos.'
         )
         
-        return response
+        return redirect('clients:borrower_photo_upload', pk=form.instance.pk)
+
+
+class BorrowerPhotoUploadView(LoginRequiredMixin, View):
+    """Upload photos for borrower verification"""
+    template_name = 'clients/borrower_photo_upload.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can upload borrower photos.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, pk):
+        borrower = get_object_or_404(User, pk=pk, role='borrower')
+        from accounts.forms import BorrowerPhotoUploadForm
+        form = BorrowerPhotoUploadForm()
+        return render(request, self.template_name, {'form': form, 'borrower': borrower})
+    
+    def post(self, request, pk):
+        borrower = get_object_or_404(User, pk=pk, role='borrower')
+        from accounts.forms import BorrowerPhotoUploadForm
+        form = BorrowerPhotoUploadForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            try:
+                from documents.models import ClientDocument
+                
+                photos = {
+                    'nrc_front': form.cleaned_data['nrc_front'],
+                    'nrc_back': form.cleaned_data['nrc_back'],
+                    'live_selfie': form.cleaned_data['live_selfie'],
+                }
+                
+                for doc_type, file in photos.items():
+                    ClientDocument.objects.create(
+                        client=borrower,
+                        document_type=doc_type,
+                        document_file=file,
+                        status='pending',
+                        uploaded_by=request.user
+                    )
+                
+                messages.success(
+                    request,
+                    f'Photos uploaded successfully for {borrower.get_full_name()}. '
+                    f'Awaiting manager verification.'
+                )
+                return redirect('clients:group_list')
+            except Exception as e:
+                messages.error(request, f'Error uploading photos: {str(e)}')
+        
+        return render(request, self.template_name, {'form': form, 'borrower': borrower})

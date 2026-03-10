@@ -15,6 +15,7 @@ urlpatterns = [
     
     # Borrower registration
     path('borrowers/register/', views.BorrowerRegistrationView.as_view(), name='register_borrower'),
+    path('borrowers/<int:pk>/upload-photos/', views.BorrowerPhotoUploadView.as_view(), name='borrower_photo_upload'),
     
     # Client assignment
     path('clients/<int:client_id>/assign-officer/', views.AssignClientToOfficerView.as_view(), name='assign_client'),

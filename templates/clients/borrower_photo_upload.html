@@ -1,0 +1,107 @@
+{% extends 'base_tailwind.html' %}
+
+{% block title %}Upload Borrower Photos{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Upload Borrower Photos</h1>
+        <p class="text-gray-600 mb-2">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
+        <p class="text-gray-600 mb-8">Upload the required verification photos</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if message.tags %}bg-{{ message.tags }}-100 text-{{ message.tags }}-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-blue-900 text-sm">
+                    <strong>Required Photos:</strong> Please upload clear, high-quality photos of the borrower's NRC (front and back) and a live selfie.
+                </p>
+            </div>
+            
+            <!-- NRC Front -->
+            <div>
+                <label for="{{ form.nrc_front.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    NRC Front <span class="text-red-500">*</span>
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                    <input type="file" name="nrc_front" id="{{ form.nrc_front.id_for_label }}" accept="image/*" class="hidden" required />
+                    <label for="{{ form.nrc_front.id_for_label }}" class="cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20a4 4 0 004 4h24a4 4 0 004-4V16a4 4 0 00-4-4h-8l-4-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="24" cy="24" r="6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-600">Click to upload NRC front photo</p>
+                    </label>
+                </div>
+                {% if form.nrc_front.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.nrc_front.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- NRC Back -->
+            <div>
+                <label for="{{ form.nrc_back.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    NRC Back <span class="text-red-500">*</span>
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                    <input type="file" name="nrc_back" id="{{ form.nrc_back.id_for_label }}" accept="image/*" class="hidden" required />
+                    <label for="{{ form.nrc_back.id_for_label }}" class="cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20a4 4 0 004 4h24a4 4 0 004-4V16a4 4 0 00-4-4h-8l-4-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="24" cy="24" r="6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-600">Click to upload NRC back photo</p>
+                    </label>
+                </div>
+                {% if form.nrc_back.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.nrc_back.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Live Selfie -->
+            <div>
+                <label for="{{ form.live_selfie.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Live Selfie <span class="text-red-500">*</span>
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                    <input type="file" name="live_selfie" id="{{ form.live_selfie.id_for_label }}" accept="image/*" class="hidden" required />
+                    <label for="{{ form.live_selfie.id_for_label }}" class="cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20a4 4 0 004 4h24a4 4 0 004-4V16a4 4 0 00-4-4h-8l-4-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="24" cy="24" r="6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-600">Click to upload live selfie photo</p>
+                    </label>
+                </div>
+                {% if form.live_selfie.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.live_selfie.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="flex gap-3 pt-4 border-t">
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Submit for Verification
+                </button>
+                <a href="{% url 'clients:group_list' %}" class="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium text-center">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

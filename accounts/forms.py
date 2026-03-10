@@ -60,6 +60,25 @@ class BorrowerRegistrationForm(forms.ModelForm):
         }
 
 
+class BorrowerPhotoUploadForm(forms.Form):
+    """Simple form for uploading borrower photos"""
+    nrc_front = forms.ImageField(
+        label='NRC Front',
+        required=True,
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'})
+    )
+    nrc_back = forms.ImageField(
+        label='NRC Back',
+        required=True,
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'})
+    )
+    live_selfie = forms.ImageField(
+        label='Live Selfie',
+        required=True,
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'})
+    )
+
+
 class CustomPasswordResetForm(PasswordResetForm):
     """Custom password reset form with better styling"""
     email = forms.EmailField(
