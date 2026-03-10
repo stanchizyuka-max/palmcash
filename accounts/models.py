@@ -61,6 +61,25 @@ class User(AbstractUser):
     # Residential Information
     residential_address = models.TextField(blank=True)
     residential_duration = models.IntegerField(blank=True, null=True, help_text='Residential duration in years')
+    province = models.CharField(max_length=100, blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    residential_area = models.CharField(max_length=255, blank=True)
+    
+    # Personal Information
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    
+    MARITAL_STATUS_CHOICES = [
+        ('single', 'Single'),
+        ('married', 'Married'),
+        ('divorced', 'Divorced'),
+        ('widowed', 'Widowed'),
+    ]
+    marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, blank=True)
     
     # References
     reference1_name = models.CharField(max_length=255, blank=True)

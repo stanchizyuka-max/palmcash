@@ -949,7 +949,7 @@ class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
     """Register a new borrower - for loan officers"""
     model = User
     template_name = 'clients/borrower_registration.html'
-    fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'date_of_birth', 'national_id', 'address']
+    form_class = None
     success_url = reverse_lazy('clients:group_list')
     
     def dispatch(self, request, *args, **kwargs):
@@ -958,6 +958,10 @@ class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
             messages.error(request, 'Only loan officers can register borrowers.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_class(self):
+        from accounts.forms import BorrowerRegistrationForm
+        return BorrowerRegistrationForm
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
