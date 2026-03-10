@@ -29,9 +29,15 @@ class GroupListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = BorrowerGroup.objects.all()
         
-        # Loan officers only see their assigned groups
         if self.request.user.role == 'loan_officer':
             queryset = queryset.filter(assigned_officer=self.request.user)
+        
+        elif self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                queryset = queryset.filter(branch=manager_branch)
+            except:
+                queryset = BorrowerGroup.objects.none()
         
         return queryset.order_by('-created_at')
     
@@ -371,7 +377,6 @@ class BorrowerListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = User.objects.filter(role='borrower', is_active=True)
         
-        # Loan officers see borrowers assigned to them OR in their groups
         if self.request.user.role == 'loan_officer':
             from django.db.models import Q
             
@@ -380,13 +385,26 @@ class BorrowerListView(LoginRequiredMixin, ListView):
                 Q(group_memberships__group__assigned_officer=self.request.user, group_memberships__is_active=True)
             ).distinct()
         
+        elif self.request.user.role == 'manager':
+            from django.db.models import Q
+            from clients.models import OfficerAssignment
+            
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                
+                queryset = queryset.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch)
+                ).distinct()
+            except:
+                queryset = User.objects.none()
+        
         return queryset.order_by('last_name', 'first_name')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_borrowers'] = self.get_queryset().count()
         
-        # Add group information for loan officers
         if self.request.user.role == 'loan_officer':
             context['officer_groups'] = BorrowerGroup.objects.filter(
                 assigned_officer=self.request.user,

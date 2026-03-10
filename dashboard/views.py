@@ -2804,10 +2804,10 @@ def admin_transfer_history(request):
 
 @login_required
 def admin_client_transfer(request):
-    """Admin view: Transfer a client to a different group"""
+    """Admin/Manager view: Transfer a client to a different group"""
     user = request.user
     
-    if user.role != 'admin':
+    if user.role not in ['admin', 'manager']:
         return render(request, 'dashboard/access_denied.html')
     
     if request.method == 'POST':
@@ -2816,66 +2816,163 @@ def admin_client_transfer(request):
             destination_group_id = request.POST.get('destination_group')
             reason = request.POST.get('reason')
             
-            # Validate required fields
             if not client_id or not destination_group_id or not reason:
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Client, destination group, and reason are required',
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Get client
             try:
                 client = User.objects.get(id=client_id, role='borrower')
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        if not (client.group_memberships.filter(group__branch=manager_branch, is_active=True).exists() or
+                                client.assigned_officer.officerassignment_set.filter(branch=manager_branch).exists()):
+                            raise User.DoesNotExist
+                    except:
+                        raise User.DoesNotExist
             except User.DoesNotExist:
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Client not found',
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Get destination group
             try:
                 dest_group = BorrowerGroup.objects.get(id=destination_group_id)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        if dest_group.branch != manager_branch:
+                            raise BorrowerGroup.DoesNotExist
+                    except:
+                        raise BorrowerGroup.DoesNotExist
             except BorrowerGroup.DoesNotExist:
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Destination group not found',
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Validate destination group is active
             if not dest_group.is_active:
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Destination group is not active',
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Validate destination group is not at capacity
             if dest_group.is_full:
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': f'Destination group is at capacity ({dest_group.member_count}/{dest_group.max_members})',
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Get current group membership
             try:
                 current_membership = GroupMembership.objects.get(borrower=client, is_active=True)
                 previous_group = current_membership.group
             except GroupMembership.DoesNotExist:
                 previous_group = None
             
-            # Check for active loans (but allow transfer with option to transfer loans)
             active_loans = Loan.objects.filter(borrower=client, status='active')
             pending_loans = Loan.objects.filter(borrower=client, status='pending')
-            
-            # Get all loans that could be transferred
             transferable_loans = Loan.objects.filter(borrower=client).exclude(status__in=['completed', 'rejected'])
             
             if transferable_loans.exists() and not request.POST.get('transfer_loans'):
-                # Show confirmation form for loan transfer
+                clients_query = User.objects.filter(role='borrower')
+                groups_query = BorrowerGroup.objects.filter(is_active=True)
+                
+                if user.role == 'manager':
+                    try:
+                        manager_branch = user.managed_branch.name
+                        clients_query = clients_query.filter(
+                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                            Q(assigned_officer__officerassignment__branch=manager_branch)
+                        ).distinct()
+                        groups_query = groups_query.filter(branch=manager_branch)
+                    except:
+                        clients_query = User.objects.none()
+                        groups_query = BorrowerGroup.objects.none()
+                
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'show_loan_transfer_confirm': True,
                     'client': client,
@@ -2883,16 +2980,14 @@ def admin_client_transfer(request):
                     'transferable_loans': transferable_loans,
                     'active_loans': active_loans,
                     'pending_loans': pending_loans,
-                    'clients': User.objects.filter(role='borrower'),
-                    'groups': BorrowerGroup.objects.filter(is_active=True),
+                    'clients': clients_query,
+                    'groups': groups_query,
                 })
             
-            # Deactivate current membership if exists
             if previous_group:
                 current_membership.is_active = False
                 current_membership.save()
             
-            # Create new membership
             new_membership = GroupMembership.objects.create(
                 borrower=client,
                 group=dest_group,
