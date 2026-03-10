@@ -943,3 +943,47 @@ class UserVerificationManagementView(LoginRequiredMixin, ListView):
         context['status_filter'] = self.request.GET.get('status', '')
         
         return context
+
+
+class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
+    """Register a new borrower - for loan officers"""
+    model = User
+    template_name = 'clients/borrower_registration.html'
+    fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'date_of_birth', 'national_id', 'address']
+    success_url = reverse_lazy('clients:group_list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Only loan officers, managers, and admins can register borrowers
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can register borrowers.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Register New Borrower'
+        return context
+    
+    def form_valid(self, form):
+        # Set role to borrower
+        form.instance.role = 'borrower'
+        form.instance.is_active = True
+        
+        # Set a default password
+        import secrets
+        password = secrets.token_urlsafe(12)
+        form.instance.set_password(password)
+        
+        # If loan officer, assign them as the officer
+        if self.request.user.role == 'loan_officer':
+            form.instance.assigned_officer = self.request.user
+        
+        response = super().form_valid(form)
+        
+        messages.success(
+            self.request, 
+            f'Borrower "{form.instance.get_full_name()}" registered successfully! '
+            f'Temporary password has been set. They can reset it on first login.'
+        )
+        
+        return response

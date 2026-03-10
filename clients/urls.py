@@ -13,6 +13,9 @@ urlpatterns = [
     path('groups/<int:pk>/remove-member/<int:membership_id>/', views.RemoveMemberView.as_view(), name='remove_member'),
     path('groups/<int:pk>/assign-officer/', views.AssignOfficerToGroupView.as_view(), name='assign_officer'),
     
+    # Borrower registration
+    path('borrowers/register/', views.BorrowerRegistrationView.as_view(), name='register_borrower'),
+    
     # Client assignment
     path('clients/<int:client_id>/assign-officer/', views.AssignClientToOfficerView.as_view(), name='assign_client'),
     path('clients/<int:client_id>/unassign-officer/', views.UnassignClientFromOfficerView.as_view(), name='unassign_client'),
