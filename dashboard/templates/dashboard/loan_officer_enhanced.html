@@ -290,10 +290,16 @@
                     <span class="font-semibold text-blue-900 text-center text-sm">Create Group</span>
                 </a>
 
-                <!-- Register Client -->
-                <a href="{% url 'clients:officer_clients' user.id %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-2 border-green-200 hover:border-green-400 transition hover:shadow-lg">
+                <!-- Register Borrower -->
+                <a href="{% url 'clients:register_borrower' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-2 border-green-200 hover:border-green-400 transition hover:shadow-lg">
                     <i class="fas fa-user-plus text-green-600 text-3xl mb-3"></i>
-                    <span class="font-semibold text-green-900 text-center text-sm">Manage Clients</span>
+                    <span class="font-semibold text-green-900 text-center text-sm">Register Borrower</span>
+                </a>
+
+                <!-- Manage Clients -->
+                <a href="{% url 'clients:officer_clients' user.id %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 transition hover:shadow-lg">
+                    <i class="fas fa-users text-indigo-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-indigo-900 text-center text-sm">Manage Clients</span>
                 </a>
 
                 <!-- Record Payment -->
