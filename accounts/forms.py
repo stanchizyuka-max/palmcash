@@ -24,18 +24,13 @@ class UserRegistrationForm(UserCreationForm):
 
 
 class BorrowerRegistrationForm(forms.ModelForm):
-    """Comprehensive form for registering borrowers"""
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), required=False)
-    password_confirm = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), required=False)
+    """Simple form for registering borrowers - only essential fields"""
     
     class Meta:
         model = User
         fields = [
             'username', 'email', 'first_name', 'last_name', 'phone_number',
             'date_of_birth', 'gender', 'marital_status', 'national_id',
-            'address', 'province', 'district', 'residential_area',
-            'employment_status', 'employer_name', 'monthly_income',
-            'reference1_name', 'reference1_phone', 'reference1_relationship',
         ]
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
@@ -47,16 +42,6 @@ class BorrowerRegistrationForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-control'}),
             'marital_status': forms.Select(attrs={'class': 'form-control'}),
             'national_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'National ID'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Residential Address'}),
-            'province': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Province'}),
-            'district': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'District'}),
-            'residential_area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Residential Area/Compound'}),
-            'employment_status': forms.Select(attrs={'class': 'form-control'}),
-            'employer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Employer/Business Name'}),
-            'monthly_income': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Monthly Income'}),
-            'reference1_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Next of Kin Name'}),
-            'reference1_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Next of Kin Phone'}),
-            'reference1_relationship': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Relationship'}),
         }
 
 
