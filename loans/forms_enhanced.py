@@ -316,6 +316,7 @@ class EnhancedLoanApplicationForm(forms.Form):
     
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
+        kwargs.pop('instance', None)
         super().__init__(*args, **kwargs)
         
         # Pre-fill user information if available
