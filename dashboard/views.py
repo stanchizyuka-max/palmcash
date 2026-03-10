@@ -3965,7 +3965,6 @@ def manager_document_verification(request):
     if user.role not in ['manager', 'loan_officer']:
         return render(request, 'dashboard/access_denied.html')
     
-    # Get branch based on role
     branch = None
     try:
         if user.role == 'manager':
@@ -3974,9 +3973,7 @@ def manager_document_verification(request):
                 return render(request, 'dashboard/access_denied.html', {
                     'message': 'You have not been assigned to a branch. Please contact your administrator.'
                 })
-        else:  # loan_officer
-            # Loan officers can access this page without a branch assignment
-            # They will see their assigned clients
+        else:
             branch = None
     except Exception as e:
         print(f"Error getting branch: {e}")
@@ -3989,14 +3986,17 @@ def manager_document_verification(request):
         from django.db.models import Q
         from accounts.models import User
         
-        # Get clients based on role
         if user.role == 'manager':
-            # Manager sees all clients
-            branch_clients = User.objects.filter(
-                role='borrower'
-            ).distinct()
-        else:  # loan_officer
-            # Loan officer sees only their assigned clients
+            try:
+                manager_branch = user.managed_branch.name
+                branch_clients = User.objects.filter(
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officerassignment__branch=manager_branch),
+                    role='borrower'
+                ).distinct()
+            except:
+                branch_clients = User.objects.none()
+        else:
             branch_clients = User.objects.filter(
                 Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
                 role='borrower'
@@ -4004,19 +4004,16 @@ def manager_document_verification(request):
         
         branch_client_ids = branch_clients.values_list('id', flat=True)
         
-        # Get pending document verifications
         pending_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
-        # Get recently verified documents
         recent_verifications = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='approved'
         ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
         
-        # Get statistics
         total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
         verified_clients = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
@@ -4024,7 +4021,6 @@ def manager_document_verification(request):
         ).count()
         pending_count = pending_verifications.count()
         
-        # Get documents needing review
         documents_needing_review = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='pending'
@@ -4041,7 +4037,7 @@ def manager_document_verification(request):
     
     context = {
         'branch': branch,
-        'user_role': 'manager',
+        'user_role': user.role,
         'pending_verifications': pending_verifications,
         'recent_verifications': recent_verifications,
         'documents_needing_review': documents_needing_review,

@@ -109,27 +109,22 @@ def document_verification_dashboard(request):
     """Dashboard for reviewing approved client documents - accessible to loan officers, managers, and admins"""
     user = request.user
     
-    # Check permissions
     if user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'You do not have permission to access this dashboard.')
         return redirect('dashboard:dashboard')
     
-    # Filter based on role
     if user.role == 'loan_officer':
-        # Loan officers see documents from their clients
         from django.db.models import Q
         client_ids = User.objects.filter(
             Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
             role='borrower'
         ).values_list('id', flat=True).distinct()
         
-        # Get verified/approved documents (primary focus)
         verified_verifications = ClientVerification.objects.filter(
             client_id__in=client_ids,
             status='verified'
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
         
-        # Get pending verifications (secondary)
         pending_verifications = ClientVerification.objects.filter(
             client_id__in=client_ids,
             status__in=['documents_submitted', 'documents_rejected']
@@ -144,8 +139,45 @@ def document_verification_dashboard(request):
             client_id__in=client_ids,
             status='verified'
         ).count()
+    
+    elif user.role == 'manager':
+        from django.db.models import Q
+        try:
+            manager_branch = user.managed_branch.name
+            
+            client_ids = User.objects.filter(
+                Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                Q(assigned_officer__officerassignment__branch=manager_branch),
+                role='borrower'
+            ).values_list('id', flat=True).distinct()
+            
+            verified_verifications = ClientVerification.objects.filter(
+                client_id__in=client_ids,
+                status='verified'
+            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+            
+            pending_verifications = ClientVerification.objects.filter(
+                client_id__in=client_ids,
+                status__in=['documents_submitted', 'documents_rejected']
+            ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
+            
+            all_verifications = ClientVerification.objects.filter(
+                client_id__in=client_ids
+            ).select_related('client').prefetch_related('client__documents')
+            
+            total_clients = ClientVerification.objects.filter(client_id__in=client_ids).count()
+            verified_clients = ClientVerification.objects.filter(
+                client_id__in=client_ids,
+                status='verified'
+            ).count()
+        except:
+            verified_verifications = ClientVerification.objects.none()
+            pending_verifications = ClientVerification.objects.none()
+            all_verifications = ClientVerification.objects.none()
+            total_clients = 0
+            verified_clients = 0
+    
     else:
-        # Managers and admins see all documents
         verified_verifications = ClientVerification.objects.filter(
             status='verified'
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
