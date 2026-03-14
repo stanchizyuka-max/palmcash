@@ -863,8 +863,8 @@ class LoanApplication(models.Model):
         ('rejected', 'Rejected'),
     ]
     
-    borrower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='loan_applications')
-    loan_officer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='submitted_loan_applications')
+    borrower = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='loan_applications')
+    loan_officer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='submitted_loan_applications')
     
     application_number = models.CharField(max_length=50, unique=True)
     loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -876,7 +876,7 @@ class LoanApplication(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_loan_applications')
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_loan_applications')
     approval_date = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
     
