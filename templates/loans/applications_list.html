@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Loan Applications{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Loan Applications</h1>
+        {% if user.role == 'loan_officer' %}
+            <a href="{% url 'loans:submit_application' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                New Application
+            </a>
+        {% endif %}
+    </div>
+    
+    {% if applications %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Application #</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Borrower</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium">{{ app.application_number }}</td>
+                            <td class="px-6 py-4 text-sm">{{ app.borrower.get_full_name }}</td>
+                            <td class="px-6 py-4 text-sm">K{{ app.loan_amount|floatformat:2 }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if app.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif app.status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif app.status == 'rejected' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ app.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm">{{ app.created_at|date:'M d, Y' }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if user.role == 'manager' and app.status == 'pending' %}
+                                    <a href="{% url 'loans:approve_application' app.pk %}" class="text-blue-600 hover:text-blue-800">
+                                        Review
+                                    </a>
+                                {% else %}
+                                    <span class="text-gray-500">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if is_paginated %}
+            <div class="mt-6 flex justify-center gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1" class="px-3 py-2 bg-gray-200 rounded">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-gray-200 rounded">Previous</a>
+                {% endif %}
+                
+                <span class="px-3 py-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-gray-200 rounded">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-2 bg-gray-200 rounded">Last</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-gray-50 rounded-lg p-8 text-center">
+            <p class="text-gray-600 mb-4">No loan applications found.</p>
+            {% if user.role == 'loan_officer' %}
+                <a href="{% url 'loans:submit_application' %}" class="text-blue-600 hover:text-blue-800">
+                    Submit your first application
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

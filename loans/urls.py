@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_application
 
 app_name = 'loans'
 
@@ -18,7 +19,6 @@ urlpatterns = [
     path('<int:pk>/upfront-payment/', views.UpfrontPaymentView.as_view(), name='upfront_payment'),
     path('<int:pk>/verify-upfront/', views.VerifyUpfrontPaymentView.as_view(), name='verify_upfront'),
     
-    # Document management URLs
     path('documents/review-dashboard/', views.DocumentReviewDashboardView.as_view(), name='document_review_dashboard'),
     path('<int:loan_id>/documents/', views.LoanDocumentListView.as_view(), name='document_list'),
     path('<int:loan_id>/documents/upload/', views.LoanDocumentUploadView.as_view(), name='upload_document'),
@@ -27,7 +27,10 @@ urlpatterns = [
     path('documents/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='delete_document'),
     path('documents/<int:pk>/admin-delete/', views.AdminDeleteLoanDocumentView.as_view(), name='admin_delete_document'),
     
-    # Admin management URLs
     path('manage/loan-types/', views.LoanTypesManageView.as_view(), name='manage_loan_types'),
     path('manage/loan-documents/', views.LoanDocumentsManageView.as_view(), name='manage_loan_documents'),
+    
+    path('applications/submit/', views_application.SubmitLoanApplicationView.as_view(), name='submit_application'),
+    path('applications/', views_application.LoanApplicationsListView.as_view(), name='applications_list'),
+    path('applications/<int:pk>/approve/', views_application.ApproveLoanApplicationView.as_view(), name='approve_application'),
 ]

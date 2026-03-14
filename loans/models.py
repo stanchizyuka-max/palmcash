@@ -854,3 +854,34 @@ class ManagerLoanApproval(models.Model):
     
     def __str__(self):
         return f"Manager Approval for {self.loan.application_number} - {self.get_status_display()}"
+
+
+class LoanApplication(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Manager Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    borrower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='loan_applications')
+    loan_officer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='submitted_loan_applications')
+    
+    application_number = models.CharField(max_length=50, unique=True)
+    loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    duration_days = models.IntegerField()
+    purpose = models.CharField(max_length=255)
+    group = models.ForeignKey('clients.BorrowerGroup', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_loan_applications')
+    approval_date = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.application_number} - {self.borrower.get_full_name()}"
