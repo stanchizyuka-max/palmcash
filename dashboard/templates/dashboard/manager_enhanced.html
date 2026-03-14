@@ -381,6 +381,31 @@
             </div>
         </div>
 
+        <!-- Loan Applications Review -->
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
+            <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                <i class="fas fa-file-invoice text-yellow-600 mr-3"></i>
+                Loan Applications Review
+            </h3>
+            <p class="text-gray-600 mb-6">Review and approve loan applications from your officers</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Pending Applications -->
+                <a href="{% url 'loans:applications_list' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border-2 border-yellow-200 hover:border-yellow-400 transition hover:shadow-lg">
+                    <i class="fas fa-hourglass-half text-yellow-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-yellow-900 text-center text-sm">Pending Applications</span>
+                    <p class="text-xs text-yellow-700 mt-2">Review & approve</p>
+                </a>
+                
+                <!-- All Applications -->
+                <a href="{% url 'loans:applications_list' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-lg">
+                    <i class="fas fa-list text-blue-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-center text-sm">All Applications</span>
+                    <p class="text-xs text-blue-700 mt-2">View all applications</p>
+                </a>
+            </div>
+        </div>
+
         <!-- Footer Info -->
         <div class="bg-green-50 border border-green-200 rounded-lg p-6">
             <div class="flex items-start">
