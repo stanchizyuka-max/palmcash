@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('clients', '0013_rename_clients_adm_admin_u_idx_clients_adm_admin_u_b673c4_idx_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('loans', '0013_rename_clients_adm_admin_u_idx_clients_adm_admin_u_b673c4_idx_and_more'),
+        ('loans', '0012_alter_approvallog_approval_type'),
     ]
 
     operations = [
