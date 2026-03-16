@@ -210,6 +210,12 @@ def loan_officer_dashboard(request):
         'verified_verifications': verified_verifications,
         'pending_verification_count': pending_verification_count,
         'verified_client_count': verified_client_count,
+        'pending_upfront_loans': Loan.objects.filter(
+            Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+            status='approved',
+            upfront_payment_paid=0,
+            upfront_payment_verified=False
+        ).select_related('borrower').distinct(),
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)

@@ -322,6 +322,51 @@ z
             </div>
         </div>
 
+        <!-- Upfront Payment Initiation -->
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
+            <h3 class="text-2xl font-bold text-slate-900 mb-2 flex items-center">
+                <i class="fas fa-hand-holding-usd text-yellow-600 mr-3"></i>
+                Initiate Upfront Payment
+            </h3>
+            <p class="text-gray-600 mb-6">Approved loans awaiting 10% upfront payment</p>
+
+            {% if pending_upfront_loans %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Loan #</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Borrower</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Principal</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Upfront (10%)</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for loan in pending_upfront_loans %}
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-6 py-4 text-sm font-medium text-slate-900">{{ loan.application_number }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-700">{{ loan.borrower.get_full_name }}</td>
+                            <td class="px-6 py-4 text-sm font-medium text-slate-900">K{{ loan.principal_amount|floatformat:2 }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-yellow-700">K{{ loan.upfront_payment_required|floatformat:2 }}</td>
+                            <td class="px-6 py-4">
+                                <a href="{% url 'loans:upfront_payment' loan.pk %}" class="inline-flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-medium text-sm">
+                                    <i class="fas fa-money-bill-wave mr-2"></i>Initiate Payment
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-check-circle text-green-400 text-4xl mb-3"></i>
+                <p class="text-slate-600">No loans pending upfront payment.</p>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Loan Applications Management -->
         <div class="bg-white rounded-xl shadow-lg p-8 border border-slate-200 mb-8">
             <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
