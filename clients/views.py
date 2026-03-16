@@ -974,95 +974,157 @@ class UserVerificationManagementView(LoginRequiredMixin, ListView):
         return context
 
 
-class BorrowerRegistrationView(LoginRequiredMixin, CreateView):
-    """Register a new borrower - for loan officers"""
-    model = User
-    template_name = 'clients/borrower_registration.html'
-    form_class = None
-    success_url = reverse_lazy('clients:group_list')
-    
+class RegisterBorrowerWizardView(LoginRequiredMixin, View):
+    """
+    3-step merged registration wizard:
+      Step 1 — Photos (NRC front, back, live selfie)
+      Step 2 — Full borrower details
+      Step 3 — Loan application → submit to manager
+    """
+    template_name = 'clients/register_borrower_wizard.html'
+
     def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['loan_officer', 'manager', 'admin']:
             messages.error(request, 'Only loan officers can register borrowers.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
-    
-    def get_form_class(self):
-        from accounts.forms import BorrowerRegistrationForm
-        return BorrowerRegistrationForm
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Register New Borrower'
-        return context
-    
-    def form_valid(self, form):
-        form.instance.role = 'borrower'
-        form.instance.is_active = True
-        
-        import secrets
-        password = secrets.token_urlsafe(12)
-        form.instance.set_password(password)
-        
-        if self.request.user.role == 'loan_officer':
-            form.instance.assigned_officer = self.request.user
-        
-        response = super().form_valid(form)
-        
-        messages.success(
-            self.request, 
-            f'Borrower "{form.instance.get_full_name()}" registered successfully! '
-            f'Please upload the required photos.'
-        )
-        
-        return redirect('clients:borrower_photo_upload', pk=form.instance.pk)
 
+    def _step(self, request):
+        return int(request.POST.get('step', request.GET.get('step', 1)))
 
-class BorrowerPhotoUploadView(LoginRequiredMixin, View):
-    """Upload photos for borrower verification"""
-    template_name = 'clients/borrower_photo_upload.html'
-    
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['loan_officer', 'manager', 'admin']:
-            messages.error(request, 'Only loan officers can upload borrower photos.')
-            return redirect('dashboard:dashboard')
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get(self, request, pk):
-        borrower = get_object_or_404(User, pk=pk, role='borrower')
-        from accounts.forms import BorrowerPhotoUploadForm
-        form = BorrowerPhotoUploadForm()
-        return render(request, self.template_name, {'form': form, 'borrower': borrower})
-    
-    def post(self, request, pk):
-        borrower = get_object_or_404(User, pk=pk, role='borrower')
-        from accounts.forms import BorrowerPhotoUploadForm
-        form = BorrowerPhotoUploadForm(request.POST, request.FILES)
-        
-        if form.is_valid():
-            try:
-                from documents.models import ClientDocument
-                
-                photos = {
-                    'nrc_front': form.cleaned_data['nrc_front'],
-                    'nrc_back': form.cleaned_data['nrc_back'],
-                    'live_selfie': form.cleaned_data['live_selfie'],
-                }
-                
-                for doc_type, file in photos.items():
-                    ClientDocument.objects.update_or_create(
-                        client=borrower,
-                        document_type=doc_type,
-                        defaults={'image': file, 'status': 'pending'}
-                    )
-                
-                messages.success(
-                    request,
-                    f'Photos uploaded successfully for {borrower.get_full_name()}. '
-                    f'Awaiting manager verification.'
+    def get(self, request, pk=None):
+        step = self._step(request)
+        pk = pk or request.GET.get('pk')
+        context = self._base_context(step, pk)
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk=None):
+        step = self._step(request)
+
+        if step == 1:
+            return self._handle_step1(request)
+        elif step == 2:
+            return self._handle_step2(request, pk)
+        elif step == 3:
+            return self._handle_step3(request, pk)
+
+        return redirect('clients:register_borrower')
+
+    def _base_context(self, step, pk=None):
+        from accounts.forms import BorrowerRegistrationForm, BorrowerPhotoUploadForm, BorrowerDetailsForm
+        from loans.forms_application import LoanApplicationForm
+        ctx = {
+            'step': step,
+            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
+            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+        }
+        if step == 1:
+            ctx['photo_form'] = BorrowerPhotoUploadForm()
+            ctx['reg_form'] = BorrowerRegistrationForm()
+        elif step == 2 and pk:
+            borrower = get_object_or_404(User, pk=pk, role='borrower')
+            ctx['borrower'] = borrower
+            ctx['details_form'] = BorrowerDetailsForm(instance=borrower)
+        elif step == 3 and pk:
+            borrower = get_object_or_404(User, pk=pk, role='borrower')
+            ctx['borrower'] = borrower
+            ctx['loan_form'] = LoanApplicationForm()
+            if self.request.user.role == 'loan_officer':
+                from clients.models import BorrowerGroup
+                ctx['loan_form'].fields['group'].queryset = BorrowerGroup.objects.filter(
+                    assigned_officer=self.request.user, is_active=True
                 )
-                return redirect('clients:group_list')
-            except Exception as e:
-                messages.error(request, f'Error uploading photos: {str(e)}')
-        
-        return render(request, self.template_name, {'form': form, 'borrower': borrower})
+        return ctx
+
+    def _handle_step1(self, request):
+        from accounts.forms import BorrowerRegistrationForm, BorrowerPhotoUploadForm
+        reg_form = BorrowerRegistrationForm(request.POST)
+        photo_form = BorrowerPhotoUploadForm(request.POST, request.FILES)
+
+        if reg_form.is_valid() and photo_form.is_valid():
+            import secrets
+            borrower = reg_form.save(commit=False)
+            borrower.role = 'borrower'
+            borrower.is_active = True
+            borrower.set_password(secrets.token_urlsafe(12))
+            if request.user.role == 'loan_officer':
+                borrower.assigned_officer = request.user
+            borrower.save()
+
+            from documents.models import ClientDocument
+            for doc_type, field_name in [('nrc_front', 'nrc_front'), ('nrc_back', 'nrc_back'), ('selfie', 'live_selfie')]:
+                ClientDocument.objects.update_or_create(
+                    client=borrower,
+                    document_type=doc_type,
+                    defaults={'image': photo_form.cleaned_data[field_name], 'status': 'pending'}
+                )
+
+            return redirect(f"{request.path}?step=2&pk={borrower.pk}")
+
+        return render(request, self.template_name, {
+            'step': 1,
+            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
+            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'reg_form': reg_form,
+            'photo_form': photo_form,
+        })
+
+    def _handle_step2(self, request, pk):
+        from accounts.forms import BorrowerDetailsForm
+        borrower = get_object_or_404(User, pk=pk, role='borrower')
+        form = BorrowerDetailsForm(request.POST, instance=borrower)
+
+        if form.is_valid():
+            form.save()
+            return redirect(f"{request.path}?step=3&pk={borrower.pk}")
+
+        return render(request, self.template_name, {
+            'step': 2,
+            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
+            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'borrower': borrower,
+            'details_form': form,
+        })
+
+    def _handle_step3(self, request, pk):
+        from loans.forms_application import LoanApplicationForm
+        import uuid
+        borrower = get_object_or_404(User, pk=pk, role='borrower')
+        form = LoanApplicationForm(request.POST)
+
+        if request.user.role == 'loan_officer':
+            from clients.models import BorrowerGroup
+            form.fields['group'].queryset = BorrowerGroup.objects.filter(
+                assigned_officer=request.user, is_active=True
+            )
+
+        if form.is_valid():
+            from loans.models import LoanApplication
+            app = form.save(commit=False)
+            app.borrower = borrower
+            app.loan_officer = request.user
+            app.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
+            app.status = 'pending'
+            app.save()
+            messages.success(
+                request,
+                f'Borrower registered and loan application {app.application_number} submitted for manager approval.'
+            )
+            return redirect('loans:applications_list')
+
+        return render(request, self.template_name, {
+            'step': 3,
+            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
+            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'borrower': borrower,
+            'loan_form': form,
+        })
+
+
+class BorrowerRegistrationView(LoginRequiredMixin, View):
+    """Redirect old registration URL to wizard"""
+    def get(self, request):
+        return redirect('clients:register_borrower')
+
+    def post(self, request):
+        return redirect('clients:register_borrower')

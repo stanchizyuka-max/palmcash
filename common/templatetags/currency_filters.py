@@ -34,3 +34,12 @@ def zmw_currency_no_decimal(value):
             return f"K{formatted}"
     except (ValueError, TypeError):
         return "K0"
+
+
+@register.filter
+def getfield(form, field_name):
+    """Get a form field by name"""
+    try:
+        return form[field_name]
+    except KeyError:
+        return None

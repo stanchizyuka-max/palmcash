@@ -24,24 +24,55 @@ class UserRegistrationForm(UserCreationForm):
 
 
 class BorrowerRegistrationForm(forms.ModelForm):
-    """Simple form for registering borrowers - only essential fields"""
-    
+    """Step 1: Basic info for borrower registration"""
+
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'first_name', 'last_name', 'phone_number',
+            'first_name', 'last_name', 'username', 'email', 'phone_number',
             'date_of_birth', 'gender', 'marital_status', 'national_id',
         ]
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}),
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'gender': forms.Select(attrs={'class': 'form-control'}),
-            'marital_status': forms.Select(attrs={'class': 'form-control'}),
-            'national_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'National ID'}),
+            'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
+            'username': forms.TextInput(attrs={'placeholder': 'Username'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'Email'}),
+            'phone_number': forms.TextInput(attrs={'placeholder': 'Phone Number'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'gender': forms.Select(),
+            'marital_status': forms.Select(),
+            'national_id': forms.TextInput(attrs={'placeholder': 'NRC Number e.g. 123456/78/9'}),
+        }
+
+
+class BorrowerDetailsForm(forms.ModelForm):
+    """Step 2: Full borrower details"""
+
+    class Meta:
+        model = User
+        fields = [
+            'address', 'province', 'district', 'residential_area',
+            'employment_status', 'employer_name', 'monthly_income',
+            'business_name', 'business_address',
+            'reference1_name', 'reference1_phone', 'reference1_relationship',
+            'reference2_name', 'reference2_phone', 'reference2_relationship',
+        ]
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Physical address'}),
+            'province': forms.TextInput(attrs={'placeholder': 'Province'}),
+            'district': forms.TextInput(attrs={'placeholder': 'District'}),
+            'residential_area': forms.TextInput(attrs={'placeholder': 'Residential area / compound'}),
+            'employment_status': forms.Select(),
+            'employer_name': forms.TextInput(attrs={'placeholder': 'Employer / Business name'}),
+            'monthly_income': forms.NumberInput(attrs={'placeholder': 'Monthly income (K)', 'step': '0.01'}),
+            'business_name': forms.TextInput(attrs={'placeholder': 'Business name (if self-employed)'}),
+            'business_address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Business address'}),
+            'reference1_name': forms.TextInput(attrs={'placeholder': 'Full name'}),
+            'reference1_phone': forms.TextInput(attrs={'placeholder': 'Phone number'}),
+            'reference1_relationship': forms.TextInput(attrs={'placeholder': 'Relationship'}),
+            'reference2_name': forms.TextInput(attrs={'placeholder': 'Full name'}),
+            'reference2_phone': forms.TextInput(attrs={'placeholder': 'Phone number'}),
+            'reference2_relationship': forms.TextInput(attrs={'placeholder': 'Relationship'}),
         }
 
 
