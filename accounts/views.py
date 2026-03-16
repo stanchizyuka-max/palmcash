@@ -157,38 +157,53 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         from django.core.paginator import Paginator
+        from django.db.models import Q
         context = super().get_context_data(**kwargs)
         
-        # Get all users
-        users = User.objects.all().order_by('-date_joined')
-        
-        # Filter by role if provided
+        user = self.request.user
         role_filter = self.request.GET.get('role', 'all')
+
+        if user.role == 'manager':
+            try:
+                branch_name = user.managed_branch.name
+                branch_users = User.objects.filter(
+                    Q(role='loan_officer', officer_assignment__branch__iexact=branch_name) |
+                    Q(role='borrower', group_memberships__group__branch__iexact=branch_name, group_memberships__is_active=True) |
+                    Q(role='borrower', assigned_officer__officer_assignment__branch__iexact=branch_name)
+                ).distinct().order_by('-date_joined')
+            except Exception:
+                branch_users = User.objects.none()
+            users = branch_users
+            all_users = branch_users
+        elif user.role == 'loan_officer':
+            users = User.objects.filter(
+                Q(assigned_officer=user) |
+                Q(group_memberships__group__assigned_officer=user, group_memberships__is_active=True),
+                role='borrower'
+            ).distinct().order_by('-date_joined')
+            all_users = users
+        else:
+            users = User.objects.all().order_by('-date_joined')
+            all_users = User.objects.all()
+
         if role_filter and role_filter != 'all':
             users = users.filter(role=role_filter)
-        
-        # Statistics
-        all_users = User.objects.all()
+
         context['total_users'] = all_users.count()
         context['borrowers_count'] = all_users.filter(role='borrower').count()
         context['officers_count'] = all_users.filter(role='loan_officer').count()
         context['managers_count'] = all_users.filter(role='manager').count()
         context['admins_count'] = all_users.filter(role='admin').count()
         context['active_users'] = all_users.filter(is_active=True).count()
-        
-        # Current filter
         context['current_filter'] = role_filter
-        
-        # Pagination
-        paginator = Paginator(users, 20)  # Show 20 users per page
-        page_number = self.request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        
+
+        paginator = Paginator(users, 20)
+        page_obj = paginator.get_page(self.request.GET.get('page'))
         context['users'] = page_obj
         context['is_paginated'] = page_obj.has_other_pages()
         context['page_obj'] = page_obj
         context['paginator'] = paginator
-        
+
         return context
 
 

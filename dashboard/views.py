@@ -2808,6 +2808,27 @@ def admin_transfer_history(request):
 
 # Admin Client Transfer Views
 
+def _branch_clients_groups(user):
+    """Return (clients_qs, groups_qs) scoped to the user's branch for managers, or all for admins."""
+    from django.db.models import Q
+    if user.role == 'manager':
+        try:
+            branch_name = user.managed_branch.name
+            clients = User.objects.filter(
+                Q(group_memberships__group__branch__iexact=branch_name, group_memberships__is_active=True) |
+                Q(assigned_officer__officer_assignment__branch__iexact=branch_name),
+                role='borrower'
+            ).distinct()
+            groups = BorrowerGroup.objects.filter(branch__iexact=branch_name, is_active=True)
+        except Exception:
+            clients = User.objects.none()
+            groups = BorrowerGroup.objects.none()
+    else:
+        clients = User.objects.filter(role='borrower')
+        groups = BorrowerGroup.objects.filter(is_active=True)
+    return clients, groups
+
+
 @login_required
 def admin_client_transfer(request):
     """Admin/Manager view: Transfer a client to a different group"""
@@ -2823,21 +2844,7 @@ def admin_client_transfer(request):
             reason = request.POST.get('reason')
             
             if not client_id or not destination_group_id or not reason:
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
+                clients_query, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Client, destination group, and reason are required',
                     'clients': clients_query,
@@ -2850,10 +2857,12 @@ def admin_client_transfer(request):
                 if user.role == 'manager':
                     try:
                         manager_branch = user.managed_branch.name
-                        if not (client.group_memberships.filter(group__branch=manager_branch, is_active=True).exists() or
-                                client.assigned_officer.officerassignment_set.filter(branch=manager_branch).exists()):
+                        if not (client.group_memberships.filter(group__branch__iexact=manager_branch, is_active=True).exists() or
+                                (client.assigned_officer and client.assigned_officer.officer_assignment.branch.lower() == manager_branch.lower())):
                             raise User.DoesNotExist
-                    except:
+                    except User.DoesNotExist:
+                        raise
+                    except Exception:
                         raise User.DoesNotExist
             except User.DoesNotExist:
                 clients_query = User.objects.filter(role='borrower')
@@ -3060,15 +3069,17 @@ def admin_client_transfer(request):
             return redirect('dashboard:admin_client_transfer_history')
             
         except Exception as e:
+            clients_query, groups_query = _branch_clients_groups(user)
             return render(request, 'dashboard/admin_client_transfer_form.html', {
                 'error': f'Error transferring client: {str(e)}',
-                'clients': User.objects.filter(role='borrower'),
-                'groups': BorrowerGroup.objects.filter(is_active=True),
+                'clients': clients_query,
+                'groups': groups_query,
             })
     
+    clients_query, groups_query = _branch_clients_groups(user)
     context = {
-        'clients': User.objects.filter(role='borrower'),
-        'groups': BorrowerGroup.objects.filter(is_active=True),
+        'clients': clients_query,
+        'groups': groups_query,
     }
     return render(request, 'dashboard/admin_client_transfer_form.html', context)
 

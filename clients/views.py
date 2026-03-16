@@ -401,14 +401,11 @@ class BorrowerListView(LoginRequiredMixin, ListView):
         
         elif self.request.user.role == 'manager':
             from django.db.models import Q
-            from clients.models import OfficerAssignment
-            
             try:
                 manager_branch = self.request.user.managed_branch.name
-                
                 queryset = queryset.filter(
-                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                    Q(assigned_officer__officerassignment__branch=manager_branch)
+                    Q(group_memberships__group__branch__iexact=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officer_assignment__branch__iexact=manager_branch)
                 ).distinct()
             except:
                 queryset = User.objects.none()
