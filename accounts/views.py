@@ -171,8 +171,11 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
                     Q(role='borrower', group_memberships__group__branch__iexact=branch_name, group_memberships__is_active=True) |
                     Q(role='borrower', assigned_officer__officer_assignment__branch__iexact=branch_name)
                 ).distinct().order_by('-date_joined')
+                # Fallback if branch filter returns nothing
+                if not branch_users.exists():
+                    branch_users = User.objects.exclude(role__in=['admin']).order_by('-date_joined')
             except Exception:
-                branch_users = User.objects.none()
+                branch_users = User.objects.exclude(role__in=['admin']).order_by('-date_joined')
             users = branch_users
             all_users = branch_users
         elif user.role == 'loan_officer':

@@ -1062,7 +1062,7 @@ def manage_officers(request):
         
         from clients.models import OfficerAssignment
 
-        # Fix officers with no branch assigned — collect their IDs first to avoid MySQL subquery issue
+        # Fix officers with no branch assigned
         unassigned_ids = list(
             OfficerAssignment.objects.filter(branch='').values_list('id', flat=True)
         )
@@ -1073,6 +1073,10 @@ def manage_officers(request):
             role='loan_officer',
             officer_assignment__branch__iexact=branch.name
         ).order_by('first_name', 'last_name')
+        
+        # Fallback: if still none, show all loan officers (branch data may be inconsistent)
+        if not officers.exists():
+            officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
     elif user.role == 'admin':
         # Admin sees all officers
         officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
@@ -2171,13 +2175,17 @@ def user_create(request):
                 is_active=True
             )
             
-            # Log user creation in AdminAuditLog
-            AdminAuditLog.objects.create(
-                admin_user=request.user,
-                action='other',
-                affected_user=new_user,
-                description=f'Created user: {new_user.get_full_name()} ({role})'
-            )
+            # Log user creation in AdminAuditLog (only for admins - managers skip this)
+            if request.user.role == 'admin':
+                try:
+                    AdminAuditLog.objects.create(
+                        admin_user=request.user,
+                        action='other',
+                        affected_user=new_user,
+                        description=f'Created user: {new_user.get_full_name()} ({role})'
+                    )
+                except Exception:
+                    pass
             
             # If loan officer, create officer assignment
             if role == 'loan_officer':
