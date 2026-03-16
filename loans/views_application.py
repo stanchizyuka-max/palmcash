@@ -84,6 +84,16 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
+    def get_initial(self):
+        initial = super().get_initial()
+        borrower_id = self.request.GET.get('borrower')
+        if borrower_id:
+            try:
+                initial['borrower'] = User.objects.get(id=borrower_id)
+            except User.DoesNotExist:
+                pass
+        return initial
+    
     def form_valid(self, form):
         loan_app = form.save(commit=False)
         loan_app.loan_officer = self.request.user
