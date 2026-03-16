@@ -3,7 +3,7 @@
 {% block title %}Register Borrower{% endblock %}
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 px-4">
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-3xl mx-auto">
 
     <!-- Progress Steps -->
     <div class="flex items-center justify-between mb-8">
@@ -31,32 +31,35 @@
         {% endfor %}
       {% endif %}
 
-      <!-- ===== STEP 1: Photos + Basic Info ===== -->
+      <!-- ===== STEP 1 ===== -->
       {% if step == 1 %}
-      <h2 class="text-xl font-bold text-gray-900 mb-1">Step 1 — Photos & Basic Info</h2>
-      <p class="text-sm text-gray-500 mb-6">Upload NRC photos and enter basic borrower details</p>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Step 1 — Photos & Basic Info</h2>
+      <p class="text-sm text-gray-500 mb-6">Upload NRC photos and enter borrower information</p>
 
       <form method="post" enctype="multipart/form-data" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="step" value="1">
 
-        <!-- Photos -->
-        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+        <!-- Photo Upload -->
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-5">
           <p class="text-sm font-semibold text-blue-800 mb-4">Verification Photos</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {% for field_name, label in photo_fields %}
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">{{ label }} <span class="text-red-500">*</span></label>
-              <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('id_{{ field_name }}').click()">
-                <svg class="mx-auto h-8 w-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            <div class="text-center">
+              <label for="id_{{ field_name }}" class="block text-xs font-medium text-gray-700 mb-2">
+                {{ label }} <span class="text-red-500">*</span>
+              </label>
+              <label for="id_{{ field_name }}" class="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-5 flex flex-col items-center hover:border-blue-400 transition-colors">
+                <img id="preview_{{ field_name }}" class="hidden mb-2 rounded-lg max-h-24">
+                <svg class="h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
                 </svg>
                 <p class="text-xs text-gray-500" id="label_{{ field_name }}">Click to upload</p>
-                <input type="file" name="{{ field_name }}" id="id_{{ field_name }}" accept="image/*" class="hidden" required
-                  onchange="document.getElementById('label_{{ field_name }}').textContent = this.files[0]?.name || 'Click to upload'">
-              </div>
+              </label>
+              <input type="file" name="{{ field_name }}" id="id_{{ field_name }}" accept="image/*" class="hidden" required
+                onchange="const f=this.files[0];if(f){document.getElementById('label_{{ field_name }}').textContent=f.name;const r=new FileReader();r.onload=function(e){const i=document.getElementById('preview_{{ field_name }}');i.src=e.target.result;i.classList.remove('hidden');};r.readAsDataURL(f);}">
               {% if photo_form %}
-                {% for error in photo_form|getfield:field_name %}
+                {% for error in photo_form[field_name].errors %}
                   <p class="text-red-500 text-xs mt-1">{{ error }}</p>
                 {% endfor %}
               {% endif %}
@@ -70,192 +73,72 @@
           <p class="text-sm font-semibold text-gray-700 mb-3">Basic Information</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {% for field in reg_form %}
-            <div {% if field.name == 'address' or field.name == 'email' %}class="sm:col-span-2"{% endif %}>
-              <label for="{{ field.id_for_label }}" class="block text-xs font-medium text-gray-700 mb-1">
+            <div {% if field.name == 'email' %}class="sm:col-span-2"{% endif %}>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
                 {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
               </label>
-              {% if field.field.widget.input_type == 'select' %}
-                <select name="{{ field.name }}" id="{{ field.id_for_label }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  {% if field.field.required %}required{% endif %}>
-                  <option value="">— select —</option>
-                  {% for val, lbl in field.field.choices %}{% if val %}<option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ lbl }}</option>{% endif %}{% endfor %}
-                </select>
-              {% elif field.name == 'date_of_birth' %}
-                <input type="date" name="{{ field.name }}" id="{{ field.id_for_label }}"
-                  value="{{ field.value|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  {% if field.field.required %}required{% endif %}>
-              {% elif field.name == 'email' %}
-                <input type="email" name="{{ field.name }}" id="{{ field.id_for_label }}"
-                  value="{{ field.value|default:'' }}" placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  {% if field.field.required %}required{% endif %}>
-              {% else %}
-                <input type="text" name="{{ field.name }}" id="{{ field.id_for_label }}"
-                  value="{{ field.value|default:'' }}" placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  {% if field.field.required %}required{% endif %}>
-              {% endif %}
-              {% for error in field.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+              {{ field }}
+              {% for error in field.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+              {% endfor %}
             </div>
             {% endfor %}
           </div>
         </div>
 
         <div class="flex gap-3 pt-4 border-t">
-          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium">
             Continue to Details →
           </button>
           <a href="{% url 'clients:group_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center">Cancel</a>
         </div>
       </form>
 
-      <!-- ===== STEP 2: Full Details ===== -->
+      <!-- ===== STEP 2 ===== -->
       {% elif step == 2 %}
-      <h2 class="text-xl font-bold text-gray-900 mb-1">Step 2 — Borrower Details</h2>
-      <p class="text-sm text-gray-500 mb-1">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
-      <p class="text-sm text-gray-500 mb-6">Fill in employment, address and reference information</p>
-
-      <form method="post" action="?step=2&pk={{ borrower.pk }}" class="space-y-6">
-        {% csrf_token %}
-        <input type="hidden" name="step" value="2">
-
-        <!-- Address -->
-        <div>
-          <p class="text-sm font-semibold text-gray-700 mb-3">Residential Address</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {% for fname in 'address,province,district,residential_area' %}
-            {% with field=details_form|getfield:fname %}
-            <div {% if fname == 'address' %}class="sm:col-span-2"{% endif %}>
-              <label class="block text-xs font-medium text-gray-700 mb-1">{{ field.label }}</label>
-              {% if fname == 'address' %}
-                <textarea name="{{ field.name }}" rows="2" placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{{ field.value|default:'' }}</textarea>
-              {% else %}
-                <input type="text" name="{{ field.name }}" value="{{ field.value|default:'' }}"
-                  placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              {% endif %}
-            </div>
-            {% endwith %}
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- Employment -->
-        <div>
-          <p class="text-sm font-semibold text-gray-700 mb-3">Employment / Business</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {% for fname in 'employment_status,employer_name,monthly_income,business_name,business_address' %}
-            {% with field=details_form|getfield:fname %}
-            <div {% if fname == 'business_address' %}class="sm:col-span-2"{% endif %}>
-              <label class="block text-xs font-medium text-gray-700 mb-1">{{ field.label }}</label>
-              {% if fname == 'employment_status' %}
-                <select name="{{ field.name }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                  <option value="">— select —</option>
-                  {% for val, lbl in field.field.choices %}{% if val %}<option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ lbl }}</option>{% endif %}{% endfor %}
-                </select>
-              {% elif fname == 'business_address' %}
-                <textarea name="{{ field.name }}" rows="2" placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{{ field.value|default:'' }}</textarea>
-              {% elif fname == 'monthly_income' %}
-                <input type="number" name="{{ field.name }}" value="{{ field.value|default:'' }}" step="0.01"
-                  placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              {% else %}
-                <input type="text" name="{{ field.name }}" value="{{ field.value|default:'' }}"
-                  placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              {% endif %}
-            </div>
-            {% endwith %}
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- References -->
-        <div>
-          <p class="text-sm font-semibold text-gray-700 mb-3">References</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-            {% for fname in 'reference1_name,reference1_phone,reference1_relationship' %}
-            {% with field=details_form|getfield:fname %}
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">{{ field.label }}</label>
-              <input type="text" name="{{ field.name }}" value="{{ field.value|default:'' }}"
-                placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            </div>
-            {% endwith %}
-            {% endfor %}
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {% for fname in 'reference2_name,reference2_phone,reference2_relationship' %}
-            {% with field=details_form|getfield:fname %}
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">{{ field.label }}</label>
-              <input type="text" name="{{ field.name }}" value="{{ field.value|default:'' }}"
-                placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            </div>
-            {% endwith %}
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="flex gap-3 pt-4 border-t">
-          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-            Continue to Loan Application →
-          </button>
-          <a href="?step=3&pk={{ borrower.pk }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Skip</a>
-        </div>
-      </form>
-
-      {% elif step == 2 %}
-      <h2 class="text-xl font-bold text-gray-900 mb-1">Step 2 — Borrower Details</h2>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Step 2 — Borrower Details</h2>
       <p class="text-sm text-gray-500 mb-6">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
 
       <form method="post" action="?step=2&pk={{ borrower.pk }}" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="step" value="2">
 
-        <!-- Address Card -->
+        <!-- Address -->
         <div class="rounded-lg shadow-sm overflow-hidden">
           <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 flex items-center gap-2">
             <i class="fas fa-map-marker-alt"></i>
             <span class="font-semibold">Residential Address</span>
           </div>
-          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-500 mb-1">Physical Address</label>
               <input type="text" name="address" placeholder="e.g. Plot 12, Cairo Road, Lusaka"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Province</label>
               <input type="text" name="province" placeholder="e.g. Lusaka"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">District / Area</label>
               <input type="text" name="district" placeholder="e.g. Kamwala"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
           </div>
         </div>
 
-        <!-- Employment Card -->
+        <!-- Employment -->
         <div class="rounded-lg shadow-sm overflow-hidden">
           <div class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-5 py-3 flex items-center gap-2">
             <i class="fas fa-briefcase"></i>
-            <span class="font-semibold">Employment Information</span>
+            <span class="font-semibold">Employment / Business</span>
           </div>
-          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Employment Status</label>
               <select name="employment_status"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                 <option value="">— select —</option>
                 {% with field=details_form|getfield:'employment_status' %}
                 {% for val, lbl in field.field.choices %}
@@ -267,17 +150,17 @@
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Employer / Business Name</label>
               <input type="text" name="employer_name" placeholder="e.g. Zambia National Bank"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-500 mb-1">Monthly Income (K)</label>
               <input type="number" name="monthly_income" step="0.01" min="0" placeholder="e.g. 3500"
-                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
           </div>
         </div>
 
-        <!-- Reference Card -->
+        <!-- References -->
         <div class="rounded-lg shadow-sm overflow-hidden">
           <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-3 flex items-center gap-2">
             <i class="fas fa-users"></i>
@@ -288,87 +171,83 @@
               <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
                 <input type="text" name="reference1_name" placeholder="Full name"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Phone</label>
                 <input type="text" name="reference1_phone" placeholder="Phone number"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Relationship</label>
                 <input type="text" name="reference1_relationship" placeholder="e.g. Spouse, Sibling"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
             </div>
           </div>
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium">
             Continue to Loan Application →
           </button>
           <a href="?step=3&pk={{ borrower.pk }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Skip</a>
         </div>
       </form>
 
-      <!-- ===== STEP 3: Loan Application ===== -->
+      <!-- ===== STEP 3 ===== -->
       {% elif step == 3 %}
-      <h2 class="text-xl font-bold text-gray-900 mb-1">Step 3 — Loan Application</h2>
-      <p class="text-sm text-gray-500 mb-1">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
-      <p class="text-sm text-gray-500 mb-6">Enter loan details and submit to manager for approval</p>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Step 3 — Loan Application</h2>
+      <p class="text-sm text-gray-500 mb-6">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
 
       <form method="post" action="?step=3&pk={{ borrower.pk }}" class="space-y-5">
         {% csrf_token %}
         <input type="hidden" name="step" value="3">
 
         <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Loan Amount (K) <span class="text-red-500">*</span></label>
-          <input type="number" name="loan_amount" step="0.01" min="1" required
-            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. 5000" value="{{ loan_form.loan_amount.value|default:'' }}">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Loan Amount (K) <span class="text-red-500">*</span></label>
+          <input type="number" name="loan_amount" step="0.01" min="1" required placeholder="e.g. 5000"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
           {% for e in loan_form.loan_amount.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Duration (days) <span class="text-red-500">*</span></label>
-          <input type="number" name="duration_days" min="1" required
-            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. 30" value="{{ loan_form.duration_days.value|default:'' }}">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Duration (days) <span class="text-red-500">*</span></label>
+          <input type="number" name="duration_days" min="1" required placeholder="e.g. 30"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
           {% for e in loan_form.duration_days.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Purpose <span class="text-red-500">*</span></label>
-          <input type="text" name="purpose" required
-            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. Business capital" value="{{ loan_form.purpose.value|default:'' }}">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Purpose <span class="text-red-500">*</span></label>
+          <input type="text" name="purpose" required placeholder="e.g. Business capital"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
           {% for e in loan_form.purpose.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Group (optional)</label>
-          <select name="group" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Group (optional)</label>
+          <select name="group" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white">
             <option value="">— no group —</option>
             {% for grp in loan_form.group.field.queryset %}
-              <option value="{{ grp.pk }}" {% if loan_form.group.value == grp.pk|stringformat:"s" %}selected{% endif %}>{{ grp.name }}</option>
+              <option value="{{ grp.pk }}">{{ grp.name }}</option>
             {% endfor %}
           </select>
         </div>
 
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-          This application will be sent to your manager for review and approval before any disbursement.
+          This application will be sent to your manager for review and approval.
         </div>
 
         <div class="flex gap-3 pt-4 border-t">
-          <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors">
+          <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium">
             Submit to Manager
           </button>
-          <a href="{% url 'loans:applications_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Skip</a>
+          <a href="{% url 'loans:applications_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Cancel</a>
         </div>
       </form>
-      {% endif %}
 
+      {% endif %}
     </div>
   </div>
 </div>
