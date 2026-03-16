@@ -133,16 +133,23 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
     def get_form_class(self):
         from .forms import GroupForm
         return GroupForm
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if self.request.user.role == 'loan_officer':
+            form.fields.pop('assigned_officer', None)
+            form.fields.pop('branch', None)
+        return form
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         
-        # If loan officer is creating, auto-assign them as the officer and set branch
-        if self.request.user.role == 'loan_officer' and not form.instance.assigned_officer:
+        if self.request.user.role == 'loan_officer':
             form.instance.assigned_officer = self.request.user
-            # Set branch from officer's assignment
-            if hasattr(self.request.user, 'officer_assignment') and self.request.user.officer_assignment:
+            try:
                 form.instance.branch = self.request.user.officer_assignment.branch
+            except Exception:
+                pass
         
         messages.success(self.request, f'Group "{form.instance.name}" created successfully!')
         return super().form_valid(form)
@@ -174,6 +181,13 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
     def get_form_class(self):
         from .forms import GroupForm
         return GroupForm
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if self.request.user.role == 'loan_officer':
+            form.fields.pop('assigned_officer', None)
+            form.fields.pop('branch', None)
+        return form
     
     def get_success_url(self):
         return reverse_lazy('clients:group_detail', kwargs={'pk': self.object.pk})
