@@ -1070,10 +1070,20 @@ def manage_officers(request):
         
         # Auto-fix: assign branch to officers with empty branch
         from clients.models import OfficerAssignment
-        OfficerAssignment.objects.filter(
-            officer__in=officers,
-            branch=''
-        ).update(branch=branch.name)
+        empty_branch_ids = list(
+            OfficerAssignment.objects.filter(
+                officer__in=officers,
+                branch=''
+            ).values_list('id', flat=True)
+        )
+        if empty_branch_ids:
+            OfficerAssignment.objects.filter(id__in=empty_branch_ids).update(branch=branch.name)
+        
+        # Re-fetch after fix
+        officers = User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch__iexact=branch.name
+        ).order_by('first_name', 'last_name')
     elif user.role == 'admin':
         # Admin sees all officers
         officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
