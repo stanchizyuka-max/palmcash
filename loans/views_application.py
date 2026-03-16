@@ -29,6 +29,16 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
                 role='borrower'
             ).values_list('id', flat=True).distinct()
             context['borrowers'] = User.objects.filter(id__in=borrower_ids)
+        elif self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                borrower_ids = User.objects.filter(
+                    officerassignment__branch=manager_branch,
+                    role='borrower'
+                ).values_list('id', flat=True).distinct()
+                context['borrowers'] = User.objects.filter(id__in=borrower_ids)
+            except:
+                context['borrowers'] = User.objects.filter(role='borrower')
         else:
             context['borrowers'] = User.objects.filter(role='borrower')
         return context
