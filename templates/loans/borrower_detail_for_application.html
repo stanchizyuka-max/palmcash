@@ -117,6 +117,59 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- References -->
+                {% if borrower.reference1_name or borrower.reference2_name %}
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-4">
+                        <h2 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-users mr-3"></i>References
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% if borrower.reference1_name %}
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Reference 1</h3>
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Name:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference1_name }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Phone:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference1_phone|default:"Not provided" }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Relationship:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference1_relationship|default:"Not provided" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if borrower.reference2_name %}
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-3">Reference 2</h3>
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Name:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference2_name }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Phone:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference2_phone|default:"Not provided" }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">Relationship:</span>
+                                        <span class="text-gray-900 ml-2">{{ borrower.reference2_relationship|default:"Not provided" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Sidebar -->
