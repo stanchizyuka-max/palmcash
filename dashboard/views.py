@@ -1060,26 +1060,15 @@ def manage_officers(request):
         if not branch:
             return render(request, 'dashboard/access_denied.html')
         
-        from django.db.models import Q
-        officers = User.objects.filter(
-            role='loan_officer'
-        ).filter(
-            Q(officer_assignment__branch__iexact=branch.name) |
-            Q(officer_assignment__branch='')
-        ).order_by('first_name', 'last_name')
-        
-        # Auto-fix: assign branch to officers with empty branch
         from clients.models import OfficerAssignment
-        empty_branch_ids = list(
-            OfficerAssignment.objects.filter(
-                officer__in=officers,
-                branch=''
-            ).values_list('id', flat=True)
+
+        # Fix officers with no branch assigned — collect their IDs first to avoid MySQL subquery issue
+        unassigned_ids = list(
+            OfficerAssignment.objects.filter(branch='').values_list('id', flat=True)
         )
-        if empty_branch_ids:
-            OfficerAssignment.objects.filter(id__in=empty_branch_ids).update(branch=branch.name)
-        
-        # Re-fetch after fix
+        if unassigned_ids:
+            OfficerAssignment.objects.filter(id__in=unassigned_ids).update(branch=branch.name)
+
         officers = User.objects.filter(
             role='loan_officer',
             officer_assignment__branch__iexact=branch.name
