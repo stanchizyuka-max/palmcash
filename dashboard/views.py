@@ -1056,15 +1056,24 @@ def manage_officers(request):
     user = request.user
     
     if user.role == 'manager':
-        # Manager sees officers in their branch
         branch = user.managed_branch
         if not branch:
             return render(request, 'dashboard/access_denied.html')
         
+        from django.db.models import Q
         officers = User.objects.filter(
-            role='loan_officer',
-            officer_assignment__branch=branch.name
+            role='loan_officer'
+        ).filter(
+            Q(officer_assignment__branch__iexact=branch.name) |
+            Q(officer_assignment__branch='')
         ).order_by('first_name', 'last_name')
+        
+        # Auto-fix: assign branch to officers with empty branch
+        from clients.models import OfficerAssignment
+        OfficerAssignment.objects.filter(
+            officer__in=officers,
+            branch=''
+        ).update(branch=branch.name)
     elif user.role == 'admin':
         # Admin sees all officers
         officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
@@ -2175,15 +2184,20 @@ def user_create(request):
             if role == 'loan_officer':
                 from clients.models import OfficerAssignment
                 try:
+                    branch_value = ''
+                    if request.user.role == 'manager':
+                        try:
+                            branch_value = request.user.managed_branch.name
+                        except Exception:
+                            pass
                     OfficerAssignment.objects.create(
                         officer=new_user,
-                        branch_id='',  # Set branch_id to empty string
+                        branch=branch_value,
                         max_groups=15,
                         max_clients=50,
                         is_accepting_assignments=True
                     )
                 except Exception as assignment_error:
-                    # Log the error but don't fail user creation
                     print(f"Warning: Could not create OfficerAssignment: {assignment_error}")
             
             # Redirect to manage officers
