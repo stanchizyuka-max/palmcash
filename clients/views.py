@@ -1000,6 +1000,7 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
 
     def post(self, request, pk=None):
         step = self._step(request)
+        pk = pk or request.GET.get('pk')
 
         if step == 1:
             return self._handle_step1(request)
