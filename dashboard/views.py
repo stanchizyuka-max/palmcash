@@ -1058,25 +1058,21 @@ def manage_officers(request):
     if user.role == 'manager':
         branch = user.managed_branch
         if not branch:
-            return render(request, 'dashboard/access_denied.html')
-        
-        from clients.models import OfficerAssignment
-
-        # Fix officers with no branch assigned
-        unassigned_ids = list(
-            OfficerAssignment.objects.filter(branch='').values_list('id', flat=True)
-        )
-        if unassigned_ids:
-            OfficerAssignment.objects.filter(id__in=unassigned_ids).update(branch=branch.name)
-
-        officers = User.objects.filter(
-            role='loan_officer',
-            officer_assignment__branch__iexact=branch.name
-        ).order_by('first_name', 'last_name')
-        
-        # Fallback: if still none, show all loan officers (branch data may be inconsistent)
-        if not officers.exists():
             officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
+        else:
+            from clients.models import OfficerAssignment
+            from django.db.models import Q
+
+            # Auto-assign branch to officers with empty branch created by this manager
+            # Only fix officers who have no branch set and are not already assigned elsewhere
+            OfficerAssignment.objects.filter(branch='').update(branch=branch.name)
+
+            officers = User.objects.filter(
+                role='loan_officer'
+            ).filter(
+                Q(officer_assignment__branch__iexact=branch.name) |
+                Q(officer_assignment__isnull=True)
+            ).distinct().order_by('first_name', 'last_name')
     elif user.role == 'admin':
         # Admin sees all officers
         officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
@@ -2190,22 +2186,18 @@ def user_create(request):
             # If loan officer, create officer assignment
             if role == 'loan_officer':
                 from clients.models import OfficerAssignment
-                try:
-                    branch_value = ''
-                    if request.user.role == 'manager':
-                        try:
-                            branch_value = request.user.managed_branch.name
-                        except Exception:
-                            pass
-                    OfficerAssignment.objects.create(
-                        officer=new_user,
-                        branch=branch_value,
-                        max_groups=15,
-                        max_clients=50,
-                        is_accepting_assignments=True
-                    )
-                except Exception as assignment_error:
-                    print(f"Warning: Could not create OfficerAssignment: {assignment_error}")
+                branch_value = ''
+                if request.user.role == 'manager' and request.user.managed_branch:
+                    branch_value = request.user.managed_branch.name
+                OfficerAssignment.objects.get_or_create(
+                    officer=new_user,
+                    defaults={
+                        'branch': branch_value,
+                        'max_groups': 15,
+                        'max_clients': 50,
+                        'is_accepting_assignments': True,
+                    }
+                )
             
             # Redirect to manage officers
             from django.shortcuts import redirect

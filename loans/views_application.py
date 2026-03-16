@@ -136,18 +136,13 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
                 if not branch:
                     return LoanApplication.objects.none()
                 branch_name = branch.name
-                loan_officer_ids = User.objects.filter(
-                    role='loan_officer',
-                    officer_assignment__branch__iexact=branch_name
-                ).values_list('id', flat=True)
-                qs = LoanApplication.objects.filter(loan_officer_id__in=loan_officer_ids)
-                if not qs.exists():
-                    from django.db.models import Q
-                    qs = LoanApplication.objects.filter(
-                        Q(borrower__group_memberships__group__branch__iexact=branch_name) |
-                        Q(borrower__assigned_officer__officer_assignment__branch__iexact=branch_name)
-                    ).distinct()
-                return qs
+                from django.db.models import Q
+                return LoanApplication.objects.filter(
+                    Q(loan_officer__officer_assignment__branch__iexact=branch_name) |
+                    Q(loan_officer__officer_assignment__isnull=True,
+                      borrower__group_memberships__group__branch__iexact=branch_name) |
+                    Q(borrower__group_memberships__group__branch__iexact=branch_name)
+                ).distinct()
             except Exception:
                 return LoanApplication.objects.all()
         else:

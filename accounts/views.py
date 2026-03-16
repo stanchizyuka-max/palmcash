@@ -165,14 +165,15 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
 
         if user.role == 'manager':
             try:
-                branch_name = user.managed_branch.name
-                branch_users = User.objects.filter(
-                    Q(role='loan_officer', officer_assignment__branch__iexact=branch_name) |
-                    Q(role='borrower', group_memberships__group__branch__iexact=branch_name, group_memberships__is_active=True) |
-                    Q(role='borrower', assigned_officer__officer_assignment__branch__iexact=branch_name)
-                ).distinct().order_by('-date_joined')
-                # Fallback if branch filter returns nothing
-                if not branch_users.exists():
+                branch_name = user.managed_branch.name if user.managed_branch else None
+                if branch_name:
+                    branch_users = User.objects.filter(
+                        Q(role='loan_officer', officer_assignment__branch__iexact=branch_name) |
+                        Q(role='loan_officer', officer_assignment__isnull=True) |
+                        Q(role='borrower', group_memberships__group__branch__iexact=branch_name, group_memberships__is_active=True) |
+                        Q(role='borrower', assigned_officer__officer_assignment__branch__iexact=branch_name)
+                    ).distinct().order_by('-date_joined')
+                else:
                     branch_users = User.objects.exclude(role__in=['admin']).order_by('-date_joined')
             except Exception:
                 branch_users = User.objects.exclude(role__in=['admin']).order_by('-date_joined')

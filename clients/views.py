@@ -1050,12 +1050,10 @@ class BorrowerPhotoUploadView(LoginRequiredMixin, View):
                 }
                 
                 for doc_type, file in photos.items():
-                    ClientDocument.objects.create(
+                    ClientDocument.objects.update_or_create(
                         client=borrower,
                         document_type=doc_type,
-                        document_file=file,
-                        status='pending',
-                        uploaded_by=request.user
+                        defaults={'image': file, 'status': 'pending'}
                     )
                 
                 messages.success(
