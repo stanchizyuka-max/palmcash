@@ -156,6 +156,23 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['status'].widget.attrs.update({
+            'class': 'w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        })
+        form.fields['rejection_reason'].widget = __import__('django.forms', fromlist=['Textarea']).Textarea(attrs={
+            'class': 'w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+            'rows': 3,
+            'placeholder': 'Enter reason if rejecting...'
+        })
+        return form
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['borrower'] = self.object.borrower
+        return context
+    
     def form_valid(self, form):
         loan_app = form.save(commit=False)
         
@@ -164,16 +181,9 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
             from django.utils import timezone
             loan_app.approval_date = timezone.now()
             loan_app.save()
-            
-            messages.success(
-                self.request,
-                f'Loan application {loan_app.application_number} approved.'
-            )
+            messages.success(self.request, f'Loan application {loan_app.application_number} approved.')
         elif loan_app.status == 'rejected':
             loan_app.save()
-            messages.warning(
-                self.request,
-                f'Loan application {loan_app.application_number} rejected.'
-            )
+            messages.warning(self.request, f'Loan application {loan_app.application_number} rejected.')
         
         return redirect(self.success_url)
