@@ -31,12 +31,13 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
             context['borrowers'] = User.objects.filter(id__in=borrower_ids)
         elif self.request.user.role == 'manager':
             try:
+                from django.db.models import Q
                 manager_branch = self.request.user.managed_branch.name
-                borrower_ids = User.objects.filter(
-                    officerassignment__branch=manager_branch,
+                context['borrowers'] = User.objects.filter(
+                    Q(assigned_officer__officer_assignment__branch=manager_branch) |
+                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True),
                     role='borrower'
-                ).values_list('id', flat=True).distinct()
-                context['borrowers'] = User.objects.filter(id__in=borrower_ids)
+                ).distinct()
             except:
                 context['borrowers'] = User.objects.filter(role='borrower')
         else:
@@ -133,8 +134,8 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
             try:
                 manager_branch = self.request.user.managed_branch.name
                 loan_officer_ids = User.objects.filter(
-                    officerassignment__branch=manager_branch,
-                    role='loan_officer'
+                    role='loan_officer',
+                    officer_assignment__branch=manager_branch
                 ).values_list('id', flat=True)
                 return LoanApplication.objects.filter(loan_officer_id__in=loan_officer_ids)
             except:
