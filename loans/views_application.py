@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic import CreateView, ListView, UpdateView, TemplateView, DetailView
 from django.contrib import messages
 from django.urls import reverse_lazy
 import uuid
@@ -8,6 +8,68 @@ import uuid
 from accounts.models import User
 from .models import LoanApplication
 from .forms_application import LoanApplicationForm
+
+
+class SelectBorrowerView(LoginRequiredMixin, TemplateView):
+    template_name = 'loans/select_borrower.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can submit loan applications.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.role == 'loan_officer':
+            from django.db.models import Q
+            borrower_ids = User.objects.filter(
+                Q(assigned_officer=self.request.user) |
+                Q(group_memberships__group__assigned_officer=self.request.user),
+                role='borrower'
+            ).values_list('id', flat=True).distinct()
+            context['borrowers'] = User.objects.filter(id__in=borrower_ids)
+        else:
+            context['borrowers'] = User.objects.filter(role='borrower')
+        return context
+
+
+class BorrowerDetailForApplicationView(LoginRequiredMixin, DetailView):
+    model = User
+    template_name = 'loans/borrower_detail_for_application.html'
+    context_object_name = 'borrower'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can submit loan applications.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        borrower = self.object
+        context['borrower_info'] = {
+            'personal': {
+                'full_name': borrower.get_full_name(),
+                'email': borrower.email,
+                'phone_number': borrower.phone_number,
+                'date_of_birth': borrower.date_of_birth,
+                'national_id': borrower.national_id,
+                'is_verified': borrower.is_verified,
+            },
+            'employment': {
+                'status': borrower.employment_status,
+                'employer_name': borrower.employer_name,
+                'monthly_income': borrower.monthly_income,
+            },
+            'address': {
+                'address': borrower.address,
+                'province': borrower.province,
+                'district': borrower.district,
+                'residential_area': borrower.residential_area,
+            }
+        }
+        return context
 
 
 class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):

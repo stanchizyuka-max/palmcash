@@ -30,7 +30,9 @@ urlpatterns = [
     path('manage/loan-types/', views.LoanTypesManageView.as_view(), name='manage_loan_types'),
     path('manage/loan-documents/', views.LoanDocumentsManageView.as_view(), name='manage_loan_documents'),
     
-    path('applications/submit/', views_application.SubmitLoanApplicationView.as_view(), name='submit_application'),
+    path('applications/submit/', views_application.SelectBorrowerView.as_view(), name='submit_application'),
+    path('applications/submit/<int:pk>/', views_application.BorrowerDetailForApplicationView.as_view(), name='borrower_detail_for_application'),
+    path('applications/submit/form/', views_application.SubmitLoanApplicationView.as_view(), name='submit_application_form'),
     path('applications/', views_application.LoanApplicationsListView.as_view(), name='applications_list'),
     path('applications/<int:pk>/approve/', views_application.ApproveLoanApplicationView.as_view(), name='approve_application'),
 ]
