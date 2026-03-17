@@ -49,17 +49,30 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS(f"✅ Created Kamwala branch: {kamwala_branch.name}"))
             
-            # Create OfficerAssignment for Jay
-            assignment = OfficerAssignment.objects.create(
-                officer=jay,
-                branch=kamwala_branch.name,
-                max_groups=15,
-                max_clients=50
-            )
-            self.stdout.write(self.style.SUCCESS(f"✅ Created OfficerAssignment for Jay:"))
-            self.stdout.write(f"   Branch: '{assignment.branch}'")
-            self.stdout.write(f"   Max Groups: {assignment.max_groups}")
-            self.stdout.write(f"   Max Clients: {assignment.max_clients}")
+            # Create OfficerAssignment for Jay - handle potential database constraints
+            try:
+                assignment = OfficerAssignment.objects.create(
+                    officer=jay,
+                    branch=kamwala_branch.name,
+                    max_groups=15,
+                    max_clients=50
+                )
+                self.stdout.write(self.style.SUCCESS(f"✅ Created OfficerAssignment for Jay:"))
+                self.stdout.write(f"   Branch: '{assignment.branch}'")
+                self.stdout.write(f"   Max Groups: {assignment.max_groups}")
+                self.stdout.write(f"   Max Clients: {assignment.max_clients}")
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"❌ Failed to create OfficerAssignment: {e}"))
+                # Try alternative approach - just set branch directly in database
+                self.stdout.write("⚠️  Trying alternative approach...")
+                assignment = OfficerAssignment.objects.create(
+                    officer=jay,
+                    max_groups=15,
+                    max_clients=50
+                )
+                # Update branch separately
+                OfficerAssignment.objects.filter(id=assignment.id).update(branch=kamwala_branch.name)
+                self.stdout.write(self.style.SUCCESS(f"✅ Created OfficerAssignment using alternative method"))
         
         # Check Jay's loan applications
         from loans.models import LoanApplication

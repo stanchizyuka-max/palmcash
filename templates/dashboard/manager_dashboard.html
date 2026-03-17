@@ -300,5 +300,21 @@
             </div>
         </div>
     </div>
+
+    <!-- Debug Information -->
+    {% if debug_info %}
+    <div class="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <h3 class="text-lg font-semibold text-red-800 mb-4">Debug Information</h3>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <strong>Manager Branch:</strong> {{ debug_info.manager_branch }}<br>
+                <strong>Total Applications:</strong> {{ debug_info.total_applications }}<br>
+                <strong>Pending Applications:</strong> {{ debug_info.pending_applications }}<br>
+                <strong>Showing on Dashboard:</strong> {{ debug_info.branch_apps_count }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

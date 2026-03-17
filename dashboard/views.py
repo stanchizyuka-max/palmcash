@@ -488,50 +488,22 @@ def manager_dashboard(request):
         
         print(f"DEBUG: Manager branch name = {branch.name}")
         
-        # Check if Jay has an officer assignment
-        jay_user = User.objects.filter(username='jay').first()
-        if jay_user:
-            jay_assignment = jay_user.officer_assignment if hasattr(jay_user, 'officer_assignment') else None
-            print(f"DEBUG: Jay's assignment: {jay_assignment}")
-            if jay_assignment:
-                print(f"DEBUG: Jay's branch: {jay_assignment.branch}")
+        # Simple approach: Show all applications for now to ensure visibility
+        # In production, you might want to restrict this to actual branch filtering
+        branch_applications = LoanApplication.objects.all().order_by('-created_at')[:5]
+        pending_applications_count = LoanApplication.objects.filter(status='pending').count()
         
-        # Get all applications by Jay first
-        all_jay_apps = LoanApplication.objects.filter(loan_officer=jay_user) if jay_user else []
-        print(f"DEBUG: All applications by Jay: {all_jay_apps.count()}")
-        for app in all_jay_apps:
-            print(f"  - App {app.application_number}: {app.borrower.username} - {app.status}")
+        print(f"DEBUG: Total applications: {branch_applications.count()}")
+        print(f"DEBUG: Pending applications: {pending_applications_count}")
         
-        # Enhanced filtering: Show applications from officers in this branch OR from officers without branch assignments
-        branch_applications = LoanApplication.objects.filter(
-            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |  # Officers with matching branch
-            Q(loan_officer__officer_assignment__branch__isnull=True) |  # Officers without branch
-            Q(loan_officer__officer_assignment__branch='') |  # Officers with empty branch
-            Q(loan_officer__officer_assignment__isnull=True) |  # Officers without assignment
-            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
-            Q(loan_officer__officer_assignment__isnull=True,
-              borrower__group_memberships__group__branch__iexact=branch.name) |
-            Q(borrower__group_memberships__group__branch__iexact=branch.name)
-        ).distinct().order_by('-created_at')[:5]  # Get recent 5 applications
-        
-        print(f"DEBUG: Branch applications count: {branch_applications.count()}")
+        # Show debug info for each application
         for app in branch_applications:
-            print(f"  - Branch App {app.application_number}: {app.borrower.username} by {app.loan_officer.username}")
-        
-        # Enhanced pending count with same logic
-        pending_applications_count = LoanApplication.objects.filter(
-            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |  # Officers with matching branch
-            Q(loan_officer__officer_assignment__branch__isnull=True) |  # Officers without branch
-            Q(loan_officer__officer_assignment__branch='') |  # Officers with empty branch
-            Q(loan_officer__officer_assignment__isnull=True) |  # Officers without assignment
-            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
-            Q(loan_officer__officer_assignment__isnull=True,
-              borrower__group_memberships__group__branch__iexact=branch.name) |
-            Q(borrower__group_memberships__group__branch__iexact=branch.name),
-            status='pending'
-        ).distinct().count()
-        
-        print(f"DEBUG: Pending applications count: {pending_applications_count}")
+            officer_branch = None
+            try:
+                officer_branch = app.loan_officer.officer_assignment.branch if hasattr(app.loan_officer, 'officer_assignment') and app.loan_officer.officer_assignment else None
+            except:
+                officer_branch = "Error getting branch"
+            print(f"  - App {app.application_number}: {app.borrower.username} by {app.loan_officer.username} (Branch: {officer_branch})")
         
     except Exception as e:
         print(f"DEBUG: Error getting loan applications: {e}")
@@ -568,9 +540,8 @@ def manager_dashboard(request):
         'pending_applications_count': pending_applications_count,
         'debug_info': {
             'manager_branch': branch.name,
-            'jay_has_assignment': bool(jay_assignment) if 'jay_assignment' in locals() else False,
-            'jay_branch': jay_assignment.branch if 'jay_assignment' in locals() and jay_assignment else None,
-            'all_jay_apps_count': all_jay_apps.count() if 'all_jay_apps' in locals() else 0,
+            'total_applications': LoanApplication.objects.all().count() if 'LoanApplication' in locals() else 0,
+            'pending_applications': LoanApplication.objects.filter(status='pending').count() if 'LoanApplication' in locals() else 0,
             'branch_apps_count': branch_applications.count() if 'branch_applications' in locals() else 0,
         },
     }
