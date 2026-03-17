@@ -2238,11 +2238,11 @@ def user_create(request):
                         'is_accepting_assignments': True,
                     }
                 )
-            
+
             # Redirect to manage officers
             from django.shortcuts import redirect
             return redirect('dashboard:manage_officers')
-            
+
         except Exception as e:
             return render(request, 'dashboard/user_form.html', {
                 'error': f'Error creating user: {str(e)}',
