@@ -480,6 +480,32 @@ def manager_dashboard(request):
     
     print(f"DEBUG: Document verification stats - Total: {total_document_clients}, Verified: {verified_document_clients}, Pending: {pending_document_verifications}, Rate: {verification_rate}%")
     
+    # Get loan applications for this branch
+    try:
+        from loans.models import LoanApplication
+        from django.db.models import Q
+        
+        # Get applications that the manager can see (same logic as LoanApplicationsListView)
+        branch_applications = LoanApplication.objects.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
+            Q(loan_officer__officer_assignment__isnull=True,
+              borrower__group_memberships__group__branch__iexact=branch.name) |
+            Q(borrower__group_memberships__group__branch__iexact=branch.name)
+        ).distinct().order_by('-created_at')[:5]  # Get recent 5 applications
+        
+        pending_applications_count = LoanApplication.objects.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
+            Q(loan_officer__officer_assignment__isnull=True,
+              borrower__group_memberships__group__branch__iexact=branch.name) |
+            Q(borrower__group_memberships__group__branch__iexact=branch.name),
+            status='pending'
+        ).distinct().count()
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting loan applications: {e}")
+        branch_applications = []
+        pending_applications_count = 0
+    
     context = {
         'branch': branch,
         'today': today,
@@ -504,6 +530,8 @@ def manager_dashboard(request):
         'verified_document_clients': verified_document_clients,
         'total_document_clients': total_document_clients,
         'verification_rate': verification_rate,
+        'recent_applications': branch_applications,
+        'pending_applications_count': pending_applications_count,
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)

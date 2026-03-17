@@ -43,8 +43,8 @@
             <div class="bg-white rounded-xl shadow-sm p-6 border border-secondary-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-secondary-600 text-sm font-medium">Pending Approvals</p>
-                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_loans }}</p>
+                        <p class="text-secondary-600 text-sm font-medium">Pending Applications</p>
+                        <p class="text-3xl font-bold text-warning-600 mt-2">{{ pending_applications_count }}</p>
                     </div>
                     <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-clock text-warning-600 text-xl"></i>
@@ -100,24 +100,28 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Recent Applications -->
             <div class="bg-white rounded-xl shadow-sm border border-secondary-100">
-                <div class="p-6 border-b border-secondary-100">
+                <div class="p-6 border-b border-secondary-100 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-secondary-900">Recent Applications</h3>
+                    <a href="{% url 'loans:applications_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                        View All →
+                    </a>
                 </div>
                 <div class="p-6">
                     {% if recent_applications %}
                     <div class="space-y-4">
-                        {% for loan in recent_applications %}
+                        {% for application in recent_applications %}
                         <div class="flex items-center justify-between p-4 bg-secondary-50 rounded-lg">
                             <div>
-                                <p class="font-medium text-secondary-900">{{ loan.borrower.get_full_name }}</p>
-                                <p class="text-sm text-secondary-600">K {{ loan.principal_amount|floatformat:2 }}</p>
+                                <p class="font-medium text-secondary-900">{{ application.borrower.get_full_name }}</p>
+                                <p class="text-sm text-secondary-600">K {{ application.loan_amount|floatformat:2 }}</p>
+                                <p class="text-xs text-secondary-500">by {{ application.loan_officer.get_full_name }}</p>
                             </div>
                             <span class="px-3 py-1 rounded-full text-xs font-medium
-                                {% if loan.status == 'pending' %}bg-warning-100 text-warning-800
-                                {% elif loan.status == 'approved' %}bg-success-100 text-success-800
-                                {% elif loan.status == 'rejected' %}bg-danger-100 text-danger-800
+                                {% if application.status == 'pending' %}bg-warning-100 text-warning-800
+                                {% elif application.status == 'approved' %}bg-success-100 text-success-800
+                                {% elif application.status == 'rejected' %}bg-danger-100 text-danger-800
                                 {% endif %}">
-                                {{ loan.get_status_display }}
+                                {{ application.get_status_display }}
                             </span>
                         </div>
                         {% endfor %}
