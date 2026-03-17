@@ -1027,14 +1027,13 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             ctx['borrower'] = borrower
             ctx['details_form'] = BorrowerDetailsForm(instance=borrower)
         elif step == 3 and pk:
-            borrower = get_object_or_404(User, pk=pk, role='borrower')
+            borrower = get_object_or_404(User, pk=pk)
             ctx['borrower'] = borrower
-            ctx['loan_form'] = LoanApplicationForm()
+            from clients.models import BorrowerGroup
             if self.request.user.role == 'loan_officer':
-                from clients.models import BorrowerGroup
-                ctx['loan_form'].fields['group'].queryset = BorrowerGroup.objects.filter(
-                    assigned_officer=self.request.user, is_active=True
-                )
+                ctx['groups'] = BorrowerGroup.objects.filter(assigned_officer=self.request.user, is_active=True)
+            else:
+                ctx['groups'] = BorrowerGroup.objects.filter(is_active=True)
         return ctx
 
     def _handle_step1(self, request):
@@ -1088,24 +1087,43 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         })
 
     def _handle_step3(self, request, pk):
-        from loans.forms_application import LoanApplicationForm
         import uuid
-        borrower = get_object_or_404(User, pk=pk, role='borrower')
-        form = LoanApplicationForm(request.POST)
+        from loans.models import LoanApplication
+        from clients.models import BorrowerGroup
 
-        if request.user.role == 'loan_officer':
-            from clients.models import BorrowerGroup
-            form.fields['group'].queryset = BorrowerGroup.objects.filter(
-                assigned_officer=request.user, is_active=True
+        borrower = get_object_or_404(User, pk=pk)
+
+        loan_amount = request.POST.get('loan_amount')
+        duration_days = request.POST.get('duration_days')
+        purpose = request.POST.get('purpose', '').strip()
+        group_id = request.POST.get('group') or None
+
+        errors = []
+        if not loan_amount:
+            errors.append('Loan amount is required.')
+        if not duration_days:
+            errors.append('Duration is required.')
+        if not purpose:
+            errors.append('Purpose is required.')
+
+        group = None
+        if group_id:
+            try:
+                group = BorrowerGroup.objects.get(pk=group_id)
+            except BorrowerGroup.DoesNotExist:
+                errors.append('Selected group does not exist.')
+
+        if not errors:
+            app = LoanApplication(
+                borrower=borrower,
+                loan_officer=request.user,
+                loan_amount=loan_amount,
+                duration_days=duration_days,
+                purpose=purpose,
+                group=group,
+                application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
+                status='pending',
             )
-
-        if form.is_valid():
-            from loans.models import LoanApplication
-            app = form.save(commit=False)
-            app.borrower = borrower
-            app.loan_officer = request.user
-            app.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
-            app.status = 'pending'
             app.save()
             messages.success(
                 request,
@@ -1113,12 +1131,19 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             )
             return redirect('loans:applications_list')
 
+        for e in errors:
+            messages.error(request, e)
+
+        groups_qs = BorrowerGroup.objects.filter(assigned_officer=request.user, is_active=True) \
+            if request.user.role == 'loan_officer' else BorrowerGroup.objects.filter(is_active=True)
+
         return render(request, self.template_name, {
             'step': 3,
             'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
             'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
             'borrower': borrower,
-            'loan_form': form,
+            'groups': groups_qs,
+            'post_data': request.POST,
         })
 
 
