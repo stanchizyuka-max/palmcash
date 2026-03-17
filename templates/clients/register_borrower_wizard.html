@@ -59,8 +59,12 @@
               <input type="file" name="{{ field_name }}" id="id_{{ field_name }}" accept="image/*" class="hidden" required
                 onchange="const f=this.files[0];if(f){document.getElementById('label_{{ field_name }}').textContent=f.name;const r=new FileReader();r.onload=function(e){const i=document.getElementById('preview_{{ field_name }}');i.src=e.target.result;i.classList.remove('hidden');};r.readAsDataURL(f);}">
               {% if photo_form %}
-                {% for error in photo_form[field_name].errors %}
-                  <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                {% for field in photo_form %}
+                  {% if field.name == field_name %}
+                    {% for error in field.errors %}
+                      <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
+                  {% endif %}
                 {% endfor %}
               {% endif %}
             </div>
