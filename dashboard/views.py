@@ -485,13 +485,33 @@ def manager_dashboard(request):
         from loans.models import LoanApplication
         from django.db.models import Q
         
-        # Get applications that the manager can see (same logic as LoanApplicationsListView)
+        print(f"DEBUG: Manager branch name = {branch.name}")
+        
+        # Check if Jay has an officer assignment
+        jay_user = User.objects.filter(username='jay').first()
+        if jay_user:
+            jay_assignment = jay_user.officer_assignment if hasattr(jay_user, 'officer_assignment') else None
+            print(f"DEBUG: Jay's assignment: {jay_assignment}")
+            if jay_assignment:
+                print(f"DEBUG: Jay's branch: {jay_assignment.branch}")
+        
+        # Get all applications by Jay first
+        all_jay_apps = LoanApplication.objects.filter(loan_officer=jay_user) if jay_user else []
+        print(f"DEBUG: All applications by Jay: {all_jay_apps.count()}")
+        for app in all_jay_apps:
+            print(f"  - App {app.application_number}: {app.borrower.username} - {app.status}")
+        
+        # Get applications that manager can see (same logic as LoanApplicationsListView)
         branch_applications = LoanApplication.objects.filter(
             Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
             Q(loan_officer__officer_assignment__isnull=True,
               borrower__group_memberships__group__branch__iexact=branch.name) |
             Q(borrower__group_memberships__group__branch__iexact=branch.name)
         ).distinct().order_by('-created_at')[:5]  # Get recent 5 applications
+        
+        print(f"DEBUG: Branch applications count: {branch_applications.count()}")
+        for app in branch_applications:
+            print(f"  - Branch App {app.application_number}: {app.borrower.username} by {app.loan_officer.username}")
         
         pending_applications_count = LoanApplication.objects.filter(
             Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
@@ -501,8 +521,12 @@ def manager_dashboard(request):
             status='pending'
         ).distinct().count()
         
+        print(f"DEBUG: Pending applications count: {pending_applications_count}")
+        
     except Exception as e:
         print(f"DEBUG: Error getting loan applications: {e}")
+        import traceback
+        traceback.print_exc()
         branch_applications = []
         pending_applications_count = 0
     
