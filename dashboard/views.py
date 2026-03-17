@@ -244,6 +244,7 @@ def manager_dashboard(request):
         })
     
     # Branch metrics
+    from django.db.models import Q
     officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
     # Get groups either assigned to the branch OR assigned to officers in this branch
     groups = BorrowerGroup.objects.filter(
@@ -556,6 +557,13 @@ def manager_dashboard(request):
         'verification_rate': verification_rate,
         'recent_applications': branch_applications,
         'pending_applications_count': pending_applications_count,
+        'debug_info': {
+            'manager_branch': branch.name,
+            'jay_has_assignment': bool(jay_assignment) if 'jay_assignment' in locals() else False,
+            'jay_branch': jay_assignment.branch if 'jay_assignment' in locals() and jay_assignment else None,
+            'all_jay_apps_count': all_jay_apps.count() if 'all_jay_apps' in locals() else 0,
+            'branch_apps_count': branch_applications.count() if 'branch_applications' in locals() else 0,
+        },
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
