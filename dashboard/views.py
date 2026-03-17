@@ -502,8 +502,12 @@ def manager_dashboard(request):
         for app in all_jay_apps:
             print(f"  - App {app.application_number}: {app.borrower.username} - {app.status}")
         
-        # Get applications that manager can see (same logic as LoanApplicationsListView)
+        # Enhanced filtering: Show applications from officers in this branch OR from officers without branch assignments
         branch_applications = LoanApplication.objects.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |  # Officers with matching branch
+            Q(loan_officer__officer_assignment__branch__isnull=True) |  # Officers without branch
+            Q(loan_officer__officer_assignment__branch='') |  # Officers with empty branch
+            Q(loan_officer__officer_assignment__isnull=True) |  # Officers without assignment
             Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
             Q(loan_officer__officer_assignment__isnull=True,
               borrower__group_memberships__group__branch__iexact=branch.name) |
@@ -514,7 +518,12 @@ def manager_dashboard(request):
         for app in branch_applications:
             print(f"  - Branch App {app.application_number}: {app.borrower.username} by {app.loan_officer.username}")
         
+        # Enhanced pending count with same logic
         pending_applications_count = LoanApplication.objects.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |  # Officers with matching branch
+            Q(loan_officer__officer_assignment__branch__isnull=True) |  # Officers without branch
+            Q(loan_officer__officer_assignment__branch='') |  # Officers with empty branch
+            Q(loan_officer__officer_assignment__isnull=True) |  # Officers without assignment
             Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
             Q(loan_officer__officer_assignment__isnull=True,
               borrower__group_memberships__group__branch__iexact=branch.name) |
