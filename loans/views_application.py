@@ -197,6 +197,7 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                     loan_type = LoanType.objects.first()
 
                 if loan_type:
+                    from decimal import Decimal
                     loan = Loan(
                         borrower=loan_app.borrower,
                         loan_officer=loan_app.loan_officer,
@@ -206,7 +207,7 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                         status='approved',
                         repayment_frequency='daily',
                         term_days=loan_app.duration_days,
-                        payment_amount=0,
+                        payment_amount=Decimal('0'),
                         approval_date=timezone.now(),
                     )
                     loan.save()

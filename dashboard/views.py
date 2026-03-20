@@ -213,8 +213,7 @@ def loan_officer_dashboard(request):
         'pending_upfront_loans': Loan.objects.filter(
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
             status='approved',
-            upfront_payment_paid=0,
-            upfront_payment_verified=False
+            upfront_payment_verified=False,
         ).select_related('borrower').distinct(),
     }
     
