@@ -24,81 +24,42 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-8">
-
       {% if messages %}
         {% for message in messages %}
           <div class="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">{{ message }}</div>
         {% endfor %}
       {% endif %}
 
-      <!-- ===== STEP 1 ===== -->
+      <!-- ===== STEP 1: Basic Info ===== -->
       {% if step == 1 %}
-      <h2 class="text-xl font-bold text-gray-900 mb-2">Step 1 — Photos & Basic Info</h2>
-      <p class="text-sm text-gray-500 mb-6">Upload NRC photos and enter borrower information</p>
+      <h2 class="text-xl font-bold text-gray-900 mb-2">Step 1 — Basic Information</h2>
+      <p class="text-sm text-gray-500 mb-6">Enter borrower's personal details</p>
 
       <form method="post" enctype="multipart/form-data" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="step" value="1">
-
-        <!-- Photo Upload -->
-        <div class="bg-blue-50 border border-blue-100 rounded-lg p-5">
-          <p class="text-sm font-semibold text-blue-800 mb-4">Verification Photos</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {% for field_name, label in photo_fields %}
-            <div class="text-center">
-              <label for="id_{{ field_name }}" class="block text-xs font-medium text-gray-700 mb-2">
-                {{ label }} <span class="text-red-500">*</span>
-              </label>
-              <label for="id_{{ field_name }}" class="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-5 flex flex-col items-center hover:border-blue-400 transition-colors">
-                <img id="preview_{{ field_name }}" class="hidden mb-2 rounded-lg max-h-24">
-                <svg class="h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/>
-                </svg>
-                <p class="text-xs text-gray-500" id="label_{{ field_name }}">Click to upload</p>
-              </label>
-              <input type="file" name="{{ field_name }}" id="id_{{ field_name }}" accept="image/*" class="hidden" required
-                onchange="const f=this.files[0];if(f){document.getElementById('label_{{ field_name }}').textContent=f.name;const r=new FileReader();r.onload=function(e){const i=document.getElementById('preview_{{ field_name }}');i.src=e.target.result;i.classList.remove('hidden');};r.readAsDataURL(f);}">
-              {% if photo_form %}
-                {% for field in photo_form %}
-                  {% if field.name == field_name %}
-                    {% for error in field.errors %}
-                      <p class="text-red-500 text-xs mt-1">{{ error }}</p>
-                    {% endfor %}
-                  {% endif %}
-                {% endfor %}
-              {% endif %}
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {% for field in reg_form %}
+          <div {% if field.name == 'email' %}class="sm:col-span-2"{% endif %}>
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+              {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% for error in field.errors %}
+              <p class="text-red-500 text-xs mt-1">{{ error }}</p>
             {% endfor %}
           </div>
+          {% endfor %}
         </div>
-
-        <!-- Basic Info -->
-        <div>
-          <p class="text-sm font-semibold text-gray-700 mb-3">Basic Information</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {% for field in reg_form %}
-            <div {% if field.name == 'email' %}class="sm:col-span-2"{% endif %}>
-              <label class="block text-xs font-medium text-gray-700 mb-1">
-                {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
-              </label>
-              {{ field }}
-              {% for error in field.errors %}
-                <p class="text-red-500 text-xs mt-1">{{ error }}</p>
-              {% endfor %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
         <div class="flex gap-3 pt-4 border-t">
-          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 font-medium">
             Continue to Details →
           </button>
-          <a href="{% url 'clients:group_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center">Cancel</a>
+          <a href="{% url 'clients:group_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-center">Cancel</a>
         </div>
       </form>
 
-      <!-- ===== STEP 2 ===== -->
+      <!-- ===== STEP 2: Borrower Details ===== -->
       {% elif step == 2 %}
       <h2 class="text-xl font-bold text-gray-900 mb-2">Step 2 — Borrower Details</h2>
       <p class="text-sm text-gray-500 mb-6">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
@@ -116,18 +77,18 @@
           <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-500 mb-1">Physical Address</label>
-              <input type="text" name="address" placeholder="e.g. Plot 12, Cairo Road, Lusaka"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <input type="text" name="address" placeholder="e.g. Plot 12, Cairo Road"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Province</label>
               <input type="text" name="province" placeholder="e.g. Lusaka"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">District / Area</label>
               <input type="text" name="district" placeholder="e.g. Kamwala"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
         </div>
@@ -142,64 +103,81 @@
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Employment Status</label>
               <select name="employment_status"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="">— select —</option>
-                {% with field=details_form|getfield:'employment_status' %}
-                {% for val, lbl in field.field.choices %}
-                  {% if val %}<option value="{{ val }}">{{ lbl }}</option>{% endif %}
-                {% endfor %}
-                {% endwith %}
+                <option value="employed">Employed</option>
+                <option value="self_employed">Self Employed</option>
+                <option value="unemployed">Unemployed</option>
+                <option value="student">Student</option>
+                <option value="retired">Retired</option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Employer / Business Name</label>
               <input type="text" name="employer_name" placeholder="e.g. Zambia National Bank"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-500 mb-1">Monthly Income (K)</label>
               <input type="number" name="monthly_income" step="0.01" min="0" placeholder="e.g. 3500"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
         </div>
 
-        <!-- References -->
+        <!-- Guarantor / Reference -->
         <div class="rounded-lg shadow-sm overflow-hidden">
           <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-3 flex items-center gap-2">
             <i class="fas fa-users"></i>
-            <span class="font-semibold">Reference Contact</span>
+            <span class="font-semibold">Guarantor / Reference</span>
           </div>
-          <div class="p-5">
-            <div class="bg-gray-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                <input type="text" name="reference1_name" placeholder="Full name"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Phone</label>
-                <input type="text" name="reference1_phone" placeholder="Phone number"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Relationship</label>
-                <input type="text" name="reference1_relationship" placeholder="e.g. Spouse, Sibling"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              </div>
+          <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
+              <input type="text" name="reference1_name" placeholder="Full name"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Phone</label>
+              <input type="text" name="reference1_phone" placeholder="Phone number"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Relationship</label>
+              <select name="reference1_relationship"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">— select —</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Husband">Husband</option>
+                <option value="Wife">Wife</option>
+                <option value="Parent">Parent</option>
+                <option value="Sibling">Sibling</option>
+                <option value="Brother">Brother</option>
+                <option value="Sister">Sister</option>
+                <option value="Child">Child</option>
+                <option value="Nephew">Nephew</option>
+                <option value="Niece">Niece</option>
+                <option value="Uncle">Uncle</option>
+                <option value="Aunt">Aunt</option>
+                <option value="Cousin">Cousin</option>
+                <option value="Friend">Friend</option>
+                <option value="Colleague">Colleague</option>
+                <option value="Neighbour">Neighbour</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
           </div>
         </div>
 
         <div class="flex gap-3 pt-2">
-          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 font-medium">
             Continue to Loan Application →
           </button>
-          <a href="?step=3&pk={{ borrower.pk }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Skip</a>
+          <a href="?step=3&pk={{ borrower.pk }}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-center text-sm">Skip</a>
         </div>
       </form>
 
-      <!-- ===== STEP 3 ===== -->
+      <!-- ===== STEP 3: Loan Application ===== -->
       {% elif step == 3 %}
       <h2 class="text-xl font-bold text-gray-900 mb-2">Step 3 — Loan Application</h2>
       <p class="text-sm text-gray-500 mb-6">Borrower: <strong>{{ borrower.get_full_name }}</strong></p>
@@ -210,33 +188,41 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Loan Amount (K) <span class="text-red-500">*</span></label>
-          <input type="number" name="loan_amount" step="0.01" min="1" required placeholder="e.g. 5000"
+          <input type="number" name="loan_amount" step="0.01" min="1" required
+            value="{{ post_data.loan_amount }}"
+            placeholder="e.g. 5000"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
-          {% for e in loan_form.loan_amount.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Duration (days) <span class="text-red-500">*</span></label>
-          <input type="number" name="duration_days" min="1" required placeholder="e.g. 30"
+          <input type="number" name="duration_days" min="1" required
+            value="{{ post_data.duration_days }}"
+            placeholder="e.g. 30"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
-          {% for e in loan_form.duration_days.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Purpose <span class="text-red-500">*</span></label>
-          <input type="text" name="purpose" required placeholder="e.g. Business capital"
+          <input type="text" name="purpose" required
+            value="{{ post_data.purpose }}"
+            placeholder="e.g. Business capital"
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
-          {% for e in loan_form.purpose.errors %}<p class="text-red-500 text-xs mt-1">{{ e }}</p>{% endfor %}
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Group (optional)</label>
           <select name="group" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white">
             <option value="">— no group —</option>
-            {% for grp in loan_form.group.field.queryset %}
-              <option value="{{ grp.pk }}">{{ grp.name }}</option>
+            {% for grp in groups %}
+              <option value="{{ grp.pk }}" {% if post_data.group == grp.pk|stringformat:"s" %}selected{% endif %}>{{ grp.name }}</option>
+            {% empty %}
+              <option disabled>No groups available</option>
             {% endfor %}
           </select>
+          {% if not groups %}
+          <p class="text-xs text-amber-600 mt-1">You have no active groups. <a href="{% url 'clients:group_create' %}" class="underline">Create one</a> first.</p>
+          {% endif %}
         </div>
 
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
@@ -244,14 +230,14 @@
         </div>
 
         <div class="flex gap-3 pt-4 border-t">
-          <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition-colors font-medium">
+          <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 font-medium">
             Submit to Manager
           </button>
-          <a href="{% url 'loans:applications_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center text-sm">Cancel</a>
+          <a href="{% url 'loans:applications_list' %}" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-center text-sm">Cancel</a>
         </div>
       </form>
-
       {% endif %}
+
     </div>
   </div>
 </div>

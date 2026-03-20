@@ -1012,36 +1012,36 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         return redirect('clients:register_borrower')
 
     def _base_context(self, step, pk=None):
-        from accounts.forms import BorrowerRegistrationForm, BorrowerPhotoUploadForm, BorrowerDetailsForm
-        from loans.forms_application import LoanApplicationForm
+        from accounts.forms import BorrowerRegistrationForm, BorrowerDetailsForm
         ctx = {
             'step': step,
-            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
-            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
         }
         if step == 1:
-            ctx['photo_form'] = BorrowerPhotoUploadForm()
             ctx['reg_form'] = BorrowerRegistrationForm()
         elif step == 2 and pk:
-            borrower = get_object_or_404(User, pk=pk, role='borrower')
+            borrower = get_object_or_404(User, pk=pk)
             ctx['borrower'] = borrower
             ctx['details_form'] = BorrowerDetailsForm(instance=borrower)
         elif step == 3 and pk:
             borrower = get_object_or_404(User, pk=pk)
             ctx['borrower'] = borrower
             from clients.models import BorrowerGroup
+            from django.db.models import Q
             if self.request.user.role == 'loan_officer':
-                ctx['groups'] = BorrowerGroup.objects.filter(assigned_officer=self.request.user, is_active=True)
+                ctx['groups'] = BorrowerGroup.objects.filter(
+                    Q(assigned_officer=self.request.user) | Q(created_by=self.request.user),
+                    is_active=True
+                ).distinct()
             else:
                 ctx['groups'] = BorrowerGroup.objects.filter(is_active=True)
         return ctx
 
     def _handle_step1(self, request):
-        from accounts.forms import BorrowerRegistrationForm, BorrowerPhotoUploadForm
+        from accounts.forms import BorrowerRegistrationForm
         reg_form = BorrowerRegistrationForm(request.POST)
-        photo_form = BorrowerPhotoUploadForm(request.POST, request.FILES)
 
-        if reg_form.is_valid() and photo_form.is_valid():
+        if reg_form.is_valid():
             import secrets
             borrower = reg_form.save(commit=False)
             borrower.role = 'borrower'
@@ -1050,23 +1050,12 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             if request.user.role == 'loan_officer':
                 borrower.assigned_officer = request.user
             borrower.save()
-
-            from documents.models import ClientDocument
-            for doc_type, field_name in [('nrc_front', 'nrc_front'), ('nrc_back', 'nrc_back'), ('selfie', 'live_selfie')]:
-                ClientDocument.objects.update_or_create(
-                    client=borrower,
-                    document_type=doc_type,
-                    defaults={'image': photo_form.cleaned_data[field_name], 'status': 'pending'}
-                )
-
             return redirect(f"{request.path}?step=2&pk={borrower.pk}")
 
         return render(request, self.template_name, {
             'step': 1,
-            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
-            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
             'reg_form': reg_form,
-            'photo_form': photo_form,
         })
 
     def _handle_step2(self, request, pk):
@@ -1080,14 +1069,14 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
 
         return render(request, self.template_name, {
             'step': 2,
-            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
-            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
             'borrower': borrower,
             'details_form': form,
         })
 
     def _handle_step3(self, request, pk):
         import uuid
+        from django.db.models import Q
         from loans.models import LoanApplication
         from clients.models import BorrowerGroup
 
@@ -1134,13 +1123,14 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         for e in errors:
             messages.error(request, e)
 
-        groups_qs = BorrowerGroup.objects.filter(assigned_officer=request.user, is_active=True) \
-            if request.user.role == 'loan_officer' else BorrowerGroup.objects.filter(is_active=True)
+        groups_qs = BorrowerGroup.objects.filter(
+            Q(assigned_officer=request.user) | Q(created_by=request.user),
+            is_active=True
+        ).distinct() if request.user.role == 'loan_officer' else BorrowerGroup.objects.filter(is_active=True)
 
         return render(request, self.template_name, {
             'step': 3,
-            'steps_meta': [(1, 'Photos & Info'), (2, 'Details'), (3, 'Loan Application')],
-            'photo_fields': [('nrc_front', 'NRC Front'), ('nrc_back', 'NRC Back'), ('live_selfie', 'Live Selfie')],
+            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
             'borrower': borrower,
             'groups': groups_qs,
             'post_data': request.POST,
