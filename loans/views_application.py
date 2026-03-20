@@ -194,7 +194,16 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
 
                 loan_type = LoanType.objects.filter(is_active=True).first()
                 if not loan_type:
-                    loan_type = LoanType.objects.first()
+                    from decimal import Decimal as D
+                    loan_type = LoanType.objects.create(
+                        name='Standard',
+                        description='Standard loan',
+                        interest_rate=D('45.00'),
+                        min_amount=D('100.00'),
+                        max_amount=D('1000000.00'),
+                        repayment_frequency='daily',
+                        is_active=True,
+                    )
 
                 if loan_type:
                     from decimal import Decimal
