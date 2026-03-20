@@ -246,11 +246,15 @@ def manager_dashboard(request):
     # Branch metrics
     from django.db.models import Q
     officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
-    # Get groups either assigned to the branch OR assigned to officers in this branch
     groups = BorrowerGroup.objects.filter(
         Q(branch=branch.name) | Q(assigned_officer__officer_assignment__branch=branch.name)
     ).distinct()
-    clients_count = sum(g.member_count for g in groups)
+    clients_count = User.objects.filter(
+        Q(group_memberships__group__branch=branch.name) |
+        Q(group_memberships__group__assigned_officer__officer_assignment__branch=branch.name),
+        group_memberships__is_active=True,
+        role='borrower',
+    ).distinct().count()
     
     # Today's collections - include both officer-assigned loans and group member loans
     today = date.today()
@@ -340,7 +344,12 @@ def manager_dashboard(request):
     officer_stats = []
     for officer in officers:
         try:
-            assignment = officer.officer_assignment
+            officer_groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
+            officer_clients = User.objects.filter(
+                Q(assigned_officer=officer) |
+                Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True),
+                role='borrower',
+            ).distinct().count()
             officer_loans = Loan.objects.filter(
                 Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
                 status='active'
@@ -349,22 +358,21 @@ def manager_dashboard(request):
                 Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
                 status='completed'
             ).distinct()
-            
+
             if officer_collections.exists():
                 collection_rate_officer = (
-                    officer_collections.filter(is_partial=False).count() / 
+                    officer_collections.filter(is_partial=False).count() /
                     officer_collections.count() * 100
                 )
             else:
                 collection_rate_officer = 0
-            
-            stats = {
+
+            officer_stats.append({
                 'name': officer.full_name,
-                'groups': assignment.current_group_count,
-                'clients': assignment.current_client_count,
+                'groups': officer_groups.count(),
+                'clients': officer_clients,
                 'collection_rate': round(collection_rate_officer, 1),
-            }
-            officer_stats.append(stats)
+            })
         except:
             pass
     
