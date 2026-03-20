@@ -180,15 +180,51 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
     
     def form_valid(self, form):
         loan_app = form.save(commit=False)
-        
+
         if loan_app.status == 'approved':
-            loan_app.approved_by = self.request.user
             from django.utils import timezone
+            loan_app.approved_by = self.request.user
             loan_app.approval_date = timezone.now()
             loan_app.save()
-            messages.success(self.request, f'Loan application {loan_app.application_number} approved.')
+
+            # Create the actual Loan from this application
+            try:
+                from loans.models import Loan, LoanType
+                import uuid
+
+                loan_type = LoanType.objects.filter(is_active=True).first()
+                if not loan_type:
+                    loan_type = LoanType.objects.first()
+
+                if loan_type:
+                    loan = Loan(
+                        borrower=loan_app.borrower,
+                        loan_officer=loan_app.loan_officer,
+                        loan_type=loan_type,
+                        principal_amount=loan_app.loan_amount,
+                        purpose=loan_app.purpose,
+                        status='approved',
+                        repayment_frequency='daily',
+                        term_days=loan_app.duration_days,
+                        payment_amount=0,
+                        approval_date=timezone.now(),
+                    )
+                    loan.save()
+                    messages.success(
+                        self.request,
+                        f'Application {loan_app.application_number} approved. '
+                        f'Loan {loan.application_number} created — officer can now initiate 10% upfront payment.'
+                    )
+                else:
+                    messages.warning(
+                        self.request,
+                        f'Application approved but no loan type found. Please create a loan type first.'
+                    )
+            except Exception as e:
+                messages.warning(self.request, f'Application approved but loan creation failed: {e}')
+
         elif loan_app.status == 'rejected':
             loan_app.save()
             messages.warning(self.request, f'Loan application {loan_app.application_number} rejected.')
-        
+
         return redirect(self.success_url)
