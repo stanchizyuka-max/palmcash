@@ -215,6 +215,11 @@ def loan_officer_dashboard(request):
             status='approved',
             upfront_payment_verified=False,
         ).select_related('borrower').distinct(),
+        'ready_to_disburse_loans': Loan.objects.filter(
+            Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+            status='approved',
+            upfront_payment_verified=True,
+        ).select_related('borrower').distinct(),
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
@@ -545,6 +550,17 @@ def manager_dashboard(request):
         'verification_rate': verification_rate,
         'recent_applications': branch_applications,
         'pending_applications_count': pending_applications_count,
+        'pending_upfront_verifications': Loan.objects.filter(
+            loan_officer__officer_assignment__branch=branch.name,
+            status='approved',
+            upfront_payment_paid__gt=0,
+            upfront_payment_verified=False,
+        ).select_related('borrower', 'loan_officer'),
+        'ready_to_disburse': Loan.objects.filter(
+            loan_officer__officer_assignment__branch=branch.name,
+            status='approved',
+            upfront_payment_verified=True,
+        ).select_related('borrower', 'loan_officer'),
         'debug_info': {
             'manager_branch': branch.name,
             'total_applications': LoanApplication.objects.all().count() if 'LoanApplication' in locals() else 0,
