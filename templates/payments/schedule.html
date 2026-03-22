@@ -146,93 +146,73 @@
 
         <!-- Payment Schedule Table -->
         <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-secondary-700 to-secondary-800 px-6 py-4">
-                <h2 class="text-xl font-semibold text-white">Payment Schedule Details</h2>
-            </div>
-            <div class="overflow-x-auto">
+            <button onclick="toggleSchedule()" id="schedule-toggle"
+                class="w-full bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between text-left">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-list-ul"></i>Payment Schedule Details
+                    <span class="text-sm font-normal text-slate-300 ml-2">({{ schedule|length }} payments)</span>
+                </h2>
+                <i class="fas fa-chevron-down text-slate-300 transition-transform duration-200" id="schedule-icon"></i>
+            </button>
+
+            <div id="schedule-table" class="hidden overflow-x-auto">
                 <table class="min-w-full divide-y divide-secondary-200">
                     <thead class="bg-secondary-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">#</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Due Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Principal</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Interest</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Total</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Penalty</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-secondary-700 uppercase tracking-wider">Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-700 uppercase">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-700 uppercase">Due Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-700 uppercase">Amount</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-700 uppercase">Status</th>
+                            {% if user.role == 'borrower' %}<th class="px-4 py-3 text-left text-xs font-semibold text-secondary-700 uppercase">Action</th>{% endif %}
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-secondary-200">
                         {% for payment in schedule %}
-                        <tr class="hover:bg-secondary-50 transition-colors duration-150 {% if payment.is_overdue %}bg-danger-50{% elif payment.is_paid %}bg-success-50{% endif %}">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="font-bold text-secondary-900">{{ payment.installment_number }}</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-secondary-900 font-medium">{{ payment.due_date|date:"M d, Y" }}</div>
+                        <tr class="hover:bg-secondary-50 {% if payment.is_overdue %}bg-red-50{% elif payment.is_paid %}bg-green-50{% endif %}">
+                            <td class="px-4 py-3 text-sm font-bold text-secondary-900">{{ payment.installment_number }}</td>
+                            <td class="px-4 py-3 text-sm text-secondary-900">
+                                {{ payment.due_date|date:"d M Y" }}
                                 {% if payment.is_overdue %}
-                                <div class="text-xs text-danger-600 font-semibold mt-1">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>{{ payment.days_overdue }} days overdue
-                                </div>
+                                <span class="block text-xs text-red-600 font-semibold">{{ payment.days_overdue }}d overdue</span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">K{{ payment.principal_amount|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-900">K{{ payment.interest_amount|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm font-bold text-primary-600">K{{ payment.total_amount|floatformat:0|intcomma }}</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-4 py-3 text-sm font-semibold text-slate-800">
+                                K{{ payment.total_amount|floatformat:0|intcomma }}
                                 {% if payment.penalty_amount > 0 %}
-                                <span class="text-sm font-semibold text-danger-600">K{{ payment.penalty_amount|floatformat:0|intcomma }}</span>
-                                {% else %}
-                                <span class="text-sm text-secondary-400">K0</span>
+                                <span class="block text-xs text-red-500">+K{{ payment.penalty_amount|floatformat:0|intcomma }} penalty</span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-4 py-3">
                                 {% if payment.is_paid %}
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-800">
-                                    <i class="fas fa-check mr-1"></i>Paid
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                                    <i class="fas fa-check mr-1"></i>Paid{% if payment.paid_date %} {{ payment.paid_date|date:"d M" }}{% endif %}
                                 </span>
-                                {% if payment.paid_date %}
-                                <div class="text-xs text-secondary-500 mt-1">{{ payment.paid_date|date:"M d, Y" }}</div>
-                                {% endif %}
                                 {% elif payment.is_overdue %}
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-danger-100 text-danger-800">
+                                <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
                                     <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-warning-100 text-warning-800">
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
                                     <i class="fas fa-clock mr-1"></i>Pending
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                {% if not payment.is_paid and user.role == 'borrower' and user == loan.borrower %}
-                                <a href="{% url 'payments:make' payment.loan.id %}?schedule_id={{ payment.id %}" 
-                                   class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors duration-150 font-medium">
-                                    <i class="fas fa-credit-card mr-1"></i>Pay Now
-                                </a>
-                                {% elif not payment.is_paid and user.role != 'borrower' %}
-                                <span class="text-secondary-400 text-xs">
-                                    <i class="fas fa-info-circle mr-1"></i>Borrower Only
-                                </span>
-                                {% else %}
-                                <span class="text-secondary-400">-</span>
-                                {% endif %}
+                            {% if user.role == 'borrower' %}
+                            <td class="px-4 py-3">
+                                {% if not payment.is_paid %}
+                                <a href="{% url 'payments:make' payment.loan.id %}?schedule_id={{ payment.id }}"
+                                   class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs font-semibold">Pay</a>
+                                {% else %}<span class="text-slate-300 text-xs">—</span>{% endif %}
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot class="bg-secondary-100">
-                        <tr class="font-semibold">
-                            <td colspan="2" class="px-6 py-4 text-secondary-900">Totals:</td>
-                            <td class="px-6 py-4 text-secondary-900">K{{ total_principal|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4 text-secondary-900">K{{ total_interest|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4 text-primary-600 font-bold">K{{ total_amount|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4 text-danger-600">K{{ total_penalties|floatformat:0|intcomma }}</td>
-                            <td class="px-6 py-4">-</td>
-                            <td class="px-6 py-4">-</td>
+                    <tfoot class="bg-slate-100">
+                        <tr class="font-semibold text-sm">
+                            <td colspan="2" class="px-4 py-3 text-slate-700">Total</td>
+                            <td class="px-4 py-3 text-blue-700 font-bold">K{{ total_amount|floatformat:0|intcomma }}</td>
+                            <td colspan="{% if user.role == 'borrower' %}2{% else %}1{% endif %}"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -245,15 +225,11 @@
                class="inline-flex items-center justify-center px-6 py-3 border border-secondary-300 rounded-lg text-secondary-700 bg-white hover:bg-secondary-50 font-medium transition-colors duration-200">
                 <i class="fas fa-arrow-left mr-2"></i>Back to Loan Details
             </a>
-            {% if loan and user.role == 'borrower' and user == loan.borrower %}
-            <a href="{% url 'payments:make' loan.id %}" 
-               class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-lg hover:from-success-600 hover:to-success-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200">
-                <i class="fas fa-credit-card mr-2"></i>Make Payment
+            {% if loan and user.role != 'borrower' %}
+            <a href="{% url 'payments:make' loan.id %}"
+               class="inline-flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-md">
+                <i class="fas fa-plus mr-2"></i>Record Payment
             </a>
-            {% elif loan and user.role != 'borrower' %}
-            <span class="text-secondary-500 text-sm flex items-center">
-                <i class="fas fa-info-circle mr-2"></i>Only borrowers can submit payments
-            </span>
             {% endif %}
         </div>
 
@@ -291,6 +267,14 @@
 </style>
 
 <script>
+function toggleSchedule() {
+  var table = document.getElementById('schedule-table');
+  var icon = document.getElementById('schedule-icon');
+  table.classList.toggle('hidden');
+  icon.classList.toggle('fa-chevron-down');
+  icon.classList.toggle('fa-chevron-up');
+}
+
 function exportScheduleToCSV() {
     {% if schedule %}
     const scheduleData = [
