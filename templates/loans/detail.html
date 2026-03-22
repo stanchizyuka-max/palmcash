@@ -5,553 +5,315 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-money-bill-wave mr-3 text-blue-600"></i>
-                        Loan {{ loan.application_number }}
-                    </h1>
-                    <p class="text-gray-600 mt-1">Detailed loan information and management</p>
-                </div>
-                <div>
-                    <span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold
-                        {% if loan.status == 'approved' %}bg-green-100 text-green-800
-                        {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
-                        {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
-                        {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
-                        {% elif loan.status == 'completed' %}bg-green-100 text-green-800
-                        {% elif loan.status == 'disbursed' %}bg-purple-100 text-purple-800
-                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                        {{ loan.get_status_display }}
-                    </span>
-                </div>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 mb-6 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-200 text-sm mb-1">Loan Reference</p>
+          <h1 class="text-3xl font-bold">{{ loan.application_number }}</h1>
+          <p class="text-blue-100 mt-1">{{ loan.borrower.get_full_name }} &mdash; {{ loan.purpose }}</p>
+        </div>
+        <div class="text-right">
+          <span class="inline-flex px-4 py-2 rounded-full text-sm font-bold
+            {% if loan.status == 'approved' %}bg-green-100 text-green-800
+            {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+            {% elif loan.status == 'active' %}bg-blue-100 text-blue-800
+            {% elif loan.status == 'completed' %}bg-green-100 text-green-800
+            {% elif loan.status == 'rejected' %}bg-red-100 text-red-800
+            {% else %}bg-gray-100 text-gray-800{% endif %}">
+            {{ loan.get_status_display }}
+          </span>
+          {% if loan.status == 'approved' and not loan.upfront_payment_verified %}
+          <p class="text-yellow-200 text-xs mt-2"><i class="fas fa-exclamation-triangle mr-1"></i>Upfront payment pending</p>
+          {% elif loan.status == 'approved' and loan.upfront_payment_verified %}
+          <p class="text-green-200 text-xs mt-2"><i class="fas fa-check-circle mr-1"></i>Ready to disburse</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Key figures -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <p class="text-blue-100 text-xs uppercase">Principal</p>
+          <p class="text-white font-bold text-lg">K{{ loan.principal_amount|floatformat:2|intcomma }}</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <p class="text-blue-100 text-xs uppercase">Total (with interest)</p>
+          <p class="text-white font-bold text-lg">K{{ loan.total_amount|floatformat:2|intcomma }}</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <p class="text-blue-100 text-xs uppercase">Upfront (10%)</p>
+          <p class="text-white font-bold text-lg">K{{ loan.upfront_payment_required|floatformat:2|intcomma }}</p>
+        </div>
+        <div class="bg-white bg-opacity-20 rounded-lg p-3">
+          <p class="text-blue-100 text-xs uppercase">Term</p>
+          <p class="text-white font-bold text-lg">
+            {% if loan.term_days %}{{ loan.term_days }} days
+            {% elif loan.term_weeks %}{{ loan.term_weeks }} weeks
+            {% else %}—{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left: Details -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Loan Details -->
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-file-invoice text-blue-600 mr-2"></i>Loan Details
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Loan Type</span>
+              <span class="font-medium text-gray-900">{{ loan.loan_type.name }}</span>
             </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Interest Rate</span>
+              <span class="font-medium text-gray-900">{{ loan.interest_rate }}%</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Repayment</span>
+              <span class="font-medium text-gray-900">{{ loan.get_repayment_frequency_display }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Payment Amount</span>
+              <span class="font-medium text-gray-900">K{{ loan.payment_amount|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Applied</span>
+              <span class="font-medium text-gray-900">{{ loan.application_date|date:"M d, Y" }}</span>
+            </div>
+            {% if loan.approval_date %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Approved</span>
+              <span class="font-medium text-gray-900">{{ loan.approval_date|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+            {% if loan.disbursement_date %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Disbursed</span>
+              <span class="font-medium text-gray-900">{{ loan.disbursement_date|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+            {% if loan.maturity_date %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Maturity</span>
+              <span class="font-medium text-gray-900">{{ loan.maturity_date|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+            {% if loan.loan_officer %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Loan Officer</span>
+              <span class="font-medium text-gray-900">{{ loan.loan_officer.get_full_name }}</span>
+            </div>
+            {% endif %}
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Content -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Loan Details -->
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Loan Details</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Application Number:</span>
-                                <span class="font-medium text-gray-900">{{ loan.application_number }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Borrower:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.get_full_name }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Loan Type:</span>
-                                <span class="font-medium text-gray-900">{{ loan.loan_type.name }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Principal Amount:</span>
-                                <span class="font-medium text-gray-900">K{{ loan.principal_amount|floatformat:2|intcomma }}</span>
-                            </div>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Interest Rate:</span>
-                                <span class="font-medium text-gray-900">{{ loan.interest_rate }}% per annum</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Term:</span>
-                                <span class="font-medium text-gray-900">{{ loan.term_months }} months</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Monthly Payment:</span>
-                                <span class="font-medium text-gray-900">K{{ loan.monthly_payment|floatformat:2|intcomma }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Total Amount:</span>
-                                <span class="font-medium text-gray-900">K{{ loan.total_amount|floatformat:2|intcomma }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div class="space-y-3">
-                            <div class="flex justify-between py-2">
-                                <span class="text-gray-600">Application Date:</span>
-                                <span class="font-medium text-gray-900">{{ loan.application_date|date:"M d, Y" }}</span>
-                            </div>
-                            {% if loan.approval_date %}
-                            <div class="flex justify-between py-2">
-                                <span class="text-gray-600">Approval Date:</span>
-                                <span class="font-medium text-gray-900">{{ loan.approval_date|date:"M d, Y" }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.disbursement_date %}
-                            <div class="flex justify-between py-2">
-                                <span class="text-gray-600">Disbursement Date:</span>
-                                <span class="font-medium text-gray-900">{{ loan.disbursement_date|date:"M d, Y" }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="space-y-3">
-                            {% if loan.loan_officer %}
-                            <div class="flex justify-between py-2">
-                                <span class="text-gray-600">Loan Officer:</span>
-                                <span class="font-medium text-gray-900">{{ loan.loan_officer.get_full_name }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    {% if loan.purpose %}
-                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-2">Purpose:</h3>
-                        <p class="text-gray-700">{{ loan.purpose }}</p>
-                    </div>
-                    {% endif %}
-                    
-                    {% if loan.collateral_description %}
-                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-2">Collateral:</h3>
-                        <p class="text-gray-700">{{ loan.collateral_description }}</p>
-                        {% if loan.collateral_value %}
-                        <p class="text-sm text-gray-600 mt-2"><strong>Value:</strong> K{{ loan.collateral_value|floatformat:2|intcomma }}</p>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                    
-                    {% if loan.status == 'rejected' and loan.rejection_reason %}
-                    <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <h3 class="text-sm font-semibold text-red-900 mb-2">
-                            <i class="fas fa-exclamation-circle mr-2"></i>Rejection Reason:
-                        </h3>
-                        <p class="text-red-800">{{ loan.rejection_reason }}</p>
-                    </div>
-                    {% endif %}
-                    
-                    {% if loan.status == 'approved' and loan.approval_notes %}
-                    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <h3 class="text-sm font-semibold text-green-900 mb-2">
-                            <i class="fas fa-check-circle mr-2"></i>Approval Notes:
-                        </h3>
-                        <p class="text-green-800">{{ loan.approval_notes }}</p>
-                    </div>
-                    {% endif %}
-                </div>
+        <!-- Upfront Payment Status -->
+        {% if loan.status == 'approved' %}
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-hand-holding-usd text-yellow-600 mr-2"></i>Upfront Payment
+          </h2>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+              <p class="text-blue-600 text-xs uppercase font-semibold mb-1">Required</p>
+              <p class="text-blue-900 font-bold">K{{ loan.upfront_payment_required|floatformat:2|intcomma }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 text-center">
+              <p class="text-green-600 text-xs uppercase font-semibold mb-1">Paid</p>
+              <p class="text-green-900 font-bold">K{{ loan.upfront_payment_paid|floatformat:2|intcomma }}</p>
+            </div>
+            <div class="{% if loan.upfront_payment_verified %}bg-green-50{% else %}bg-yellow-50{% endif %} rounded-lg p-4 text-center">
+              <p class="{% if loan.upfront_payment_verified %}text-green-600{% else %}text-yellow-600{% endif %} text-xs uppercase font-semibold mb-1">Status</p>
+              <p class="font-bold {% if loan.upfront_payment_verified %}text-green-900{% else %}text-yellow-900{% endif %}">
+                {% if loan.upfront_payment_verified %}Verified{% elif loan.upfront_payment_paid > 0 %}Pending{% else %}Not Paid{% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
 
-                <!-- Borrower Information -->
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Borrower Information</h2>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Full Name:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.get_full_name }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Email Address:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.email }}</span>
-                            </div>
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Phone Number:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.phone_number }}</span>
-                            </div>
-                            {% if loan.borrower.date_of_birth %}
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Date of Birth:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.date_of_birth|date:"M d, Y" }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="space-y-3">
-                            {% if loan.borrower.address %}
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Address:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.address }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.borrower.employment_status %}
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Employment Status:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.get_employment_status_display }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.borrower.employer_name %}
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Employer:</span>
-                                <span class="font-medium text-gray-900">{{ loan.borrower.employer_name }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.borrower.monthly_income %}
-                            <div class="flex justify-between py-2 border-b border-gray-100">
-                                <span class="text-gray-600">Monthly Income:</span>
-                                <span class="font-medium text-gray-900">K{{ loan.borrower.monthly_income|floatformat:0|intcomma }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    {% if loan.borrower.nrc_number or loan.borrower.passport_number %}
-                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-2">Identification Details:</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {% if loan.borrower.nrc_number %}
-                            <div>
-                                <span class="text-gray-600">NRC Number:</span>
-                                <span class="font-medium text-gray-900 ml-2">{{ loan.borrower.nrc_number }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.borrower.passport_number %}
-                            <div>
-                                <span class="text-gray-600">Passport Number:</span>
-                                <span class="font-medium text-gray-900 ml-2">{{ loan.borrower.passport_number }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if loan.borrower.emergency_contact_name or loan.borrower.emergency_contact_phone %}
-                    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-                        <h3 class="text-sm font-semibold text-blue-900 mb-2">Emergency Contact:</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {% if loan.borrower.emergency_contact_name %}
-                            <div>
-                                <span class="text-blue-700">Contact Name:</span>
-                                <span class="font-medium text-blue-900 ml-2">{{ loan.borrower.emergency_contact_name }}</span>
-                            </div>
-                            {% endif %}
-                            {% if loan.borrower.emergency_contact_phone %}
-                            <div>
-                                <span class="text-blue-700">Contact Phone:</span>
-                                <span class="font-medium text-blue-900 ml-2">{{ loan.borrower.emergency_contact_phone }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
+        <!-- Borrower Information -->
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-user text-green-600 mr-2"></i>Borrower Information
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Full Name</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.get_full_name }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Phone</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.phone_number }}</span>
+            </div>
+            {% if loan.borrower.email %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Email</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.email }}</span>
+            </div>
+            {% endif %}
+            {% if loan.borrower.date_of_birth %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Date of Birth</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.date_of_birth|date:"M d, Y" }}</span>
+            </div>
+            {% endif %}
+            {% if loan.borrower.address %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Address</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.address }}</span>
+            </div>
+            {% endif %}
+            {% if loan.borrower.employment_status %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Employment</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.get_employment_status_display }}</span>
+            </div>
+            {% endif %}
+            {% if loan.borrower.employer_name %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Employer</span>
+              <span class="font-medium text-gray-900">{{ loan.borrower.employer_name }}</span>
+            </div>
+            {% endif %}
+            {% if loan.borrower.monthly_income %}
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Monthly Income</span>
+              <span class="font-medium text-gray-900">K{{ loan.borrower.monthly_income|floatformat:0|intcomma }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
 
-                <!-- Documents Section -->
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-900">Documents</h2>
-                        <span class="text-sm text-gray-500">{{ document_count|add:client_document_count }} document{{ document_count|add:client_document_count|pluralize }}</span>
-                    </div>
-                    
-                    <!-- Document Statistics -->
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <i class="fas fa-check-circle text-green-600 text-2xl mb-2"></i>
-                            <div class="text-green-800 font-medium">{{ verified_documents|add:client_verified_documents }} Verified</div>
-                        </div>
-                        <div class="text-center p-4 bg-yellow-50 rounded-lg">
-                            <i class="fas fa-clock text-yellow-600 text-2xl mb-2"></i>
-                            <div class="text-yellow-800 font-medium">{{ pending_documents|add:client_pending_documents }} Pending</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Loan Documents -->
-                    {% if documents %}
-                    <div class="mb-6">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Loan Documents</h3>
-                        <div class="space-y-2">
-                            {% for document in documents %}
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <i class="fas fa-file text-gray-600 mr-3"></i>
-                                    <div>
-                                        <div class="font-medium text-gray-900">{{ document.get_document_type_display }}</div>
-                                        <div class="text-sm text-gray-500">{{ document.original_filename }}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    {% if document.is_verified %}
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Verified</span>
-                                    {% else %}
-                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>
-                                    {% endif %}
-                                    <a href="{{ document.document_file.url }}" download class="text-blue-600 hover:text-blue-800">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Client Documents -->
-                    {% if client_documents %}
-                    <div class="mb-6">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Verification Documents</h3>
-                        <div class="space-y-2">
-                            {% for document in client_documents %}
-                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center">
-                                    <i class="fas fa-id-card text-gray-600 mr-3"></i>
-                                    <div>
-                                        <div class="font-medium text-gray-900">{{ document.get_document_type_display }}</div>
-                                        <div class="text-sm text-gray-500">{{ document.original_filename }}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    {% if document.status == 'approved' %}
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Approved</span>
-                                    {% elif document.status == 'rejected' %}
-                                        <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Rejected</span>
-                                    {% else %}
-                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>
-                                    {% endif %}
-                                    <a href="{{ document.document_file.url }}" download class="text-blue-600 hover:text-blue-800">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if not documents and not client_documents %}
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-file-alt text-4xl mb-2"></i>
-                        <p>No documents uploaded yet</p>
-                        <p class="text-sm mt-2">Upload your NRC (front/back) and a selfie photo to complete verification</p>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="mt-4 flex gap-3">
-                        <a href="{% url 'loans:document_list' loan.pk %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-file-alt mr-2"></i>View All Documents
-                        </a>
-                        {% if can_upload_documents %}
-                        <a href="{% url 'loans:upload_document' loan.pk %}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                            <i class="fas fa-upload mr-2"></i>Upload Document
-                        </a>
-                        {% endif %}
-                        <a href="{% url 'documents:upload' %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-id-card mr-2"></i>Upload Verification Docs
-                        </a>
-                        <a href="{% url 'loans:application_detail' loan.pk %}" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                            <i class="fas fa-file-contract mr-2"></i>View Application Form
-                        </a>
-                    </div>
-                </div>
+        <!-- Payment Info (active loans) -->
+        {% if loan.status in 'active,disbursed' %}
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-credit-card text-purple-600 mr-2"></i>Payment Information
+          </h2>
+          <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Amount Paid</span>
+              <span class="font-medium text-gray-900">K{{ loan.amount_paid|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-gray-100">
+              <span class="text-gray-500">Balance Remaining</span>
+              <span class="font-medium text-gray-900">K{{ loan.balance_remaining|floatformat:2|intcomma }}</span>
+            </div>
+          </div>
+          <a href="{% url 'payments:schedule' loan.pk %}" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold">
+            <i class="fas fa-calendar mr-2"></i>View Payment Schedule
+          </a>
+        </div>
+        {% endif %}
 
-                {% if loan.status in 'active,disbursed' %}
-                <!-- Payment Information -->
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Information</h2>
-                    <div class="space-y-3">
-                        <div class="flex justify-between py-2 border-b border-gray-100">
-                            <span class="text-gray-600">Amount Paid:</span>
-                            <span class="font-medium text-gray-900">K{{ loan.amount_paid|floatformat:2|intcomma }}</span>
-                        </div>
-                        <div class="flex justify-between py-2 border-b border-gray-100">
-                            <span class="text-gray-600">Balance Remaining:</span>
-                            <span class="font-medium text-gray-900">K{{ loan.balance_remaining|floatformat:2|intcomma }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <a href="{% url 'payments:schedule' loan.pk %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-calendar mr-2"></i>View Payment Schedule
-                        </a>
-                    </div>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-sm p-6 sticky top-6 space-y-3">
+          <h2 class="text-lg font-bold text-gray-900 mb-2">Actions</h2>
+
+          {% if user.role != 'borrower' %}
+            {% if loan.status == 'pending' and user.role in 'admin,manager' %}
+              <form method="post" action="{% url 'loans:approve' loan.pk %}">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Approve this loan?')" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">
+                  <i class="fas fa-check mr-2"></i>Approve Loan
+                </button>
+              </form>
+              <button type="button" onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="w-full py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
+                <i class="fas fa-times mr-2"></i>Reject Loan
+              </button>
+
+            {% elif loan.status == 'approved' %}
+              {% if not loan.upfront_payment_paid or loan.upfront_payment_paid == 0 %}
+                {% if user.role == 'loan_officer' %}
+                <a href="{% url 'loans:upfront_payment' loan.pk %}" class="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 flex items-center justify-center">
+                  <i class="fas fa-hand-holding-usd mr-2"></i>Pay Upfront (10%)
+                </a>
+                {% else %}
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                  <i class="fas fa-clock mr-1"></i>Waiting for officer to submit upfront payment
                 </div>
                 {% endif %}
-            </div>
-
-            <!-- Sidebar Actions -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
-                    
-                    <!-- Debug Info -->
-                    <div class="p-3 bg-gray-100 rounded text-xs text-gray-600 mb-4">
-                        <p><strong>User Role:</strong> {{ user.role }}</p>
-                        <p><strong>Loan Status:</strong> {{ loan.status }}</p>
-                    </div>
-
-                    <!-- Actions based on role and status -->
-                    {% if user.role != 'borrower' %}
-                        {% if loan.status == 'pending' %}
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-gray-900 mb-2">Pending Loan Actions</h3>
-                            <form method="post" action="{% url 'loans:approve' loan.pk %}" class="w-full">
-                                {% csrf_token %}
-                                <button type="submit" onclick="return confirm('Are you sure you want to approve this loan?')" class="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
-                                    <i class="fas fa-check mr-2"></i>Approve Loan
-                                </button>
-                            </form>
-                            
-                            <button type="button" class="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition" onclick="document.getElementById('rejectModal').classList.remove('hidden')">
-                                <i class="fas fa-times mr-2"></i>Reject Loan
-                            </button>
-                        </div>
-                        {% elif loan.status == 'approved' %}
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-gray-900 mb-2">Approved Loan Actions</h3>
-                            {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
-                            <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
-                                {% csrf_token %}
-                                <button type="submit" onclick="return confirm('Are you sure you want to disburse this loan?')" class="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
-                                    <i class="fas fa-money-bill-wave mr-2"></i>Disburse Loan
-                                </button>
-                            </form>
-                            {% else %}
-                            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <p class="text-sm text-yellow-800"><i class="fas fa-exclamation-triangle mr-2"></i>Upfront payment verification required</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% elif loan.status == 'disbursed' %}
-                        <div class="space-y-3">
-                            <h3 class="text-sm font-semibold text-gray-900 mb-2">Disbursed Loan Actions</h3>
-                            <a href="{% url 'payments:make_payment' loan.pk %}" class="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition text-center">
-                                <i class="fas fa-plus mr-2"></i>Record Payment
-                            </a>
-                        </div>
-                        {% else %}
-                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            <p class="text-sm text-gray-800">No actions available for loan status: {{ loan.status }}</p>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Security Deposit Management -->
-                        {% if user.role == 'admin' or user.role == 'manager' %}
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Security Deposit Management</h3>
-                            {% if loan.security_deposit %}
-                                {% if not loan.security_deposit.is_verified %}
-                                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-3">
-                                    <div class="text-sm space-y-1">
-                                        <p><strong>Security Deposit:</strong> K{{ loan.security_deposit.required_amount|floatformat:2 }}</p>
-                                        <p><strong>Paid:</strong> K{{ loan.security_deposit.paid_amount|floatformat:2 }}</p>
-                                        <p><strong>Status:</strong> Pending Verification</p>
-                                    </div>
-                                    <a href="{% url 'dashboard:verify_security_deposit' loan.security_deposit.loan.id %}" class="w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
-                                        <i class="fas fa-check mr-2"></i>Verify Deposit
-                                    </a>
-                                </div>
-                                {% else %}
-                                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                    <p class="text-sm text-green-800"><strong>Security Deposit:</strong> Verified</p>
-                                </div>
-                                {% endif %}
-                            {% else %}
-                                <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-3">
-                                    <p class="text-sm text-gray-600">No security deposit record found</p>
-                                </div>
-                                <a href="{% url 'loans:upfront_payment' loan.pk %}" class="w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
-                                    <i class="fas fa-plus mr-2"></i>Add Security Deposit
-                                </a>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    {% else %}
-                    <!-- Borrower Actions -->
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-semibold text-gray-900 mb-2">Loan Actions</h3>
-                        
-                        <!-- Upfront Payment Section -->
-                        {% if loan.status == 'approved' %}
-                        <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                            <h4 class="text-sm font-semibold text-orange-900 mb-2">
-                                <i class="fas fa-money-bill-wave mr-2"></i>Upfront Payment Required
-                            </h4>
-                            {% if loan.security_deposit %}
-                                <div class="text-sm space-y-1 mb-3">
-                                    <p><strong>Required Amount:</strong> K{{ loan.security_deposit.required_amount|floatformat:2 }}</p>
-                                    <p><strong>Paid Amount:</strong> K{{ loan.security_deposit.paid_amount|floatformat:2 }}</p>
-                                    {% if loan.security_deposit.is_verified %}
-                                        <p class="text-green-600"><strong>Status:</strong> Verified</p>
-                                    {% elif loan.security_deposit.paid_amount > 0 %}
-                                        <p class="text-yellow-600"><strong>Status:</strong> Pending Verification</p>
-                                    {% else %}
-                                        <p class="text-red-600"><strong>Status:</strong> Not Paid</p>
-                                    {% endif %}
-                                </div>
-                                
-                                {% if not loan.security_deposit.paid_amount %}
-                                <a href="{% url 'payments:upfront_payment' loan.pk %}" class="w-full px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded hover:bg-orange-700 transition">
-                                    <i class="fas fa-credit-card mr-2"></i>Make Upfront Payment
-                                </a>
-                                {% endif %}
-                            {% else %}
-                                <p class="text-sm text-orange-800 mb-3">Security deposit setup required</p>
-                                <a href="{% url 'payments:upfront_payment' loan.pk %}" class="w-full px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded hover:bg-orange-700 transition">
-                                    <i class="fas fa-credit-card mr-2"></i>Make Upfront Payment
-                                </a>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Payment Actions for Active Loans -->
-                        {% if loan.status == 'active' or loan.status == 'disbursed' %}
-                        <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <h4 class="text-sm font-semibold text-green-900 mb-2">
-                                <i class="fas fa-credit-card mr-2"></i>Payment Actions
-                            </h4>
-                            <a href="{% url 'payments:make' loan.pk %}" class="w-full px-3 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition">
-                                <i class="fas fa-money-bill-wave mr-2"></i>Make Payment
-                            </a>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Document Upload -->
-                        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 class="text-sm font-semibold text-blue-900 mb-2">
-                                <i class="fas fa-file-upload mr-2"></i>Documents
-                            </h4>
-                            <a href="{% url 'documents:upload' %}" class="w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
-                                <i class="fas fa-upload mr-2"></i>Upload Documents
-                            </a>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <a href="{% url 'loans:list' %}" class="w-full px-4 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition text-center">
-                            <i class="fas fa-arrow-left mr-2"></i>Back to Loans
-                        </a>
-                    </div>
+              {% elif not loan.upfront_payment_verified %}
+                {% if user.role in 'manager,admin' %}
+                <form method="post" action="{% url 'loans:verify_upfront' loan.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="verify">
+                  <button type="submit" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">
+                    <i class="fas fa-check mr-2"></i>Verify Upfront Payment
+                  </button>
+                </form>
+                <form method="post" action="{% url 'loans:verify_upfront' loan.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reject">
+                  <button type="submit" class="w-full py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600">
+                    <i class="fas fa-times mr-2"></i>Reject Upfront Payment
+                  </button>
+                </form>
+                {% else %}
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                  <i class="fas fa-clock mr-1"></i>Upfront paid — awaiting manager verification
                 </div>
-            </div>
+                {% endif %}
+              {% else %}
+                {% if user.role == 'loan_officer' %}
+                <form method="post" action="{% url 'loans:disburse' loan.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" onclick="return confirm('Disburse this loan?')" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-paper-plane mr-2"></i>Disburse Loan
+                  </button>
+                </form>
+                {% else %}
+                <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                  <i class="fas fa-check-circle mr-1"></i>Upfront verified — officer will disburse
+                </div>
+                {% endif %}
+              {% endif %}
+
+            {% elif loan.status == 'active' or loan.status == 'disbursed' %}
+              <a href="{% url 'payments:make_payment' loan.pk %}" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 flex items-center justify-center">
+                <i class="fas fa-plus mr-2"></i>Record Payment
+              </a>
+            {% endif %}
+          {% endif %}
+
+          <div class="pt-4 border-t border-gray-200">
+            <a href="{% url 'loans:list' %}" class="w-full py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 flex items-center justify-center text-sm">
+              <i class="fas fa-arrow-left mr-2"></i>Back to Loans
+            </a>
+          </div>
         </div>
+      </div>
+
     </div>
+  </div>
 </div>
 
 <!-- Reject Modal -->
-<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white">
-        <div class="bg-white rounded-lg shadow-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Reject Loan Application</h3>
-            </div>
-            <form method="post" action="{% url 'loans:reject' loan.pk %}">
-                {% csrf_token %}
-                <div class="px-6 py-4">
-                    <div class="mb-4">
-                        <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">Reason for Rejection:</label>
-                        <textarea name="reason" id="reason" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
-                    </div>
-                </div>
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg flex justify-end space-x-3">
-                    <button type="button" onclick="document.getElementById('rejectModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
-                        Reject Loan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Reject Loan Application</h3>
+    <form method="post" action="{% url 'loans:reject' loan.pk %}">
+      {% csrf_token %}
+      <textarea name="reason" rows="4" required placeholder="Reason for rejection..."
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-red-500"></textarea>
+      <div class="flex gap-3">
+        <button type="submit" class="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">Reject</button>
+        <button type="button" onclick="document.getElementById('rejectModal').classList.add('hidden')" class="flex-1 py-2.5 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

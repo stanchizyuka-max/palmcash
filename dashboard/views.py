@@ -214,6 +214,13 @@ def loan_officer_dashboard(request):
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
             status='approved',
             upfront_payment_verified=False,
+            upfront_payment_paid=0,
+        ).select_related('borrower').distinct(),
+        'awaiting_verification_loans': Loan.objects.filter(
+            Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+            status='approved',
+            upfront_payment_paid__gt=0,
+            upfront_payment_verified=False,
         ).select_related('borrower').distinct(),
         'ready_to_disburse_loans': Loan.objects.filter(
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
