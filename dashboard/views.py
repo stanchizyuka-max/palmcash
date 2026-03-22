@@ -952,112 +952,56 @@ def collection_details(request):
 
 @login_required
 def pending_approvals(request):
-    """Pending Approvals View - Shows loans awaiting approval and security deposits"""
+    """Pending Approvals View - Shows loan applications awaiting manager approval and security deposits"""
     user = request.user
-    
+    from loans.models import LoanApplication, SecurityDeposit
+
     if user.role == 'manager':
-        # Manager sees pending approvals for their branch
         branch = user.managed_branch
         if not branch:
             return render(request, 'dashboard/access_denied.html')
-        
-        # Get pending loan approvals (high-value loans awaiting admin approval)
-        pending_loans = LoanApprovalRequest.objects.filter(
+
+        pending_applications = LoanApplication.objects.filter(
             status='pending',
-            loan__loan_officer__officer_assignment__branch=branch.name
-        ).order_by('-requested_date')
-        
-        # Get pending security deposits (paid but not verified)
-        from loans.models import SecurityDeposit
-        all_pending_deposits = SecurityDeposit.objects.filter(
-            is_verified=False,
-            paid_amount__gt=0  # Only show deposits that have been paid
-        ).select_related('loan', 'loan__borrower').order_by('-payment_date')
-        
-        # Debug: Print total pending deposits
-        print(f"DEBUG: Total pending deposits in system: {all_pending_deposits.count()}")
-        for deposit in all_pending_deposits:
-            print(f"DEBUG: Deposit - Loan: {deposit.loan.application_number if deposit.loan else 'No Loan'}, Paid: {deposit.paid_amount}, Verified: {deposit.is_verified}")
-        
-        # Filter by branch if manager
-        if user.role == 'manager':
-            branch_deposits = []
-            print(f"DEBUG: Manager branch: {branch.name}")
-            for deposit in all_pending_deposits:
-                if deposit.loan and hasattr(deposit.loan, 'loan_officer') and deposit.loan.loan_officer:
-                    if hasattr(deposit.loan.loan_officer, 'officer_assignment') and deposit.loan.loan_officer.officer_assignment:
-                        if deposit.loan.loan_officer.officer_assignment.branch == branch.name:
-                            branch_deposits.append(deposit)
-                            print(f"DEBUG: Added deposit for branch: {deposit.loan.application_number}")
-                    else:
-                        # Include deposits where loan officer has no branch assignment
-                        branch_deposits.append(deposit)
-                        print(f"DEBUG: Added deposit (loan officer no branch): {deposit.loan.application_number}")
-                elif deposit.loan and not hasattr(deposit.loan, 'loan_officer'):
-                    # Include deposits for loans without loan officers
-                    branch_deposits.append(deposit)
-                    print(f"DEBUG: Added deposit without loan officer: {deposit.loan.application_number}")
-                elif deposit.loan and deposit.loan.loan_officer:
-                    # Include deposits where loan officer exists but no officer_assignment
-                    branch_deposits.append(deposit)
-                    print(f"DEBUG: Added deposit (loan officer no assignment): {deposit.loan.application_number}")
-            pending_deposits = branch_deposits
-        else:
-            pending_deposits = all_pending_deposits
-        
-        print(f"DEBUG: Final pending deposits count: {len(pending_deposits)}")
-        
-    elif user.role == 'admin':
-        # Admin sees all pending approvals
-        pending_loans = LoanApprovalRequest.objects.filter(
-            status='pending'
-        ).order_by('-requested_date')
-        
-        # Get all pending security deposits (paid but not verified)
-        from loans.models import SecurityDeposit
+            loan_officer__officer_assignment__branch=branch.name
+        ).select_related('borrower', 'loan_officer', 'group').order_by('-created_at')
+
         pending_deposits = SecurityDeposit.objects.filter(
             is_verified=False,
-            paid_amount__gt=0  # Only show deposits that have been paid
+            paid_amount__gt=0,
+            loan__loan_officer__officer_assignment__branch=branch.name
+        ).select_related('loan', 'loan__borrower', 'loan__loan_officer').order_by('-payment_date')
+
+    elif user.role == 'admin':
+        pending_applications = LoanApplication.objects.filter(
+            status='pending'
+        ).select_related('borrower', 'loan_officer', 'group').order_by('-created_at')
+
+        pending_deposits = SecurityDeposit.objects.filter(
+            is_verified=False,
+            paid_amount__gt=0
         ).select_related('loan', 'loan__borrower').order_by('-payment_date')
     else:
         return render(request, 'dashboard/access_denied.html')
-    
-    # Calculate totals for security deposits
+
     from django.db.models import Sum
-    
-    # Handle both QuerySet and list cases
-    if isinstance(pending_deposits, list):
-        # If it's a list, calculate totals manually
-        total_required = sum(d.required_amount for d in pending_deposits if d.required_amount)
-        total_collected = sum(d.paid_amount for d in pending_deposits if d.paid_amount)
-    else:
-        # If it's a QuerySet, use aggregate
-        deposit_totals = pending_deposits.aggregate(
-            total_required=Sum('required_amount'),
-            total_collected=Sum('paid_amount')
-        )
-        total_required = deposit_totals['total_required'] or 0
-        total_collected = deposit_totals['total_collected'] or 0
-    
-    total_outstanding = total_required - total_collected
-    
-    # Pagination
-    from django.core.paginator import Paginator
-    paginator = Paginator(pending_loans, 50)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
+    deposit_totals = pending_deposits.aggregate(
+        total_required=Sum('required_amount'),
+        total_collected=Sum('paid_amount')
+    )
+    total_required = deposit_totals['total_required'] or 0
+    total_collected = deposit_totals['total_collected'] or 0
+
     context = {
-        'page_obj': page_obj,
-        'pending_approvals': page_obj.object_list,
+        'pending_applications': pending_applications,
         'pending_deposits': pending_deposits,
-        'total_pending': pending_loans.count() if hasattr(pending_loans, 'count') else len(pending_loans),
-        'total_deposits': len(pending_deposits) if isinstance(pending_deposits, list) else pending_deposits.count(),
+        'total_pending': pending_applications.count(),
+        'total_deposits': pending_deposits.count(),
         'total_required': total_required,
         'total_collected': total_collected,
-        'total_outstanding': total_outstanding,
+        'total_outstanding': total_required - total_collected,
     }
-    
+
     return render(request, 'dashboard/pending_approvals.html', context)
 
 

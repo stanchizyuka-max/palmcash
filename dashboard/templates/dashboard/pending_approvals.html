@@ -1,198 +1,177 @@
 {% extends 'base_tailwind.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Pending Approvals - Palm Cash{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-secondary-50 via-primary-50 to-secondary-50 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold text-secondary-900 mb-2">
-                <i class="fas fa-check-square text-primary-600 mr-3"></i>
-                Pending Approvals
-            </h1>
-            <p class="text-lg text-secondary-600">Loans awaiting approval</p>
-        </div>
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- Summary Card -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-warning-600">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-secondary-600 text-sm font-semibold">Pending Loan Approvals</p>
-                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_pending }}</p>
-                    </div>
-                    <i class="fas fa-hourglass-half text-warning-600 text-4xl opacity-20"></i>
-                </div>
-            </div>
-            <div class="bg-white rounded-lg shadow-lg p-6 border-l-4 border-info-600">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-secondary-600 text-sm font-semibold">Pending Security Deposits</p>
-                        <p class="text-3xl font-bold text-secondary-900 mt-2">{{ total_deposits }}</p>
-                    </div>
-                    <i class="fas fa-lock text-info-600 text-4xl opacity-20"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Approvals Table -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-list mr-2"></i>
-                    Approval Requests
-                </h2>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-secondary-100 border-b-2 border-secondary-200">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Loan ID</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Borrower</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-secondary-900">Amount</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Requested</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Status</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for approval in pending_approvals %}
-                        <tr class="border-b border-secondary-100 hover:bg-secondary-50 transition-colors">
-                            <td class="px-6 py-4 text-sm text-secondary-900">
-                                <a href="#" onclick="alert('Loan details: {{ approval.loan.application_number }}')" class="text-primary-600 hover:text-primary-700 font-semibold">
-                                    #{{ approval.loan.id }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-secondary-900">{{ approval.loan.borrower.full_name }}</td>
-                            <td class="px-6 py-4 text-sm text-right font-semibold text-secondary-900">K{{ approval.loan.principal_amount|floatformat:2 }}</td>
-                            <td class="px-6 py-4 text-sm text-secondary-900">{{ approval.requested_date|date:"M d, Y" }}</td>
-                            <td class="px-6 py-4 text-sm">
-                                <span class="px-3 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-bold">
-                                    <i class="fas fa-hourglass-half mr-1"></i>Pending
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                <a href="#" onclick="alert('Review approval for: {{ approval.loan.application_number }}')" class="text-primary-600 hover:text-primary-700 font-semibold">
-                                    Review
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-secondary-600">
-                                <i class="fas fa-check-circle text-4xl opacity-20 mb-2"></i>
-                                <p class="mt-2">No pending approvals</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            {% if page_obj.has_other_pages %}
-            <div class="px-6 py-4 bg-secondary-50 border-t border-secondary-200 flex items-center justify-between">
-                <div class="text-sm text-secondary-600">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </div>
-                <div class="flex gap-2">
-                    {% if page_obj.has_previous %}
-                    <a href="?page=1" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">First</a>
-                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Previous</a>
-                    {% endif %}
-                    
-                    {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Next</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}" class="px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700">Last</a>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Security Deposits Section -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mt-8">
-            <div class="px-6 py-4 bg-gradient-to-r from-info-500 to-info-600">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-lock mr-2"></i>
-                    Pending Security Deposits (Upfront Payments)
-                </h2>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-secondary-100 border-b-2 border-secondary-200">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Loan ID</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Borrower</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-secondary-900">Required Amount</th>
-                            <th class="px-6 py-3 text-right text-sm font-semibold text-secondary-900">Paid Amount</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Payment Date</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Status</th>
-                            <th class="px-6 py-3 text-left text-sm font-semibold text-secondary-900">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for deposit in pending_deposits %}
-                        <tr class="border-b border-secondary-100 hover:bg-secondary-50 transition-colors">
-                            <td class="px-6 py-4 text-sm text-secondary-900">
-                                <a href="{% url 'loans:detail' deposit.loan.id %}" class="text-primary-600 hover:text-primary-700 font-semibold">
-                                    #{{ deposit.loan.id }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-secondary-900">{{ deposit.loan.borrower.full_name }}</td>
-                            <td class="px-6 py-4 text-sm text-right font-semibold text-secondary-900">K{{ deposit.required_amount|floatformat:2 }}</td>
-                            <td class="px-6 py-4 text-sm text-right font-semibold text-secondary-900">K{{ deposit.paid_amount|floatformat:2 }}</td>
-                            <td class="px-6 py-4 text-sm text-secondary-900">{{ deposit.payment_date|date:"M d, Y" }}</td>
-                            <td class="px-6 py-4 text-sm">
-                                <span class="px-3 py-1 bg-warning-100 text-warning-700 rounded-full text-xs font-bold">
-                                    <i class="fas fa-hourglass-half mr-1"></i>Pending Verification
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                <form method="post" action="{% url 'dashboard:verify_security_deposit' deposit.loan.id %}" style="display: inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" onclick="return confirm('Verify this security deposit?')" class="text-primary-600 hover:text-primary-700 font-semibold">
-                                        Verify
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-secondary-600">
-                                <i class="fas fa-check-circle text-4xl opacity-20 mb-2"></i>
-                                <p class="mt-2">No pending security deposits</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Deposits Summary -->
-            {% if pending_deposits %}
-            <div class="px-6 py-4 bg-secondary-50 border-t border-secondary-200">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <p class="text-secondary-600 text-sm font-semibold">Total Required</p>
-                        <p class="text-2xl font-bold text-secondary-900">K{{ total_required|default:"0"|floatformat:2 }}</p>
-                    </div>
-                    <div>
-                        <p class="text-secondary-600 text-sm font-semibold">Total Collected</p>
-                        <p class="text-2xl font-bold text-success-600">K{{ total_collected|default:"0"|floatformat:2 }}</p>
-                    </div>
-                    <div>
-                        <p class="text-secondary-600 text-sm font-semibold">Outstanding</p>
-                        <p class="text-2xl font-bold text-warning-600">K{{ total_outstanding|default:"0"|floatformat:2 }}</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900 flex items-center">
+          <i class="fas fa-check-square text-orange-500 mr-3"></i>Pending Approvals
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">Review loan applications and security deposits awaiting your approval</p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm font-semibold">
+        <i class="fas fa-arrow-left mr-1"></i>Back
+      </a>
     </div>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-orange-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Pending Loans</p>
+        <p class="text-3xl font-bold text-orange-600">{{ total_pending }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Security Deposits</p>
+        <p class="text-3xl font-bold text-blue-600">{{ total_deposits }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-slate-400">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Total Required</p>
+        <p class="text-3xl font-bold text-slate-700">K{{ total_required|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Total Collected</p>
+        <p class="text-3xl font-bold text-green-600">K{{ total_collected|floatformat:0|intcomma }}</p>
+      </div>
+    </div>
+
+    <!-- Loan Applications -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+      <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-lg font-bold text-white flex items-center">
+          <i class="fas fa-file-alt mr-2"></i>Loan Applications
+          <span class="ml-2 bg-white text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ total_pending }}</span>
+        </h2>
+        <a href="{% url 'loans:applications_list' %}" class="text-orange-100 hover:text-white text-sm font-semibold">
+          View All <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">App #</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Purpose</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Submitted</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for app in pending_applications %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-mono text-slate-700 font-semibold">{{ app.application_number }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">{{ app.borrower.get_full_name }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ app.loan_officer.get_full_name }}</td>
+              <td class="px-4 py-3 font-bold text-slate-800">K{{ app.loan_amount|floatformat:0|intcomma }}</td>
+              <td class="px-4 py-3 text-slate-600 max-w-xs truncate">{{ app.purpose }}</td>
+              <td class="px-4 py-3 text-slate-500">{{ app.created_at|date:"d M Y" }}</td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2">
+                  <form method="post" action="{% url 'loans:approve_application' app.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="approved">
+                    <input type="hidden" name="rejection_reason" value="">
+                    <button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-semibold">
+                      <i class="fas fa-check mr-1"></i>Approve
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'loans:approve_application' app.pk %}" onsubmit="return setRejectReason(this)">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="rejected">
+                    <input type="hidden" name="rejection_reason" id="reason-{{ app.pk }}">
+                    <button type="submit" class="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-xs font-semibold">
+                      <i class="fas fa-times mr-1"></i>Reject
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+                <i class="fas fa-check-circle text-3xl mb-2 block"></i>No pending loan applications
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Security Deposits -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+        <h2 class="text-lg font-bold text-white flex items-center">
+          <i class="fas fa-lock mr-2"></i>Security Deposits (Upfront Payments)
+          <span class="ml-2 bg-white text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ total_deposits }}</span>
+        </h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Required</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Paid</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for deposit in pending_deposits %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-mono text-slate-700 font-semibold">
+                <a href="{% url 'loans:detail' deposit.loan.id %}" class="text-blue-600 hover:underline">{{ deposit.loan.application_number }}</a>
+              </td>
+              <td class="px-4 py-3 font-medium text-slate-900">{{ deposit.loan.borrower.get_full_name }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ deposit.loan.loan_officer.get_full_name }}</td>
+              <td class="px-4 py-3 text-slate-700">K{{ deposit.required_amount|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-3 font-bold text-green-700">K{{ deposit.paid_amount|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-3 text-slate-500">{{ deposit.payment_date|date:"d M Y" }}</td>
+              <td class="px-4 py-3">
+                <form method="post" action="{% url 'dashboard:verify_security_deposit' deposit.loan.id %}">
+                  {% csrf_token %}
+                  <button type="submit" onclick="return confirm('Verify this security deposit?')"
+                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-semibold">
+                    <i class="fas fa-check mr-1"></i>Verify
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="px-4 py-10 text-center text-slate-400">
+                <i class="fas fa-check-circle text-3xl mb-2 block"></i>No pending security deposits
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </div>
+
+<script>
+function setRejectReason(form) {
+  var reason = prompt('Reason for rejection:');
+  if (!reason || reason.trim() === '') return false;
+  form.querySelector('[name="rejection_reason"]').value = reason.trim();
+  return confirm('Reject this application?');
+}
+</script>
 {% endblock %}
