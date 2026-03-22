@@ -4109,40 +4109,37 @@ def manager_document_verification(request):
         from accounts.models import User
         
         if user.role == 'manager':
-            try:
-                manager_branch = user.managed_branch.name
-                branch_clients = User.objects.filter(
-                    Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                    Q(assigned_officer__officerassignment__branch=manager_branch),
-                    role='borrower'
-                ).distinct()
-            except:
-                branch_clients = User.objects.none()
+            manager_branch = user.managed_branch.name
+            branch_clients = User.objects.filter(
+                Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
+                Q(assigned_officer__officer_assignment__branch=manager_branch),
+                role='borrower'
+            ).distinct()
         else:
             branch_clients = User.objects.filter(
                 Q(assigned_officer=user) | Q(group_memberships__group__assigned_officer=user),
                 role='borrower'
             ).distinct()
-        
+
         branch_client_ids = branch_clients.values_list('id', flat=True)
-        
+
         pending_verifications = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status__in=['documents_submitted', 'documents_rejected']
         ).select_related('client').prefetch_related('client__documents').order_by('-updated_at')
-        
+
         recent_verifications = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='approved'
         ).select_related('client', 'verified_by').order_by('-verification_date')[:10]
-        
-        total_clients = ClientVerification.objects.filter(client_id__in=branch_client_ids).count()
+
+        total_clients = branch_clients.count()
         verified_clients = ClientVerification.objects.filter(
             client_id__in=branch_client_ids,
             status='verified'
         ).count()
         pending_count = pending_verifications.count()
-        
+
         documents_needing_review = ClientDocument.objects.filter(
             client_id__in=branch_client_ids,
             status='pending'
