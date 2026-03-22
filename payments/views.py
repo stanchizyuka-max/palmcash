@@ -31,184 +31,58 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
     template_name = 'payments/detail.html'
     context_object_name = 'payment'
 
-class MakePaymentView(LoginRequiredMixin, CreateView):
-    model = Payment
+class MakePaymentView(LoginRequiredMixin, View):
     template_name = 'payments/make.html'
-    fields = ['amount', 'payment_method', 'reference_number', 'notes']
-    
-    def dispatch(self, request, *args, **kwargs):
-        # Only borrowers can access the payment form
-        if request.user.role != 'borrower':
-            messages.error(request, 'Only borrowers can submit payments. Please contact the borrower to make their payment.')
-            return redirect('payments:list')
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_success_url(self):
-        return reverse_lazy('payments:detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        from django.shortcuts import get_object_or_404
-        from loans.models import Loan
-        from django.utils import timezone
-        
-        # Get the loan from URL parameter
+
+    def _get_form(self, request, data=None):
+        from .forms import RecordPaymentForm
         loan_id = self.kwargs.get('loan_id')
-        loan = get_object_or_404(Loan, pk=loan_id)
-        
-        # Only borrowers can make payments, and only for their own loans
-        if self.request.user.role != 'borrower':
-            messages.error(self.request, 'Only borrowers can submit payments. Administrators can only process payments submitted by borrowers.')
-            return redirect('loans:list')
-        
-        if loan.borrower != self.request.user:
-            messages.error(self.request, 'You can only make payments for your own loans.')
-            return redirect('loans:list')
-        
-        # Set payment details
-        form.instance.loan = loan
-        form.instance.payment_date = timezone.now()
-        form.instance.processed_by = self.request.user
-        
-        # Check if this is for a specific payment schedule
-        schedule_id = self.request.GET.get('schedule_id')
-        if schedule_id:
-            try:
-                # Validate that schedule_id is a valid integer
-                schedule_id = int(schedule_id)
-                payment_schedule = PaymentSchedule.objects.get(id=schedule_id, loan=loan)
-                form.instance.payment_schedule = payment_schedule
-            except (ValueError, TypeError, PaymentSchedule.DoesNotExist):
-                # Invalid schedule_id or schedule doesn't exist, try to auto-link to oldest unpaid schedule
-                oldest_unpaid = PaymentSchedule.objects.filter(
-                    loan=loan,
-                    is_paid=False
-                ).order_by('due_date').first()
-                if oldest_unpaid:
-                    form.instance.payment_schedule = oldest_unpaid
-        else:
-            # If no schedule_id provided, try to auto-link to oldest unpaid schedule
-            oldest_unpaid = PaymentSchedule.objects.filter(
+        if request.user.role == 'loan_officer':
+            return RecordPaymentForm(data, officer=request.user, loan_id=loan_id)
+        return RecordPaymentForm(data, loan_id=loan_id)
+
+    def get(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only staff can record payments.')
+            return redirect('dashboard:dashboard')
+        return render(request, self.template_name, {'form': self._get_form(request)})
+
+    def post(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only staff can record payments.')
+            return redirect('dashboard:dashboard')
+
+        form = self._get_form(request, request.POST)
+        if form.is_valid():
+            from datetime import datetime
+            loan = form.cleaned_data['loan']
+            method = form.cleaned_data['payment_method']
+            # Map custom choices to Payment model choices
+            method_map = {'mtn': 'mobile_money', 'airtel': 'mobile_money'}
+            payment_method = method_map.get(method, method)
+
+            payment = Payment.objects.create(
                 loan=loan,
-                is_paid=False
-            ).order_by('due_date').first()
+                amount=form.cleaned_data['amount'],
+                payment_method=payment_method,
+                reference_number=form.cleaned_data.get('reference_number', ''),
+                notes=f"[{method.upper()}] " + form.cleaned_data.get('notes', ''),
+                payment_date=datetime.combine(form.cleaned_data['payment_date'], datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
+                processed_by=request.user,
+                status='pending',
+            )
+
+            # Link to oldest unpaid schedule
+            oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
             if oldest_unpaid:
-                form.instance.payment_schedule = oldest_unpaid
-        
-        # Save the payment first
-        response = super().form_valid(form)
-        
-        # Create notifications for staff (admins, loan officers, managers)
-        self._notify_staff_of_new_payment(form.instance)
-        
-        # Create notification for borrower (payment under review)
-        self._notify_borrower_payment_submitted(form.instance)
-        
-        messages.success(self.request, f'Payment of K{form.instance.amount} has been submitted successfully!')
-        return response
+                payment.payment_schedule = oldest_unpaid
+                payment.save(update_fields=['payment_schedule'])
+
+            messages.success(request, f'Payment of K{payment.amount:,.2f} recorded for {loan.borrower.get_full_name()} — awaiting manager review.')
+            return redirect('payments:detail', pk=payment.pk)
+
+        return render(request, self.template_name, {'form': form})
     
-    def _notify_staff_of_new_payment(self, payment):
-        """Notify all staff members about new payment submission"""
-        try:
-            from notifications.models import Notification, NotificationTemplate
-            from accounts.models import User
-            
-            # Get staff users (admins, loan officers, managers)
-            staff_users = User.objects.filter(role__in=['admin', 'loan_officer', 'manager'])
-            
-            # Try to get the notification template
-            try:
-                template = NotificationTemplate.objects.get(
-                    notification_type='payment_submitted',
-                    is_active=True
-                )
-            except NotificationTemplate.DoesNotExist:
-                # Create a default notification without template
-                for staff_user in staff_users:
-                    Notification.objects.create(
-                        recipient=staff_user,
-                        template=None,
-                        subject=f'New Payment Submitted - {payment.payment_number}',
-                        message=f'A new payment of K{payment.amount:,.2f} has been submitted by {payment.loan.borrower.get_full_name()} for loan {payment.loan.application_number}. Please review and process this payment.',
-                        channel='in_app',
-                        recipient_address=staff_user.email or '',
-                        scheduled_at=timezone.now(),
-                        loan=payment.loan,
-                        payment=payment,
-                        status='sent'
-                    )
-                return
-            
-            # Create notifications for each staff member
-            for staff_user in staff_users:
-                message = template.message_template.format(
-                    borrower_name=payment.loan.borrower.get_full_name(),
-                    amount=f"{payment.amount:,.2f}",
-                    payment_number=payment.payment_number,
-                    loan_number=payment.loan.application_number
-                )
-                
-                Notification.objects.create(
-                    recipient=staff_user,
-                    template=template,
-                    subject=template.subject,
-                    message=message,
-                    channel=template.channel,
-                    recipient_address=staff_user.email or '',
-                    scheduled_at=timezone.now(),
-                    loan=payment.loan,
-                    payment=payment,
-                    status='sent'
-                )
-        except Exception as e:
-            print(f"Error creating staff notifications: {e}")
-    
-    def _notify_borrower_payment_submitted(self, payment):
-        """Notify borrower that payment is under review"""
-        try:
-            from notifications.models import Notification, NotificationTemplate
-            
-            try:
-                template = NotificationTemplate.objects.get(
-                    notification_type='payment_under_review',
-                    is_active=True
-                )
-            except NotificationTemplate.DoesNotExist:
-                # Create a default notification without template
-                Notification.objects.create(
-                    recipient=payment.loan.borrower,
-                    template=None,
-                    subject=f'Payment Submitted - Under Review',
-                    message=f'Your payment of K{payment.amount:,.2f} for loan {payment.loan.application_number} has been received and is currently under review. You will be notified once it has been processed.',
-                    channel='in_app',
-                    recipient_address=payment.loan.borrower.email or '',
-                    scheduled_at=timezone.now(),
-                    loan=payment.loan,
-                    payment=payment,
-                    status='sent'
-                )
-                return
-            
-            message = template.message_template.format(
-                borrower_name=payment.loan.borrower.get_full_name(),
-                amount=f"{payment.amount:,.2f}",
-                payment_number=payment.payment_number,
-                loan_number=payment.loan.application_number
-            )
-            
-            Notification.objects.create(
-                recipient=payment.loan.borrower,
-                template=template,
-                subject=template.subject,
-                message=message,
-                channel=template.channel,
-                recipient_address=payment.loan.borrower.email or '',
-                scheduled_at=timezone.now(),
-                loan=payment.loan,
-                payment=payment,
-                status='sent'
-            )
-        except Exception as e:
-            print(f"Error creating borrower notification: {e}")
 
 class ConfirmPaymentView(LoginRequiredMixin, View):
     def post(self, request, pk):

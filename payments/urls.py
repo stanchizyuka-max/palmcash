@@ -6,6 +6,7 @@ app_name = 'payments'
 urlpatterns = [
     path('', views.PaymentListView.as_view(), name='list'),
     path('upfront/<int:loan_id>/', views.UpfrontPaymentView.as_view(), name='upfront_payment'),
+    path('make/', views.MakePaymentView.as_view(), name='make'),
     path('make/<int:loan_id>/', views.MakePaymentView.as_view(), name='make'),
     path('<int:pk>/', views.PaymentDetailView.as_view(), name='detail'),
     path('<int:pk>/confirm/', views.ConfirmPaymentView.as_view(), name='confirm'),
