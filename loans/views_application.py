@@ -14,10 +14,7 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
     template_name = 'loans/select_borrower.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['loan_officer', 'manager', 'admin']:
-            messages.error(request, 'Only loan officers can submit loan applications.')
-            return redirect('dashboard:dashboard')
-        return super().dispatch(request, *args, **kwargs)
+        return redirect('clients:register_borrower')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
