@@ -922,8 +922,13 @@ def collection_details(request):
         else:
             loans_with_collections[loan_id]['scheduled_count'] += 1
     
-    # Convert to list and sort by loan application number
+    # Convert to list, sort collections by date, find next pending
     grouped_loans = list(loans_with_collections.values())
+    for ld in grouped_loans:
+        ld['collections'].sort(key=lambda c: c.collection_date)
+        ld['next_collection'] = next(
+            (c for c in ld['collections'] if c.status != 'completed'), None
+        )
     grouped_loans.sort(key=lambda x: x['loan'].application_number)
     
     # Pagination

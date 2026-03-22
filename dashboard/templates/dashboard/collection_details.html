@@ -91,24 +91,20 @@
         </div>
 
         <!-- Next payment due -->
-        {% with next=None %}
-        {% for c in loan_data.collections %}
-          {% if c.status != 'completed' and not next %}
-          <div class="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <i class="fas fa-calendar-alt text-amber-500"></i>
-              <div>
-                <p class="text-xs text-amber-600 font-semibold uppercase">Next Payment Due</p>
-                <p class="text-sm font-bold text-amber-900">{{ c.collection_date|date:"d M Y" }} — K{{ c.expected_amount|floatformat:2|intcomma }}</p>
-              </div>
+        {% if loan_data.next_collection %}
+        <div class="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-calendar-alt text-amber-500"></i>
+            <div>
+              <p class="text-xs text-amber-600 font-semibold uppercase">Next Payment Due</p>
+              <p class="text-sm font-bold text-amber-900">{{ loan_data.next_collection.collection_date|date:"d M Y" }} — K{{ loan_data.next_collection.expected_amount|floatformat:2|intcomma }}</p>
             </div>
-            <a href="{% url 'payments:make' loan.pk %}" class="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600">
-              <i class="fas fa-plus mr-1"></i>Record Payment
-            </a>
           </div>
-          {% endif %}
-        {% endfor %}
-        {% endwith %}
+          <a href="{% url 'payments:make' loan.pk %}" class="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600">
+            <i class="fas fa-plus mr-1"></i>Record Payment
+          </a>
+        </div>
+        {% endif %}
 
         <!-- Collapsible schedule -->
         <div>
