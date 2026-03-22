@@ -283,7 +283,7 @@
               {% endif %}
 
             {% elif loan.status == 'active' or loan.status == 'disbursed' %}
-              <a href="{% url 'payments:make_payment' loan.pk %}" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 flex items-center justify-center">
+              <a href="{% url 'payments:make' loan.pk %}" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 flex items-center justify-center">
                 <i class="fas fa-plus mr-2"></i>Record Payment
               </a>
             {% endif %}
