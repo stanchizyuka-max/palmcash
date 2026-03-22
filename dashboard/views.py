@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 
 from loans.models import Loan, LoanApprovalRequest, LoanType
-from payments.models import PaymentCollection, DefaultProvision
+from payments.models import PaymentCollection, DefaultProvision, Payment
 from clients.models import BorrowerGroup, Branch, AdminAuditLog
 from loans.views import VerifySecurityDepositView
 from accounts.models import User
@@ -262,8 +262,8 @@ def manager_dashboard(request):
     ).distinct()
     clients_count = User.objects.filter(
         Q(group_memberships__group__branch=branch.name) |
-        Q(group_memberships__group__assigned_officer__officer_assignment__branch=branch.name),
-        group_memberships__is_active=True,
+        Q(group_memberships__group__assigned_officer__officer_assignment__branch=branch.name) |
+        Q(assigned_officer__officer_assignment__branch=branch.name),
         role='borrower',
     ).distinct().count()
     
@@ -568,12 +568,14 @@ def manager_dashboard(request):
             status='approved',
             upfront_payment_verified=True,
         ).select_related('borrower', 'loan_officer'),
-        'debug_info': {
-            'manager_branch': branch.name,
-            'total_applications': LoanApplication.objects.all().count() if 'LoanApplication' in locals() else 0,
-            'pending_applications': LoanApplication.objects.filter(status='pending').count() if 'LoanApplication' in locals() else 0,
-            'branch_apps_count': branch_applications.count() if 'branch_applications' in locals() else 0,
-        },
+        'pending_payments_count': Payment.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='pending',
+        ).count(),
+        'branch_loans_active': loans.filter(status='active').count(),
+        'branch_loans_completed': loans.filter(status='completed').count(),
+        'branch_loans_pending': loans.filter(status='approved').count(),
+        'branch_loans_total': loans.count(),
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
