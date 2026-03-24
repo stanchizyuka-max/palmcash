@@ -232,6 +232,11 @@ def loan_officer_dashboard(request):
             loan__loan_officer=officer,
             status='pending',
         ).select_related('loan', 'loan__borrower').order_by('-created_at'),
+        'active_loans_with_security': Loan.objects.filter(
+            Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+            status__in=['active', 'completed'],
+            security_deposit__is_verified=True,
+        ).select_related('borrower', 'security_deposit').distinct(),
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
