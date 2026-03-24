@@ -960,7 +960,7 @@ class VaultTransaction(models.Model):
     ]
 
     vault = models.ForeignKey(BranchVault, on_delete=models.CASCADE, related_name='transactions')
-    loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='vault_transactions')
+    loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='loan_vault_transactions')
     direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
     transaction_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     amount = models.DecimalField(max_digits=14, decimal_places=2)

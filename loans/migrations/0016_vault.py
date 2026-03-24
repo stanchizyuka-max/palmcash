@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('approved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_vault_transactions', to=settings.AUTH_USER_MODEL)),
                 ('initiated_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='initiated_vault_transactions', to=settings.AUTH_USER_MODEL)),
-                ('loan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vault_transactions', to='loans.loan')),
+                ('loan', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='loan_vault_transactions', to='loans.loan')),
                 ('vault', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='transactions', to='loans.branchvault')),
             ],
             options={'ordering': ['-created_at']},
