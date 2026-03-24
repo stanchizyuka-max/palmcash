@@ -127,7 +127,7 @@
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold text-gray-900">Active Members ({{ members.count }})</h2>
-                        {% if user.role in 'admin,manager,loan_officer' and group.is_active %}
+                        {% if can_modify_members and group.is_active %}
                         <button type="button" class="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm" data-toggle="modal" data-target="#addMemberModal">
                             <i class="fas fa-plus mr-1"></i>Add Member
                         </button>
@@ -143,7 +143,7 @@
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Joined</th>
-                                    {% if user.role in 'admin,manager,loan_officer' %}
+                                    {% if can_modify_members %}
                                     <th class="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                                     {% endif %}
                                 </tr>
@@ -166,7 +166,7 @@
                                     <td class="px-4 py-3 text-gray-600">{{ membership.borrower.email }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ membership.borrower.phone_number|default:"N/A" }}</td>
                                     <td class="px-4 py-3 text-gray-600">{{ membership.joined_at|date:"M d, Y" }}</td>
-                                    {% if user.role in 'admin,manager,loan_officer' %}
+                                    {% if can_modify_members %}
                                     <td class="px-4 py-3 text-center">
                                         <form method="post" action="{% url 'clients:remove_member' group.pk membership.pk %}" style="display:inline;" onsubmit="return confirm('Remove this member from the group?');">
                                             {% csrf_token %}

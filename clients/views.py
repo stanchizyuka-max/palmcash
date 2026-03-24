@@ -80,14 +80,18 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         context['members'] = group.members.filter(is_active=True).select_related('borrower')
         context['inactive_members'] = group.members.filter(is_active=False).select_related('borrower')
         
-        # Get available borrowers (not in this group)
-        context['available_borrowers'] = User.objects.filter(
-            role='borrower',
-            is_active=True
-        ).exclude(
-            group_memberships__group=group,
-            group_memberships__is_active=True
-        )
+        # Get available borrowers (not in this group) — only for officers/admins who can add members
+        if self.request.user.role in ['admin', 'loan_officer']:
+            context['available_borrowers'] = User.objects.filter(
+                role='borrower',
+                is_active=True
+            ).exclude(
+                group_memberships__group=group,
+                group_memberships__is_active=True
+            )
+        else:
+            context['available_borrowers'] = User.objects.none()
+        context['can_modify_members'] = self.request.user.role in ['admin', 'loan_officer']
         
         # Get group statistics
         from loans.models import Loan
@@ -203,19 +207,15 @@ class AddMemberView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        
-        if request.user.role not in ['admin', 'manager', 'loan_officer']:
-            messages.error(request, 'You do not have permission to add members.')
+        if request.user.role not in ['admin', 'loan_officer']:
+            messages.error(request, 'Only loan officers can add members to groups.')
             return redirect('clients:group_list')
-        
-        # Loan officers can only add members to their assigned groups
         if request.user.role == 'loan_officer':
             pk = kwargs.get('pk')
             group = get_object_or_404(BorrowerGroup, pk=pk)
             if group.assigned_officer != request.user:
                 messages.error(request, 'You can only add members to groups assigned to you.')
                 return redirect('clients:group_list')
-        
         return super().dispatch(request, *args, **kwargs)
     
     def post(self, request, pk):
@@ -265,9 +265,8 @@ class RemoveMemberView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        
-        if request.user.role not in ['admin', 'manager', 'loan_officer']:
-            messages.error(request, 'You do not have permission to remove members.')
+        if request.user.role not in ['admin', 'loan_officer']:
+            messages.error(request, 'Only loan officers can remove members from groups.')
             return redirect('clients:group_list')
         return super().dispatch(request, *args, **kwargs)
     
