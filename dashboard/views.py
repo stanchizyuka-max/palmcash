@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 
 from loans.models import Loan, LoanApprovalRequest, LoanType
+from loans.models import SecurityTransaction
 from payments.models import PaymentCollection, DefaultProvision, Payment
 from clients.models import BorrowerGroup, Branch, AdminAuditLog
 from loans.views import VerifySecurityDepositView
@@ -227,6 +228,10 @@ def loan_officer_dashboard(request):
             status='approved',
             upfront_payment_verified=True,
         ).select_related('borrower').distinct(),
+        'pending_security_transactions': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer,
+            status='pending',
+        ).select_related('loan', 'loan__borrower').order_by('-created_at'),
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)

@@ -272,6 +272,56 @@
             {% endif %}
         </div>
 
+        <!-- Security Transactions -->
+        {% if pending_security_transactions %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">
+            <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-shield-alt mr-2"></i>Security Transactions
+                    <span class="ml-2 bg-white text-indigo-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_security_transactions|length }}</span>
+                </h3>
+                <span class="text-indigo-100 text-sm">Awaiting manager approval</span>
+            </div>
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Amount</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Submitted</th>
+                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for txn in pending_security_transactions %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3 font-mono font-semibold text-slate-700">
+                            <a href="{% url 'loans:detail' txn.loan.pk %}" class="text-blue-600 hover:underline">{{ txn.loan.application_number }}</a>
+                        </td>
+                        <td class="px-4 py-3 text-slate-800">{{ txn.loan.borrower.get_full_name }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                                {% if txn.transaction_type == 'adjustment' %}bg-blue-100 text-blue-700
+                                {% elif txn.transaction_type == 'return' %}bg-purple-100 text-purple-700
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ txn.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-bold text-slate-800">K{{ txn.amount|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-3 text-slate-500">{{ txn.created_at|date:"d M Y" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                                <i class="fas fa-clock mr-1"></i>Pending
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
         <!-- Clients Expected to Pay Today -->
         <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200 mb-8">
             <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
