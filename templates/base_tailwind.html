@@ -289,6 +289,9 @@
                     <a href="{% url 'payments:list' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
                         <i class="fas fa-credit-card mr-2"></i>Payments
                     </a>
+                    <a href="{% url 'dashboard:report_security_transactions' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                        <i class="fas fa-chart-bar mr-2"></i>Reports
+                    </a>
                     
                     {% if user.is_superuser or user.role == 'admin' %}
                     <a href="{% url 'dashboard:manage_officers' %}" class="px-3 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
@@ -409,6 +412,9 @@
                 </a>
                 <a href="{% url 'payments:list' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
                     <i class="fas fa-credit-card mr-2"></i>Payments
+                </a>
+                <a href="{% url 'dashboard:report_security_transactions' %}" class="block px-4 py-2 rounded-lg text-secondary-700 hover:bg-primary-50 transition-colors">
+                    <i class="fas fa-chart-bar mr-2"></i>Reports
                 </a>
                 
                 {% if user.is_superuser or user.role == 'admin' %}
