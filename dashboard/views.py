@@ -2236,17 +2236,32 @@ def user_create(request):
             if role == 'loan_officer':
                 from clients.models import OfficerAssignment
                 branch_name = ''
+                branch_id = None
                 if request.user.role == 'manager' and request.user.managed_branch:
                     branch_name = request.user.managed_branch.name
-                OfficerAssignment.objects.get_or_create(
-                    officer=new_user,
-                    defaults={
-                        'branch': branch_name,
-                        'max_groups': 15,
-                        'max_clients': 50,
-                        'is_accepting_assignments': True,
-                    }
-                )
+                    branch_id = request.user.managed_branch.pk
+                # Use raw SQL to handle possible extra branch_id column on production DB
+                from django.db import connection as _conn
+                with _conn.cursor() as _cur:
+                    _cur.execute(
+                        'SELECT COUNT(*) FROM clients_officerassignment WHERE officer_id = %s',
+                        [new_user.pk]
+                    )
+                    if _cur.fetchone()[0] == 0:
+                        try:
+                            _cur.execute(
+                                'INSERT INTO clients_officerassignment '
+                                '(officer_id, branch_id, branch, max_groups, max_clients, is_accepting_assignments, created_at, updated_at) '
+                                'VALUES (%s, %s, %s, 15, 50, 1, NOW(), NOW())',
+                                [new_user.pk, branch_id, branch_name]
+                            )
+                        except Exception:
+                            _cur.execute(
+                                'INSERT INTO clients_officerassignment '
+                                '(officer_id, branch, max_groups, max_clients, is_accepting_assignments, created_at, updated_at) '
+                                'VALUES (%s, %s, 15, 50, 1, NOW(), NOW())',
+                                [new_user.pk, branch_name]
+                            )
 
             # Redirect to manage officers
             from django.shortcuts import redirect
