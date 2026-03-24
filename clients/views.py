@@ -93,9 +93,9 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
             context['available_borrowers'] = User.objects.none()
         context['can_modify_members'] = self.request.user.role in ['admin', 'loan_officer']
         
-        # Get group statistics
-        from loans.models import Loan
+        # Get recent actual payments grouped by borrower
         from payments.models import Payment
+        from django.db.models import Sum, Count, Max
 
         member_borrowers = [m.borrower for m in context['members']]
 
@@ -110,10 +110,21 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
             borrower__in=member_borrowers
         ).select_related('borrower').order_by('-created_at')[:10]
 
-        # Get recent actual payments (not schedule rows)
-        context['group_members_payments'] = Payment.objects.filter(
+        # Group payments by borrower: total paid, count, last payment date
+        from collections import defaultdict
+        payments_qs = Payment.objects.filter(
             loan__borrower__in=member_borrowers
-        ).select_related('loan', 'loan__borrower').order_by('-payment_date')[:10]
+        ).select_related('loan', 'loan__borrower').order_by('-payment_date')
+
+        borrower_payments = defaultdict(lambda: {'payments': [], 'total': 0, 'borrower': None, 'loan': None})
+        for p in payments_qs:
+            key = p.loan.borrower_id
+            borrower_payments[key]['borrower'] = p.loan.borrower
+            borrower_payments[key]['loan'] = p.loan
+            borrower_payments[key]['total'] += p.amount
+            borrower_payments[key]['payments'].append(p)
+
+        context['group_members_payments'] = list(borrower_payments.values())
         
         return context
 

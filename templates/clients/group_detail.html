@@ -302,30 +302,47 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-4 py-3 text-left font-medium text-gray-900">Borrower</th>
-                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Amount</th>
-                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Payment Date</th>
-                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Method</th>
-                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Total Paid</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Payments</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900">Last Payment</th>
+                                        <th class="px-4 py-3 text-left font-medium text-gray-900"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
-                                    {% for payment in group_members_payments %}
-                                    <tr class="hover:bg-gray-50">
+                                    {% for entry in group_members_payments %}
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="togglePayments('bp-{{ forloop.counter }}')">
                                         <td class="px-4 py-3">
-                                            <div class="font-medium text-gray-900">{{ payment.loan.borrower.get_full_name }}</div>
-                                            <div class="text-xs text-gray-500">{{ payment.loan.application_number }}</div>
+                                            <div class="font-medium text-gray-900">{{ entry.borrower.get_full_name }}</div>
+                                            <div class="text-xs text-gray-500">{{ entry.loan.application_number }}</div>
                                         </td>
-                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ payment.amount|floatformat:2|intcomma }}</td>
-                                        <td class="px-4 py-3 text-gray-600">{{ payment.payment_date|date:"M d, Y" }}</td>
-                                        <td class="px-4 py-3 text-gray-600">{{ payment.get_payment_method_display|default:"N/A" }}</td>
-                                        <td class="px-4 py-3">
-                                            {% if payment.status == 'completed' %}
-                                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Completed</span>
-                                            {% elif payment.status == 'pending' %}
-                                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Pending</span>
-                                            {% else %}
-                                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ payment.get_status_display }}</span>
-                                            {% endif %}
+                                        <td class="px-4 py-3 font-bold text-green-700">K{{ entry.total|floatformat:2|intcomma }}</td>
+                                        <td class="px-4 py-3 text-gray-600">{{ entry.payments|length }}</td>
+                                        <td class="px-4 py-3 text-gray-600">{{ entry.payments.0.payment_date|date:"M d, Y" }}</td>
+                                        <td class="px-4 py-3 text-gray-400 text-xs"><i class="fas fa-chevron-down"></i></td>
+                                    </tr>
+                                    <tr id="bp-{{ forloop.counter }}" class="hidden bg-gray-50">
+                                        <td colspan="5" class="px-4 py-2">
+                                            <table class="w-full text-xs">
+                                                <thead><tr class="text-gray-500">
+                                                    <th class="px-3 py-1 text-left">Date</th>
+                                                    <th class="px-3 py-1 text-left">Amount</th>
+                                                    <th class="px-3 py-1 text-left">Method</th>
+                                                    <th class="px-3 py-1 text-left">Status</th>
+                                                </tr></thead>
+                                                <tbody>
+                                                {% for p in entry.payments %}
+                                                <tr class="border-t border-gray-100">
+                                                    <td class="px-3 py-1 text-gray-600">{{ p.payment_date|date:"M d, Y" }}</td>
+                                                    <td class="px-3 py-1 font-medium">K{{ p.amount|floatformat:2|intcomma }}</td>
+                                                    <td class="px-3 py-1 text-gray-600">{{ p.get_payment_method_display }}</td>
+                                                    <td class="px-3 py-1">
+                                                        {% if p.status == 'completed' %}<span class="px-1 py-0.5 bg-green-100 text-green-800 rounded">Completed</span>
+                                                        {% else %}<span class="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded">{{ p.get_status_display }}</span>{% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                                </tbody>
+                                            </table>
                                         </td>
                                     </tr>
                                     {% empty %}
@@ -426,6 +443,10 @@
 </div>
 
 <script>
+function togglePayments(id) {
+    const row = document.getElementById(id);
+    if (row) row.classList.toggle('hidden');
+}
 // Modal functionality
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
