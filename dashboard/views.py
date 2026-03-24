@@ -584,18 +584,20 @@ def manager_dashboard(request):
         'recent_applications': branch_applications,
         'pending_applications_count': pending_applications_count,
         'pending_upfront_verifications': Loan.objects.filter(
-            loan_officer__officer_assignment__branch=branch.name,
-            status='approved',
-            upfront_payment_paid__gt=0,
-            upfront_payment_verified=False,
+            id__in=loans.filter(
+                status='approved',
+                upfront_payment_paid__gt=0,
+                upfront_payment_verified=False,
+            ).values_list('id', flat=True)
         ).select_related('borrower', 'loan_officer'),
         'ready_to_disburse': Loan.objects.filter(
-            loan_officer__officer_assignment__branch=branch.name,
-            status='approved',
-            upfront_payment_verified=True,
+            id__in=loans.filter(
+                status='approved',
+                upfront_payment_verified=True,
+            ).values_list('id', flat=True)
         ).select_related('borrower', 'loan_officer'),
         'pending_payments_count': Payment.objects.filter(
-            loan__loan_officer__officer_assignment__branch=branch.name,
+            loan__in=loans,
             status='pending',
         ).count(),
         'branch_loans_active': loans.filter(status='active').count(),

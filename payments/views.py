@@ -13,17 +13,29 @@ class PaymentListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        if self.request.user.role == 'borrower':
-            return Payment.objects.filter(loan__borrower=self.request.user)
+        user = self.request.user
+        if user.role == 'borrower':
+            return Payment.objects.filter(loan__borrower=user)
+        if user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                from django.db.models import Q
+                from loans.models import Loan
+                branch_loans = Loan.objects.filter(
+                    Q(loan_officer__officer_assignment__branch=branch.name) |
+                    Q(borrower__group_memberships__group__branch=branch.name)
+                ).values_list('id', flat=True)
+                return Payment.objects.filter(loan_id__in=branch_loans).order_by('-created_at')
+            except Exception:
+                return Payment.objects.none()
         return Payment.objects.all().order_by('-created_at')
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Add pending payments count for staff
-        if self.request.user.role in ['admin', 'loan_officer']:
-            context['pending_count'] = Payment.objects.filter(status='pending').count()
-        
+        user = self.request.user
+        if user.role in ['admin', 'loan_officer', 'manager']:
+            qs = self.get_queryset()
+            context['pending_count'] = qs.filter(status='pending').count()
         return context
 
 class PaymentDetailView(LoginRequiredMixin, DetailView):

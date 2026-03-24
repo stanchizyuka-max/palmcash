@@ -100,6 +100,20 @@
                                        class="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors duration-150 font-medium">
                                         <i class="fas fa-eye mr-1"></i>View
                                     </a>
+                                    {% if payment.status == 'pending' and user.role in 'manager,admin' %}
+                                    <form method="post" action="{% url 'payments:confirm' payment.pk %}" class="inline ml-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium">
+                                            <i class="fas fa-check mr-1"></i>Confirm
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'payments:reject' payment.pk %}" class="inline ml-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium">
+                                            <i class="fas fa-times mr-1"></i>Reject
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
