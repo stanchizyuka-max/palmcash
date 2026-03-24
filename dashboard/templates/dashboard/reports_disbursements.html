@@ -1,90 +1,88 @@
-{% extends 'base.html' %}
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
 {% block title %}Disbursement Report{% endblock %}
 {% block content %}
-<div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Loan Disbursements</h4>
-    <div>
-      <a href="{% url 'dashboard:report_security_transactions' %}" class="btn btn-outline-secondary btn-sm me-1">Security Transactions</a>
-      <a href="{% url 'dashboard:report_client_balances' %}" class="btn btn-outline-secondary btn-sm">Client Balances</a>
-    </div>
-  </div>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-  <form method="get" class="row g-2 mb-3">
-    <div class="col-md-2">
-      <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}" placeholder="From">
+    <div class="mb-6 flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-slate-900"><i class="fas fa-money-bill-wave text-orange-600 mr-2"></i>Loan Disbursements</h1>
+      <div class="flex gap-2">
+        <a href="{% url 'dashboard:report_security_transactions' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">Security Transactions</a>
+        <a href="{% url 'dashboard:report_client_balances' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">Client Balances</a>
+      </div>
     </div>
-    <div class="col-md-2">
-      <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}" placeholder="To">
-    </div>
-    {% if branches %}
-    <div class="col-md-2">
-      <select name="branch" class="form-select form-select-sm">
-        <option value="">All Branches</option>
-        {% for b in branches %}
-          <option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {% endif %}
-    <div class="col-md-2 d-flex gap-1">
-      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-      <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-success btn-sm">CSV</a>
-      <a href="{% url 'dashboard:report_disbursements' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
-    </div>
-  </form>
 
-  <div class="table-responsive">
-    <table class="table table-sm table-hover">
-      <thead class="table-dark">
-        <tr>
-          <th>Loan ID</th>
-          <th>Client</th>
-          <th>Amount</th>
-          <th>Disbursement Date</th>
-          <th>Branch</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for loan in page_obj %}
-        <tr>
-          <td>{{ loan.application_number }}</td>
-          <td>{{ loan.borrower.get_full_name }}</td>
-          <td>K{{ loan.principal_amount }}</td>
-          <td>{{ loan.disbursement_date|date:"d M Y" }}</td>
-          <td>
-            {% with loan.loan_officer.officer_assignment as oa %}
-              {% if oa %}{{ oa.branch }}{% else %}—{% endif %}
-            {% endwith %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-3">No disbursements found.</td></tr>
-        {% endfor %}
-      </tbody>
-      <tfoot class="table-secondary fw-bold">
-        <tr>
-          <td>Total</td>
-          <td></td>
-          <td>K{{ total }}</td>
-          <td colspan="2"></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+    <!-- Filters -->
+    <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="From">
+        <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="To">
+        {% if branches %}
+        <select name="branch" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Branches</option>
+          {% for b in branches %}<option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700">Filter</button>
+          <a href="{% url 'dashboard:report_disbursements' %}" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+        </div>
+      </div>
+    </form>
 
-  {% if page_obj.has_other_pages %}
-  <nav>
-    <ul class="pagination pagination-sm">
-      {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">«</a></li>
+    <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mb-4">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-800 text-white">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold">Loan ID</th>
+              <th class="px-4 py-3 text-left font-semibold">Client</th>
+              <th class="px-4 py-3 text-left font-semibold">Amount</th>
+              <th class="px-4 py-3 text-left font-semibold">Disbursement Date</th>
+              <th class="px-4 py-3 text-left font-semibold">Branch</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for loan in page_obj %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-mono font-semibold text-slate-700">{{ loan.application_number }}</td>
+              <td class="px-4 py-3 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
+              <td class="px-4 py-3 font-bold text-slate-800">K{{ loan.principal_amount|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ loan.disbursement_date|date:"d M Y" }}</td>
+              <td class="px-4 py-3 text-slate-600">
+                {% with loan.loan_officer.officer_assignment as oa %}{% if oa %}{{ oa.branch }}{% else %}—{% endif %}{% endwith %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">No disbursements found.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-slate-50 border-t-2 border-slate-300">
+            <tr>
+              <td class="px-4 py-3 font-bold text-slate-700">Total</td>
+              <td></td>
+              <td class="px-4 py-3 font-bold text-slate-900">K{{ total|floatformat:2|intcomma }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
+        <i class="fas fa-download mr-2"></i>Export CSV
+      </a>
+      {% if page_obj.has_other_pages %}
+      <div class="flex gap-1">
+        {% if page_obj.has_previous %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">«</a>{% endif %}
+        <span class="px-3 py-2 bg-orange-600 text-white rounded-lg text-sm">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">»</a>{% endif %}
+      </div>
       {% endif %}
-      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
-      {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a></li>
-      {% endif %}
-    </ul>
-  </nav>
-  {% endif %}
+    </div>
+
+  </div>
 </div>
 {% endblock %}
