@@ -94,6 +94,7 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         context['can_modify_members'] = self.request.user.role in ['admin', 'loan_officer']
         
         # Get recent actual payments grouped by borrower
+        from loans.models import Loan
         from payments.models import Payment
         from django.db.models import Sum, Count, Max
 
