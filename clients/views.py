@@ -95,23 +95,25 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         
         # Get group statistics
         from loans.models import Loan
-        from payments.models import PaymentCollection
-        
+        from payments.models import Payment
+
+        member_borrowers = [m.borrower for m in context['members']]
+
         # Get active loans count
         context['active_loans'] = Loan.objects.filter(
-            borrower__in=[m.borrower for m in context['members']],
+            borrower__in=member_borrowers,
             status='active'
         ).count()
-        
+
         # Get recent loans for group members
         context['group_members_loans'] = Loan.objects.filter(
-            borrower__in=[m.borrower for m in context['members']]
+            borrower__in=member_borrowers
         ).select_related('borrower').order_by('-created_at')[:10]
-        
-        # Get recent payments for group members
-        context['group_members_payments'] = PaymentCollection.objects.filter(
-            loan__borrower__in=[m.borrower for m in context['members']]
-        ).select_related('loan', 'loan__borrower').order_by('-collection_date')[:10]
+
+        # Get recent actual payments (not schedule rows)
+        context['group_members_payments'] = Payment.objects.filter(
+            loan__borrower__in=member_borrowers
+        ).select_related('loan', 'loan__borrower').order_by('-payment_date')[:10]
         
         return context
 

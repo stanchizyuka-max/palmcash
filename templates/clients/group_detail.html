@@ -309,20 +309,22 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
-                                    {% for payment in group_members_payments|default:group_members_payments %}
+                                    {% for payment in group_members_payments %}
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-3">
                                             <div class="font-medium text-gray-900">{{ payment.loan.borrower.get_full_name }}</div>
                                             <div class="text-xs text-gray-500">{{ payment.loan.application_number }}</div>
                                         </td>
-                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ payment.collected_amount|intcomma }}</td>
-                                        <td class="px-4 py-3 text-gray-600">{{ payment.collection_date|date:"M d, Y" }}</td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ payment.amount|floatformat:2|intcomma }}</td>
+                                        <td class="px-4 py-3 text-gray-600">{{ payment.payment_date|date:"M d, Y" }}</td>
                                         <td class="px-4 py-3 text-gray-600">{{ payment.get_payment_method_display|default:"N/A" }}</td>
                                         <td class="px-4 py-3">
                                             {% if payment.status == 'completed' %}
                                                 <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Completed</span>
-                                            {% else %}
+                                            {% elif payment.status == 'pending' %}
                                                 <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Pending</span>
+                                            {% else %}
+                                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">{{ payment.get_status_display }}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
