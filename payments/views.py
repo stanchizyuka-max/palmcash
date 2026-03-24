@@ -161,6 +161,13 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         self._update_loan_status_if_completed(loan)
         loan.save()
 
+        # Record vault inflow for loan repayment
+        try:
+            from loans.vault_services import record_payment_collection
+            record_payment_collection(loan, payment.amount, request.user)
+        except Exception as e:
+            print(f"Vault record error: {e}")
+
         # Update PaymentCollection so dashboard stats reflect confirmed payment
         payment_day = payment.payment_date.date()
         oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()

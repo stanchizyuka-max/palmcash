@@ -78,6 +78,7 @@ def vault_dashboard(request):
         ('security_deposit', 'Security Deposit'),
         ('loan_disbursement', 'Loan Disbursement'),
         ('security_return', 'Security Return'),
+        ('payment_collection', 'Loan Repayment'),
         ('deposit', 'Cash Deposit'),
         ('withdrawal', 'Cash Withdrawal'),
     ]

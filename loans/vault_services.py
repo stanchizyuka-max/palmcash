@@ -99,3 +99,26 @@ def record_security_return(loan, amount, approved_by):
             approved_by=approved_by,
             transaction_date=timezone.now(),
         )
+
+
+def record_payment_collection(loan, amount, recorded_by):
+    branch = _get_branch_for_loan(loan, fallback_user=recorded_by)
+    if not branch:
+        return None
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        vault.balance += Decimal(str(amount))
+        vault.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='payment_collection',
+            direction='in',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=f'Loan repayment for {loan.application_number}',
+            reference_number=_ref(),
+            loan=loan,
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
