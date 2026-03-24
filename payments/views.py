@@ -4,7 +4,7 @@ from django.views.generic import ListView, DetailView, CreateView, View
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
-from .models import Payment, PaymentSchedule
+from .models import Payment, PaymentSchedule, PaymentCollection
 
 class PaymentListView(LoginRequiredMixin, ListView):
     model = Payment
@@ -61,13 +61,16 @@ class MakePaymentView(LoginRequiredMixin, View):
             method_map = {'mtn': 'mobile_money', 'airtel': 'mobile_money'}
             payment_method = method_map.get(method, method)
 
+            amount = form.cleaned_data['amount']
+            payment_date = form.cleaned_data['payment_date']
+
             payment = Payment.objects.create(
                 loan=loan,
-                amount=form.cleaned_data['amount'],
+                amount=amount,
                 payment_method=payment_method,
                 reference_number=form.cleaned_data.get('reference_number', ''),
                 notes=f"[{method.upper()}] " + form.cleaned_data.get('notes', ''),
-                payment_date=datetime.combine(form.cleaned_data['payment_date'], datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
+                payment_date=datetime.combine(payment_date, datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
                 processed_by=request.user,
                 status='pending',
             )
@@ -78,7 +81,24 @@ class MakePaymentView(LoginRequiredMixin, View):
                 payment.payment_schedule = oldest_unpaid
                 payment.save(update_fields=['payment_schedule'])
 
-            messages.success(request, f'Payment of K{payment.amount:,.2f} recorded for {loan.borrower.get_full_name()} — awaiting manager review.')
+            # Update PaymentCollection so dashboard stats reflect this payment
+            collection, _ = PaymentCollection.objects.get_or_create(
+                loan=loan,
+                collection_date=payment_date,
+                defaults={
+                    'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else amount,
+                    'collected_amount': 0,
+                    'status': 'scheduled',
+                }
+            )
+            collection.collected_amount = (collection.collected_amount or 0) + amount
+            collection.collected_by = request.user
+            collection.actual_collection_date = timezone.now()
+            collection.status = 'completed'
+            collection.is_partial = collection.collected_amount < collection.expected_amount
+            collection.save()
+
+            messages.success(request, f'Payment of K{amount:,.2f} recorded for {loan.borrower.get_full_name()} — awaiting manager review.')
             return redirect('payments:detail', pk=payment.pk)
 
         return render(request, self.template_name, {'form': form})
@@ -118,20 +138,35 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
             loan.balance_remaining -= payment.amount
         
         # Check if this is an upfront payment (security deposit)
-        # If the loan has an upfront payment requirement and hasn't been fully paid yet
         if (loan.upfront_payment_required and 
             loan.upfront_payment_paid < loan.upfront_payment_required and
-            not payment.payment_schedule):  # No payment schedule = upfront/security deposit
-            
-            # Update upfront payment amount
+            not payment.payment_schedule):
             upfront_remaining = loan.upfront_payment_required - loan.upfront_payment_paid
             upfront_amount = min(payment.amount, upfront_remaining)
             loan.upfront_payment_paid += upfront_amount
             loan.upfront_payment_date = payment.payment_date
         
-        # Check if loan is fully paid and update status
         self._update_loan_status_if_completed(loan)
         loan.save()
+
+        # Update PaymentCollection so dashboard stats reflect confirmed payment
+        payment_day = payment.payment_date.date()
+        oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
+        collection, _ = PaymentCollection.objects.get_or_create(
+            loan=loan,
+            collection_date=payment_day,
+            defaults={
+                'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else payment.amount,
+                'collected_amount': 0,
+                'status': 'scheduled',
+            }
+        )
+        collection.collected_amount = (collection.collected_amount or 0) + payment.amount
+        collection.collected_by = request.user
+        collection.actual_collection_date = timezone.now()
+        collection.status = 'completed'
+        collection.is_partial = collection.collected_amount < collection.expected_amount
+        collection.save()
         
         # Create passbook entry for payment
         try:
