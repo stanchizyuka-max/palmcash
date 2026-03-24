@@ -1114,23 +1114,15 @@ def manage_officers(request):
     if user.role == 'manager':
         branch = user.managed_branch
         if not branch:
-            officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
-        else:
-            from clients.models import OfficerAssignment
-            from django.db.models import Q
-
-            # Auto-assign branch to officers with empty branch created by this manager
-            # Only fix officers who have no branch set and are not already assigned elsewhere
-            OfficerAssignment.objects.filter(branch='').update(branch=branch.name)
-
-            officers = User.objects.filter(
-                role='loan_officer'
-            ).filter(
-                Q(officer_assignment__branch__iexact=branch.name) |
-                Q(officer_assignment__isnull=True)
-            ).distinct().order_by('first_name', 'last_name')
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch.'
+            })
+        from clients.models import OfficerAssignment
+        officers = User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch__iexact=branch.name,
+        ).distinct().order_by('first_name', 'last_name')
     elif user.role == 'admin':
-        # Admin sees all officers
         officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
     else:
         return render(request, 'dashboard/access_denied.html')
@@ -1155,6 +1147,7 @@ def manage_officers(request):
         'officers': page_obj.object_list,
         'officer_assignments': officer_assignments,
         'total_officers': officers.count(),
+        'branch': getattr(user, 'managed_branch', None),
     }
     
     return render(request, 'dashboard/manage_officers.html', context)
