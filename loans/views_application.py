@@ -87,7 +87,7 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('loans:applications_list')
     
     def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+        if request.user.role not in ['loan_officer', 'admin']:
             messages.error(request, 'Only loan officers can submit loan applications.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
