@@ -935,3 +935,49 @@ class LoanApplication(models.Model):
     
     def __str__(self):
         return f"{self.application_number} - {self.borrower.get_full_name()}"
+
+
+class BranchVault(models.Model):
+    branch = models.OneToOneField(
+        'clients.Branch', on_delete=models.CASCADE, related_name='vault'
+    )
+    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Vault — {self.branch.name} (K{self.balance})"
+
+
+class VaultTransaction(models.Model):
+    DIRECTION_CHOICES = [
+        ('in', 'Inflow'),
+        ('out', 'Outflow'),
+    ]
+    TYPE_CHOICES = [
+        ('security_deposit', 'Security Deposit'),
+        ('loan_disbursement', 'Loan Disbursement'),
+        ('security_return', 'Security Return'),
+    ]
+
+    vault = models.ForeignKey(BranchVault, on_delete=models.CASCADE, related_name='transactions')
+    loan = models.ForeignKey(Loan, on_delete=models.SET_NULL, null=True, blank=True, related_name='vault_transactions')
+    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
+    transaction_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=14, decimal_places=2)
+    notes = models.TextField(blank=True)
+    initiated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        related_name='initiated_vault_transactions'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_vault_transactions'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_direction_display()} K{self.amount} — {self.vault.branch.name}"

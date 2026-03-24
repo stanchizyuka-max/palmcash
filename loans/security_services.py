@@ -93,6 +93,11 @@ def approve_security_transaction(txn, approved_by):
                 return False, 'Available security has changed — amount no longer valid.'
             deposit.security_returned += txn.amount
             deposit.save(update_fields=['security_returned', 'updated_at'])
+            try:
+                from .vault_services import record_security_return
+                record_security_return(txn.loan, txn.amount, approved_by)
+            except Exception:
+                pass
 
         txn.status = 'approved'
         txn.approved_by = approved_by

@@ -485,6 +485,13 @@ class DisburseLoanView(LoginRequiredMixin, View):
             # Update loan status to active after payment schedule is created
             loan.status = 'active'
             loan.save()
+
+            # Record vault outflow for disbursement
+            try:
+                from .vault_services import record_loan_disbursement
+                record_loan_disbursement(loan, request.user)
+            except Exception:
+                pass
             
             # Send disbursement email
             try:
@@ -1471,6 +1478,13 @@ class VerifySecurityDepositView(LoginRequiredMixin, View):
             
             # Verify the deposit
             deposit.verify(request.user)
+
+            # Record vault inflow for security deposit
+            try:
+                from .vault_services import record_security_deposit
+                record_security_deposit(loan, deposit.paid_amount, request.user)
+            except Exception:
+                pass
             
             # Also update loan record for backward compatibility
             loan.upfront_payment_verified = True

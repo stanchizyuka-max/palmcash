@@ -1,0 +1,149 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Branch Vault{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    {% if no_branch %}
+    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-8 text-center">
+      <i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-3"></i>
+      <p class="text-yellow-800 font-semibold">No branch assigned to your account. Contact an administrator.</p>
+    </div>
+    {% else %}
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900"><i class="fas fa-vault text-emerald-600 mr-2"></i>Branch Vault</h1>
+        {% if vault %}<p class="text-slate-500 mt-1">{{ vault.branch.name }}</p>{% endif %}
+      </div>
+      <a href="{% url 'dashboard:manager_dashboard' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">
+        ← Back to Dashboard
+      </a>
+    </div>
+
+    <!-- Balance + Totals -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {% if vault %}
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-emerald-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Current Balance</p>
+        <p class="text-4xl font-bold text-emerald-700">K{{ vault.balance|floatformat:2|intcomma }}</p>
+        <p class="text-slate-400 text-xs mt-2">Last updated {{ vault.updated_at|date:"d M Y H:i" }}</p>
+      </div>
+      {% endif %}
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Total Inflows (filtered)</p>
+        <p class="text-3xl font-bold text-blue-700">K{{ total_in|floatformat:2|intcomma }}</p>
+        <p class="text-blue-400 text-xs mt-2">Security deposits received</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Total Outflows (filtered)</p>
+        <p class="text-3xl font-bold text-red-700">K{{ total_out|floatformat:2|intcomma }}</p>
+        <p class="text-red-400 text-xs mt-2">Disbursements + returns</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="From">
+        <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="To">
+        <select name="type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Types</option>
+          {% for val, label in tx_types %}
+            <option value="{{ val }}" {% if filters.type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="direction" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">In & Out</option>
+          <option value="in" {% if filters.direction == 'in' %}selected{% endif %}>Inflows only</option>
+          <option value="out" {% if filters.direction == 'out' %}selected{% endif %}>Outflows only</option>
+        </select>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Filter</button>
+          <a href="{% url 'dashboard:vault' %}" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+        </div>
+      </div>
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mb-4">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-800 text-white">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold">Date</th>
+              <th class="px-4 py-3 text-left font-semibold">Type</th>
+              <th class="px-4 py-3 text-left font-semibold">Direction</th>
+              <th class="px-4 py-3 text-left font-semibold">Amount</th>
+              <th class="px-4 py-3 text-left font-semibold">Balance After</th>
+              <th class="px-4 py-3 text-left font-semibold">Loan</th>
+              <th class="px-4 py-3 text-left font-semibold">Client</th>
+              <th class="px-4 py-3 text-left font-semibold">Approved By</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for tx in page_obj %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 text-slate-600">{{ tx.created_at|date:"d M Y" }}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                  {% if tx.transaction_type == 'security_deposit' %}bg-blue-100 text-blue-700
+                  {% elif tx.transaction_type == 'loan_disbursement' %}bg-orange-100 text-orange-700
+                  {% else %}bg-purple-100 text-purple-700{% endif %}">
+                  {{ tx.get_transaction_type_display }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold
+                  {% if tx.direction == 'in' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                  {% if tx.direction == 'in' %}▲ IN{% else %}▼ OUT{% endif %}
+                </span>
+              </td>
+              <td class="px-4 py-3 font-bold {% if tx.direction == 'in' %}text-green-700{% else %}text-red-700{% endif %}">
+                {% if tx.direction == 'in' %}+{% else %}-{% endif %}K{{ tx.amount|floatformat:2|intcomma }}
+              </td>
+              <td class="px-4 py-3 font-semibold text-slate-700">K{{ tx.balance_after|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-3 font-mono text-slate-600">
+                {% if tx.loan %}<a href="{% url 'loans:detail' tx.loan.pk %}" class="text-blue-600 hover:underline">{{ tx.loan.application_number }}</a>{% else %}—{% endif %}
+              </td>
+              <td class="px-4 py-3 text-slate-700">{% if tx.loan %}{{ tx.loan.borrower.get_full_name }}{% else %}—{% endif %}</td>
+              <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-slate-50 border-t-2 border-slate-300">
+            <tr>
+              <td colspan="3" class="px-4 py-3 font-bold text-slate-700">Totals</td>
+              <td class="px-4 py-3">
+                <span class="text-green-700 font-bold">+K{{ total_in|floatformat:2|intcomma }}</span>
+                <span class="text-slate-400 mx-1">/</span>
+                <span class="text-red-700 font-bold">-K{{ total_out|floatformat:2|intcomma }}</span>
+              </td>
+              <td colspan="4"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Export + Pagination -->
+    <div class="flex items-center justify-between">
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
+        <i class="fas fa-download mr-2"></i>Export CSV
+      </a>
+      {% if page_obj.has_other_pages %}
+      <div class="flex gap-1">
+        {% if page_obj.has_previous %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">«</a>{% endif %}
+        <span class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">»</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

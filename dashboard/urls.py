@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import reports_views
+from . import vault_views
 from loans.views import VerifySecurityDepositView
 
 app_name = 'dashboard'
@@ -90,4 +91,7 @@ urlpatterns = [
     path('reports/security-transactions/', reports_views.security_transactions_report, name='report_security_transactions'),
     path('reports/disbursements/', reports_views.disbursement_report, name='report_disbursements'),
     path('reports/client-balances/', reports_views.client_balances_report, name='report_client_balances'),
+
+    # Vault
+    path('vault/', vault_views.vault_dashboard, name='vault'),
 ]

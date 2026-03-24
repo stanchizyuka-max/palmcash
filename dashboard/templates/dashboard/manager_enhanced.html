@@ -88,6 +88,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Vault Balance -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Vault Balance</p>
+                        <p class="text-3xl font-bold text-emerald-600">K{{ vault_balance|default:"0"|floatformat:0|intcomma }}</p>
+                    </div>
+                    <a href="{% url 'dashboard:vault' %}" class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200">
+                        <i class="fas fa-vault text-emerald-600 text-xl"></i>
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- Today's Collections -->
@@ -322,6 +335,10 @@
                 <a href="{% url 'dashboard:report_security_transactions' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg border-2 border-teal-200 hover:border-teal-400 transition hover:shadow-lg">
                     <i class="fas fa-chart-bar text-teal-600 text-3xl mb-3"></i>
                     <span class="font-semibold text-teal-900 text-center text-sm">Reports</span>
+                </a>
+                <a href="{% url 'dashboard:vault' %}" class="flex flex-col items-center p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 transition hover:shadow-lg">
+                    <i class="fas fa-vault text-emerald-600 text-3xl mb-3"></i>
+                    <span class="font-semibold text-emerald-900 text-center text-sm">Branch Vault</span>
                 </a>
             </div>
         </div>

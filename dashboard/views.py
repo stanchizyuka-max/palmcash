@@ -13,6 +13,14 @@ from loans.views import VerifySecurityDepositView
 from accounts.models import User
 
 
+def _get_vault_balance(branch):
+    try:
+        from loans.models import BranchVault
+        return BranchVault.objects.get(branch=branch).balance
+    except Exception:
+        return 0
+
+
 @login_required
 def dashboard(request):
     """Route to appropriate dashboard based on user role"""
@@ -586,6 +594,7 @@ def manager_dashboard(request):
         'branch_loans_completed': loans.filter(status='completed').count(),
         'branch_loans_pending': loans.filter(status='approved').count(),
         'branch_loans_total': loans.count(),
+        'vault_balance': _get_vault_balance(branch),
     }
     
     return render(request, 'dashboard/manager_enhanced.html', context)
