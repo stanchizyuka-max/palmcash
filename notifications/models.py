@@ -78,7 +78,9 @@ class Notification(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.template.name} to {self.recipient.username}"
+        template_name = self.template.name if self.template else 'No Template'
+        recipient = self.recipient.username if self.recipient else 'Unknown'
+        return f"{template_name} to {recipient}"
     
     def mark_as_read(self):
         if not self.read_at:
