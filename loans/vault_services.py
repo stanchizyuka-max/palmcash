@@ -10,13 +10,20 @@ def _get_or_create_vault(branch):
     return vault
 
 
-def _get_branch_for_loan(loan):
+def _get_branch_for_loan(loan, fallback_user=None):
     try:
         from clients.models import Branch
         branch_name = loan.loan_officer.officer_assignment.branch
-        return Branch.objects.get(name=branch_name)
+        if branch_name:
+            branch = Branch.objects.filter(name__iexact=branch_name).first()
+            if branch:
+                return branch
     except Exception:
-        return None
+        pass
+    # Fallback: use the verifying manager's branch
+    if fallback_user and hasattr(fallback_user, 'managed_branch') and fallback_user.managed_branch:
+        return fallback_user.managed_branch
+    return None
 
 
 def _ref():
@@ -24,7 +31,7 @@ def _ref():
 
 
 def record_security_deposit(loan, amount, initiated_by):
-    branch = _get_branch_for_loan(loan)
+    branch = _get_branch_for_loan(loan, fallback_user=initiated_by)
     if not branch:
         return None
     with db_transaction.atomic():
@@ -47,7 +54,7 @@ def record_security_deposit(loan, amount, initiated_by):
 
 
 def record_loan_disbursement(loan, approved_by):
-    branch = _get_branch_for_loan(loan)
+    branch = _get_branch_for_loan(loan, fallback_user=approved_by)
     if not branch:
         return None
     with db_transaction.atomic():
@@ -71,7 +78,7 @@ def record_loan_disbursement(loan, approved_by):
 
 
 def record_security_return(loan, amount, approved_by):
-    branch = _get_branch_for_loan(loan)
+    branch = _get_branch_for_loan(loan, fallback_user=approved_by)
     if not branch:
         return None
     with db_transaction.atomic():

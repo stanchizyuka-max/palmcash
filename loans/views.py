@@ -1483,8 +1483,8 @@ class VerifySecurityDepositView(LoginRequiredMixin, View):
             try:
                 from .vault_services import record_security_deposit
                 record_security_deposit(loan, deposit.paid_amount, request.user)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Vault record error: {e}")
             
             # Also update loan record for backward compatibility
             loan.upfront_payment_verified = True
