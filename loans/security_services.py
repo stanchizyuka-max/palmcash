@@ -40,9 +40,14 @@ def initiate_security_adjustment(loan, amount, notes, initiated_by):
 def initiate_security_return(loan, amount, notes, initiated_by):
     """
     Officer initiates: refund unused security to borrower.
+    Only allowed when loan is fully completed.
     Returns (SecurityTransaction, error_message)
     """
     from .models import SecurityTransaction
+
+    if loan.status not in ('completed',):
+        return None, 'Security can only be returned after the loan is fully completed.'
+
     try:
         deposit = loan.security_deposit
     except Exception:
@@ -59,6 +64,41 @@ def initiate_security_return(loan, amount, notes, initiated_by):
         transaction_type='return',
         amount=amount,
         notes=notes,
+        initiated_by=initiated_by,
+        status='pending',
+    )
+    return txn, None
+
+
+def initiate_security_withdrawal(loan, new_loan_amount, notes, initiated_by):
+    """
+    Officer initiates: partially reduce security to match 10% of a smaller new loan.
+    The withdrawal amount = current_security - (10% of new_loan_amount).
+    Returns (SecurityTransaction, error_message)
+    """
+    from .models import SecurityTransaction
+    try:
+        deposit = loan.security_deposit
+    except Exception:
+        return None, 'No security deposit found for this loan.'
+
+    new_loan_amount = Decimal(str(new_loan_amount))
+    if new_loan_amount <= 0:
+        return None, 'New loan amount must be greater than zero.'
+
+    required_security = new_loan_amount * Decimal('0.10')
+    available = deposit.available_security
+
+    if available <= required_security:
+        return None, f'Available security (K{available}) is already at or below 10% of the new loan amount (K{required_security}).'
+
+    withdrawal_amount = available - required_security
+
+    txn = SecurityTransaction.objects.create(
+        loan=loan,
+        transaction_type='withdrawal',
+        amount=withdrawal_amount,
+        notes=notes or f'Withdrawal to match 10% of new loan amount K{new_loan_amount}',
         initiated_by=initiated_by,
         status='pending',
     )
@@ -89,6 +129,17 @@ def approve_security_transaction(txn, approved_by):
             loan.save(update_fields=['balance_remaining', 'amount_paid', 'updated_at'])
 
         elif txn.transaction_type == 'return':
+            if txn.amount > deposit.available_security:
+                return False, 'Available security has changed — amount no longer valid.'
+            deposit.security_returned += txn.amount
+            deposit.save(update_fields=['security_returned', 'updated_at'])
+            try:
+                from .vault_services import record_security_return
+                record_security_return(txn.loan, txn.amount, approved_by)
+            except Exception:
+                pass
+
+        elif txn.transaction_type == 'withdrawal':
             if txn.amount > deposit.available_security:
                 return False, 'Available security has changed — amount no longer valid.'
             deposit.security_returned += txn.amount

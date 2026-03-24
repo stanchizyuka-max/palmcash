@@ -561,6 +561,7 @@ class SecurityTransaction(models.Model):
         ('adjustment', 'Balance Adjustment'),
         ('return', 'Security Return'),
         ('carry_forward', 'Carry Forward to Top-Up'),
+        ('withdrawal', 'Security Withdrawal'),
     ]
 
     STATUS_CHOICES = [

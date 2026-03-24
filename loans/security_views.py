@@ -5,6 +5,7 @@ from .models import Loan, SecurityTransaction
 from .security_services import (
     initiate_security_adjustment,
     initiate_security_return,
+    initiate_security_withdrawal,
     approve_security_transaction,
     reject_security_transaction,
 )
@@ -27,6 +28,9 @@ def security_action(request, loan_id, action):
                 txn, err = initiate_security_adjustment(loan, amount, notes, request.user)
             elif action == 'return':
                 txn, err = initiate_security_return(loan, amount, notes, request.user)
+            elif action == 'withdrawal':
+                new_loan_amount = request.POST.get('new_loan_amount', '0')
+                txn, err = initiate_security_withdrawal(loan, new_loan_amount, notes, request.user)
             else:
                 err = 'Invalid action.'
                 txn = None
@@ -34,7 +38,7 @@ def security_action(request, loan_id, action):
             if err:
                 messages.error(request, err)
             else:
-                messages.success(request, f'Security {action} of K{txn.amount} submitted — awaiting manager approval.')
+                messages.success(request, f'Security {action} submitted — awaiting manager approval.')
                 return redirect('loans:detail', pk=loan_id)
         except Exception as e:
             messages.error(request, f'Error: {e}')
@@ -48,7 +52,11 @@ def security_action(request, loan_id, action):
         'loan': loan,
         'deposit': deposit,
         'action': action,
-        'action_label': 'Balance Adjustment' if action == 'adjustment' else 'Security Return',
+        'action_label': {
+            'adjustment': 'Balance Adjustment',
+            'return': 'Security Return',
+            'withdrawal': 'Security Withdrawal',
+        }.get(action, action.title()),
     })
 
 
