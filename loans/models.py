@@ -494,6 +494,16 @@ class SecurityDeposit(models.Model):
         blank=True,
         help_text='Receipt or transaction reference number'
     )
+
+    # Usage tracking
+    security_used = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text='Amount used to adjust loan balance'
+    )
+    security_returned = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text='Amount refunded to borrower'
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -532,15 +542,55 @@ class SecurityDeposit(models.Model):
     
     def can_be_approved(self):
         """Check if deposit can be approved"""
-        # Deposit must be pending (not yet verified)
         if self.is_verified:
             return False, 'Deposit has already been verified.'
-        
-        # Deposit must have been paid
         if self.paid_amount <= 0:
             return False, 'No payment has been recorded for this deposit.'
-        
         return True, 'Deposit can be approved.'
+
+    @property
+    def available_security(self):
+        """Security available for use or return"""
+        return max(Decimal('0'), self.paid_amount - self.security_used - self.security_returned)
+
+
+class SecurityTransaction(models.Model):
+    """Log every security deposit action: adjustment, return, carry-forward"""
+
+    TRANSACTION_TYPES = [
+        ('adjustment', 'Balance Adjustment'),
+        ('return', 'Security Return'),
+        ('carry_forward', 'Carry Forward to Top-Up'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='security_transactions')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(blank=True)
+
+    initiated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        related_name='initiated_security_transactions'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_security_transactions'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} — {self.loan.application_number} K{self.amount}"
 
 
 

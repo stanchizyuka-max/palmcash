@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_application
+from . import security_views
 
 app_name = 'loans'
 
@@ -18,7 +19,12 @@ urlpatterns = [
     path('<int:pk>/disburse/', views.DisburseLoanView.as_view(), name='disburse'),
     path('<int:pk>/upfront-payment/', views.UpfrontPaymentView.as_view(), name='upfront_payment'),
     path('<int:pk>/verify-upfront/', views.VerifyUpfrontPaymentView.as_view(), name='verify_upfront'),
-    
+
+    # Security deposit actions
+    path('<int:loan_id>/security/<str:action>/', security_views.security_action, name='security_action'),
+    path('security/transaction/<int:txn_id>/review/', security_views.security_transaction_approve, name='security_transaction_review'),
+    path('<int:loan_id>/security/transactions/', security_views.security_transactions_list, name='security_transactions'),
+
     path('documents/review-dashboard/', views.DocumentReviewDashboardView.as_view(), name='document_review_dashboard'),
     path('<int:loan_id>/documents/', views.LoanDocumentListView.as_view(), name='document_list'),
     path('<int:loan_id>/documents/upload/', views.LoanDocumentUploadView.as_view(), name='upload_document'),
@@ -26,10 +32,10 @@ urlpatterns = [
     path('documents/<int:pk>/download/', views.DocumentDownloadView.as_view(), name='download_document'),
     path('documents/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='delete_document'),
     path('documents/<int:pk>/admin-delete/', views.AdminDeleteLoanDocumentView.as_view(), name='admin_delete_document'),
-    
+
     path('manage/loan-types/', views.LoanTypesManageView.as_view(), name='manage_loan_types'),
     path('manage/loan-documents/', views.LoanDocumentsManageView.as_view(), name='manage_loan_documents'),
-    
+
     path('applications/submit/', views_application.SelectBorrowerView.as_view(), name='submit_application'),
     path('applications/submit/<int:pk>/', views_application.BorrowerDetailForApplicationView.as_view(), name='borrower_detail_for_application'),
     path('applications/submit/form/', views_application.SubmitLoanApplicationView.as_view(), name='submit_application_form'),
