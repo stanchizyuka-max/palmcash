@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Disbursement Report{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Loan Disbursements</h4>
+    <div>
+      <a href="{% url 'dashboard:report_security_transactions' %}" class="btn btn-outline-secondary btn-sm me-1">Security Transactions</a>
+      <a href="{% url 'dashboard:report_client_balances' %}" class="btn btn-outline-secondary btn-sm">Client Balances</a>
+    </div>
+  </div>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-2">
+      <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}" placeholder="From">
+    </div>
+    <div class="col-md-2">
+      <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}" placeholder="To">
+    </div>
+    {% if branches %}
+    <div class="col-md-2">
+      <select name="branch" class="form-select form-select-sm">
+        <option value="">All Branches</option>
+        {% for b in branches %}
+          <option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="col-md-2 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-success btn-sm">CSV</a>
+      <a href="{% url 'dashboard:report_disbursements' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Loan ID</th>
+          <th>Client</th>
+          <th>Amount</th>
+          <th>Disbursement Date</th>
+          <th>Branch</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in page_obj %}
+        <tr>
+          <td>{{ loan.application_number }}</td>
+          <td>{{ loan.borrower.get_full_name }}</td>
+          <td>K{{ loan.principal_amount }}</td>
+          <td>{{ loan.disbursement_date|date:"d M Y" }}</td>
+          <td>
+            {% with loan.loan_officer.officer_assignment as oa %}
+              {% if oa %}{{ oa.branch }}{% else %}—{% endif %}
+            {% endwith %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-3">No disbursements found.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-secondary fw-bold">
+        <tr>
+          <td>Total</td>
+          <td></td>
+          <td>K{{ total }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <nav>
+    <ul class="pagination pagination-sm">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">«</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Client Balances Report{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Client Balances</h4>
+    <div>
+      <a href="{% url 'dashboard:report_security_transactions' %}" class="btn btn-outline-secondary btn-sm me-1">Security Transactions</a>
+      <a href="{% url 'dashboard:report_disbursements' %}" class="btn btn-outline-secondary btn-sm">Disbursements</a>
+    </div>
+  </div>
+
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-2">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+        <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+    {% if branches %}
+    <div class="col-md-2">
+      <select name="branch" class="form-select form-select-sm">
+        <option value="">All Branches</option>
+        {% for b in branches %}
+          <option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% if groups %}
+    <div class="col-md-2">
+      <select name="group" class="form-select form-select-sm">
+        <option value="">All Groups</option>
+        {% for g in groups %}
+          <option value="{{ g.id }}" {% if filters.group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="col-md-2 d-flex gap-1">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="?{{ request.GET.urlencode }}&export=csv" class="btn btn-success btn-sm">CSV</a>
+      <a href="{% url 'dashboard:report_client_balances' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Client</th>
+          <th>Active Loans</th>
+          <th>Outstanding Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page_obj %}
+        <tr>
+          <td>{{ row.client.get_full_name }}</td>
+          <td>{{ row.active_loans }}</td>
+          <td>K{{ row.outstanding }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-center text-muted py-3">No clients found.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-secondary fw-bold">
+        <tr>
+          <td>Total Outstanding</td>
+          <td></td>
+          <td>K{{ total_outstanding }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <nav>
+    <ul class="pagination pagination-sm">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">«</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">»</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

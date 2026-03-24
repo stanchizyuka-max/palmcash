@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import reports_views
 from loans.views import VerifySecurityDepositView
 
 app_name = 'dashboard'
@@ -84,4 +85,9 @@ urlpatterns = [
     path('groups-permissions/', views.groups_permissions, name='groups_permissions'),
     path('system-reports/', views.system_reports, name='system_reports'),
     path('analytics/', views.analytics, name='analytics'),
+
+    # Reports
+    path('reports/security-transactions/', reports_views.security_transactions_report, name='report_security_transactions'),
+    path('reports/disbursements/', reports_views.disbursement_report, name='report_disbursements'),
+    path('reports/client-balances/', reports_views.client_balances_report, name='report_client_balances'),
 ]
