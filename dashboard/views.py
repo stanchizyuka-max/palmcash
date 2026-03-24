@@ -108,8 +108,16 @@ def loan_officer_dashboard(request):
         security_deposit__is_verified=True
     ).distinct().count()
     
-    # Outstanding balance
-    outstanding_balance = active_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
+    # Outstanding balance — use balance_remaining if set, else fall back to total_amount - amount_paid
+    from django.db.models import F, ExpressionWrapper, DecimalField as DField
+    outstanding_balance = active_loans.aggregate(
+        total=Sum(
+            ExpressionWrapper(
+                F('total_amount') - F('amount_paid'),
+                output_field=DField(max_digits=14, decimal_places=2)
+            )
+        )
+    )['total'] or 0
     
     # Workload percentage (assuming max capacity is 100 groups/clients)
     total_workload = groups.count() + clients.count()
@@ -850,8 +858,14 @@ def borrower_dashboard(request):
     }
     
     # Get total outstanding balance
+    from django.db.models import F, ExpressionWrapper, DecimalField as DField
     outstanding_balance = loans.filter(status='active').aggregate(
-        total=Sum('principal_amount')
+        total=Sum(
+            ExpressionWrapper(
+                F('total_amount') - F('amount_paid'),
+                output_field=DField(max_digits=14, decimal_places=2)
+            )
+        )
     )['total'] or 0
     
     # Get recent loan activity (actual loans, not approval requests)
