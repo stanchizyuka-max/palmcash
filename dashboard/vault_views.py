@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.db.models import Sum, Q
 from django.core.paginator import Paginator
-from loans.models import BranchVault, VaultTransaction
+from loans.models import BranchVault
+from expenses.models import VaultTransaction
 
 
 def _get_manager_branch(user):
@@ -24,10 +25,10 @@ def vault_dashboard(request):
         if not branch:
             return render(request, 'dashboard/vault.html', {'no_branch': True})
         vault, _ = BranchVault.objects.get_or_create(branch=branch)
-        qs = VaultTransaction.objects.filter(vault=vault).select_related('loan__borrower', 'initiated_by', 'approved_by')
+        qs = VaultTransaction.objects.filter(branch=branch.name).select_related('loan__borrower', 'recorded_by', 'approved_by')
     else:
         vault = None
-        qs = VaultTransaction.objects.select_related('vault__branch', 'loan__borrower', 'initiated_by', 'approved_by')
+        qs = VaultTransaction.objects.select_related('loan__borrower', 'recorded_by', 'approved_by')
 
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
@@ -35,9 +36,9 @@ def vault_dashboard(request):
     direction = request.GET.get('direction')
 
     if date_from:
-        qs = qs.filter(created_at__date__gte=date_from)
+        qs = qs.filter(transaction_date__date__gte=date_from)
     if date_to:
-        qs = qs.filter(created_at__date__lte=date_to)
+        qs = qs.filter(transaction_date__date__lte=date_to)
     if tx_type:
         qs = qs.filter(transaction_type=tx_type)
     if direction:
@@ -54,16 +55,16 @@ def vault_dashboard(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="vault_transactions.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Date', 'Type', 'Direction', 'Amount', 'Balance After', 'Loan', 'Initiated By', 'Approved By'])
+        writer.writerow(['Date', 'Type', 'Direction', 'Amount', 'Balance After', 'Loan', 'Recorded By', 'Approved By'])
         for tx in qs:
             writer.writerow([
-                tx.created_at.date(),
+                tx.transaction_date.date(),
                 tx.get_transaction_type_display(),
                 tx.get_direction_display(),
                 tx.amount,
                 tx.balance_after,
                 tx.loan.application_number if tx.loan else '',
-                tx.initiated_by.get_full_name() if tx.initiated_by else '',
+                tx.recorded_by.get_full_name() if tx.recorded_by else '',
                 tx.approved_by.get_full_name() if tx.approved_by else '',
             ])
         writer.writerow(['', '', 'Total IN', total_in, '', '', '', ''])
@@ -73,11 +74,19 @@ def vault_dashboard(request):
     paginator = Paginator(qs, 25)
     page = paginator.get_page(request.GET.get('page'))
 
+    tx_types = [
+        ('security_deposit', 'Security Deposit'),
+        ('loan_disbursement', 'Loan Disbursement'),
+        ('security_return', 'Security Return'),
+        ('deposit', 'Cash Deposit'),
+        ('withdrawal', 'Cash Withdrawal'),
+    ]
+
     return render(request, 'dashboard/vault.html', {
         'vault': vault,
         'page_obj': page,
         'total_in': total_in,
         'total_out': total_out,
-        'tx_types': VaultTransaction.TYPE_CHOICES,
+        'tx_types': tx_types,
         'filters': request.GET,
     })

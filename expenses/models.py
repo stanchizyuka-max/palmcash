@@ -175,15 +175,24 @@ class VaultTransaction(models.Model):
         ('transfer', 'Branch Transfer'),
         ('loan_disbursement', 'Loan Disbursement'),
         ('payment_collection', 'Payment Collection'),
+        ('security_deposit', 'Security Deposit'),
+        ('security_return', 'Security Return'),
+    ]
+
+    DIRECTION_CHOICES = [
+        ('in', 'Inflow'),
+        ('out', 'Outflow'),
     ]
     
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES, default='in')
     branch = models.CharField(max_length=100)
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))]
     )
+    balance_after = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     
     # Details
     description = models.TextField()
@@ -212,6 +221,13 @@ class VaultTransaction(models.Model):
         null=True,
         related_name='vault_transactions'
     )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_vault_tx'
+    )
     
     transaction_date = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -221,6 +237,17 @@ class VaultTransaction(models.Model):
     
     def __str__(self):
         return f"{self.get_transaction_type_display()} - K{self.amount} ({self.branch})"
+
+
+class BranchVault(models.Model):
+    branch = models.OneToOneField(
+        'clients.Branch', on_delete=models.CASCADE, related_name='vault'
+    )
+    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Vault — {self.branch.name} (K{self.balance})"
 
 
 class ExpenseApprovalLog(models.Model):

@@ -1,5 +1,7 @@
 from decimal import Decimal
 from django.db import transaction as db_transaction
+from django.utils import timezone
+import uuid
 
 
 def _get_or_create_vault(branch):
@@ -10,14 +12,15 @@ def _get_or_create_vault(branch):
 
 def _get_branch_for_loan(loan):
     try:
-        return loan.loan_officer.officer_assignment.branch_obj()
-    except Exception:
-        pass
-    try:
         from clients.models import Branch
-        return Branch.objects.get(name=loan.loan_officer.officer_assignment.branch)
+        branch_name = loan.loan_officer.officer_assignment.branch
+        return Branch.objects.get(name=branch_name)
     except Exception:
         return None
+
+
+def _ref():
+    return uuid.uuid4().hex[:12].upper()
 
 
 def record_security_deposit(loan, amount, initiated_by):
@@ -28,13 +31,18 @@ def record_security_deposit(loan, amount, initiated_by):
         vault = _get_or_create_vault(branch)
         vault.balance += Decimal(str(amount))
         vault.save(update_fields=['balance', 'updated_at'])
-        from .models import VaultTransaction
+        from expenses.models import VaultTransaction
         return VaultTransaction.objects.create(
-            vault=vault, loan=loan,
-            direction='in', transaction_type='security_deposit',
-            amount=amount, balance_after=vault.balance,
-            initiated_by=initiated_by,
-            notes=f'Security deposit for {loan.application_number}',
+            transaction_type='security_deposit',
+            direction='in',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=f'Security deposit for {loan.application_number}',
+            reference_number=_ref(),
+            loan=loan,
+            recorded_by=initiated_by,
+            transaction_date=timezone.now(),
         )
 
 
@@ -46,13 +54,19 @@ def record_loan_disbursement(loan, approved_by):
         vault = _get_or_create_vault(branch)
         vault.balance -= Decimal(str(loan.principal_amount))
         vault.save(update_fields=['balance', 'updated_at'])
-        from .models import VaultTransaction
+        from expenses.models import VaultTransaction
         return VaultTransaction.objects.create(
-            vault=vault, loan=loan,
-            direction='out', transaction_type='loan_disbursement',
-            amount=loan.principal_amount, balance_after=vault.balance,
-            initiated_by=loan.loan_officer, approved_by=approved_by,
-            notes=f'Disbursement for {loan.application_number}',
+            transaction_type='loan_disbursement',
+            direction='out',
+            branch=branch.name,
+            amount=loan.principal_amount,
+            balance_after=vault.balance,
+            description=f'Disbursement for {loan.application_number}',
+            reference_number=_ref(),
+            loan=loan,
+            recorded_by=loan.loan_officer,
+            approved_by=approved_by,
+            transaction_date=timezone.now(),
         )
 
 
@@ -64,11 +78,17 @@ def record_security_return(loan, amount, approved_by):
         vault = _get_or_create_vault(branch)
         vault.balance -= Decimal(str(amount))
         vault.save(update_fields=['balance', 'updated_at'])
-        from .models import VaultTransaction
+        from expenses.models import VaultTransaction
         return VaultTransaction.objects.create(
-            vault=vault, loan=loan,
-            direction='out', transaction_type='security_return',
-            amount=amount, balance_after=vault.balance,
-            initiated_by=loan.loan_officer, approved_by=approved_by,
-            notes=f'Security return for {loan.application_number}',
+            transaction_type='security_return',
+            direction='out',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=f'Security return for {loan.application_number}',
+            reference_number=_ref(),
+            loan=loan,
+            recorded_by=loan.loan_officer,
+            approved_by=approved_by,
+            transaction_date=timezone.now(),
         )
