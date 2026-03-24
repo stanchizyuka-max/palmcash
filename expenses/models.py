@@ -239,15 +239,6 @@ class VaultTransaction(models.Model):
         return f"{self.get_transaction_type_display()} - K{self.amount} ({self.branch})"
 
 
-class BranchVault(models.Model):
-    branch = models.OneToOneField(
-        'clients.Branch', on_delete=models.CASCADE, related_name='vault'
-    )
-    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Vault — {self.branch.name} (K{self.balance})"
 
 
 class ExpenseApprovalLog(models.Model):
