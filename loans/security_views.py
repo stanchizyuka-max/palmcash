@@ -107,3 +107,85 @@ def security_transactions_list(request, loan_id):
         'deposit': deposit,
         'transactions': transactions,
     })
+
+
+@login_required
+def security_topup(request, loan_id=None):
+    """Officer initiates a security top-up on an existing loan."""
+    if request.user.role not in ['loan_officer', 'admin']:
+        messages.error(request, 'Only loan officers can submit top-up requests.')
+        return redirect('dashboard:dashboard')
+
+    from accounts.models import User
+    from django.db.models import Q
+
+    # Build borrower list scoped to this officer
+    borrowers = User.objects.filter(
+        Q(assigned_officer=request.user) |
+        Q(group_memberships__group__assigned_officer=request.user),
+        role='borrower',
+        is_active=True,
+    ).distinct().order_by('last_name', 'first_name')
+
+    selected_borrower_id = request.GET.get('borrower_id') or request.POST.get('borrower_id')
+    selected_loan_id = request.GET.get('loan_id') or request.POST.get('loan_id')
+
+    loans_for_borrower = []
+    if selected_borrower_id:
+        loans_for_borrower = Loan.objects.filter(
+            borrower_id=selected_borrower_id,
+            security_deposit__is_verified=True,
+        ).select_related('borrower', 'security_deposit').order_by('-created_at')
+
+    loan = None
+    deposit = None
+    if selected_loan_id:
+        try:
+            loan = Loan.objects.select_related('borrower', 'security_deposit').get(
+                pk=selected_loan_id,
+                security_deposit__is_verified=True,
+            )
+            deposit = loan.security_deposit
+        except Loan.DoesNotExist:
+            messages.error(request, 'Loan not found or has no verified security deposit.')
+
+    if request.method == 'POST' and loan:
+        new_loan_amount = request.POST.get('new_loan_amount', '0')
+        notes = request.POST.get('notes', '')
+        from .security_services import calculate_topup_security
+        from decimal import Decimal
+        from .models import SecurityTopUpRequest
+
+        try:
+            new_amount = Decimal(str(new_loan_amount))
+            if new_amount <= 0:
+                raise ValueError('New loan amount must be greater than zero.')
+
+            info = calculate_topup_security(loan, new_amount)
+            shortfall = info['shortfall']
+
+            if shortfall <= 0:
+                messages.info(request, f'No top-up needed — existing security (K{deposit.available_security}) already covers 10% of K{new_amount}.')
+                return redirect('loans:detail', pk=loan.pk)
+
+            SecurityTopUpRequest.objects.create(
+                loan=loan,
+                requested_amount=shortfall,
+                reason=notes or f'Top-up for new loan amount K{new_amount}. Required: K{info["required"]}, Available: K{info["available_from_previous"]}, Shortfall: K{shortfall}',
+                requested_by=request.user,
+                status='pending',
+            )
+            messages.success(request, f'Top-up request of K{shortfall:.2f} submitted — awaiting manager approval.')
+            return redirect('loans:detail', pk=loan.pk)
+
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    return render(request, 'loans/security_topup.html', {
+        'borrowers': borrowers,
+        'selected_borrower_id': selected_borrower_id,
+        'selected_loan_id': selected_loan_id,
+        'loans_for_borrower': loans_for_borrower,
+        'loan': loan,
+        'deposit': deposit,
+    })

@@ -23,6 +23,7 @@ urlpatterns = [
     # Security deposit actions
     path('<int:loan_id>/security/<str:action>/', security_views.security_action, name='security_action'),    path('security/transaction/<int:txn_id>/review/', security_views.security_transaction_approve, name='security_transaction_review'),
     path('<int:loan_id>/security/transactions/', security_views.security_transactions_list, name='security_transactions'),
+    path('security/topup/', security_views.security_topup, name='security_topup'),
 
     path('documents/review-dashboard/', views.DocumentReviewDashboardView.as_view(), name='document_review_dashboard'),
     path('<int:loan_id>/documents/', views.LoanDocumentListView.as_view(), name='document_list'),
