@@ -13,61 +13,56 @@
                 {% csrf_token %}
                 
                 {% if form.non_field_errors %}
-                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                        {% for error in form.non_field_errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
                 {% endif %}
                 
+                <!-- Borrower -->
                 <div>
-                    <label for="{{ form.borrower.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Borrower *
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Borrower *</label>
                     {{ form.borrower }}
-                    {% if form.borrower.errors %}
-                        <p class="text-red-600 text-sm mt-1">{{ form.borrower.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.borrower.errors %}<p class="text-red-600 text-sm mt-1">{{ form.borrower.errors.0 }}</p>{% endif %}
                 </div>
                 
+                <!-- Loan Amount -->
                 <div>
-                    <label for="{{ form.loan_amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Loan Amount (K) *
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Loan Amount (K) *</label>
                     {{ form.loan_amount }}
-                    {% if form.loan_amount.errors %}
-                        <p class="text-red-600 text-sm mt-1">{{ form.loan_amount.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.loan_amount.errors %}<p class="text-red-600 text-sm mt-1">{{ form.loan_amount.errors.0 }}</p>{% endif %}
                 </div>
-                
+
+                <!-- Repayment Frequency -->
                 <div>
-                    <label for="{{ form.duration_days.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Duration (Days) *
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Repayment Type *</label>
+                    {{ form.repayment_frequency }}
+                    {% if form.repayment_frequency.errors %}<p class="text-red-600 text-sm mt-1">{{ form.repayment_frequency.errors.0 }}</p>{% endif %}
+                    <div id="rate-info" class="mt-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                        Interest rate: <span id="rate-display">40%</span>
+                    </div>
+                </div>
+
+                <!-- Duration -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Duration (Days) * <span class="text-gray-400 font-normal text-xs" id="duration-hint">e.g. 30 days for daily</span>
                     </label>
                     {{ form.duration_days }}
-                    {% if form.duration_days.errors %}
-                        <p class="text-red-600 text-sm mt-1">{{ form.duration_days.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.duration_days.errors %}<p class="text-red-600 text-sm mt-1">{{ form.duration_days.errors.0 }}</p>{% endif %}
                 </div>
                 
+                <!-- Purpose -->
                 <div>
-                    <label for="{{ form.purpose.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Loan Purpose *
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Loan Purpose *</label>
                     {{ form.purpose }}
-                    {% if form.purpose.errors %}
-                        <p class="text-red-600 text-sm mt-1">{{ form.purpose.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.purpose.errors %}<p class="text-red-600 text-sm mt-1">{{ form.purpose.errors.0 }}</p>{% endif %}
                 </div>
                 
+                <!-- Group -->
                 <div>
-                    <label for="{{ form.group.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Group (Optional)
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Group (Optional)</label>
                     {{ form.group }}
-                    {% if form.group.errors %}
-                        <p class="text-red-600 text-sm mt-1">{{ form.group.errors.0 }}</p>
-                    {% endif %}
+                    {% if form.group.errors %}<p class="text-red-600 text-sm mt-1">{{ form.group.errors.0 }}</p>{% endif %}
                 </div>
                 
                 <div class="flex gap-4 pt-4">
@@ -82,4 +77,20 @@
         </div>
     </div>
 </div>
+
+<script>
+function updateInterestRate(val) {
+    const display = document.getElementById('rate-display');
+    const hint = document.getElementById('duration-hint');
+    if (val === 'weekly') {
+        display.textContent = '45%';
+        hint.textContent = 'e.g. 4 weeks = 28 days for weekly';
+    } else {
+        display.textContent = '40%';
+        hint.textContent = 'e.g. 30 days for daily';
+    }
+}
+// Set on load
+updateInterestRate(document.querySelector('[name="repayment_frequency"]').value);
+</script>
 {% endblock %}

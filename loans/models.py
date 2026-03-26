@@ -913,6 +913,11 @@ class LoanApplication(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
+
+    FREQUENCY_CHOICES = [
+        ('daily', 'Daily (40% interest)'),
+        ('weekly', 'Weekly (45% interest)'),
+    ]
     
     borrower = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='loan_applications')
     loan_officer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='submitted_loan_applications')
@@ -920,6 +925,7 @@ class LoanApplication(models.Model):
     application_number = models.CharField(max_length=50, unique=True)
     loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
     duration_days = models.IntegerField()
+    repayment_frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='daily')
     purpose = models.CharField(max_length=255)
     group = models.ForeignKey('clients.BorrowerGroup', on_delete=models.SET_NULL, null=True, blank=True)
     
