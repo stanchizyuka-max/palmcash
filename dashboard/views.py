@@ -91,7 +91,15 @@ def loan_officer_dashboard(request):
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
     today_collected = sum(c.collected_amount for c in today_collections) or 0
-    today_defaults = today_collections.filter(is_default=True).count()
+
+    # Overdue: unpaid installments past their due date
+    from payments.models import PaymentSchedule as PS
+    today_defaults = PS.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        loan__status='active',
+        is_paid=False,
+        due_date__lt=today,
+    ).values('loan').distinct().count()  # count distinct loans with overdue installments
     
     # Pending actions
     # Security deposits awaiting verification - loans with paid deposits but not verified
