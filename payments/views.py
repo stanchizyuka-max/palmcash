@@ -169,24 +169,28 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         except Exception as e:
             print(f"Vault record error: {e}")
 
-        # Update PaymentCollection so dashboard stats reflect confirmed payment
-        payment_day = payment.payment_date.date()
-        oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
-        collection, _ = PaymentCollection.objects.get_or_create(
+        # Update PaymentCollection — one entry per installment paid (handles overdue + overpayment)
+        paid_schedules = PaymentSchedule.objects.filter(
             loan=loan,
-            collection_date=payment_day,
-            defaults={
-                'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else loan.payment_amount,
-                'collected_amount': 0,
-                'status': 'scheduled',
-            }
-        )
-        collection.collected_amount = min(payment.amount, collection.expected_amount)
-        collection.collected_by = request.user
-        collection.actual_collection_date = timezone.now()
-        collection.status = 'completed'
-        collection.is_partial = collection.collected_amount < collection.expected_amount
-        collection.save()
+            amount_paid__gt=0,
+        ).order_by('due_date')
+        for sched in paid_schedules:
+            coll, _ = PaymentCollection.objects.get_or_create(
+                loan=loan,
+                collection_date=sched.due_date,
+                defaults={
+                    'expected_amount': sched.total_amount,
+                    'collected_amount': 0,
+                    'status': 'scheduled',
+                }
+            )
+            if coll.collected_amount < sched.amount_paid:
+                coll.collected_amount = sched.amount_paid
+                coll.collected_by = request.user
+                coll.actual_collection_date = timezone.now()
+                coll.status = 'completed' if sched.is_paid else 'in_progress'
+                coll.is_partial = not sched.is_paid
+                coll.save()
         
         # Create passbook entry for payment
         try:
