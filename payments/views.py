@@ -136,13 +136,15 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         payment.processed_by = request.user
         payment.updated_at = timezone.now()
         payment.save()
-        
+
+        # Get loan first
+        loan = payment.loan
+
         # Update payment schedule — distribute across installments (supports overpayment)
         from payments.services import distribute_payment
         distribute_payment(loan, payment.amount, payment.payment_date.date())
         
         # Update loan balance
-        loan = payment.loan
         loan.amount_paid += payment.amount
         if loan.balance_remaining:
             loan.balance_remaining -= payment.amount
