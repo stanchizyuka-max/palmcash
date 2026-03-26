@@ -18,56 +18,44 @@ def generate_payment_schedule(loan):
         term = loan.term_weeks
         frequency_days = 7
     else:
-        # Fallback for legacy monthly terms
         term = loan.term_months
         frequency_days = 30
     
-    # If no term is set, try to calculate it from total amount and payment amount
     if not term or term <= 0:
         if loan.payment_amount and loan.payment_amount > 0:
-            # Calculate total amount (principal + interest)
             total_amount = loan.principal_amount * (1 + loan.interest_rate / 100)
-            # Calculate number of payments needed
             term = int(total_amount / loan.payment_amount)
-            # Round up to ensure we cover the full amount
             if total_amount % loan.payment_amount > 0:
                 term += 1
         else:
-            # Cannot generate schedule without term or payment amount
             return
     
-    # If still no valid term, cannot generate schedule
     if not term or term <= 0:
         return
     
-    # Use the payment_amount directly (already includes interest)
     payment_amount = loan.payment_amount
-    
-    # Generate schedule
     start_date = loan.disbursement_date.date()
     
-    for i in range(1, term + 1):
-        # Calculate due date based on frequency
-        due_date = start_date + timedelta(days=frequency_days * i)
-        
-        # For daily/weekly loans, we don't break down principal vs interest
-        # The payment_amount is the total payment
-        principal_amount = payment_amount
-        interest_amount = Decimal('0')
-        total_amount = payment_amount
-        
-        # Create payment schedule entry
+    installment = 1
+    current_date = start_date
+
+    for _ in range(term):
+        current_date += timedelta(days=frequency_days)
+
+        # For daily loans: skip Sundays (weekday 6)
+        if loan.repayment_frequency == 'daily':
+            while current_date.weekday() == 6:  # 6 = Sunday
+                current_date += timedelta(days=1)
+
         PaymentSchedule.objects.create(
             loan=loan,
-            installment_number=i,
-            due_date=due_date,
-            principal_amount=round(principal_amount, 2),
-            interest_amount=round(interest_amount, 2),
-            total_amount=round(total_amount, 2)
+            installment_number=installment,
+            due_date=current_date,
+            principal_amount=round(payment_amount, 2),
+            interest_amount=Decimal('0'),
+            total_amount=round(payment_amount, 2),
         )
-        
-        if total_amount <= 0:
-            break
+        installment += 1
 
 def calculate_loan_summary(loan):
     """Calculate loan summary statistics"""
