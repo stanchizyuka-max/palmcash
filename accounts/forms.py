@@ -29,14 +29,13 @@ class BorrowerRegistrationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'username', 'email', 'phone_number',
+            'first_name', 'last_name', 'username', 'phone_number',
             'date_of_birth', 'gender', 'marital_status', 'national_id',
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
             'username': forms.TextInput(attrs={'placeholder': 'Username'}),
-            'email': forms.EmailInput(attrs={'placeholder': 'Email'}),
             'phone_number': forms.TextInput(attrs={'placeholder': 'Phone Number'}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
             'gender': forms.Select(),
