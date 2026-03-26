@@ -195,6 +195,16 @@
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Repayment Type <span class="text-red-500">*</span></label>
+          <select name="repayment_frequency" required onchange="updateRate(this.value)"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="daily" {% if post_data.repayment_frequency == 'daily' or not post_data.repayment_frequency %}selected{% endif %}>Daily — 40% interest</option>
+            <option value="weekly" {% if post_data.repayment_frequency == 'weekly' %}selected{% endif %}>Weekly — 45% interest</option>
+          </select>
+          <p class="text-xs text-blue-700 mt-1 font-semibold" id="rate-hint">Interest rate: <span id="rate-val">40%</span></p>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Duration (days) <span class="text-red-500">*</span></label>
           <input type="number" name="duration_days" min="1" required
             value="{{ post_data.duration_days }}"
@@ -241,4 +251,10 @@
     </div>
   </div>
 </div>
+
+<script>
+function updateRate(val) {
+    document.getElementById('rate-val').textContent = val === 'weekly' ? '45%' : '40%';
+}
+</script>
 {% endblock %}

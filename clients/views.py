@@ -1099,6 +1099,7 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         duration_days = request.POST.get('duration_days')
         purpose = request.POST.get('purpose', '').strip()
         group_id = request.POST.get('group') or None
+        repayment_frequency = request.POST.get('repayment_frequency', 'daily')
 
         errors = []
         if not loan_amount:
@@ -1121,6 +1122,7 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 loan_officer=request.user,
                 loan_amount=loan_amount,
                 duration_days=duration_days,
+                repayment_frequency=repayment_frequency,
                 purpose=purpose,
                 group=group,
                 application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
