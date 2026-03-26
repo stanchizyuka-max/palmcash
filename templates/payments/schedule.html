@@ -58,11 +58,17 @@
                     </div>
                     <div class="text-center p-4 bg-gradient-to-br from-warning-50 to-warning-100 rounded-lg">
                         <p class="text-sm text-secondary-600 font-medium mb-1">Loan Term</p>
-                        <p class="text-2xl font-bold text-warning-600">{{ loan.term_months }} months</p>
+                        {% if loan.repayment_frequency == 'daily' %}
+                        <p class="text-2xl font-bold text-warning-600">{{ loan.term_days }} days</p>
+                        {% elif loan.repayment_frequency == 'weekly' %}
+                        <p class="text-2xl font-bold text-warning-600">{{ loan.term_weeks }} weeks</p>
+                        {% else %}
+                        <p class="text-2xl font-bold text-warning-600">{{ loan.term_months|default:"—" }} months</p>
+                        {% endif %}
                     </div>
                     <div class="text-center p-4 bg-gradient-to-br from-success-50 to-success-100 rounded-lg">
-                        <p class="text-sm text-secondary-600 font-medium mb-1">Monthly Payment</p>
-                        <p class="text-2xl font-bold text-success-600">K{{ loan.monthly_payment|floatformat:0|intcomma }}</p>
+                        <p class="text-sm text-secondary-600 font-medium mb-1">Payment Amount</p>
+                        <p class="text-2xl font-bold text-success-600">K{{ loan.payment_amount|floatformat:0|intcomma }}</p>
                     </div>
                 </div>
             </div>
