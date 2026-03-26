@@ -93,17 +93,18 @@ class MakePaymentView(LoginRequiredMixin, View):
                 payment.payment_schedule = oldest_unpaid
                 payment.save(update_fields=['payment_schedule'])
 
-            # Update PaymentCollection so dashboard stats reflect this payment
+            # Update PaymentCollection — cap collected at expected (overpayment handled by schedule)
+            expected = oldest_unpaid.total_amount if oldest_unpaid else loan.payment_amount
             collection, _ = PaymentCollection.objects.get_or_create(
                 loan=loan,
                 collection_date=payment_date,
                 defaults={
-                    'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else amount,
+                    'expected_amount': expected,
                     'collected_amount': 0,
                     'status': 'scheduled',
                 }
             )
-            collection.collected_amount = (collection.collected_amount or 0) + amount
+            collection.collected_amount = min(amount, collection.expected_amount)
             collection.collected_by = request.user
             collection.actual_collection_date = timezone.now()
             collection.status = 'completed'
@@ -175,12 +176,12 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
             loan=loan,
             collection_date=payment_day,
             defaults={
-                'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else payment.amount,
+                'expected_amount': oldest_unpaid.total_amount if oldest_unpaid else loan.payment_amount,
                 'collected_amount': 0,
                 'status': 'scheduled',
             }
         )
-        collection.collected_amount = (collection.collected_amount or 0) + payment.amount
+        collection.collected_amount = min(payment.amount, collection.expected_amount)
         collection.collected_by = request.user
         collection.actual_collection_date = timezone.now()
         collection.status = 'completed'
