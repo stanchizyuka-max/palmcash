@@ -11,6 +11,7 @@ class PaymentSchedule(models.Model):
     principal_amount = models.DecimalField(max_digits=10, decimal_places=2)
     interest_amount = models.DecimalField(max_digits=10, decimal_places=2)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=False)
     paid_date = models.DateField(null=True, blank=True)
     penalty_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
