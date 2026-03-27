@@ -79,6 +79,7 @@ def vault_dashboard(request):
         ('loan_disbursement', 'Loan Disbursement'),
         ('security_return', 'Security Return'),
         ('payment_collection', 'Loan Repayment'),
+        ('capital_injection', 'Capital Injection'),
         ('deposit', 'Cash Deposit'),
         ('withdrawal', 'Cash Withdrawal'),
     ]
@@ -91,3 +92,35 @@ def vault_dashboard(request):
         'tx_types': tx_types,
         'filters': request.GET,
     })
+
+
+@login_required
+def capital_injection(request):
+    """Admin injects starting capital into a branch vault."""
+    if request.user.role != 'admin':
+        return redirect('dashboard:dashboard')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+
+    if request.method == 'POST':
+        branch_id = request.POST.get('branch')
+        amount = request.POST.get('amount')
+        notes = request.POST.get('notes', '')
+
+        try:
+            branch = Branch.objects.get(pk=branch_id)
+            from decimal import Decimal
+            amount = Decimal(str(amount))
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            from loans.vault_services import record_capital_injection
+            record_capital_injection(branch, amount, notes, request.user)
+            from django.contrib import messages
+            messages.success(request, f'K{amount:,.2f} injected into {branch.name} vault.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, f'Error: {e}')
+
+    return render(request, 'dashboard/capital_injection.html', {'branches': branches})

@@ -177,6 +177,7 @@ class VaultTransaction(models.Model):
         ('payment_collection', 'Payment Collection'),
         ('security_deposit', 'Security Deposit'),
         ('security_return', 'Security Return'),
+        ('capital_injection', 'Capital Injection'),
     ]
 
     DIRECTION_CHOICES = [

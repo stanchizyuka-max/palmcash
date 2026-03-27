@@ -94,4 +94,5 @@ urlpatterns = [
 
     # Vault
     path('vault/', vault_views.vault_dashboard, name='vault'),
+    path('vault/inject/', vault_views.capital_injection, name='capital_injection'),
 ]

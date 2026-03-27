@@ -427,6 +427,22 @@ class DisburseLoanView(LoginRequiredMixin, View):
                 if not loan.upfront_payment_verified:
                     messages.error(request, 'Upfront payment must be verified by the manager before disbursement.')
                     return redirect('loans:detail', pk=pk)
+
+            # Check vault has sufficient balance for disbursement
+            try:
+                from loans.vault_services import get_vault_balance, _get_branch_for_loan
+                branch = _get_branch_for_loan(loan, fallback_user=request.user)
+                if branch:
+                    vault_balance = get_vault_balance(branch)
+                    if vault_balance < loan.principal_amount:
+                        messages.error(
+                            request,
+                            f'Insufficient vault balance. Available: K{vault_balance:,.2f}, Required: K{loan.principal_amount:,.2f}. '
+                            f'Please ask the admin to inject capital into the {branch.name} vault.'
+                        )
+                        return redirect('loans:detail', pk=pk)
+            except Exception as e:
+                print(f"Vault balance check error: {e}")
             
             # Update loan status to disbursed
             from django.utils import timezone

@@ -17,9 +17,16 @@
         <h1 class="text-3xl font-bold text-slate-900"><i class="fas fa-vault text-emerald-600 mr-2"></i>Branch Vault</h1>
         {% if vault %}<p class="text-slate-500 mt-1">{{ vault.branch.name }}</p>{% endif %}
       </div>
-      <a href="{% url 'dashboard:manager_dashboard' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">
-        ← Back to Dashboard
-      </a>
+      <div class="flex gap-3">
+        {% if user.role == 'admin' %}
+        <a href="{% url 'dashboard:capital_injection' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">
+          <i class="fas fa-plus-circle mr-1"></i>Inject Capital
+        </a>
+        {% endif %}
+        <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">
+          ← Back to Dashboard
+        </a>
+      </div>
     </div>
 
     <!-- Balance + Totals -->
@@ -108,8 +115,7 @@
                 {% if tx.loan %}<a href="{% url 'loans:detail' tx.loan.pk %}" class="text-blue-600 hover:underline">{{ tx.loan.application_number }}</a>{% else %}—{% endif %}
               </td>
               <td class="px-4 py-3 text-slate-700">{% if tx.loan %}{{ tx.loan.borrower.get_full_name }}{% else %}—{% endif %}</td>
-              <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>
-            </tr>
+              <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>            </tr>
             {% empty %}
             <tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
             {% endfor %}

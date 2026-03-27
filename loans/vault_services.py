@@ -122,3 +122,32 @@ def record_payment_collection(loan, amount, recorded_by):
             recorded_by=recorded_by,
             transaction_date=timezone.now(),
         )
+
+
+def record_capital_injection(branch, amount, notes, recorded_by):
+    """Admin injects starting capital into a branch vault."""
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        vault.balance += Decimal(str(amount))
+        vault.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='capital_injection',
+            direction='in',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=notes or f'Capital injection by {recorded_by.get_full_name()}',
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
+
+
+def get_vault_balance(branch):
+    """Return current vault balance for a branch, 0 if no vault."""
+    try:
+        from .models import BranchVault
+        return BranchVault.objects.get(branch=branch).balance
+    except Exception:
+        return Decimal('0')
