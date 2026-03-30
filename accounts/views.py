@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
@@ -12,66 +12,21 @@ class RegisterView(CreateView):
     model = User
     form_class = UserRegistrationForm
     template_name = 'accounts/register.html'
-    success_url = reverse_lazy('dashboard:dashboard')
-    
+    success_url = reverse_lazy('accounts:login')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
-        response = super().form_valid(form)
-        login(self.request, self.object)
-        messages.success(self.request, 'Registration successful! Welcome to LoanVista.')
-        
-        # Create ClientVerification record for borrowers
-        if self.object.role == 'borrower':
-            try:
-                from documents.models import ClientVerification
-                ClientVerification.objects.get_or_create(client=self.object)
-            except Exception as e:
-                # Log error but don't fail registration
-                print(f"Error creating ClientVerification: {str(e)}")
-        
-        # Notify admins about new user registration
-        self._notify_admins_of_registration(self.object)
-        
-        return response
-    
-    def _notify_admins_of_registration(self, user):
-        """Notify admins and managers about new user registration"""
-        try:
-            from notifications.models import Notification, NotificationTemplate
-            from django.utils import timezone
-            
-            # Get the notification template
-            try:
-                template = NotificationTemplate.objects.get(
-                    notification_type='user_registered',
-                    is_active=True
-                )
-            except NotificationTemplate.DoesNotExist:
-                return
-            
-            # Get all administrators, managers, and loan officers
-            admins = User.objects.filter(role__in=['admin', 'manager', 'loan_officer'])
-            
-            for admin in admins:
-                # Format the message using the template
-                message = template.message_template.format(
-                    user_name=user.full_name,
-                    email=user.email,
-                    role=user.get_role_display()
-                )
-                
-                Notification.objects.create(
-                    recipient=admin,
-                    template=template,
-                    subject=template.subject,
-                    message=message,
-                    channel=template.channel,
-                    recipient_address=admin.email or '',
-                    scheduled_at=timezone.now(),
-                    status='sent'
-                )
-        except Exception as e:
-            # Don't fail registration if notification fails
-            print(f"Error creating registration notification: {e}")
+        user = form.save(commit=False)
+        user.role = 'loan_officer'
+        user.is_active = False
+        user.is_approved = False
+        user.save()
+        messages.success(self.request, 'Registration submitted. Your account is pending approval.')
+        return redirect(self.success_url)
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/profile.html'
@@ -372,3 +327,45 @@ class LoanOfficerRegisterView(CreateView):
         from django.contrib import messages
         messages.success(self.request, 'Registration submitted. A manager will review and approve your account.')
         return redirect(self.success_url)
+
+
+from django.contrib.auth.decorators import login_required as _login_required
+from django.utils.decorators import method_decorator
+
+@method_decorator(_login_required, name='dispatch')
+class PromoteToManagerView(CreateView):
+    """Admin promotes a loan officer to manager and assigns a branch."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role != 'admin':
+            from django.contrib import messages
+            messages.error(request, 'Only admins can promote users to manager.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, pk):
+        from clients.models import Branch
+        user = get_object_or_404(User, pk=pk, role='loan_officer')
+        branches = Branch.objects.filter(is_active=True).order_by('name')
+        return render(request, 'accounts/promote_manager.html', {'officer': user, 'branches': branches})
+
+    def post(self, request, pk):
+        from clients.models import Branch
+        from django.utils import timezone as tz
+        user = get_object_or_404(User, pk=pk)
+        branch_id = request.POST.get('branch')
+        try:
+            branch = Branch.objects.get(pk=branch_id)
+            user.role = 'manager'
+            user.is_active = True
+            user.is_approved = True
+            user.approved_by = request.user
+            user.approved_at = tz.now()
+            user.save()
+            # Assign branch manager
+            branch.manager = user
+            branch.save(update_fields=['manager'])
+            messages.success(request, f'{user.get_full_name()} promoted to manager of {branch.name}.')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        return redirect('dashboard:admin_officers_list')

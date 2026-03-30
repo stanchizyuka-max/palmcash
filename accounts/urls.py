@@ -22,4 +22,5 @@ urlpatterns = [
     path('manage/users/', views.UsersManageView.as_view(), name='manage_users'),
     path('user/<int:pk>/edit/', views.UserEditView.as_view(), name='edit_user'),
     path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
+    path('user/<int:pk>/promote/', views.PromoteToManagerView.as_view(), name='promote_manager'),
 ]
