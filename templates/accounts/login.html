@@ -122,6 +122,14 @@
                 
                 <form method="post" class="space-y-4">
                     {% csrf_token %}
+
+                    {% if messages %}
+                    {% for msg in messages %}
+                    <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 text-amber-800 text-sm font-medium">
+                        <i class="fas fa-clock mr-2"></i>{{ msg }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
                     
                     {% if form.non_field_errors %}
                     <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800">

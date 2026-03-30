@@ -302,11 +302,26 @@ class CustomLoginView(DjangoLoginView):
     def form_valid(self, form):
         user = form.get_user()
         if user.role == 'loan_officer' and not user.is_approved:
-            logout(self.request)
             from django.contrib import messages
-            messages.error(self.request, 'Your account is pending manager approval.')
+            messages.error(self.request, 'Your account is pending approval.')
             return self.form_invalid(form)
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # Check if the credentials are valid but user is inactive/unapproved
+        from django.contrib.auth import authenticate
+        username = self.request.POST.get('username', '')
+        password = self.request.POST.get('password', '')
+        # Try authenticating without is_active check
+        try:
+            user = User.objects.get(username=username)
+            if user.check_password(password) and not user.is_active and not user.is_approved:
+                from django.contrib import messages
+                messages.error(self.request, 'Your account is pending approval. Please wait for a manager to approve your account.')
+                form.errors.clear()
+        except User.DoesNotExist:
+            pass
+        return super().form_invalid(form)
 
 
 class LoanOfficerRegisterView(CreateView):
