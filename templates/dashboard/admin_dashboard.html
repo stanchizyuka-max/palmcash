@@ -276,6 +276,18 @@
                     <i class="fas fa-eye text-secondary-600 text-2xl mb-2"></i>
                     <span class="text-sm font-medium text-secondary-900 text-center">Manager View</span>
                 </a>
+                <a href="{% url 'dashboard:vault' %}" class="flex flex-col items-center p-4 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors duration-200 border border-emerald-200">
+                    <i class="fas fa-vault text-emerald-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-emerald-900 text-center">Branch Vault</span>
+                </a>
+                <a href="{% url 'dashboard:capital_injection' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors duration-200 border border-teal-200">
+                    <i class="fas fa-plus-circle text-teal-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-teal-900 text-center">Inject Capital</span>
+                </a>
+                <a href="{% url 'dashboard:vault_branch_transfer' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 border border-purple-200">
+                    <i class="fas fa-exchange-alt text-purple-600 text-2xl mb-2"></i>
+                    <span class="text-sm font-medium text-purple-900 text-center">Branch Transfer</span>
+                </a>
             </div>
         </div>
     </div>
