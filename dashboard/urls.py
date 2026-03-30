@@ -95,4 +95,7 @@ urlpatterns = [
     # Vault
     path('vault/', vault_views.vault_dashboard, name='vault'),
     path('vault/inject/', vault_views.capital_injection, name='capital_injection'),
+    path('vault/bank-withdrawal/', vault_views.bank_withdrawal, name='vault_bank_withdrawal'),
+    path('vault/fund-deposit/', vault_views.fund_deposit, name='vault_fund_deposit'),
+    path('vault/branch-transfer/', vault_views.branch_transfer, name='vault_branch_transfer'),
 ]

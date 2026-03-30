@@ -178,6 +178,11 @@ class VaultTransaction(models.Model):
         ('security_deposit', 'Security Deposit'),
         ('security_return', 'Security Return'),
         ('capital_injection', 'Capital Injection'),
+        ('bank_withdrawal', 'Bank Withdrawal'),
+        ('bank_charges', 'Bank Charges'),
+        ('fund_deposit', 'Fund Deposit'),
+        ('branch_transfer_out', 'Branch Transfer (Out)'),
+        ('branch_transfer_in', 'Branch Transfer (In)'),
     ]
 
     DIRECTION_CHOICES = [

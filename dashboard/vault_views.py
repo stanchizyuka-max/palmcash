@@ -80,6 +80,11 @@ def vault_dashboard(request):
         ('security_return', 'Security Return'),
         ('payment_collection', 'Loan Repayment'),
         ('capital_injection', 'Capital Injection'),
+        ('bank_withdrawal', 'Bank Withdrawal'),
+        ('bank_charges', 'Bank Charges'),
+        ('fund_deposit', 'Fund Deposit'),
+        ('branch_transfer_in', 'Branch Transfer (In)'),
+        ('branch_transfer_out', 'Branch Transfer (Out)'),
         ('deposit', 'Cash Deposit'),
         ('withdrawal', 'Cash Withdrawal'),
     ]
@@ -124,3 +129,107 @@ def capital_injection(request):
             messages.error(request, f'Error: {e}')
 
     return render(request, 'dashboard/capital_injection.html', {'branches': branches})
+
+
+@login_required
+def bank_withdrawal(request):
+    """Record a bank withdrawal — net goes into vault, charges go out."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.method == 'POST':
+        from clients.models import Branch
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            if request.user.role == 'admin':
+                branch = Branch.objects.get(pk=request.POST.get('branch'))
+            gross = Decimal(request.POST.get('gross_amount', '0'))
+            charges = Decimal(request.POST.get('bank_charges', '0') or '0')
+            notes = request.POST.get('notes', '')
+            if gross <= 0:
+                raise ValueError('Gross amount must be greater than zero.')
+            from loans.vault_services import record_bank_withdrawal
+            record_bank_withdrawal(branch, gross, charges, notes, request.user)
+            messages.success(request, f'Bank withdrawal recorded. Net K{gross - charges:,.2f} added to {branch.name} vault.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_bank_withdrawal.html', {'branch': branch, 'branches': branches})
+
+
+@login_required
+def fund_deposit(request):
+    """Record an incoming fund deposit into the vault."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.method == 'POST':
+        from clients.models import Branch
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            if request.user.role == 'admin':
+                branch = Branch.objects.get(pk=request.POST.get('branch'))
+            amount = Decimal(request.POST.get('amount', '0'))
+            source = request.POST.get('source', '').strip()
+            notes = request.POST.get('notes', '')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            if not source:
+                raise ValueError('Source/type is required.')
+            from loans.vault_services import record_fund_deposit
+            record_fund_deposit(branch, amount, source, notes, request.user)
+            messages.success(request, f'K{amount:,.2f} deposited into {branch.name} vault.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_fund_deposit.html', {'branch': branch, 'branches': branches})
+
+
+@login_required
+def branch_transfer(request):
+    """Transfer funds between two branch vaults."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    from clients.models import Branch
+    from_branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+    all_branches = Branch.objects.filter(is_active=True).order_by('name')
+
+    if request.method == 'POST':
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            if request.user.role == 'admin':
+                from_branch = Branch.objects.get(pk=request.POST.get('from_branch'))
+            to_branch = Branch.objects.get(pk=request.POST.get('to_branch'))
+            amount = Decimal(request.POST.get('amount', '0'))
+            notes = request.POST.get('notes', '')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            if from_branch == to_branch:
+                raise ValueError('Source and destination branches must be different.')
+            from loans.vault_services import record_branch_transfer
+            record_branch_transfer(from_branch, to_branch, amount, notes, request.user)
+            messages.success(request, f'K{amount:,.2f} transferred from {from_branch.name} to {to_branch.name}.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    to_branches = all_branches.exclude(pk=from_branch.pk) if from_branch else all_branches
+    return render(request, 'dashboard/vault_branch_transfer.html', {
+        'from_branch': from_branch,
+        'all_branches': all_branches,
+        'to_branches': to_branches,
+    })

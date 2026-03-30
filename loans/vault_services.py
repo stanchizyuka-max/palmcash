@@ -151,3 +151,118 @@ def get_vault_balance(branch):
         return BranchVault.objects.get(branch=branch).balance
     except Exception:
         return Decimal('0')
+
+
+def record_bank_withdrawal(branch, gross_amount, bank_charges, notes, recorded_by):
+    """
+    Record a bank withdrawal:
+    - Net amount (gross - charges) added to vault as IN
+    - Bank charges recorded as OUT
+    """
+    gross_amount = Decimal(str(gross_amount))
+    bank_charges = Decimal(str(bank_charges or 0))
+    net_amount = gross_amount - bank_charges
+
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        from expenses.models import VaultTransaction
+        txns = []
+
+        # Net inflow
+        vault.balance += net_amount
+        vault.save(update_fields=['balance', 'updated_at'])
+        txns.append(VaultTransaction.objects.create(
+            transaction_type='bank_withdrawal',
+            direction='in',
+            branch=branch.name,
+            amount=net_amount,
+            balance_after=vault.balance,
+            description=notes or f'Bank withdrawal — net K{net_amount:,.2f} (gross K{gross_amount:,.2f})',
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        ))
+
+        # Bank charges outflow
+        if bank_charges > 0:
+            vault.balance -= bank_charges
+            vault.save(update_fields=['balance', 'updated_at'])
+            txns.append(VaultTransaction.objects.create(
+                transaction_type='bank_charges',
+                direction='out',
+                branch=branch.name,
+                amount=bank_charges,
+                balance_after=vault.balance,
+                description=f'Bank charges on withdrawal',
+                reference_number=_ref(),
+                recorded_by=recorded_by,
+                transaction_date=timezone.now(),
+            ))
+
+        return txns
+
+
+def record_fund_deposit(branch, amount, source, notes, recorded_by):
+    """Record an incoming fund deposit into the vault."""
+    amount = Decimal(str(amount))
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        vault.balance += amount
+        vault.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='fund_deposit',
+            direction='in',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=f'Fund deposit — {source}. {notes}'.strip(),
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
+
+
+def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by):
+    """Transfer funds between two branch vaults."""
+    amount = Decimal(str(amount))
+    with db_transaction.atomic():
+        from_vault = _get_or_create_vault(from_branch)
+        if from_vault.balance < amount:
+            raise ValueError(f'Insufficient vault balance in {from_branch.name}. Available: K{from_vault.balance:,.2f}')
+
+        to_vault = _get_or_create_vault(to_branch)
+        ref = _ref()
+        from expenses.models import VaultTransaction
+
+        # Deduct from sender
+        from_vault.balance -= amount
+        from_vault.save(update_fields=['balance', 'updated_at'])
+        out_tx = VaultTransaction.objects.create(
+            transaction_type='branch_transfer_out',
+            direction='out',
+            branch=from_branch.name,
+            amount=amount,
+            balance_after=from_vault.balance,
+            description=f'Transfer to {to_branch.name}. {notes}'.strip(),
+            reference_number=ref,
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
+
+        # Add to receiver
+        to_vault.balance += amount
+        to_vault.save(update_fields=['balance', 'updated_at'])
+        in_tx = VaultTransaction.objects.create(
+            transaction_type='branch_transfer_in',
+            direction='in',
+            branch=to_branch.name,
+            amount=amount,
+            balance_after=to_vault.balance,
+            description=f'Transfer from {from_branch.name}. {notes}'.strip(),
+            reference_number=ref,
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
+
+        return out_tx, in_tx
