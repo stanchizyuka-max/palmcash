@@ -1116,49 +1116,93 @@ def approved_security_deposits(request):
 
 @login_required
 def manage_officers(request):
-    """Manage Officers View - Shows loan officers and their assignments"""
+    """Manage Officers View — pending approvals + active officers"""
     user = request.user
-    
+
     if user.role == 'manager':
         branch = user.managed_branch
         if not branch:
             return render(request, 'dashboard/access_denied.html', {
                 'message': 'You have not been assigned to a branch.'
             })
-        from clients.models import OfficerAssignment
-        officers = User.objects.filter(
+
+        # Handle approve action
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            officer_id = request.POST.get('officer_id')
+            officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
+
+            if action == 'approve':
+                from django.utils import timezone as tz
+                officer.is_active = True
+                officer.is_approved = True
+                officer.approved_by = user
+                officer.approved_at = tz.now()
+                officer.save(update_fields=['is_active', 'is_approved', 'approved_by', 'approved_at'])
+                # Create OfficerAssignment with branch
+                from clients.models import OfficerAssignment
+                from django.db import connection as _conn
+                with _conn.cursor() as _cur:
+                    _cur.execute('SELECT COUNT(*) FROM clients_officerassignment WHERE officer_id = %s', [officer.pk])
+                    if _cur.fetchone()[0] == 0:
+                        try:
+                            _cur.execute(
+                                'INSERT INTO clients_officerassignment (officer_id, branch_id, branch, max_groups, max_clients, is_accepting_assignments, created_at, updated_at) VALUES (%s, %s, %s, 15, 50, 1, NOW(), NOW())',
+                                [officer.pk, branch.pk, branch.name]
+                            )
+                        except Exception:
+                            _cur.execute(
+                                'INSERT INTO clients_officerassignment (officer_id, branch, max_groups, max_clients, is_accepting_assignments, created_at, updated_at) VALUES (%s, %s, 15, 50, 1, NOW(), NOW())',
+                                [officer.pk, branch.name]
+                            )
+                messages.success(request, f'{officer.get_full_name()} approved and assigned to {branch.name}.')
+
+            elif action == 'reject':
+                officer.is_active = False
+                officer.save(update_fields=['is_active'])
+                messages.warning(request, f'{officer.get_full_name()} rejected.')
+
+            elif action == 'deactivate':
+                officer.is_active = False
+                officer.save(update_fields=['is_active'])
+                messages.warning(request, f'{officer.get_full_name()} deactivated.')
+
+            return redirect('dashboard:manage_officers')
+
+        pending_officers = User.objects.filter(
+            role='loan_officer', is_approved=False
+        ).order_by('date_joined')
+
+        active_officers = User.objects.filter(
             role='loan_officer',
+            is_approved=True,
             officer_assignment__branch__iexact=branch.name,
         ).distinct().order_by('first_name', 'last_name')
+
     elif user.role == 'admin':
-        officers = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
+        if request.method == 'POST':
+            return redirect('dashboard:manage_officers')
+        pending_officers = User.objects.filter(role='loan_officer', is_approved=False).order_by('date_joined')
+        active_officers = User.objects.filter(role='loan_officer', is_approved=True).order_by('first_name', 'last_name')
+        branch = None
     else:
         return render(request, 'dashboard/access_denied.html')
-    
-    # Pagination
-    from django.core.paginator import Paginator
-    paginator = Paginator(officers, 50)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
-    
-    # Get officer assignments for display
+
     from clients.models import OfficerAssignment
     officer_assignments = {}
-    for officer in page_obj.object_list:
+    for o in list(pending_officers) + list(active_officers):
         try:
-            officer_assignments[officer.id] = OfficerAssignment.objects.get(officer=officer)
+            officer_assignments[o.id] = OfficerAssignment.objects.get(officer=o)
         except OfficerAssignment.DoesNotExist:
-            officer_assignments[officer.id] = None
-    
-    context = {
-        'page_obj': page_obj,
-        'officers': page_obj.object_list,
+            officer_assignments[o.id] = None
+
+    return render(request, 'dashboard/manage_officers.html', {
+        'pending_officers': pending_officers,
+        'active_officers': active_officers,
         'officer_assignments': officer_assignments,
-        'total_officers': officers.count(),
-        'branch': getattr(user, 'managed_branch', None),
-    }
-    
-    return render(request, 'dashboard/manage_officers.html', context)
+        'branch': branch,
+        'total_officers': active_officers.count(),
+    })
 
 
 @login_required

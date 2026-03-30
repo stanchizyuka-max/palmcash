@@ -335,3 +335,40 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
         context['loan_officers'] = User.objects.filter(role='loan_officer', is_active=True).order_by('last_name', 'first_name')
         
         return context
+
+
+from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.contrib.auth import logout
+
+class CustomLoginView(DjangoLoginView):
+    template_name = 'accounts/login.html'
+    redirect_authenticated_user = True
+
+    def form_valid(self, form):
+        user = form.get_user()
+        if user.role == 'loan_officer' and not user.is_approved:
+            logout(self.request)
+            from django.contrib import messages
+            messages.error(self.request, 'Your account is pending manager approval.')
+            return self.form_invalid(form)
+        return super().form_valid(form)
+
+
+class LoanOfficerRegisterView(CreateView):
+    template_name = 'accounts/officer_register.html'
+    success_url = reverse_lazy('accounts:login')
+
+    def get_form_class(self):
+        from .forms import LoanOfficerRegistrationForm
+        return LoanOfficerRegistrationForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.save()
+        from django.contrib import messages
+        messages.success(self.request, 'Registration submitted. A manager will review and approve your account.')
+        return redirect(self.success_url)

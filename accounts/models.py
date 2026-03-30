@@ -98,6 +98,17 @@ class User(AbstractUser):
         limit_choices_to={'role': 'loan_officer'},
         help_text='Loan officer assigned to this client'
     )
+
+    # Loan officer approval tracking
+    is_approved = models.BooleanField(default=False, help_text='Has this loan officer been approved by a manager?')
+    approved_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='approved_officers',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

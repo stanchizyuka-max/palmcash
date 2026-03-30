@@ -43,3 +43,8 @@ def getfield(form, field_name):
         return form[field_name]
     except KeyError:
         return None
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

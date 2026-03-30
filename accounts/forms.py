@@ -152,3 +152,33 @@ class UserProfileForm(forms.ModelForm):
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
+
+
+class LoanOfficerRegistrationForm(UserCreationForm):
+    first_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'placeholder': 'First Name', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
+    last_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'placeholder': 'Last Name', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
+    phone_number = forms.CharField(max_length=20, required=True, widget=forms.TextInput(attrs={'placeholder': 'Phone Number', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
+    national_id = forms.CharField(max_length=50, required=True, label='NRC Number', widget=forms.TextInput(attrs={'placeholder': 'e.g. 123456/78/9', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
+
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'username', 'phone_number', 'national_id', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'placeholder': 'Username', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in ('password1', 'password2'):
+            self.fields[f].widget.attrs.update({'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'})
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = 'loan_officer'
+        user.is_active = False
+        user.is_approved = False
+        user.phone_number = self.cleaned_data['phone_number']
+        user.national_id = self.cleaned_data['national_id']
+        if commit:
+            user.save()
+        return user
