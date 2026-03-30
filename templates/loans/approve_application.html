@@ -135,6 +135,47 @@
           </div>
         </div>
 
+        <!-- Processing Fee -->
+        <div class="bg-white rounded-xl shadow-sm border {% if object.processing_fee and not object.processing_fee_verified %}border-amber-400{% else %}border-slate-200{% endif %} overflow-hidden">
+          <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
+            <h2 class="text-lg font-bold text-white flex items-center"><i class="fas fa-coins mr-2"></i>Processing Fee</h2>
+          </div>
+          <div class="p-6">
+            {% if object.processing_fee %}
+            <div class="flex justify-between mb-3">
+              <span class="text-sm text-slate-500">Amount</span>
+              <span class="text-sm font-bold text-amber-700">K{{ object.processing_fee|floatformat:2 }}</span>
+            </div>
+            <div class="flex justify-between mb-3">
+              <span class="text-sm text-slate-500">Recorded By</span>
+              <span class="text-sm font-semibold text-slate-900">{{ object.processing_fee_recorded_by.get_full_name|default:"—" }}</span>
+            </div>
+            <div class="flex justify-between mb-4">
+              <span class="text-sm text-slate-500">Status</span>
+              {% if object.processing_fee_verified %}
+              <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                <i class="fas fa-check mr-1"></i>Verified by {{ object.processing_fee_verified_by.get_full_name }}
+              </span>
+              {% else %}
+              <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold">
+                <i class="fas fa-clock mr-1"></i>Pending Verification
+              </span>
+              {% endif %}
+            </div>
+            {% if object.status == 'pending' and not object.processing_fee_verified %}
+            <form method="post" action="{% url 'loans:verify_processing_fee' object.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="w-full px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 text-sm">
+                <i class="fas fa-check-circle mr-1"></i>Verify Processing Fee
+              </button>
+            </form>
+            {% endif %}
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-2">No processing fee recorded.</p>
+            {% endif %}
+          </div>
+        </div>
+
         <!-- Decision Form -->
         {% if object.status == 'pending' %}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

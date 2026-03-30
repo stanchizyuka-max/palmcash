@@ -928,7 +928,20 @@ class LoanApplication(models.Model):
     repayment_frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='daily')
     purpose = models.CharField(max_length=255)
     group = models.ForeignKey('clients.BorrowerGroup', on_delete=models.SET_NULL, null=True, blank=True)
-    
+
+    # Processing fee (Step 4)
+    processing_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    processing_fee_recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='recorded_processing_fees'
+    )
+    processing_fee_verified = models.BooleanField(default=False)
+    processing_fee_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='verified_processing_fees'
+    )
+    processing_fee_verified_at = models.DateTimeField(null=True, blank=True)
+
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

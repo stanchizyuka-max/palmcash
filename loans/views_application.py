@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import CreateView, ListView, UpdateView, TemplateView, DetailView
+from django.views.generic import CreateView, ListView, UpdateView, TemplateView, DetailView, View
 from django.contrib import messages
 from django.urls import reverse_lazy
 import uuid
@@ -173,12 +173,21 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['borrower'] = self.object.borrower
+        context['application'] = self.object
         return context
     
     def form_valid(self, form):
         loan_app = form.save(commit=False)
 
         if loan_app.status == 'approved':
+            # Block if processing fee not verified
+            if loan_app.processing_fee and not loan_app.processing_fee_verified:
+                messages.error(
+                    self.request,
+                    f'Cannot approve — processing fee of K{loan_app.processing_fee:,.2f} has not been verified. '
+                    f'Please verify the fee first.'
+                )
+                return redirect('loans:approve_application', pk=loan_app.pk)
             from django.utils import timezone
             loan_app.approved_by = self.request.user
             loan_app.approval_date = timezone.now()
@@ -241,3 +250,31 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
             messages.warning(self.request, f'Loan application {loan_app.application_number} rejected.')
 
         return redirect(self.success_url)
+
+
+class VerifyProcessingFeeView(LoginRequiredMixin, View):
+    """Manager verifies the processing fee on a loan application."""
+
+    def post(self, request, pk):
+        if request.user.role not in ['manager', 'admin']:
+            messages.error(request, 'Only managers can verify processing fees.')
+            return redirect('loans:applications_list')
+
+        app = get_object_or_404(LoanApplication, pk=pk)
+
+        if not app.processing_fee:
+            messages.error(request, 'No processing fee recorded for this application.')
+            return redirect('loans:approve_application', pk=pk)
+
+        if app.processing_fee_verified:
+            messages.info(request, 'Processing fee already verified.')
+            return redirect('loans:approve_application', pk=pk)
+
+        from django.utils import timezone
+        app.processing_fee_verified = True
+        app.processing_fee_verified_by = request.user
+        app.processing_fee_verified_at = timezone.now()
+        app.save(update_fields=['processing_fee_verified', 'processing_fee_verified_by', 'processing_fee_verified_at'])
+
+        messages.success(request, f'Processing fee of K{app.processing_fee:,.2f} verified.')
+        return redirect('loans:approve_application', pk=pk)

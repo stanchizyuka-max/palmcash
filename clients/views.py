@@ -1021,14 +1021,18 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             return self._handle_step2(request, pk)
         elif step == 3:
             return self._handle_step3(request, pk)
+        elif step == 4:
+            return self._handle_step4(request, pk)
 
         return redirect('clients:register_borrower')
+
+    STEPS_META = [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application'), (4, 'Processing Fee')]
 
     def _base_context(self, step, pk=None):
         from accounts.forms import BorrowerRegistrationForm, BorrowerDetailsForm
         ctx = {
             'step': step,
-            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
+            'steps_meta': self.STEPS_META,
         }
         if step == 1:
             ctx['reg_form'] = BorrowerRegistrationForm()
@@ -1048,6 +1052,14 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 ).distinct()
             else:
                 ctx['groups'] = BorrowerGroup.objects.filter(is_active=True)
+        elif step == 4 and pk:
+            borrower = get_object_or_404(User, pk=pk)
+            ctx['borrower'] = borrower
+            # Get the just-created application
+            from loans.models import LoanApplication
+            ctx['application'] = LoanApplication.objects.filter(
+                borrower=borrower, loan_officer=self.request.user
+            ).order_by('-created_at').first()
         return ctx
 
     def _handle_step1(self, request):
@@ -1129,11 +1141,8 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 status='pending',
             )
             app.save()
-            messages.success(
-                request,
-                f'Borrower registered and loan application {app.application_number} submitted for manager approval.'
-            )
-            return redirect('loans:applications_list')
+            # Proceed to Step 4 — Processing Fee
+            return redirect(f"{request.path}?step=4&pk={borrower.pk}")
 
         for e in errors:
             messages.error(request, e)
@@ -1145,11 +1154,76 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
 
         return render(request, self.template_name, {
             'step': 3,
-            'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
+            'steps_meta': self.STEPS_META,
             'borrower': borrower,
             'groups': groups_qs,
             'post_data': request.POST,
         })
+
+    def _handle_step4(self, request, pk):
+        from loans.models import LoanApplication
+        from decimal import Decimal, InvalidOperation
+
+        borrower = get_object_or_404(User, pk=pk)
+        app = LoanApplication.objects.filter(
+            borrower=borrower, loan_officer=request.user
+        ).order_by('-created_at').first()
+
+        if not app:
+            messages.error(request, 'No loan application found. Please complete Step 3 first.')
+            return redirect(f"{request.path}?step=3&pk={pk}")
+
+        fee_str = request.POST.get('processing_fee', '').strip()
+        try:
+            fee = Decimal(fee_str)
+            if fee <= 0:
+                raise ValueError()
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'Please enter a valid processing fee amount greater than zero.')
+            return render(request, self.template_name, {
+                'step': 4,
+                'steps_meta': self.STEPS_META,
+                'borrower': borrower,
+                'application': app,
+                'post_data': request.POST,
+            })
+
+        app.processing_fee = fee
+        app.processing_fee_recorded_by = request.user
+        app.processing_fee_verified = False
+        app.save(update_fields=['processing_fee', 'processing_fee_recorded_by', 'processing_fee_verified'])
+
+        # Record vault inflow for processing fee
+        try:
+            from loans.vault_services import _get_or_create_vault, _ref
+            from expenses.models import VaultTransaction
+            from clients.models import Branch
+            from django.utils import timezone as tz
+            branch_name = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else ''
+            branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
+            if branch:
+                vault = _get_or_create_vault(branch)
+                vault.balance += fee
+                vault.save(update_fields=['balance', 'updated_at'])
+                VaultTransaction.objects.create(
+                    transaction_type='deposit',
+                    direction='in',
+                    branch=branch.name,
+                    amount=fee,
+                    balance_after=vault.balance,
+                    description=f'Processing fee for application {app.application_number} — pending verification',
+                    reference_number=_ref(),
+                    recorded_by=request.user,
+                    transaction_date=tz.now(),
+                )
+        except Exception as e:
+            print(f"Vault fee record error: {e}")
+
+        messages.success(
+            request,
+            f'Application {app.application_number} submitted. Processing fee K{fee:,.2f} recorded — awaiting manager verification.'
+        )
+        return redirect('loans:applications_list')
 
 
 class BorrowerRegistrationView(LoginRequiredMixin, View):
