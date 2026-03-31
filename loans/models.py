@@ -942,20 +942,6 @@ class LoanApplication(models.Model):
     )
     processing_fee_verified_at = models.DateTimeField(null=True, blank=True)
 
-    # Guarantor 1
-    guarantor1_name = models.CharField(max_length=255, blank=True)
-    guarantor1_dob = models.DateField(null=True, blank=True)
-    guarantor1_nrc = models.CharField(max_length=50, blank=True)
-    guarantor1_phone = models.CharField(max_length=20, blank=True)
-    guarantor1_address = models.TextField(blank=True)
-
-    # Guarantor 2
-    guarantor2_name = models.CharField(max_length=255, blank=True)
-    guarantor2_dob = models.DateField(null=True, blank=True)
-    guarantor2_nrc = models.CharField(max_length=50, blank=True)
-    guarantor2_phone = models.CharField(max_length=20, blank=True)
-    guarantor2_address = models.TextField(blank=True)
-
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

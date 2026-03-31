@@ -177,7 +177,7 @@
         </div>
 
         <!-- Guarantors -->
-        {% if object.guarantor1_name %}
+        {% if borrower.guarantor1_name %}
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
             <h2 class="text-lg font-bold text-white flex items-center"><i class="fas fa-user-shield mr-2"></i>Guarantors</h2>
@@ -186,22 +186,22 @@
             <div>
               <p class="text-xs font-bold text-slate-500 uppercase mb-2">Guarantor 1</p>
               <div class="grid grid-cols-2 gap-2 text-sm">
-                <div><p class="text-xs text-slate-400">Name</p><p class="font-semibold">{{ object.guarantor1_name }}</p></div>
-                <div><p class="text-xs text-slate-400">NRC</p><p class="font-semibold">{{ object.guarantor1_nrc|default:"—" }}</p></div>
-                <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ object.guarantor1_phone|default:"—" }}</p></div>
-                <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ object.guarantor1_dob|date:"d M Y"|default:"—" }}</p></div>
-                <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ object.guarantor1_address|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Name</p><p class="font-semibold">{{ borrower.guarantor1_name }}</p></div>
+                <div><p class="text-xs text-slate-400">NRC</p><p class="font-semibold">{{ borrower.guarantor1_nrc|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ borrower.guarantor1_phone|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ borrower.guarantor1_dob|date:"d M Y"|default:"—" }}</p></div>
+                <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ borrower.guarantor1_address|default:"—" }}</p></div>
               </div>
             </div>
-            {% if object.guarantor2_name %}
+            {% if borrower.guarantor2_name %}
             <div class="border-t pt-4">
               <p class="text-xs font-bold text-slate-500 uppercase mb-2">Guarantor 2</p>
               <div class="grid grid-cols-2 gap-2 text-sm">
-                <div><p class="text-xs text-slate-400">Name</p><p class="font-semibold">{{ object.guarantor2_name }}</p></div>
-                <div><p class="text-xs text-slate-400">NRC</p><p class="font-semibold">{{ object.guarantor2_nrc|default:"—" }}</p></div>
-                <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ object.guarantor2_phone|default:"—" }}</p></div>
-                <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ object.guarantor2_dob|date:"d M Y"|default:"—" }}</p></div>
-                <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ object.guarantor2_address|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Name</p><p class="font-semibold">{{ borrower.guarantor2_name }}</p></div>
+                <div><p class="text-xs text-slate-400">NRC</p><p class="font-semibold">{{ borrower.guarantor2_nrc|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ borrower.guarantor2_phone|default:"—" }}</p></div>
+                <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ borrower.guarantor2_dob|date:"d M Y"|default:"—" }}</p></div>
+                <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ borrower.guarantor2_address|default:"—" }}</p></div>
               </div>
             </div>
             {% endif %}

@@ -88,6 +88,19 @@ class User(AbstractUser):
     reference2_name = models.CharField(max_length=255, blank=True)
     reference2_phone = models.CharField(max_length=20, blank=True)
     reference2_relationship = models.CharField(max_length=100, blank=True)
+
+    # Guarantors
+    guarantor1_name = models.CharField(max_length=255, blank=True)
+    guarantor1_dob = models.DateField(null=True, blank=True)
+    guarantor1_nrc = models.CharField(max_length=50, blank=True)
+    guarantor1_phone = models.CharField(max_length=20, blank=True)
+    guarantor1_address = models.TextField(blank=True)
+
+    guarantor2_name = models.CharField(max_length=255, blank=True)
+    guarantor2_dob = models.DateField(null=True, blank=True)
+    guarantor2_nrc = models.CharField(max_length=50, blank=True)
+    guarantor2_phone = models.CharField(max_length=20, blank=True)
+    guarantor2_address = models.TextField(blank=True)
     
     assigned_officer = models.ForeignKey(
         'self',
