@@ -153,53 +153,27 @@ def get_vault_balance(branch):
         return Decimal('0')
 
 
-def record_bank_withdrawal(branch, gross_amount, bank_charges, notes, recorded_by):
+def record_bank_withdrawal(branch, amount, notes, recorded_by):
     """
-    Record a bank withdrawal:
-    - Net amount (gross - charges) added to vault as IN
-    - Bank charges recorded as OUT
+    Record a bank withdrawal — full amount added to vault as IN, no charges.
     """
-    gross_amount = Decimal(str(gross_amount))
-    bank_charges = Decimal(str(bank_charges or 0))
-    net_amount = gross_amount - bank_charges
-
+    amount = Decimal(str(amount))
     with db_transaction.atomic():
         vault = _get_or_create_vault(branch)
         from expenses.models import VaultTransaction
-        txns = []
-
-        # Net inflow
-        vault.balance += net_amount
+        vault.balance += amount
         vault.save(update_fields=['balance', 'updated_at'])
-        txns.append(VaultTransaction.objects.create(
+        return VaultTransaction.objects.create(
             transaction_type='bank_withdrawal',
             direction='in',
             branch=branch.name,
-            amount=net_amount,
+            amount=amount,
             balance_after=vault.balance,
-            description=notes or f'Bank withdrawal — net K{net_amount:,.2f} (gross K{gross_amount:,.2f})',
+            description=notes or f'Bank withdrawal — K{amount:,.2f}',
             reference_number=_ref(),
             recorded_by=recorded_by,
             transaction_date=timezone.now(),
-        ))
-
-        # Bank charges outflow
-        if bank_charges > 0:
-            vault.balance -= bank_charges
-            vault.save(update_fields=['balance', 'updated_at'])
-            txns.append(VaultTransaction.objects.create(
-                transaction_type='bank_charges',
-                direction='out',
-                branch=branch.name,
-                amount=bank_charges,
-                balance_after=vault.balance,
-                description=f'Bank charges on withdrawal',
-                reference_number=_ref(),
-                recorded_by=recorded_by,
-                transaction_date=timezone.now(),
-            ))
-
-        return txns
+        )
 
 
 def record_fund_deposit(branch, amount, source, notes, recorded_by):

@@ -147,14 +147,13 @@ def bank_withdrawal(request):
         try:
             if request.user.role == 'admin':
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
-            gross = Decimal(request.POST.get('gross_amount', '0'))
-            charges = Decimal(request.POST.get('bank_charges', '0') or '0')
+            amount = Decimal(request.POST.get('gross_amount', '0'))
             notes = request.POST.get('notes', '')
-            if gross <= 0:
-                raise ValueError('Gross amount must be greater than zero.')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_bank_withdrawal
-            record_bank_withdrawal(branch, gross, charges, notes, request.user)
-            messages.success(request, f'Bank withdrawal recorded. Net K{gross - charges:,.2f} added to {branch.name} vault.')
+            record_bank_withdrawal(branch, amount, notes, request.user)
+            messages.success(request, f'Bank withdrawal of K{amount:,.2f} added to {branch.name} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
