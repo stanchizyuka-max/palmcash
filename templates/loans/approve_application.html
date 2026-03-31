@@ -191,6 +191,7 @@
                 <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ borrower.guarantor1_phone|default:"—" }}</p></div>
                 <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ borrower.guarantor1_dob|date:"d M Y"|default:"—" }}</p></div>
                 <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ borrower.guarantor1_address|default:"—" }}</p></div>
+                <div class="col-span-2"><p class="text-xs text-slate-400">Relationship</p><p class="font-semibold">{{ borrower.guarantor1_relationship|default:"—" }}</p></div>
               </div>
             </div>
             {% if borrower.guarantor2_name %}
@@ -202,6 +203,7 @@
                 <div><p class="text-xs text-slate-400">Phone</p><p class="font-semibold">{{ borrower.guarantor2_phone|default:"—" }}</p></div>
                 <div><p class="text-xs text-slate-400">Date of Birth</p><p class="font-semibold">{{ borrower.guarantor2_dob|date:"d M Y"|default:"—" }}</p></div>
                 <div class="col-span-2"><p class="text-xs text-slate-400">Address</p><p class="font-semibold">{{ borrower.guarantor2_address|default:"—" }}</p></div>
+                <div class="col-span-2"><p class="text-xs text-slate-400">Relationship</p><p class="font-semibold">{{ borrower.guarantor2_relationship|default:"—" }}</p></div>
               </div>
             </div>
             {% endif %}

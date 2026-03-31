@@ -54,8 +54,8 @@ class BorrowerDetailsForm(forms.ModelForm):
             'business_name', 'business_address',
             'reference1_name', 'reference1_phone', 'reference1_relationship',
             'reference2_name', 'reference2_phone', 'reference2_relationship',
-            'guarantor1_name', 'guarantor1_dob', 'guarantor1_nrc', 'guarantor1_phone', 'guarantor1_address',
-            'guarantor2_name', 'guarantor2_dob', 'guarantor2_nrc', 'guarantor2_phone', 'guarantor2_address',
+            'guarantor1_name', 'guarantor1_dob', 'guarantor1_nrc', 'guarantor1_phone', 'guarantor1_address', 'guarantor1_relationship',
+            'guarantor2_name', 'guarantor2_dob', 'guarantor2_nrc', 'guarantor2_phone', 'guarantor2_address', 'guarantor2_relationship',
         ]
         widgets = {
             'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Physical address'}),
@@ -78,11 +78,13 @@ class BorrowerDetailsForm(forms.ModelForm):
             'guarantor1_nrc': forms.TextInput(attrs={'placeholder': 'e.g. 123456/78/9'}),
             'guarantor1_phone': forms.TextInput(attrs={'placeholder': 'Phone number'}),
             'guarantor1_address': forms.TextInput(attrs={'placeholder': 'Current address'}),
+            'guarantor1_relationship': forms.TextInput(attrs={'placeholder': 'e.g. Spouse, Sibling, Friend'}),
             'guarantor2_name': forms.TextInput(attrs={'placeholder': 'Full name'}),
             'guarantor2_dob': forms.DateInput(attrs={'type': 'date'}),
             'guarantor2_nrc': forms.TextInput(attrs={'placeholder': 'e.g. 123456/78/9'}),
             'guarantor2_phone': forms.TextInput(attrs={'placeholder': 'Phone number'}),
             'guarantor2_address': forms.TextInput(attrs={'placeholder': 'Current address'}),
+            'guarantor2_relationship': forms.TextInput(attrs={'placeholder': 'e.g. Spouse, Sibling, Friend'}),
         }
 
 
