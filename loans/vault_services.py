@@ -266,3 +266,51 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by):
         )
 
         return out_tx, in_tx
+
+
+def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by):
+    """
+    Record cash deposited to bank (e.g. via mobile money):
+    - Gross amount goes OUT of vault (cash sent to bank)
+    - Charges go OUT as a separate record
+    """
+    gross_amount = Decimal(str(gross_amount))
+    charges = Decimal(str(charges or 0))
+
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        from expenses.models import VaultTransaction
+        txns = []
+
+        # Gross outflow
+        vault.balance -= gross_amount
+        vault.save(update_fields=['balance', 'updated_at'])
+        txns.append(VaultTransaction.objects.create(
+            transaction_type='bank_deposit_out',
+            direction='out',
+            branch=branch.name,
+            amount=gross_amount,
+            balance_after=vault.balance,
+            description=notes or f'Bank deposit — K{gross_amount:,.2f} sent to bank',
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        ))
+
+        # Charges outflow
+        if charges > 0:
+            vault.balance -= charges
+            vault.save(update_fields=['balance', 'updated_at'])
+            txns.append(VaultTransaction.objects.create(
+                transaction_type='bank_charges',
+                direction='out',
+                branch=branch.name,
+                amount=charges,
+                balance_after=vault.balance,
+                description='Mobile money / bank deposit charges',
+                reference_number=_ref(),
+                recorded_by=recorded_by,
+                transaction_date=timezone.now(),
+            ))
+
+        return txns

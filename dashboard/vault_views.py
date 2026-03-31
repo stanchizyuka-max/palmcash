@@ -82,6 +82,7 @@ def vault_dashboard(request):
         ('capital_injection', 'Capital Injection'),
         ('bank_withdrawal', 'Bank Withdrawal'),
         ('bank_charges', 'Bank Charges'),
+        ('bank_deposit_out', 'Bank Deposit (to Bank)'),
         ('fund_deposit', 'Fund Received'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
         ('branch_transfer_out', 'Branch Transfer (Out)'),
@@ -233,3 +234,35 @@ def branch_transfer(request):
         'all_branches': all_branches,
         'to_branches': to_branches,
     })
+
+
+@login_required
+def bank_deposit_out(request):
+    """Record cash deposited to bank (vault OUT) with optional mobile money charges."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.method == 'POST':
+        from clients.models import Branch
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            if request.user.role == 'admin':
+                branch = Branch.objects.get(pk=request.POST.get('branch'))
+            gross = Decimal(request.POST.get('gross_amount', '0'))
+            charges = Decimal(request.POST.get('charges', '0') or '0')
+            notes = request.POST.get('notes', '')
+            if gross <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            from loans.vault_services import record_bank_deposit
+            record_bank_deposit(branch, gross, charges, notes, request.user)
+            messages.success(request, f'Bank deposit of K{gross:,.2f} recorded. Vault reduced by K{gross + charges:,.2f} (incl. K{charges:,.2f} charges).')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_bank_deposit_out.html', {'branch': branch, 'branches': branches})

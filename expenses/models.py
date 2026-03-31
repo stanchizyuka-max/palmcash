@@ -183,6 +183,7 @@ class VaultTransaction(models.Model):
         ('fund_deposit', 'Fund Received'),
         ('branch_transfer_out', 'Branch Transfer (Out)'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
+        ('bank_deposit_out', 'Bank Deposit (to Bank)'),
     ]
 
     DIRECTION_CHOICES = [
