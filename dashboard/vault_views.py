@@ -165,7 +165,8 @@ def bank_withdrawal(request):
 
 @login_required
 def fund_deposit(request):
-    """Record an incoming fund deposit into the vault."""    if request.user.role not in ['manager', 'admin']:
+    """Record an incoming fund deposit into the vault."""
+    if request.user.role not in ['manager', 'admin']:
         return redirect('dashboard:dashboard')
 
     branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
