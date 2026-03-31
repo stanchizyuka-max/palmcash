@@ -1891,7 +1891,13 @@ def expense_create(request):
                 })
             
             # Create expense
-            expense_code = ExpenseCode.objects.get(id=expense_code_id)
+            if expense_code_id == 'other':
+                expense_code, _ = ExpenseCode.objects.get_or_create(
+                    code='OTHER',
+                    defaults={'name': 'Other', 'description': 'Other expenses', 'is_active': True}
+                )
+            else:
+                expense_code = ExpenseCode.objects.get(id=expense_code_id)
             expense = Expense.objects.create(
                 amount=amount,
                 expense_code=expense_code,
