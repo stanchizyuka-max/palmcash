@@ -432,17 +432,20 @@ class DisburseLoanView(LoginRequiredMixin, View):
             try:
                 from loans.vault_services import get_vault_balance, _get_branch_for_loan
                 branch = _get_branch_for_loan(loan, fallback_user=request.user)
-                if branch:
-                    vault_balance = get_vault_balance(branch)
-                    if vault_balance < loan.principal_amount:
-                        messages.error(
-                            request,
-                            f'Insufficient vault balance. Available: K{vault_balance:,.2f}, Required: K{loan.principal_amount:,.2f}. '
-                            f'Please ask the admin to inject capital into the {branch.name} vault.'
-                        )
-                        return redirect('loans:detail', pk=pk)
+                if not branch:
+                    messages.error(request, 'Cannot disburse — branch not found for this loan. Please ensure the loan officer is assigned to a branch.')
+                    return redirect('loans:detail', pk=pk)
+                vault_balance = get_vault_balance(branch)
+                if vault_balance < loan.principal_amount:
+                    messages.error(
+                        request,
+                        f'Insufficient vault balance in {branch.name}. Available: K{vault_balance:,.2f}, Required: K{loan.principal_amount:,.2f}. '
+                        f'Please ask the admin to inject capital.'
+                    )
+                    return redirect('loans:detail', pk=pk)
             except Exception as e:
-                print(f"Vault balance check error: {e}")
+                messages.error(request, f'Vault check error: {e}')
+                return redirect('loans:detail', pk=pk)
             
             # Update loan status to disbursed
             from django.utils import timezone
