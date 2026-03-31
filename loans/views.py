@@ -1226,6 +1226,13 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
         if action == 'verify':
             loan.upfront_payment_verified = True
             loan.save()
+
+            # Record vault inflow for the upfront payment
+            try:
+                from .vault_services import record_security_deposit
+                record_security_deposit(loan, loan.upfront_payment_paid, request.user)
+            except Exception as e:
+                print(f"Vault upfront record error: {e}")
             
             # Notify borrower
             from notifications.models import Notification, NotificationTemplate
