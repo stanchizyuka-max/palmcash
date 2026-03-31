@@ -17,9 +17,26 @@ class LoanListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        if self.request.user.role == 'borrower':
-            return Loan.objects.filter(borrower=self.request.user)
-        return Loan.objects.all()
+        user = self.request.user
+        if user.role == 'borrower':
+            return Loan.objects.filter(borrower=user)
+        if user.role == 'loan_officer':
+            from django.db.models import Q
+            return Loan.objects.filter(
+                Q(loan_officer=user) |
+                Q(borrower__group_memberships__group__assigned_officer=user)
+            ).distinct()
+        if user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                from django.db.models import Q
+                return Loan.objects.filter(
+                    Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
+                    Q(borrower__group_memberships__group__branch__iexact=branch.name)
+                ).distinct()
+            except Exception:
+                return Loan.objects.none()
+        return Loan.objects.all()  # admin sees all
 
 class LoanDetailView(LoginRequiredMixin, DetailView):
     model = Loan
