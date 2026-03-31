@@ -239,6 +239,70 @@
           This application will be sent to your manager for review and approval.
         </div>
 
+        <!-- Guarantor 1 -->
+        <div class="border-t pt-4">
+          <h3 class="text-sm font-bold text-slate-700 mb-3">Guarantor 1 <span class="text-slate-400 font-normal">(required)</span></h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+              <input type="text" name="guarantor1_name" required value="{{ post_data.guarantor1_name|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Full name">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
+              <input type="date" name="guarantor1_dob" required value="{{ post_data.guarantor1_dob|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">NRC Number <span class="text-red-500">*</span></label>
+              <input type="text" name="guarantor1_nrc" required value="{{ post_data.guarantor1_nrc|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. 123456/78/9">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Phone Number <span class="text-red-500">*</span></label>
+              <input type="text" name="guarantor1_phone" required value="{{ post_data.guarantor1_phone|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Phone number">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 mb-1">Current Address <span class="text-red-500">*</span></label>
+              <input type="text" name="guarantor1_address" required value="{{ post_data.guarantor1_address|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Current address">
+            </div>
+          </div>
+        </div>
+
+        <!-- Guarantor 2 -->
+        <div class="border-t pt-4">
+          <h3 class="text-sm font-bold text-slate-700 mb-3">Guarantor 2 <span class="text-slate-400 font-normal">(optional)</span></h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+              <input type="text" name="guarantor2_name" value="{{ post_data.guarantor2_name|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Full name">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Date of Birth</label>
+              <input type="date" name="guarantor2_dob" value="{{ post_data.guarantor2_dob|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">NRC Number</label>
+              <input type="text" name="guarantor2_nrc" value="{{ post_data.guarantor2_nrc|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. 123456/78/9">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
+              <input type="text" name="guarantor2_phone" value="{{ post_data.guarantor2_phone|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Phone number">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 mb-1">Current Address</label>
+              <input type="text" name="guarantor2_address" value="{{ post_data.guarantor2_address|default:'' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Current address">
+            </div>
+          </div>
+        </div>
+
         <div class="flex gap-3 pt-4 border-t">
           <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 font-medium">
             Continue to Processing Fee →

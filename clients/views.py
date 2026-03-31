@@ -1071,6 +1071,14 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             borrower = reg_form.save(commit=False)
             borrower.role = 'borrower'
             borrower.is_active = True
+            # Auto-generate username from first+last name + random suffix
+            base = f"{borrower.first_name.lower()}{borrower.last_name.lower()}".replace(' ', '')
+            from accounts.models import User as _User
+            suffix = secrets.token_hex(3)
+            username = f"{base}{suffix}"
+            while _User.objects.filter(username=username).exists():
+                username = f"{base}{secrets.token_hex(3)}"
+            borrower.username = username
             borrower.set_password(secrets.token_urlsafe(12))
             if request.user.role == 'loan_officer':
                 borrower.assigned_officer = request.user
@@ -1139,9 +1147,20 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 group=group,
                 application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
                 status='pending',
+                # Guarantor 1
+                guarantor1_name=request.POST.get('guarantor1_name', '').strip(),
+                guarantor1_dob=request.POST.get('guarantor1_dob') or None,
+                guarantor1_nrc=request.POST.get('guarantor1_nrc', '').strip(),
+                guarantor1_phone=request.POST.get('guarantor1_phone', '').strip(),
+                guarantor1_address=request.POST.get('guarantor1_address', '').strip(),
+                # Guarantor 2
+                guarantor2_name=request.POST.get('guarantor2_name', '').strip(),
+                guarantor2_dob=request.POST.get('guarantor2_dob') or None,
+                guarantor2_nrc=request.POST.get('guarantor2_nrc', '').strip(),
+                guarantor2_phone=request.POST.get('guarantor2_phone', '').strip(),
+                guarantor2_address=request.POST.get('guarantor2_address', '').strip(),
             )
             app.save()
-            # Proceed to Step 4 — Processing Fee
             return redirect(f"{request.path}?step=4&pk={borrower.pk}")
 
         for e in errors:

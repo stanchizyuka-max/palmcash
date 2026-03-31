@@ -29,18 +29,17 @@ class BorrowerRegistrationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'username', 'phone_number',
+            'first_name', 'last_name', 'phone_number',
             'date_of_birth', 'gender', 'marital_status', 'national_id',
         ]
         widgets = {
-            'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
-            'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
-            'username': forms.TextInput(attrs={'placeholder': 'Username'}),
-            'phone_number': forms.TextInput(attrs={'placeholder': 'Phone Number'}),
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'gender': forms.Select(),
-            'marital_status': forms.Select(),
-            'national_id': forms.TextInput(attrs={'placeholder': 'NRC Number e.g. 123456/78/9'}),
+            'first_name': forms.TextInput(attrs={'placeholder': 'First Name', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'Last Name', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
+            'phone_number': forms.TextInput(attrs={'placeholder': 'Phone Number', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
+            'gender': forms.Select(attrs={'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white'}),
+            'marital_status': forms.Select(attrs={'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white'}),
+            'national_id': forms.TextInput(attrs={'placeholder': 'NRC Number e.g. 123456/78/9', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
         }
 
 
