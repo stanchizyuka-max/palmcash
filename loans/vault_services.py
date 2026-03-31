@@ -245,7 +245,7 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by):
             amount=amount,
             balance_after=from_vault.balance,
             description=f'Transfer to {to_branch.name}. {notes}'.strip(),
-            reference_number=ref,
+            reference_number=f'{ref}-OUT',
             recorded_by=recorded_by,
             transaction_date=timezone.now(),
         )
@@ -260,7 +260,7 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by):
             amount=amount,
             balance_after=to_vault.balance,
             description=f'Transfer from {from_branch.name}. {notes}'.strip(),
-            reference_number=ref,
+            reference_number=f'{ref}-IN',
             recorded_by=recorded_by,
             transaction_date=timezone.now(),
         )
