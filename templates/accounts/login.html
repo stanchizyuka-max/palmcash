@@ -125,9 +125,11 @@
 
                     {% if messages %}
                     {% for msg in messages %}
+                    {% if 'pending approval' in msg.message %}
                     <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 text-amber-800 text-sm font-medium">
                         <i class="fas fa-clock mr-2"></i>{{ msg }}
                     </div>
+                    {% endif %}
                     {% endfor %}
                     {% endif %}
                     
