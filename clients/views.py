@@ -1147,18 +1147,6 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 group=group,
                 application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
                 status='pending',
-                # Guarantor 1
-                guarantor1_name=request.POST.get('guarantor1_name', '').strip(),
-                guarantor1_dob=request.POST.get('guarantor1_dob') or None,
-                guarantor1_nrc=request.POST.get('guarantor1_nrc', '').strip(),
-                guarantor1_phone=request.POST.get('guarantor1_phone', '').strip(),
-                guarantor1_address=request.POST.get('guarantor1_address', '').strip(),
-                # Guarantor 2
-                guarantor2_name=request.POST.get('guarantor2_name', '').strip(),
-                guarantor2_dob=request.POST.get('guarantor2_dob') or None,
-                guarantor2_nrc=request.POST.get('guarantor2_nrc', '').strip(),
-                guarantor2_phone=request.POST.get('guarantor2_phone', '').strip(),
-                guarantor2_address=request.POST.get('guarantor2_address', '').strip(),
             )
             app.save()
             return redirect(f"{request.path}?step=4&pk={borrower.pk}")
