@@ -82,7 +82,7 @@ def vault_dashboard(request):
         ('capital_injection', 'Capital Injection'),
         ('bank_withdrawal', 'Bank Withdrawal'),
         ('bank_charges', 'Bank Charges'),
-        ('fund_deposit', 'Fund Deposit'),
+        ('fund_deposit', 'Fund Received'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
         ('branch_transfer_out', 'Branch Transfer (Out)'),
         ('deposit', 'Cash Deposit'),

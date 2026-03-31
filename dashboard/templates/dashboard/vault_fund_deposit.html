@@ -1,11 +1,11 @@
 {% extends 'base_tailwind.html' %}
 {% load humanize %}
-{% block title %}Fund Deposit{% endblock %}
+{% block title %}Fund Received{% endblock %}
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
   <div class="max-w-lg mx-auto px-4">
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-slate-900">Fund Deposit</h1>
+      <h1 class="text-2xl font-bold text-slate-900">Fund Received</h1>
       <a href="{% url 'dashboard:vault' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Back to Vault</a>
     </div>
     {% if messages %}{% for msg in messages %}<div class="mb-4 p-3 rounded-lg {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %} text-sm">{{ msg }}</div>{% endfor %}{% endif %}
