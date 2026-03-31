@@ -1054,26 +1054,23 @@ def approved_security_deposits(request):
     user = request.user
     
     if user.role == 'manager':
-        # Manager sees approved deposits for their branch
         try:
             branch = user.managed_branch
             if not branch:
                 return render(request, 'dashboard/access_denied.html')
-            
-            # Get ALL verified deposits first to debug
+
             from loans.models import SecurityDeposit
-            all_verified = SecurityDeposit.objects.filter(
-                is_verified=True
-            ).select_related('loan', 'loan__borrower').order_by('-verification_date')
-            
-            print(f"DEBUG: Total verified deposits in system: {all_verified.count()}")
-            
-            # For now, show all verified deposits to the manager (we can filter by branch later)
-            approved_deposits = list(all_verified)
+            from django.db.models import Q
+            approved_deposits = SecurityDeposit.objects.filter(
+                is_verified=True,
+            ).filter(
+                Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+            ).select_related('loan', 'loan__borrower').distinct().order_by('-verification_date')
+
             branch_display_name = branch.name
-            
+
         except Exception as e:
-            # If there's an error with branch assignment, show access denied
             return render(request, 'dashboard/access_denied.html')
         
     elif user.role == 'admin':
