@@ -261,6 +261,22 @@ def loan_officer_dashboard(request):
             status__in=['active', 'completed'],
             security_deposit__is_verified=True,
         ).select_related('borrower', 'security_deposit').distinct(),
+        # Security summary counts
+        'sec_deposits_count': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer, transaction_type='adjustment', status='approved'
+        ).count(),
+        'sec_topups_count': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer, transaction_type='carry_forward'
+        ).count(),
+        'sec_returns_count': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer, transaction_type='return', status='approved'
+        ).count(),
+        'sec_withdrawals_count': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer, transaction_type='withdrawal', status='approved'
+        ).count(),
+        'sec_pending_count': SecurityTransaction.objects.filter(
+            loan__loan_officer=officer, status='pending'
+        ).count(),
     }
     
     return render(request, 'dashboard/loan_officer_enhanced.html', context)

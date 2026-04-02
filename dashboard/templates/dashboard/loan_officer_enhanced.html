@@ -276,6 +276,43 @@
             {% endif %}
         </div>
 
+        <!-- Security Management Summary -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">
+            <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-shield-alt mr-2"></i>Security Management
+                </h3>
+                <p class="text-slate-300 text-sm mt-1">Overview of all security deposit activities</p>
+            </div>
+            <div class="p-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+                <a href="{% url 'loans:security_transactions' %}" class="flex flex-col items-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl hover:bg-yellow-100 transition text-center">
+                    <i class="fas fa-clock text-yellow-600 text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold text-yellow-700">{{ sec_pending_count }}</p>
+                    <p class="text-xs font-semibold text-yellow-600 uppercase mt-1">Pending</p>
+                </a>
+                <a href="{% url 'loans:security_transactions' %}?type=adjustment" class="flex flex-col items-center p-4 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition text-center">
+                    <i class="fas fa-sliders-h text-blue-600 text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold text-blue-700">{{ sec_deposits_count }}</p>
+                    <p class="text-xs font-semibold text-blue-600 uppercase mt-1">Adjustments</p>
+                </a>
+                <a href="{% url 'loans:security_transactions' %}?type=carry_forward" class="flex flex-col items-center p-4 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition text-center">
+                    <i class="fas fa-plus-circle text-green-600 text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold text-green-700">{{ sec_topups_count }}</p>
+                    <p class="text-xs font-semibold text-green-600 uppercase mt-1">Top-Ups</p>
+                </a>
+                <a href="{% url 'loans:security_transactions' %}?type=return" class="flex flex-col items-center p-4 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition text-center">
+                    <i class="fas fa-undo text-purple-600 text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold text-purple-700">{{ sec_returns_count }}</p>
+                    <p class="text-xs font-semibold text-purple-600 uppercase mt-1">Returns</p>
+                </a>
+                <a href="{% url 'loans:security_transactions' %}?type=withdrawal" class="flex flex-col items-center p-4 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition text-center">
+                    <i class="fas fa-minus-circle text-orange-600 text-2xl mb-2"></i>
+                    <p class="text-2xl font-bold text-orange-700">{{ sec_withdrawals_count }}</p>
+                    <p class="text-xs font-semibold text-orange-600 uppercase mt-1">Withdrawals</p>
+                </a>
+            </div>
+        </div>
+
         <!-- Security Transactions -->
         {% if pending_security_transactions %}
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">

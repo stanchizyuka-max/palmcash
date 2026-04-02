@@ -189,3 +189,30 @@ def security_topup(request, loan_id=None):
         'loan': loan,
         'deposit': deposit,
     })
+
+
+@login_required
+def officer_security_overview(request):
+    """Officer's overview of all their security transactions with type filter."""
+    from django.db.models import Q
+    officer = request.user
+
+    qs = SecurityTransaction.objects.filter(
+        Q(loan__loan_officer=officer) |
+        Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+    ).select_related('loan', 'loan__borrower', 'initiated_by', 'approved_by').distinct().order_by('-created_at')
+
+    tx_type = request.GET.get('type')
+    if tx_type:
+        qs = qs.filter(transaction_type=tx_type)
+
+    status_filter = request.GET.get('status')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    return render(request, 'loans/security_overview.html', {
+        'transactions': qs,
+        'tx_type': tx_type,
+        'status_filter': status_filter,
+        'type_choices': SecurityTransaction.TRANSACTION_TYPES,
+    })

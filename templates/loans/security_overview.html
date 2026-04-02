@@ -1,0 +1,86 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Security Overview{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-6xl mx-auto px-4">
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Security Management</h1>
+        <p class="text-slate-500 text-sm mt-1">All security deposit transactions for your loans</p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="flex gap-2 mb-6 flex-wrap">
+      <a href="{% url 'loans:security_transactions' %}"
+         class="px-4 py-2 rounded-lg text-sm font-semibold {% if not tx_type %}bg-slate-800 text-white{% else %}bg-white text-slate-700 border border-slate-300 hover:bg-slate-50{% endif %}">
+        All
+      </a>
+      {% for val, label in type_choices %}
+      <a href="{% url 'loans:security_transactions' %}?type={{ val }}"
+         class="px-4 py-2 rounded-lg text-sm font-semibold {% if tx_type == val %}bg-slate-800 text-white{% else %}bg-white text-slate-700 border border-slate-300 hover:bg-slate-50{% endif %}">
+        {{ label }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {% if transactions %}
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Amount</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Approved By</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for txn in transactions %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-mono font-semibold">
+              <a href="{% url 'loans:detail' txn.loan.pk %}" class="text-blue-600 hover:underline">{{ txn.loan.application_number }}</a>
+            </td>
+            <td class="px-4 py-3 text-slate-800">{{ txn.loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                {% if txn.transaction_type == 'adjustment' %}bg-blue-100 text-blue-700
+                {% elif txn.transaction_type == 'return' %}bg-purple-100 text-purple-700
+                {% elif txn.transaction_type == 'withdrawal' %}bg-orange-100 text-orange-700
+                {% elif txn.transaction_type == 'carry_forward' %}bg-green-100 text-green-700
+                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                {{ txn.get_transaction_type_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3 font-bold text-slate-800">K{{ txn.amount|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                {% if txn.status == 'approved' %}bg-green-100 text-green-700
+                {% elif txn.status == 'rejected' %}bg-red-100 text-red-700
+                {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                {{ txn.get_status_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-slate-500">{{ txn.created_at|date:"d M Y" }}</td>
+            <td class="px-4 py-3 text-slate-500">{{ txn.approved_by.get_full_name|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-12 text-slate-400">
+        <i class="fas fa-shield-alt text-4xl mb-3"></i>
+        <p>No security transactions found.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
