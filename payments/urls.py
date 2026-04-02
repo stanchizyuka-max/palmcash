@@ -12,4 +12,5 @@ urlpatterns = [
     path('<int:pk>/confirm/', views.ConfirmPaymentView.as_view(), name='confirm'),
     path('<int:pk>/reject/', views.RejectPaymentView.as_view(), name='reject'),
     path('schedule/<int:loan_id>/', views.PaymentScheduleView.as_view(), name='schedule'),
+    path('bulk-collection/', views.BulkCollectionView.as_view(), name='bulk_collection'),
 ]

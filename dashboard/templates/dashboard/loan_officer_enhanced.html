@@ -146,6 +146,10 @@
                     <i class="fas fa-list text-purple-600 text-2xl mb-2"></i>
                     <span class="font-semibold text-purple-900 text-sm text-center">My Applications</span>
                 </a>
+                <a href="{% url 'payments:bulk_collection' %}" class="flex flex-col items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 transition hover:shadow-md">
+                    <i class="fas fa-list-check text-emerald-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-emerald-900 text-sm text-center">Bulk Collection</span>
+                </a>
                 <a href="{% url 'dashboard:report_security_transactions' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg border-2 border-teal-200 hover:border-teal-400 transition hover:shadow-md">
                     <i class="fas fa-chart-bar text-teal-600 text-2xl mb-2"></i>
                     <span class="font-semibold text-teal-900 text-sm text-center">Reports</span>

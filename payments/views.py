@@ -630,3 +630,112 @@ class PaymentScheduleView(LoginRequiredMixin, ListView):
             context['total_penalties'] = 0
         
         return context
+
+
+class BulkCollectionView(LoginRequiredMixin, View):
+    """Officer records payments for multiple clients in one submission."""
+    template_name = 'payments/bulk_collection.html'
+
+    def _get_loans(self, officer):
+        from loans.models import Loan
+        from django.db.models import Q
+        from datetime import date
+        today = date.today()
+
+        loans = Loan.objects.filter(
+            Q(loan_officer=officer) |
+            Q(borrower__group_memberships__group__assigned_officer=officer),
+            status='active',
+        ).select_related('borrower', 'loan_type').distinct()
+
+        rows = []
+        for loan in loans:
+            due = PaymentSchedule.objects.filter(
+                loan=loan, is_paid=False
+            ).order_by('due_date').first()
+            rows.append({
+                'loan': loan,
+                'due_schedule': due,
+                'expected': due.total_amount - due.amount_paid if due else loan.payment_amount,
+                'is_overdue': due.is_overdue if due else False,
+            })
+        return rows
+
+    def get(self, request):
+        if request.user.role not in ['loan_officer', 'admin']:
+            messages.error(request, 'Only loan officers can record bulk collections.')
+            return redirect('dashboard:dashboard')
+        rows = self._get_loans(request.user)
+        return render(request, self.template_name, {'rows': rows})
+
+    def post(self, request):
+        if request.user.role not in ['loan_officer', 'admin']:
+            return redirect('dashboard:dashboard')
+
+        from loans.models import Loan
+        from decimal import Decimal, InvalidOperation
+        from datetime import date, datetime as dt
+
+        today = date.today()
+        recorded = 0
+        skipped = 0
+
+        for key, value in request.POST.items():
+            if not key.startswith('amount_'):
+                continue
+            loan_id = key.split('_', 1)[1]
+            amount_str = value.strip()
+            if not amount_str:
+                skipped += 1
+                continue
+            try:
+                amount = Decimal(amount_str)
+                if amount <= 0:
+                    skipped += 1
+                    continue
+            except InvalidOperation:
+                skipped += 1
+                continue
+
+            method_key = f'method_{loan_id}'
+            method = request.POST.get(method_key, 'cash')
+            method_map = {'mtn': 'mobile_money', 'airtel': 'mobile_money'}
+            payment_method = method_map.get(method, method)
+
+            try:
+                loan = Loan.objects.get(pk=loan_id, status='active')
+            except Loan.DoesNotExist:
+                continue
+
+            payment = Payment.objects.create(
+                loan=loan,
+                amount=amount,
+                payment_method=payment_method,
+                payment_date=dt.combine(today, dt.min.time()).replace(tzinfo=timezone.get_current_timezone()),
+                processed_by=request.user,
+                status='pending',
+                notes='[BULK COLLECTION]',
+            )
+
+            oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
+            if oldest_unpaid:
+                payment.payment_schedule = oldest_unpaid
+                payment.save(update_fields=['payment_schedule'])
+
+            expected = oldest_unpaid.total_amount if oldest_unpaid else loan.payment_amount
+            collection, _ = PaymentCollection.objects.get_or_create(
+                loan=loan,
+                collection_date=today,
+                defaults={'expected_amount': expected, 'collected_amount': 0, 'status': 'scheduled'}
+            )
+            collection.collected_amount = min(amount, collection.expected_amount)
+            collection.collected_by = request.user
+            collection.actual_collection_date = timezone.now()
+            collection.status = 'completed'
+            collection.is_partial = collection.collected_amount < collection.expected_amount
+            collection.save()
+
+            recorded += 1
+
+        messages.success(request, f'{recorded} payment(s) recorded — awaiting manager confirmation. {skipped} skipped.')
+        return redirect('payments:list')
