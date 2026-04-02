@@ -1,0 +1,98 @@
+{% extends "base_tailwind.html" %}
+{% load humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Breadcrumb -->
+  <nav class="mb-4 text-sm text-secondary-500 flex items-center gap-2">
+    <a href="{% url 'securities:summary' %}" class="hover:text-primary-600 transition-colors">
+      <i class="fas fa-shield-alt mr-1"></i>Securities
+    </a>
+    <i class="fas fa-chevron-right text-xs"></i>
+    {% if group.assigned_officer %}
+    <a href="{% url 'securities:officer_groups' group.assigned_officer.pk %}" class="hover:text-primary-600 transition-colors">
+      {{ group.assigned_officer.full_name }}
+    </a>
+    <i class="fas fa-chevron-right text-xs"></i>
+    {% endif %}
+    <span class="text-secondary-800 font-medium">{{ group.name }}</span>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-secondary-900">
+      <i class="fas fa-user-friends text-primary-600 mr-2"></i>{{ group.name }} — Clients
+    </h1>
+    <p class="text-sm text-secondary-500 mt-1">Security breakdown per client</p>
+  </div>
+
+  <!-- Clients Table -->
+  <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-secondary-200">
+        <thead class="bg-secondary-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wider">Client Name</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wider">Loan ID</th>
+            {% include 'securities/_table_base.html' %}
+            <th class="px-4 py-3 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-secondary-100">
+          {% for row in rows %}
+          <tr class="hover:bg-primary-50 cursor-pointer transition-colors"
+              onclick="window.location='{% url 'securities:client_detail' row.client.pk %}'">
+            <td class="px-4 py-3 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-warning-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-user text-warning-600 text-xs"></i>
+                </div>
+                <span class="font-medium text-secondary-900">{{ row.client.full_name }}</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-secondary-600 font-mono text-sm">{{ row.loan_id }}</td>
+            <td class="px-4 py-3 text-secondary-700">K{{ row.upfront|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 text-secondary-700">K{{ row.topups|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 text-secondary-700">K{{ row.adjustments|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 text-secondary-700">K{{ row.returned|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 font-semibold {% if row.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
+              K{{ row.balance|floatformat:2|intcomma }}
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                {% if row.loan_status == 'Active' %}bg-primary-100 text-primary-800
+                {% elif row.loan_status == 'Completed' %}bg-success-100 text-success-800
+                {% elif row.loan_status == 'Defaulted' %}bg-danger-100 text-danger-800
+                {% else %}bg-secondary-100 text-secondary-700{% endif %}">
+                {{ row.loan_status }}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="px-4 py-8 text-center text-secondary-400">No clients in this group.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="bg-secondary-100 border-t-2 border-secondary-300">
+          <tr>
+            <td class="px-4 py-3 font-bold text-secondary-900" colspan="2">Totals</td>
+            <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.upfront|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.topups|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.adjustments|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.returned|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-3 font-bold {% if totals.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
+              K{{ totals.balance|floatformat:2|intcomma }}
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

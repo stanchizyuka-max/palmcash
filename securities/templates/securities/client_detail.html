@@ -1,0 +1,135 @@
+{% extends "base_tailwind.html" %}
+{% load humanize %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Breadcrumb -->
+  <nav class="mb-4 text-sm text-secondary-500 flex items-center gap-2 flex-wrap">
+    <a href="{% url 'securities:summary' %}" class="hover:text-primary-600 transition-colors">
+      <i class="fas fa-shield-alt mr-1"></i>Securities
+    </a>
+    <i class="fas fa-chevron-right text-xs"></i>
+    <span class="text-secondary-800 font-medium">{{ client.full_name }}</span>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="mb-6 flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-secondary-900">
+        <i class="fas fa-user-circle text-primary-600 mr-2"></i>{{ client.full_name }}
+      </h1>
+      <p class="text-sm text-secondary-500 mt-1">Full security transaction history</p>
+    </div>
+    <!-- Overall totals card -->
+    <div class="hidden sm:grid grid-cols-5 gap-3 text-center">
+      <div class="bg-blue-50 rounded-lg px-3 py-2">
+        <p class="text-xs text-blue-500 font-medium">Upfront</p>
+        <p class="text-sm font-bold text-blue-800">K{{ totals.upfront|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="bg-purple-50 rounded-lg px-3 py-2">
+        <p class="text-xs text-purple-500 font-medium">Top-Ups</p>
+        <p class="text-sm font-bold text-purple-800">K{{ totals.topups|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="bg-yellow-50 rounded-lg px-3 py-2">
+        <p class="text-xs text-yellow-600 font-medium">Adjustments</p>
+        <p class="text-sm font-bold text-yellow-800">K{{ totals.adjustments|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="bg-red-50 rounded-lg px-3 py-2">
+        <p class="text-xs text-red-500 font-medium">Returned</p>
+        <p class="text-sm font-bold text-red-800">K{{ totals.returned|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="{% if totals.balance >= 0 %}bg-success-50{% else %}bg-danger-50{% endif %} rounded-lg px-3 py-2">
+        <p class="text-xs {% if totals.balance >= 0 %}text-success-600{% else %}text-danger-600{% endif %} font-medium">Balance</p>
+        <p class="text-sm font-bold {% if totals.balance >= 0 %}text-success-800{% else %}text-danger-800{% endif %}">
+          K{{ totals.balance|floatformat:2|intcomma }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Per-loan breakdown -->
+  {% for lr in loan_rows %}
+  <div class="bg-white rounded-xl shadow-sm border border-secondary-200 mb-6 overflow-hidden">
+    <!-- Loan header -->
+    <div class="px-5 py-4 bg-secondary-50 border-b border-secondary-200 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="font-mono text-sm font-semibold text-secondary-700">{{ lr.loan.application_number }}</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+          {% if lr.loan.status == 'active' %}bg-primary-100 text-primary-800
+          {% elif lr.loan.status == 'completed' %}bg-success-100 text-success-800
+          {% elif lr.loan.status == 'defaulted' %}bg-danger-100 text-danger-800
+          {% else %}bg-secondary-100 text-secondary-700{% endif %}">
+          {{ lr.loan.get_status_display }}
+        </span>
+        <span class="text-sm text-secondary-500">Principal: K{{ lr.loan.principal_amount|floatformat:2|intcomma }}</span>
+      </div>
+      <div class="flex gap-4 text-sm">
+        <span class="text-blue-700 font-medium">Upfront: K{{ lr.upfront|floatformat:2|intcomma }}</span>
+        <span class="text-purple-700 font-medium">Top-Ups: K{{ lr.topups|floatformat:2|intcomma }}</span>
+        <span class="text-yellow-700 font-medium">Adj: K{{ lr.adjustments|floatformat:2|intcomma }}</span>
+        <span class="text-red-700 font-medium">Returned: K{{ lr.returned|floatformat:2|intcomma }}</span>
+        <span class="font-bold {% if lr.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
+          Balance: K{{ lr.balance|floatformat:2|intcomma }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Transactions table -->
+    {% if lr.transactions %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-secondary-100">
+        <thead>
+          <tr class="bg-secondary-50">
+            <th class="px-4 py-2 text-left text-xs font-semibold text-secondary-500 uppercase">Date</th>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-secondary-500 uppercase">Type</th>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-secondary-500 uppercase">Amount</th>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-secondary-500 uppercase">Status</th>
+            <th class="px-4 py-2 text-left text-xs font-semibold text-secondary-500 uppercase">Notes</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-secondary-50">
+          {% for txn in lr.transactions %}
+          <tr class="hover:bg-secondary-50 transition-colors">
+            <td class="px-4 py-2 text-sm text-secondary-600 whitespace-nowrap">
+              {% if txn.date %}{{ txn.date|date:"d M Y" }}{% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                {% if txn.type == '10% Upfront' %}bg-blue-100 text-blue-800
+                {% elif txn.type == 'Top-Up' %}bg-purple-100 text-purple-800
+                {% elif txn.type == 'Return' %}bg-red-100 text-red-800
+                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                {{ txn.type }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-sm font-medium text-secondary-800">K{{ txn.amount|floatformat:2|intcomma }}</td>
+            <td class="px-4 py-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                {% if txn.status == 'Verified' or txn.status == 'Approved' or txn.status == 'Completed' %}bg-success-100 text-success-800
+                {% elif txn.status == 'Pending' or txn.status == 'Pending Approval' %}bg-warning-100 text-warning-800
+                {% else %}bg-danger-100 text-danger-800{% endif %}">
+                {{ txn.status }}
+              </span>
+            </td>
+            <td class="px-4 py-2 text-sm text-secondary-500 max-w-xs truncate">{{ txn.notes|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="px-5 py-4 text-sm text-secondary-400">No security transactions recorded for this loan.</p>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="bg-white rounded-xl shadow-sm border border-secondary-200 px-6 py-10 text-center text-secondary-400">
+    <i class="fas fa-inbox text-4xl mb-3"></i>
+    <p>No loans found for this client.</p>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}
