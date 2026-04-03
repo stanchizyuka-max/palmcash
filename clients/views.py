@@ -1273,3 +1273,49 @@ class BorrowerRegistrationView(LoginRequiredMixin, View):
 
     def post(self, request):
         return redirect('clients:register_borrower')
+
+
+class TransferMemberView(LoginRequiredMixin, View):
+    """Transfer a borrower from one group to another — admin only."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if request.user.role != 'admin':
+            messages.error(request, 'Only admins can transfer members between groups.')
+            return redirect('clients:group_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, pk, membership_id):
+        group = get_object_or_404(BorrowerGroup, pk=pk)
+        membership = get_object_or_404(GroupMembership, pk=membership_id, group=group)
+        dest_groups = BorrowerGroup.objects.filter(is_active=True).exclude(pk=group.pk)
+        return render(request, 'clients/transfer_member.html', {
+            'group': group,
+            'membership': membership,
+            'dest_groups': dest_groups,
+        })
+
+    def post(self, request, pk, membership_id):
+        group = get_object_or_404(BorrowerGroup, pk=pk)
+        membership = get_object_or_404(GroupMembership, pk=membership_id, group=group)
+        dest_group_id = request.POST.get('dest_group')
+        dest_group = get_object_or_404(BorrowerGroup, pk=dest_group_id)
+        borrower = membership.borrower
+
+        membership.is_active = False
+        membership.save(update_fields=['is_active'])
+
+        existing = GroupMembership.objects.filter(borrower=borrower, group=dest_group).first()
+        if existing:
+            existing.is_active = True
+            existing.save(update_fields=['is_active'])
+        else:
+            GroupMembership.objects.create(borrower=borrower, group=dest_group, added_by=request.user)
+
+        if dest_group.assigned_officer:
+            borrower.assigned_officer = dest_group.assigned_officer
+            borrower.save(update_fields=['assigned_officer'])
+
+        messages.success(request, f'{borrower.get_full_name()} transferred from {group.name} to {dest_group.name}.')
+        return redirect('clients:group_detail', pk=dest_group.pk)
