@@ -608,12 +608,11 @@ def manager_dashboard(request):
         'recent_applications': branch_applications,
         'pending_applications_count': pending_applications_count,
         'pending_upfront_verifications': Loan.objects.filter(
-            id__in=loans.filter(
-                status='approved',
-                upfront_payment_paid__gt=0,
-                upfront_payment_verified=False,
+            id__in=loans.filter(status='approved').filter(
+                Q(upfront_payment_paid__gt=0, upfront_payment_verified=False) |
+                Q(security_deposit__paid_amount__gt=0, security_deposit__is_verified=False)
             ).values_list('id', flat=True)
-        ).select_related('borrower', 'loan_officer'),
+        ).select_related('borrower', 'loan_officer').distinct(),
         'ready_to_disburse': Loan.objects.filter(
             id__in=loans.filter(
                 status='approved',
