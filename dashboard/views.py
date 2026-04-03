@@ -3149,13 +3149,20 @@ def admin_client_transfer(request):
             if previous_group:
                 current_membership.is_active = False
                 current_membership.save()
-            
-            new_membership = GroupMembership.objects.create(
-                borrower=client,
-                group=dest_group,
-                is_active=True,
-                added_by=user
-            )
+
+            # Reactivate existing membership or create new one
+            existing = GroupMembership.objects.filter(borrower=client, group=dest_group).first()
+            if existing:
+                existing.is_active = True
+                existing.save(update_fields=['is_active', 'updated_at'])
+                new_membership = existing
+            else:
+                new_membership = GroupMembership.objects.create(
+                    borrower=client,
+                    group=dest_group,
+                    is_active=True,
+                    added_by=user
+                )
             
             # Transfer loans if requested
             transferred_loans = []
