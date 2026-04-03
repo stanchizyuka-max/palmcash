@@ -1163,6 +1163,25 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 status='pending',
             )
             app.save()
+
+            # Add borrower to the selected group
+            if group:
+                from clients.models import GroupMembership
+                existing = GroupMembership.objects.filter(borrower=borrower, group=group).first()
+                if existing:
+                    if not existing.is_active:
+                        existing.is_active = True
+                        existing.save(update_fields=['is_active'])
+                else:
+                    GroupMembership.objects.create(
+                        borrower=borrower,
+                        group=group,
+                        added_by=request.user,
+                    )
+                # Ensure borrower is assigned to the group's officer
+                if group.assigned_officer:
+                    borrower.assigned_officer = group.assigned_officer
+                    borrower.save(update_fields=['assigned_officer'])
             return redirect(f"{request.path}?step=4&pk={borrower.pk}")
 
         for e in errors:
