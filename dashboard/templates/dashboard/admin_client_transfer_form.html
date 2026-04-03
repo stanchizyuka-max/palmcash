@@ -32,66 +32,37 @@
         <!-- Loan Transfer Confirmation -->
         {% if show_loan_transfer_confirm %}
         <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <form method="post" action="{% url 'dashboard:admin_client_transfer' %}">
-            {% csrf_token %}
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+            <h3 class="text-lg font-semibold text-yellow-900 mb-2">
+                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>Loan Transfer Required
+            </h3>
+            <p class="text-yellow-800 mb-4">
+                This client has {{ transferable_loans.count }} loan(s). Transfer them to the new officer ({{ dest_group.assigned_officer.get_full_name }})?
+            </p>
+            <div class="mb-4 space-y-2">
+                {% for loan in transferable_loans %}
+                <div class="bg-white p-3 rounded border border-yellow-300 text-sm">
+                    <strong>{{ loan.application_number }}</strong> — K{{ loan.principal_amount|floatformat:2|intcomma }}
+                    <span class="ml-2 text-gray-500">Current: {{ loan.loan_officer.get_full_name|default:"Unassigned" }}</span>
                 </div>
-                <div class="ml-4 w-full">
-                    <h3 class="text-lg font-semibold text-yellow-900 mb-2">Loan Transfer Required</h3>
-                    <p class="text-yellow-800 mb-4">
-                        This client has {{ transferable_loans.count }} loan(s) that can be transferred. 
-                        Do you want to transfer these loans to the new loan officer ({{ dest_group.assigned_officer.get_full_name }})?
-                    </p>
-                    
-                    <div class="mb-4">
-                        <p class="font-semibold text-yellow-900 mb-2">Transferable Loans:</p>
-                        <div class="space-y-2">
-                            {% for loan in transferable_loans %}
-                            <div class="flex items-center justify-between bg-white p-3 rounded border border-yellow-300">
-                                <div>
-                                    <span class="font-medium">{{ loan.application_number }}</span>
-                                    <span class="ml-2 text-sm text-gray-600">K{{ loan.principal_amount|floatformat:2|intcomma }}</span>
-                                    <span class="ml-2 px-2 py-1 text-xs font-semibold rounded-full 
-                                        {% if loan.status == 'active' %}bg-green-100 text-green-800
-                                        {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ loan.get_status_display }}
-                                    </span>
-                                </div>
-                                <div class="text-sm text-gray-600">
-                                    Current: {{ loan.loan_officer.get_full_name|default:"Unassigned" }}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <input type="checkbox" id="transfer_loans" name="transfer_loans" value="yes" checked class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
-                        <label for="transfer_loans" class="ml-2 text-sm text-yellow-800">
-                            Yes, transfer all loans to the new loan officer
-                        </label>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
-            
-            <!-- Hidden fields to preserve form data -->
+        </div>
+
+        <form method="post" action="{% url 'dashboard:admin_client_transfer' %}" style="margin-top:0">
+            {% csrf_token %}
             <input type="hidden" name="client_id" value="{{ client.id }}">
             <input type="hidden" name="destination_group" value="{{ dest_group.id }}">
             <input type="hidden" name="reason" value="Client transfer with loan reassignment">
-            
-            <div class="mt-6 flex justify-end space-x-3">
-                <a href="{% url 'dashboard:admin_client_transfer' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                    Cancel
-                </a>
-                <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
+            <input type="hidden" name="transfer_loans" value="yes">
+            <div class="flex gap-3">
+                <button type="submit" style="background:#d97706;color:white;padding:10px 24px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:14px;">
                     <i class="fas fa-exchange-alt mr-2"></i>Transfer Client and Loans
                 </button>
+                <a href="{% url 'dashboard:admin_client_transfer' %}" style="background:#e5e7eb;color:#374151;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+                    Cancel
+                </a>
             </div>
-            </form>
-        </div>
+        </form>
         {% else %}
 
         <!-- Transfer Form -->
