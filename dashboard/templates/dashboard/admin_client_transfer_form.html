@@ -32,7 +32,7 @@
         <!-- Loan Transfer Confirmation -->
         {% if show_loan_transfer_confirm %}
         <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <form method="post">
+            <form method="post" action="{% url 'dashboard:admin_client_transfer' %}">
             {% csrf_token %}
             <div class="flex items-start">
                 <div class="flex-shrink-0">
