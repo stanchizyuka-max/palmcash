@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from loans.models import Loan, LoanApprovalRequest, LoanType
 from loans.models import SecurityTransaction
 from payments.models import PaymentCollection, DefaultProvision, Payment
-from clients.models import BorrowerGroup, Branch, AdminAuditLog
+from clients.models import BorrowerGroup, Branch, AdminAuditLog, GroupMembership
 from loans.views import VerifySecurityDepositView
 from accounts.models import User
 
