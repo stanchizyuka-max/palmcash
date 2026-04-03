@@ -82,13 +82,27 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         
         # Get available borrowers (not in this group) — only for officers/admins who can add members
         if self.request.user.role in ['admin', 'loan_officer']:
-            context['available_borrowers'] = User.objects.filter(
-                role='borrower',
-                is_active=True
-            ).exclude(
-                group_memberships__group=group,
-                group_memberships__is_active=True
-            )
+            from django.db.models import Q as _Q
+            user = self.request.user
+            if user.role == 'loan_officer':
+                # Only show borrowers assigned to this officer
+                context['available_borrowers'] = User.objects.filter(
+                    _Q(assigned_officer=user) |
+                    _Q(group_memberships__group__assigned_officer=user),
+                    role='borrower',
+                    is_active=True,
+                ).exclude(
+                    group_memberships__group=group,
+                    group_memberships__is_active=True
+                ).distinct()
+            else:
+                context['available_borrowers'] = User.objects.filter(
+                    role='borrower',
+                    is_active=True
+                ).exclude(
+                    group_memberships__group=group,
+                    group_memberships__is_active=True
+                )
         else:
             context['available_borrowers'] = User.objects.none()
         context['can_modify_members'] = self.request.user.role in ['admin', 'loan_officer']
