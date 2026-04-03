@@ -1244,6 +1244,24 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
             loan.upfront_payment_verified = True
             loan.save()
 
+            # Sync SecurityDeposit.is_verified
+            try:
+                from .models import SecurityDeposit
+                dep, _ = SecurityDeposit.objects.get_or_create(
+                    loan=loan,
+                    defaults={
+                        'required_amount': loan.upfront_payment_required or 0,
+                        'paid_amount': loan.upfront_payment_paid or 0,
+                    }
+                )
+                dep.is_verified = True
+                dep.verified_by = request.user
+                from django.utils import timezone as _tz
+                dep.verification_date = _tz.now()
+                dep.save(update_fields=['is_verified', 'verified_by', 'verification_date', 'updated_at'])
+            except Exception as e:
+                print(f"SecurityDeposit sync error: {e}")
+
             # Record vault inflow for the upfront payment
             try:
                 from .vault_services import record_security_deposit
