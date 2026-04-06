@@ -14,4 +14,6 @@ urlpatterns = [
     path('schedule/<int:loan_id>/', views.PaymentScheduleView.as_view(), name='schedule'),
     path('bulk-collection/', views.BulkCollectionView.as_view(), name='bulk_collection'),
     path('bulk-collection/group/<int:group_id>/', views.BulkCollectionGroupView.as_view(), name='bulk_collection_group'),
+    path('default-collection/', views.DefaultCollectionView.as_view(), name='default_collection'),
+    path('default-collection/group/<int:group_id>/', views.DefaultCollectionGroupView.as_view(), name='default_collection_group'),
 ]

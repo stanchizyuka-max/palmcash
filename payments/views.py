@@ -793,3 +793,141 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
 
         messages.success(request, f'{recorded} payment(s) recorded for {group.name} — awaiting manager confirmation. {skipped} skipped.')
         return redirect('payments:bulk_collection')
+
+
+class DefaultCollectionView(LoginRequiredMixin, View):
+    """Step 1: Show groups with defaulted loans."""
+    template_name = 'payments/default_collection.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'admin']:
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        from loans.models import Loan
+        from clients.models import BorrowerGroup
+        from decimal import Decimal
+
+        officer = request.user
+        groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
+
+        group_rows = []
+        for group in groups:
+            borrowers = [m.borrower for m in group.members.filter(is_active=True)]
+            defaulted = Loan.objects.filter(
+                borrower__in=borrowers,
+                status='active',
+                balance_remaining__gt=0,
+            ).filter(
+                payment_schedule__is_paid=False,
+                payment_schedule__due_date__lt=__import__('datetime').date.today(),
+            ).distinct()
+
+            if defaulted.exists():
+                total_balance = sum(l.balance_remaining or 0 for l in defaulted)
+                group_rows.append({
+                    'group': group,
+                    'count': defaulted.count(),
+                    'total_balance': total_balance,
+                })
+
+        return render(request, self.template_name, {'group_rows': group_rows})
+
+
+class DefaultCollectionGroupView(LoginRequiredMixin, View):
+    """Step 2: Collect payments for defaulted loans in a group."""
+    template_name = 'payments/default_collection_group.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'admin']:
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_defaulted_loans(self, group):
+        from loans.models import Loan
+        import datetime
+        today = datetime.date.today()
+        borrowers = [m.borrower for m in group.members.filter(is_active=True)]
+        return Loan.objects.filter(
+            borrower__in=borrowers,
+            status='active',
+            balance_remaining__gt=0,
+        ).filter(
+            payment_schedule__is_paid=False,
+            payment_schedule__due_date__lt=today,
+        ).distinct().select_related('borrower')
+
+    def get(self, request, group_id):
+        from clients.models import BorrowerGroup
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        loans = self._get_defaulted_loans(group)
+        return render(request, self.template_name, {'group': group, 'loans': loans})
+
+    def post(self, request, group_id):
+        from clients.models import BorrowerGroup
+        from loans.models import Loan
+        from decimal import Decimal, InvalidOperation
+        from .models import DefaultCollection
+        import datetime
+
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        today = datetime.date.today()
+        recorded = 0
+        skipped = 0
+
+        for key, value in request.POST.items():
+            if not key.startswith('amount_'):
+                continue
+            loan_id = key.split('_', 1)[1]
+            amount_str = value.strip()
+            if not amount_str:
+                skipped += 1
+                continue
+            try:
+                amount = Decimal(amount_str)
+                if amount <= 0:
+                    skipped += 1
+                    continue
+            except InvalidOperation:
+                skipped += 1
+                continue
+
+            method = request.POST.get(f'method_{loan_id}', 'cash')
+
+            try:
+                loan = Loan.objects.get(pk=loan_id, status='active')
+            except Loan.DoesNotExist:
+                continue
+
+            balance_before = loan.balance_remaining or Decimal('0')
+            amount_applied = min(amount, balance_before)
+            balance_after = balance_before - amount_applied
+
+            # Update loan
+            loan.amount_paid += amount_applied
+            loan.balance_remaining = balance_after
+            if balance_after <= 0:
+                loan.status = 'completed'
+            loan.save(update_fields=['amount_paid', 'balance_remaining', 'status', 'updated_at'])
+
+            # Record default collection
+            DefaultCollection.objects.create(
+                loan=loan,
+                amount_paid=amount_applied,
+                balance_before=balance_before,
+                balance_after=balance_after,
+                payment_method=method,
+                notes=f'[DEFAULT COLLECTION — {group.name}]',
+                recorded_by=request.user,
+                collection_date=today,
+            )
+
+            # Also distribute to payment schedule
+            from payments.services import distribute_payment
+            distribute_payment(loan, amount_applied, today)
+
+            recorded += 1
+
+        messages.success(request, f'{recorded} default payment(s) recorded for {group.name}. {skipped} skipped.')
+        return redirect('payments:default_collection')

@@ -501,3 +501,28 @@ class MultiSchedulePaymentAssignment(models.Model):
     class Meta:
         unique_together = ['multi_payment', 'payment_schedule']
         ordering = ['payment_schedule__installment_number']
+
+
+class DefaultCollection(models.Model):
+    """Record payments collected on defaulted loans."""
+    loan = models.ForeignKey(
+        'loans.Loan', on_delete=models.CASCADE, related_name='default_collections'
+    )
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_before = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=[
+        ('cash', 'Cash'), ('mobile_money', 'Mobile Money'), ('bank_transfer', 'Bank Transfer'),
+    ], default='cash')
+    notes = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='default_collections'
+    )
+    collection_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-collection_date', '-created_at']
+
+    def __str__(self):
+        return f'Default Collection {self.loan.application_number} K{self.amount_paid} on {self.collection_date}'
