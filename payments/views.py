@@ -633,49 +633,104 @@ class PaymentScheduleView(LoginRequiredMixin, ListView):
 
 
 class BulkCollectionView(LoginRequiredMixin, View):
-    """Officer records payments for multiple clients in one submission."""
+    """Step 1: Show groups with due/overdue payments for the officer."""
     template_name = 'payments/bulk_collection.html'
 
-    def _get_loans(self, officer):
-        from loans.models import Loan
-        from django.db.models import Q
-        from datetime import date
-        today = date.today()
-
-        loans = Loan.objects.filter(
-            Q(loan_officer=officer) |
-            Q(borrower__group_memberships__group__assigned_officer=officer),
-            status='active',
-        ).select_related('borrower', 'loan_type').distinct()
-
-        rows = []
-        for loan in loans:
-            due = PaymentSchedule.objects.filter(
-                loan=loan, is_paid=False
-            ).order_by('due_date').first()
-            rows.append({
-                'loan': loan,
-                'due_schedule': due,
-                'expected': due.total_amount - due.amount_paid if due else loan.payment_amount,
-                'is_overdue': due.is_overdue if due else False,
-            })
-        return rows
-
-    def get(self, request):
+    def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['loan_officer', 'admin']:
             messages.error(request, 'Only loan officers can record bulk collections.')
             return redirect('dashboard:dashboard')
-        rows = self._get_loans(request.user)
-        return render(request, self.template_name, {'rows': rows})
+        return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request):
+    def get(self, request):
+        from loans.models import Loan
+        from clients.models import BorrowerGroup
+        from django.db.models import Q
+        from datetime import date
+        from decimal import Decimal
+
+        officer = request.user
+        today = date.today()
+
+        groups = BorrowerGroup.objects.filter(
+            assigned_officer=officer, is_active=True
+        ).prefetch_related('members__borrower')
+
+        group_rows = []
+        for group in groups:
+            borrowers = [m.borrower for m in group.members.filter(is_active=True)]
+            loans = Loan.objects.filter(
+                borrower__in=borrowers, status='active'
+            ).prefetch_related('payment_schedule')
+
+            due_count = 0
+            total_expected = Decimal('0')
+            for loan in loans:
+                sched = PaymentSchedule.objects.filter(
+                    loan=loan, is_paid=False
+                ).order_by('due_date').first()
+                if sched and (sched.due_date <= today or sched.amount_paid > 0):
+                    due_count += 1
+                    total_expected += sched.total_amount - sched.amount_paid
+
+            if due_count > 0:
+                group_rows.append({
+                    'group': group,
+                    'due_count': due_count,
+                    'total_expected': total_expected,
+                })
+
+        return render(request, self.template_name, {'group_rows': group_rows, 'today': today})
+
+
+class BulkCollectionGroupView(LoginRequiredMixin, View):
+    """Step 2: Collect payments for all clients in a specific group."""
+    template_name = 'payments/bulk_collection_group.html'
+
+    def dispatch(self, request, *args, **kwargs):
         if request.user.role not in ['loan_officer', 'admin']:
             return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
 
+    def _get_rows(self, group):
+        from loans.models import Loan
+        from datetime import date
+        today = date.today()
+        borrowers = [m.borrower for m in group.members.filter(is_active=True)]
+        loans = Loan.objects.filter(
+            borrower__in=borrowers, status='active'
+        ).select_related('borrower')
+        rows = []
+        for loan in loans:
+            sched = PaymentSchedule.objects.filter(
+                loan=loan, is_paid=False
+            ).order_by('due_date').first()
+            if not sched:
+                continue
+            outstanding = sched.total_amount - sched.amount_paid
+            if outstanding <= 0:
+                continue
+            rows.append({
+                'loan': loan,
+                'schedule': sched,
+                'expected': outstanding,
+                'is_overdue': sched.due_date < today,
+            })
+        return rows
+
+    def get(self, request, group_id):
+        from clients.models import BorrowerGroup
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        rows = self._get_rows(group)
+        return render(request, self.template_name, {'group': group, 'rows': rows})
+
+    def post(self, request, group_id):
+        from clients.models import BorrowerGroup
         from loans.models import Loan
         from decimal import Decimal, InvalidOperation
         from datetime import date, datetime as dt
 
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
         today = date.today()
         recorded = 0
         skipped = 0
@@ -697,8 +752,7 @@ class BulkCollectionView(LoginRequiredMixin, View):
                 skipped += 1
                 continue
 
-            method_key = f'method_{loan_id}'
-            method = request.POST.get(method_key, 'cash')
+            method = request.POST.get(f'method_{loan_id}', 'cash')
             method_map = {'mtn': 'mobile_money', 'airtel': 'mobile_money'}
             payment_method = method_map.get(method, method)
 
@@ -714,7 +768,7 @@ class BulkCollectionView(LoginRequiredMixin, View):
                 payment_date=dt.combine(today, dt.min.time()).replace(tzinfo=timezone.get_current_timezone()),
                 processed_by=request.user,
                 status='pending',
-                notes='[BULK COLLECTION]',
+                notes=f'[BULK COLLECTION — {group.name}]',
             )
 
             oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
@@ -722,7 +776,7 @@ class BulkCollectionView(LoginRequiredMixin, View):
                 payment.payment_schedule = oldest_unpaid
                 payment.save(update_fields=['payment_schedule'])
 
-            expected = oldest_unpaid.total_amount if oldest_unpaid else loan.payment_amount
+            expected = oldest_unpaid.total_amount - oldest_unpaid.amount_paid if oldest_unpaid else loan.payment_amount
             collection, _ = PaymentCollection.objects.get_or_create(
                 loan=loan,
                 collection_date=today,
@@ -737,5 +791,5 @@ class BulkCollectionView(LoginRequiredMixin, View):
 
             recorded += 1
 
-        messages.success(request, f'{recorded} payment(s) recorded — awaiting manager confirmation. {skipped} skipped.')
-        return redirect('payments:list')
+        messages.success(request, f'{recorded} payment(s) recorded for {group.name} — awaiting manager confirmation. {skipped} skipped.')
+        return redirect('payments:bulk_collection')
