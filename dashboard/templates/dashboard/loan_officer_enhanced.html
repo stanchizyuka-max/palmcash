@@ -390,7 +390,6 @@
                 </div>
             </div>
             <!-- Grouped by group -->
-            {% regroup active_loans_with_security by borrower.group_memberships.first.group as security_by_group %}
             <div id="security-groups">
             {% for group_entry in security_by_group %}
             <div class="security-group border-b border-slate-100">
@@ -398,8 +397,8 @@
                     class="w-full flex items-center justify-between px-4 py-3 bg-violet-50 hover:bg-violet-100 text-left">
                     <span class="font-semibold text-violet-800 text-sm">
                         <i class="fas fa-layer-group mr-2"></i>
-                        {% if group_entry.grouper %}{{ group_entry.grouper.name }}{% else %}No Group{% endif %}
-                        <span class="ml-2 bg-violet-200 text-violet-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.list|length }}</span>
+                        {{ group_entry.name }}
+                        <span class="ml-2 bg-violet-200 text-violet-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.loans|length }}</span>
                     </span>
                     <i class="fas fa-chevron-down text-violet-500 text-xs transition-transform" id="sg-{{ forloop.counter }}-icon"></i>
                 </button>
@@ -415,7 +414,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        {% for loan in group_entry.list %}
+                        {% for loan in group_entry.loans %}
                         <tr class="hover:bg-slate-50 security-row" data-name="{{ loan.borrower.get_full_name|lower }}">
                             <td class="px-4 py-3 font-mono font-semibold text-slate-700">
                                 <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a>
@@ -458,7 +457,6 @@
                 </div>
             </div>
             <!-- Grouped by group -->
-            {% regroup clients_expected_today by loan.borrower.group_memberships.first.group as collections_by_group %}
             <div id="collection-groups">
             {% for group_entry in collections_by_group %}
             <div class="collection-group border border-slate-200 rounded-lg mb-2 overflow-hidden">
@@ -466,8 +464,8 @@
                     class="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 text-left">
                     <span class="font-semibold text-green-800 text-sm">
                         <i class="fas fa-layer-group mr-2"></i>
-                        {% if group_entry.grouper %}{{ group_entry.grouper.name }}{% else %}No Group{% endif %}
-                        <span class="ml-2 bg-green-200 text-green-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.list|length }}</span>
+                        {{ group_entry.name }}
+                        <span class="ml-2 bg-green-200 text-green-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.items|length }}</span>
                     </span>
                     <i class="fas fa-chevron-down text-green-500 text-xs" id="cg-{{ forloop.counter }}-icon"></i>
                 </button>
@@ -482,7 +480,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        {% for collection in group_entry.list %}
+                        {% for collection in group_entry.items %}
                         <tr class="hover:bg-slate-50 collection-row" data-name="{{ collection.loan.borrower.get_full_name|lower }}">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ collection.loan.borrower.get_full_name }}</td>
                             <td class="px-4 py-3">K{{ collection.expected_amount|floatformat:2|intcomma }}</td>

@@ -21,6 +21,36 @@ def _get_vault_balance(branch):
         return 0
 
 
+def _group_loans_by_group(loans):
+    """Group loans by their borrower's primary group, no duplicates."""
+    from collections import OrderedDict
+    groups = OrderedDict()
+    for loan in loans:
+        membership = loan.borrower.group_memberships.filter(is_active=True).select_related('group').first()
+        group_name = membership.group.name if membership else 'No Group'
+        group_obj = membership.group if membership else None
+        key = group_obj.pk if group_obj else 0
+        if key not in groups:
+            groups[key] = {'group': group_obj, 'name': group_name, 'loans': []}
+        groups[key]['loans'].append(loan)
+    return list(groups.values())
+
+
+def _group_collections_by_group(collections):
+    """Group PaymentCollection records by borrower's primary group."""
+    from collections import OrderedDict
+    groups = OrderedDict()
+    for coll in collections:
+        membership = coll.loan.borrower.group_memberships.filter(is_active=True).select_related('group').first()
+        group_name = membership.group.name if membership else 'No Group'
+        group_obj = membership.group if membership else None
+        key = group_obj.pk if group_obj else 0
+        if key not in groups:
+            groups[key] = {'group': group_obj, 'name': group_name, 'items': []}
+        groups[key]['items'].append(coll)
+    return list(groups.values())
+
+
 @login_required
 def dashboard(request):
     """Route to appropriate dashboard based on user role"""
@@ -227,6 +257,7 @@ def loan_officer_dashboard(request):
         'outstanding_balance': outstanding_balance,
         'workload_percentage': workload_percentage,
         'clients_expected_today': clients_expected_today,
+        'collections_by_group': _group_collections_by_group(clients_expected_today),
         'recent_transactions': formatted_transactions,
         'passbook_entries': passbook_entries,
         'pending_documents': pending_documents,
@@ -261,6 +292,13 @@ def loan_officer_dashboard(request):
             status__in=['active', 'completed'],
             security_deposit__is_verified=True,
         ).select_related('borrower', 'security_deposit').distinct(),
+        'security_by_group': _group_loans_by_group(
+            Loan.objects.filter(
+                Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+                status__in=['active', 'completed'],
+                security_deposit__is_verified=True,
+            ).select_related('borrower', 'security_deposit').distinct()
+        ),
         # Security summary counts
         'sec_deposits_count': SecurityTransaction.objects.filter(
             loan__loan_officer=officer, transaction_type='adjustment', status='approved'
