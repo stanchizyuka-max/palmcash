@@ -380,79 +380,118 @@
                 </h3>
                 <span class="text-violet-100 text-sm">Adjustment · Return · Top-Up</span>
             </div>
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Deposited</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Available</th>
-                        <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for loan in active_loans_with_security %}
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono font-semibold text-slate-700">
-                            <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a>
-                        </td>
-                        <td class="px-4 py-3 text-slate-800">{{ loan.borrower.get_full_name }}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-700">K{{ loan.security_deposit.paid_amount|floatformat:2 }}</td>
-                        <td class="px-4 py-3 font-bold text-green-700">K{{ loan.security_deposit.available_security|floatformat:2 }}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex gap-2 flex-wrap">
-                                <a href="{% url 'loans:security_topup' %}?borrower_id={{ loan.borrower.pk }}&loan_id={{ loan.pk }}&confirm=1"
-                                   class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-200">
-                                    <i class="fas fa-plus-circle mr-1"></i>Top-Up
-                                </a>
-                                <a href="{% url 'loans:security_action' loan.pk 'adjustment' %}"
-                                   class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200">
-                                    <i class="fas fa-sliders-h mr-1"></i>Adjustment
-                                </a>
-                                <a href="{% url 'loans:security_action' loan.pk 'return' %}"
-                                   class="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold hover:bg-purple-200">
-                                    <i class="fas fa-undo mr-1"></i>Return
-                                </a>
-                                <a href="{% url 'loans:security_action' loan.pk 'withdrawal' %}"
-                                   class="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold hover:bg-orange-200">
-                                    <i class="fas fa-minus-circle mr-1"></i>Withdrawal
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <!-- Search -->
+            <div class="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                <div class="relative max-w-xs">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                    <input type="text" id="sec-search" placeholder="Search client..."
+                        class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500"
+                        oninput="filterSecurity(this.value)">
+                </div>
+            </div>
+            <!-- Grouped by group -->
+            {% regroup active_loans_with_security by borrower.group_memberships.first.group as security_by_group %}
+            <div id="security-groups">
+            {% for group_entry in security_by_group %}
+            <div class="security-group border-b border-slate-100">
+                <button type="button" onclick="toggleGroup('sg-{{ forloop.counter }}')"
+                    class="w-full flex items-center justify-between px-4 py-3 bg-violet-50 hover:bg-violet-100 text-left">
+                    <span class="font-semibold text-violet-800 text-sm">
+                        <i class="fas fa-layer-group mr-2"></i>
+                        {% if group_entry.grouper %}{{ group_entry.grouper.name }}{% else %}No Group{% endif %}
+                        <span class="ml-2 bg-violet-200 text-violet-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.list|length }}</span>
+                    </span>
+                    <i class="fas fa-chevron-down text-violet-500 text-xs transition-transform" id="sg-{{ forloop.counter }}-icon"></i>
+                </button>
+                <div id="sg-{{ forloop.counter }}" class="hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Deposited</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Available</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for loan in group_entry.list %}
+                        <tr class="hover:bg-slate-50 security-row" data-name="{{ loan.borrower.get_full_name|lower }}">
+                            <td class="px-4 py-3 font-mono font-semibold text-slate-700">
+                                <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a>
+                            </td>
+                            <td class="px-4 py-3 text-slate-800">{{ loan.borrower.get_full_name }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-700">K{{ loan.security_deposit.paid_amount|floatformat:2 }}</td>
+                            <td class="px-4 py-3 font-bold text-green-700">K{{ loan.security_deposit.available_security|floatformat:2 }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2 flex-wrap">
+                                    <a href="{% url 'loans:security_topup' %}?borrower_id={{ loan.borrower.pk }}&loan_id={{ loan.pk }}&confirm=1" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold hover:bg-green-200"><i class="fas fa-plus-circle mr-1"></i>Top-Up</a>
+                                    <a href="{% url 'loans:security_action' loan.pk 'adjustment' %}" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold hover:bg-blue-200"><i class="fas fa-sliders-h mr-1"></i>Adjustment</a>
+                                    <a href="{% url 'loans:security_action' loan.pk 'return' %}" class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold hover:bg-purple-200"><i class="fas fa-undo mr-1"></i>Return</a>
+                                    <a href="{% url 'loans:security_action' loan.pk 'withdrawal' %}" class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-semibold hover:bg-orange-200"><i class="fas fa-minus-circle mr-1"></i>Withdrawal</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
         </div>
         {% endif %}
 
         <!-- Clients Expected to Pay Today -->
         <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200 mb-8">
-            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
+            <h3 class="text-xl font-bold text-slate-900 mb-3 flex items-center">
                 <i class="fas fa-users text-green-600 mr-2"></i>Clients Expected to Pay Today
             </h3>
             {% if clients_expected_today %}
-            <div class="overflow-x-auto">
+            <!-- Search -->
+            <div class="mb-3">
+                <div class="relative max-w-xs">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                    <input type="text" id="col-search" placeholder="Search client..."
+                        class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                        oninput="filterCollections(this.value)">
+                </div>
+            </div>
+            <!-- Grouped by group -->
+            {% regroup clients_expected_today by loan.borrower.group_memberships.first.group as collections_by_group %}
+            <div id="collection-groups">
+            {% for group_entry in collections_by_group %}
+            <div class="collection-group border border-slate-200 rounded-lg mb-2 overflow-hidden">
+                <button type="button" onclick="toggleGroup('cg-{{ forloop.counter }}')"
+                    class="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 text-left">
+                    <span class="font-semibold text-green-800 text-sm">
+                        <i class="fas fa-layer-group mr-2"></i>
+                        {% if group_entry.grouper %}{{ group_entry.grouper.name }}{% else %}No Group{% endif %}
+                        <span class="ml-2 bg-green-200 text-green-700 text-xs px-2 py-0.5 rounded-full">{{ group_entry.list|length }}</span>
+                    </span>
+                    <i class="fas fa-chevron-down text-green-500 text-xs" id="cg-{{ forloop.counter }}-icon"></i>
+                </button>
+                <div id="cg-{{ forloop.counter }}" class="hidden">
                 <table class="w-full text-sm">
                     <thead class="bg-slate-50 border-b border-slate-200">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Client</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Expected</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Collected</th>
-                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-700 uppercase">Client</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-700 uppercase">Expected</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-700 uppercase">Collected</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-700 uppercase">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
-                        {% for collection in clients_expected_today %}
-                        <tr class="hover:bg-slate-50">
+                        {% for collection in group_entry.list %}
+                        <tr class="hover:bg-slate-50 collection-row" data-name="{{ collection.loan.borrower.get_full_name|lower }}">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ collection.loan.borrower.get_full_name }}</td>
                             <td class="px-4 py-3">K{{ collection.expected_amount|floatformat:2|intcomma }}</td>
                             <td class="px-4 py-3">K{{ collection.collected_amount|floatformat:2|intcomma }}</td>
                             <td class="px-4 py-3">
-                                {% if collection.is_default %}
-                                <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Default</span>
-                                {% elif collection.collected_amount >= collection.expected_amount %}
+                                {% if collection.collected_amount >= collection.expected_amount %}
                                 <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Paid</span>
+                                {% elif collection.collected_amount > 0 %}
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Partial</span>
                                 {% else %}
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Pending</span>
                                 {% endif %}
@@ -461,12 +500,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
+            </div>
+            {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-6">
                 <i class="fas fa-check-circle text-green-400 text-3xl mb-2"></i>
                 <p class="text-slate-500 text-sm">No collections expected today</p>
-                <p class="text-slate-400 text-xs mt-1">Great job! All expected collections are complete or there are no scheduled collections for today.</p>
             </div>
             {% endif %}
         </div>
@@ -486,5 +527,37 @@
       if (countdown <= 0) window.location.reload();
     }, 1000);
   })();
+
+  function toggleGroup(id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById(id + '-icon');
+    if (el) el.classList.toggle('hidden');
+    if (icon) icon.style.transform = el.classList.contains('hidden') ? '' : 'rotate(180deg)';
+  }
+
+  function filterSecurity(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.security-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+    // Show all groups when searching
+    if (q) {
+      document.querySelectorAll('[id^="sg-"]').forEach(el => {
+        if (!el.id.includes('-icon')) el.classList.remove('hidden');
+      });
+    }
+  }
+
+  function filterCollections(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.collection-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+    if (q) {
+      document.querySelectorAll('[id^="cg-"]').forEach(el => {
+        if (!el.id.includes('-icon')) el.classList.remove('hidden');
+      });
+    }
+  }
 </script>
 {% endblock %}
