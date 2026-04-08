@@ -4566,3 +4566,185 @@ def _render_manager_dashboard_for_branch(request, branch, manager):
         'ready_for_disbursement': 0,
     }
     return render(request, 'dashboard/manager_enhanced.html', context)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin Tracking Views
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def pending_officer_approvals(request):
+    """Officers who registered but haven't been approved yet."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    pending = User.objects.filter(role='loan_officer', is_approved=False).order_by('date_joined')
+    return render(request, 'dashboard/pending_officer_approvals.html', {'officers': pending})
+
+
+@login_required
+def loans_approaching_maturity(request):
+    """Active loans due to complete in the next 30 days."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from datetime import timedelta
+    today = date.today()
+    in_30 = today + timedelta(days=30)
+    loans = Loan.objects.filter(
+        status='active',
+        maturity_date__gte=today,
+        maturity_date__lte=in_30,
+    ).select_related('borrower', 'loan_officer').order_by('maturity_date')
+    return render(request, 'dashboard/loans_approaching_maturity.html', {
+        'loans': loans,
+        'today': today,
+        'in_30': in_30,
+    })
+
+
+@login_required
+def collection_trend(request):
+    """Weekly collection trend for the last 8 weeks."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from datetime import timedelta
+    from django.db.models import Sum
+    today = date.today()
+    weeks = []
+    for i in range(7, -1, -1):
+        week_start = today - timedelta(days=today.weekday()) - timedelta(weeks=i)
+        week_end = week_start + timedelta(days=6)
+        expected = PaymentCollection.objects.filter(
+            collection_date__gte=week_start, collection_date__lte=week_end
+        ).aggregate(t=Sum('expected_amount'))['t'] or 0
+        collected = PaymentCollection.objects.filter(
+            collection_date__gte=week_start, collection_date__lte=week_end,
+            status='completed'
+        ).aggregate(t=Sum('collected_amount'))['t'] or 0
+        rate = round((collected / expected * 100), 1) if expected > 0 else 0
+        weeks.append({
+            'label': f"W{8-i} ({week_start.strftime('%d %b')})",
+            'week_start': week_start,
+            'expected': expected,
+            'collected': collected,
+            'rate': rate,
+        })
+    return render(request, 'dashboard/collection_trend.html', {'weeks': weeks})
+
+
+@login_required
+def chronic_defaulters(request):
+    """Clients who have never paid or consistently miss payments."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from payments.models import PaymentSchedule
+    today = date.today()
+    # Borrowers with active loans where ALL overdue installments are unpaid
+    active_loans = Loan.objects.filter(status='active').select_related('borrower', 'loan_officer')
+    defaulters = []
+    for loan in active_loans:
+        overdue = PaymentSchedule.objects.filter(
+            loan=loan, is_paid=False, due_date__lt=today
+        ).count()
+        paid = PaymentSchedule.objects.filter(loan=loan, is_paid=True).count()
+        if overdue > 0:
+            defaulters.append({
+                'loan': loan,
+                'overdue_count': overdue,
+                'paid_count': paid,
+                'never_paid': paid == 0,
+                'balance': loan.balance_remaining or 0,
+            })
+    defaulters.sort(key=lambda x: (-x['overdue_count'], x['never_paid']))
+    return render(request, 'dashboard/chronic_defaulters.html', {'defaulters': defaulters})
+
+
+@login_required
+def processing_fees_summary(request):
+    """Processing fees collected per branch and officer."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from loans.models import LoanApplication
+    from django.db.models import Sum, Count
+    apps = LoanApplication.objects.filter(
+        processing_fee__isnull=False, processing_fee__gt=0
+    ).select_related('borrower', 'loan_officer')
+
+    total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
+    verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
+    pending_fees = apps.filter(processing_fee_verified=False).aggregate(t=Sum('processing_fee'))['t'] or 0
+
+    # Per officer
+    from django.db.models import Q
+    officer_fees = []
+    officers = User.objects.filter(role='loan_officer').filter(
+        submitted_loan_applications__processing_fee__gt=0
+    ).distinct()
+    for officer in officers:
+        officer_apps = apps.filter(loan_officer=officer)
+        officer_fees.append({
+            'officer': officer,
+            'count': officer_apps.count(),
+            'total': officer_apps.aggregate(t=Sum('processing_fee'))['t'] or 0,
+            'verified': officer_apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0,
+        })
+    officer_fees.sort(key=lambda x: -x['total'])
+
+    return render(request, 'dashboard/processing_fees_summary.html', {
+        'apps': apps.order_by('-created_at')[:100],
+        'total_fees': total_fees,
+        'verified_fees': verified_fees,
+        'pending_fees': pending_fees,
+        'officer_fees': officer_fees,
+    })
+
+
+@login_required
+def borrower_profile_completeness(request):
+    """Borrowers missing key profile fields."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from django.db.models import Q
+    borrowers = User.objects.filter(role='borrower', is_active=True)
+    incomplete = []
+    for b in borrowers:
+        missing = []
+        if not b.phone_number: missing.append('Phone')
+        if not b.national_id: missing.append('NRC')
+        if not b.date_of_birth: missing.append('Date of Birth')
+        if not b.address and not b.residential_address: missing.append('Address')
+        if not b.guarantor1_name: missing.append('Guarantor 1')
+        if missing:
+            incomplete.append({'borrower': b, 'missing': missing, 'count': len(missing)})
+    incomplete.sort(key=lambda x: -x['count'])
+    return render(request, 'dashboard/borrower_profile_completeness.html', {
+        'incomplete': incomplete,
+        'total_borrowers': borrowers.count(),
+        'incomplete_count': len(incomplete),
+    })
+
+
+@login_required
+def officer_activity(request):
+    """Officer last activity — last payment, disbursement, registration."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name')
+    rows = []
+    for officer in officers:
+        last_payment = Payment.objects.filter(processed_by=officer).order_by('-created_at').first()
+        last_loan = Loan.objects.filter(loan_officer=officer).order_by('-created_at').first()
+        last_borrower = User.objects.filter(assigned_officer=officer, role='borrower').order_by('-date_joined').first()
+        branch = ''
+        try:
+            branch = officer.officer_assignment.branch
+        except Exception:
+            pass
+        rows.append({
+            'officer': officer,
+            'branch': branch,
+            'last_payment_date': last_payment.created_at if last_payment else None,
+            'last_loan_date': last_loan.created_at if last_loan else None,
+            'last_borrower_date': last_borrower.date_joined if last_borrower else None,
+            'last_login': officer.last_login,
+        })
+    return render(request, 'dashboard/officer_activity.html', {'rows': rows})

@@ -1,0 +1,44 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Borrower Profile Completeness{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-6xl mx-auto px-4">
+    <div class="mb-6 flex items-center justify-between">
+      <div><h1 class="text-2xl font-bold text-slate-900">Borrower Profile Completeness</h1>
+      <p class="text-slate-500 text-sm mt-1">{{ incomplete_count }} of {{ total_borrowers }} borrowers have incomplete profiles</p></div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+    {% if incomplete %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Missing Fields</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Count</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in incomplete %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium text-slate-900">{{ row.borrower.get_full_name }}</td>
+            <td class="px-4 py-3">
+              {% for field in row.missing %}
+              <span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs mr-1 mb-1">{{ field }}</span>
+              {% endfor %}
+            </td>
+            <td class="px-4 py-3 text-center font-bold text-red-600">{{ row.count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200">
+      <i class="fas fa-check-circle text-4xl mb-3 text-green-400"></i><p>All borrower profiles are complete.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

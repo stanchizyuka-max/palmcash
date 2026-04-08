@@ -286,6 +286,44 @@
         </div>
       </div>
 
+      <!-- Monitoring & Alerts -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-rose-600 to-rose-700 px-5 py-4 flex items-center gap-3">
+          <i class="fas fa-bell text-white text-xl"></i>
+          <h2 class="text-lg font-bold text-white">Monitoring & Alerts</h2>
+        </div>
+        <div class="p-4 space-y-2">
+          <a href="{% url 'dashboard:pending_officer_approvals' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-user-clock text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Pending Officer Approvals</span>
+          </a>
+          <a href="{% url 'dashboard:loans_approaching_maturity' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-calendar-times text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Loans Approaching Maturity</span>
+          </a>
+          <a href="{% url 'dashboard:collection_trend' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-chart-area text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Collection Trend</span>
+          </a>
+          <a href="{% url 'dashboard:chronic_defaulters' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-exclamation-triangle text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Chronic Defaulters</span>
+          </a>
+          <a href="{% url 'dashboard:processing_fees_summary' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-coins text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Processing Fees</span>
+          </a>
+          <a href="{% url 'dashboard:borrower_profile_completeness' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-user-check text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Profile Completeness</span>
+          </a>
+          <a href="{% url 'dashboard:officer_activity' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-user-clock text-rose-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Officer Activity</span>
+          </a>
+        </div>
+      </div>
+
     </div>
 
     <!-- Recent Activity -->

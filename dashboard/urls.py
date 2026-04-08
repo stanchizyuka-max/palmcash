@@ -96,6 +96,13 @@ urlpatterns = [
     path('branch-comparison/', views.branch_comparison, name='branch_comparison'),
     path('loan-aging/', views.loan_aging, name='loan_aging'),
     path('officer-performance/', views.officer_performance, name='officer_performance'),
+    path('pending-officer-approvals/', views.pending_officer_approvals, name='pending_officer_approvals'),
+    path('loans-approaching-maturity/', views.loans_approaching_maturity, name='loans_approaching_maturity'),
+    path('collection-trend/', views.collection_trend, name='collection_trend'),
+    path('chronic-defaulters/', views.chronic_defaulters, name='chronic_defaulters'),
+    path('processing-fees/', views.processing_fees_summary, name='processing_fees_summary'),
+    path('borrower-completeness/', views.borrower_profile_completeness, name='borrower_profile_completeness'),
+    path('officer-activity/', views.officer_activity, name='officer_activity'),
 
     # Vault
     path('vault/', vault_views.vault_dashboard, name='vault'),

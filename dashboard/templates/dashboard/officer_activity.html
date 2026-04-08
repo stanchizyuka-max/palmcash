@@ -1,0 +1,42 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Officer Activity{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="mb-6 flex items-center justify-between">
+      <div><h1 class="text-2xl font-bold text-slate-900">Officer Activity</h1>
+      <p class="text-slate-500 text-sm mt-1">Last recorded activity per loan officer</p></div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Branch</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Last Payment</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Last Loan</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Last Borrower</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Last Login</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in rows %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium text-slate-900">{{ row.officer.get_full_name }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ row.branch|default:"—" }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">{{ row.last_payment_date|date:"d M Y"|default:"Never" }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">{{ row.last_loan_date|date:"d M Y"|default:"Never" }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">{{ row.last_borrower_date|date:"d M Y"|default:"Never" }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">{{ row.last_login|date:"d M Y H:i"|default:"Never" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No officers found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
