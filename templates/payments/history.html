@@ -13,267 +13,323 @@
       <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
     </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-1 mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-1 w-fit">
-      <a href="?tab=collections{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-         class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'collections' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
-        <i class="fas fa-money-bill-wave mr-1"></i>Collections
-      </a>
-      <a href="?tab=securities{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-         class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'securities' %}bg-violet-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
-        <i class="fas fa-shield-alt mr-1"></i>Securities
-      </a>
-      <a href="?tab=defaults{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-         class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'defaults' %}bg-red-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
-        <i class="fas fa-exclamation-circle mr-1"></i>Default Collections
-      </a>
-    </div>
+    <div class="flex gap-6">
 
-    <!-- Filter Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
-      <form method="get" class="flex flex-wrap gap-3 items-end">
-        <input type="hidden" name="tab" value="{{ tab }}">
-        {% if tab == 'securities' %}<input type="hidden" name="sec_type" value="{{ filters.sec_type }}">{% endif %}
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">From</label>
-          <input type="date" name="date_from" value="{{ filters.date_from }}"
-            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+      <!-- Left sidebar: navigation -->
+      <div class="w-64 flex-shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-20">
+          <div class="bg-slate-700 px-4 py-3">
+            <p class="text-white text-sm font-bold">
+              {% if user.role == 'manager' %}Officers & Groups{% else %}My Groups{% endif %}
+            </p>
+          </div>
+
+          <!-- Search box -->
+          <div class="p-3 border-b border-slate-100">
+            <form method="get" id="search-form">
+              <input type="hidden" name="tab" value="{{ tab }}">
+              {% if filters.sec_type %}<input type="hidden" name="sec_type" value="{{ filters.sec_type }}">{% endif %}
+              {% if filters.date_from %}<input type="hidden" name="date_from" value="{{ filters.date_from }}">{% endif %}
+              {% if filters.date_to %}<input type="hidden" name="date_to" value="{{ filters.date_to }}">{% endif %}
+              <input type="text" name="search" value="{{ filters.search }}"
+                placeholder="Search group, client, officer..."
+                class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-400"
+                onchange="this.form.submit()">
+            </form>
+          </div>
+
+          <div class="overflow-y-auto max-h-96">
+            {% if user.role == 'manager' %}
+              <!-- Manager: officers → groups -->
+              {% for row in nav_officers %}
+              <div class="border-b border-slate-100">
+                <button onclick="toggleOfficer('off-{{ row.officer.pk }}')"
+                  class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 {% if selected_officer.pk == row.officer.pk %}bg-blue-50{% endif %}">
+                  <span class="text-xs font-bold text-slate-700 truncate">{{ row.officer.get_full_name }}</span>
+                  <i class="fas fa-chevron-down text-slate-400 text-xs ml-1"></i>
+                </button>
+                <div id="off-{{ row.officer.pk }}" class="{% if selected_officer.pk != row.officer.pk and not selected_group %}hidden{% endif %}">
+                  {% for group in row.groups %}
+                  <a href="?tab={{ tab }}&officer={{ row.officer.pk }}&group={{ group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+                     class="flex items-center gap-2 px-5 py-1.5 text-xs hover:bg-blue-50 {% if selected_group.pk == group.pk %}bg-blue-100 text-blue-700 font-semibold{% else %}text-slate-600{% endif %}">
+                    <i class="fas fa-layer-group text-xs"></i>{{ group.name }}
+                  </a>
+                  {% empty %}
+                  <p class="px-5 py-1.5 text-xs text-slate-400">No groups</p>
+                  {% endfor %}
+                </div>
+              </div>
+              {% empty %}
+              <p class="px-4 py-3 text-xs text-slate-400">No officers in your branch</p>
+              {% endfor %}
+
+            {% else %}
+              <!-- Officer: groups -->
+              <a href="?tab={{ tab }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+                 class="flex items-center gap-2 px-4 py-2 text-xs hover:bg-blue-50 {% if not selected_group %}bg-blue-100 text-blue-700 font-semibold{% else %}text-slate-600{% endif %} border-b border-slate-100">
+                <i class="fas fa-globe text-xs"></i>All Groups
+              </a>
+              {% for group in nav_groups %}
+              <a href="?tab={{ tab }}&group={{ group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+                 class="flex items-center gap-2 px-4 py-2 text-xs hover:bg-blue-50 {% if selected_group.pk == group.pk %}bg-blue-100 text-blue-700 font-semibold{% else %}text-slate-600{% endif %} border-b border-slate-100">
+                <i class="fas fa-layer-group text-xs"></i>{{ group.name }}
+              </a>
+              {% empty %}
+              <p class="px-4 py-3 text-xs text-slate-400">No groups assigned</p>
+              {% endfor %}
+            {% endif %}
+          </div>
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">To</label>
-          <input type="date" name="date_to" value="{{ filters.date_to }}"
-            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+      </div>
+
+      <!-- Main content -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-4 bg-white rounded-xl shadow-sm border border-slate-200 p-1 w-fit">
+          <a href="?tab=collections{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+             class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'collections' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+            <i class="fas fa-money-bill-wave mr-1"></i>Collections
+          </a>
+          <a href="?tab=securities{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+             class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'securities' %}bg-violet-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+            <i class="fas fa-shield-alt mr-1"></i>Securities
+          </a>
+          <a href="?tab=defaults{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+             class="px-5 py-2 rounded-lg text-sm font-semibold transition {% if tab == 'defaults' %}bg-red-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+            <i class="fas fa-exclamation-circle mr-1"></i>Default Collections
+          </a>
         </div>
 
+        <!-- Context breadcrumb -->
+        {% if selected_group or selected_officer %}
+        <div class="mb-3 text-sm text-slate-500 flex items-center gap-2">
+          <a href="?tab={{ tab }}" class="hover:text-blue-600">All</a>
+          {% if selected_officer %}<i class="fas fa-chevron-right text-xs"></i><span class="text-slate-700 font-medium">{{ selected_officer.get_full_name }}</span>{% endif %}
+          {% if selected_group %}<i class="fas fa-chevron-right text-xs"></i><span class="text-blue-700 font-semibold">{{ selected_group.name }}</span>{% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Filter Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
+          <form method="get" class="flex flex-wrap gap-3 items-end">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            {% if selected_group %}<input type="hidden" name="group" value="{{ selected_group.pk }}">{% endif %}
+            {% if selected_officer %}<input type="hidden" name="officer" value="{{ selected_officer.pk }}">{% endif %}
+            {% if tab == 'securities' %}<input type="hidden" name="sec_type" value="{{ filters.sec_type }}">{% endif %}
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-600 uppercase">From</label>
+              <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-600 uppercase">To</label>
+              <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+            </div>
+            {% if tab == 'collections' %}
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-600 uppercase">Status</label>
+              <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
+                <option value="">All Paid</option>
+                <option value="partial" {% if filters.status == 'partial' %}selected{% endif %}>Partial</option>
+                <option value="paid" {% if filters.status == 'paid' %}selected{% endif %}>Fully Paid</option>
+              </select>
+            </div>
+            {% elif tab == 'securities' %}
+            {% if filters.sec_type == 'deposits' %}
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-600 uppercase">Status</label>
+              <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
+                <option value="">All</option>
+                <option value="verified" {% if filters.status == 'verified' %}selected{% endif %}>Verified</option>
+                <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+              </select>
+            </div>
+            {% else %}
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-600 uppercase">Type</label>
+              <select name="transaction_type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
+                <option value="">All Types</option>
+                <option value="adjustment" {% if filters.transaction_type == 'adjustment' %}selected{% endif %}>Adjustment</option>
+                <option value="return" {% if filters.transaction_type == 'return' %}selected{% endif %}>Return</option>
+                <option value="withdrawal" {% if filters.transaction_type == 'withdrawal' %}selected{% endif %}>Withdrawal</option>
+                <option value="carry_forward" {% if filters.transaction_type == 'carry_forward' %}selected{% endif %}>Carry Forward</option>
+              </select>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+              <label class="text-xs font-semibold text-slate-600 uppercase">Search</label>
+              <input type="text" name="search" value="{{ filters.search }}" placeholder="Client, group, or officer..."
+                class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+            </div>
+            <div class="flex gap-2">
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"><i class="fas fa-filter mr-1"></i>Filter</button>
+              <a href="?tab={{ tab }}{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- ===== COLLECTIONS ===== -->
         {% if tab == 'collections' %}
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">Status</label>
-          <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
-            <option value="">All Paid</option>
-            <option value="partial" {% if filters.status == 'partial' %}selected{% endif %}>Partial</option>
-            <option value="paid" {% if filters.status == 'paid' %}selected{% endif %}>Fully Paid</option>
-          </select>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex flex-wrap gap-6 text-sm">
+          <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ collections|length }}</span></div>
+          <div><span class="text-slate-500">Expected:</span> <span class="font-bold text-blue-700">K{{ totals.expected|floatformat:2|intcomma }}</span></div>
+          <div><span class="text-slate-500">Collected:</span> <span class="font-bold text-green-700">K{{ totals.collected|floatformat:2|intcomma }}</span></div>
         </div>
+        {% if collections %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for c in collections %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ c.collection_date|date:"d M Y" }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ c.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' c.loan.pk %}" class="text-blue-600 hover:underline">{{ c.loan.application_number }}</a></td>
+                <td class="px-4 py-3 text-right text-slate-700">K{{ c.expected_amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-green-700">K{{ c.collected_amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3">
+                  {% if c.is_partial %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Partial</span>
+                  {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Paid</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-history text-4xl mb-3"></i><p>No collections found.</p></div>{% endif %}
+
+        <!-- ===== SECURITIES ===== -->
         {% elif tab == 'securities' %}
-        {% if filters.sec_type == 'deposits' %}
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">Status</label>
-          <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
-            <option value="">All</option>
-            <option value="verified" {% if filters.status == 'verified' %}selected{% endif %}>Verified</option>
-            <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
-          </select>
+        <div class="flex gap-1 mb-4 bg-slate-100 rounded-lg p-1 w-fit">
+          <a href="?tab=securities&sec_type=deposits{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+             class="px-4 py-1.5 rounded text-sm font-semibold transition {% if filters.sec_type == 'deposits' %}bg-white text-violet-700 shadow{% else %}text-slate-600 hover:bg-white{% endif %}">
+            <i class="fas fa-hand-holding-usd mr-1"></i>Upfront Deposits
+          </a>
+          <a href="?tab=securities&sec_type=transactions{% if selected_group %}&group={{ selected_group.pk }}{% endif %}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
+             class="px-4 py-1.5 rounded text-sm font-semibold transition {% if filters.sec_type != 'deposits' %}bg-white text-violet-700 shadow{% else %}text-slate-600 hover:bg-white{% endif %}">
+            <i class="fas fa-exchange-alt mr-1"></i>Transactions
+          </a>
         </div>
-        {% else %}
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">Type</label>
-          <select name="transaction_type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
-            <option value="">All Types</option>
-            <option value="adjustment" {% if filters.transaction_type == 'adjustment' %}selected{% endif %}>Adjustment</option>
-            <option value="return" {% if filters.transaction_type == 'return' %}selected{% endif %}>Return</option>
-            <option value="withdrawal" {% if filters.transaction_type == 'withdrawal' %}selected{% endif %}>Withdrawal</option>
-            <option value="carry_forward" {% if filters.transaction_type == 'carry_forward' %}selected{% endif %}>Carry Forward</option>
-          </select>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
+          <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ securities|length }}</span></div>
+          <div><span class="text-slate-500">Total:</span> <span class="font-bold text-violet-700">K{{ totals.amount|floatformat:2|intcomma }}</span></div>
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-600 uppercase">Status</label>
-          <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400">
-            <option value="">All</option>
-            <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
-            <option value="approved" {% if filters.status == 'approved' %}selected{% endif %}>Approved</option>
-            <option value="rejected" {% if filters.status == 'rejected' %}selected{% endif %}>Rejected</option>
-          </select>
+        {% if securities %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+          {% if filters.sec_type == 'deposits' %}
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200"><tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Required</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Paid</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Verified By</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for d in securities %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ d.payment_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ d.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' d.loan.pk %}" class="text-blue-600 hover:underline">{{ d.loan.application_number }}</a></td>
+                <td class="px-4 py-3 text-right text-slate-700">K{{ d.required_amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 text-right font-bold text-violet-700">K{{ d.paid_amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3">{% if d.is_verified %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Verified</span>{% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>{% endif %}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ d.verified_by.get_full_name|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200"><tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Approved By</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for t in securities %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ t.created_at|date:"d M Y" }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ t.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' t.loan.pk %}" class="text-blue-600 hover:underline">{{ t.loan.application_number }}</a></td>
+                <td class="px-4 py-3 text-slate-700">{{ t.get_transaction_type_display }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-violet-700">K{{ t.amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3">{% if t.status == 'approved' %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Approved</span>{% elif t.status == 'rejected' %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Rejected</span>{% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>{% endif %}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ t.approved_by.get_full_name|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endif %}
         </div>
+        {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-shield-alt text-4xl mb-3"></i><p>No records found.</p></div>{% endif %}
+
+        <!-- ===== DEFAULTS ===== -->
+        {% elif tab == 'defaults' %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
+          <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ defaults|length }}</span></div>
+          <div><span class="text-slate-500">Total Collected:</span> <span class="font-bold text-red-700">K{{ totals.amount|floatformat:2|intcomma }}</span></div>
+        </div>
+        {% if defaults %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200"><tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount Paid</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Balance After</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Method</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for dc in defaults %}
+              <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ dc.collection_date|date:"d M Y" }}</td>
+                <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' dc.loan.pk %}" class="text-blue-600 hover:underline">{{ dc.loan.application_number }}</a></td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ dc.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 text-right font-bold text-green-700">K{{ dc.amount_paid|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 text-right {% if dc.balance_after == 0 %}text-green-600 font-bold{% else %}text-slate-700{% endif %}">K{{ dc.balance_after|floatformat:2|intcomma }}{% if dc.balance_after == 0 %} <span class="text-xs bg-green-100 text-green-700 px-1 rounded">Closed</span>{% endif %}</td>
+                <td class="px-4 py-3 text-slate-600">{{ dc.get_payment_method_display }}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ dc.recorded_by.get_full_name|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>No default collections found.</p></div>{% endif %}
         {% endif %}
-        {% endif %}
 
-        <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
-          <label class="text-xs font-semibold text-slate-600 uppercase">Search Client</label>
-          <input type="text" name="search" value="{{ filters.search }}" placeholder="Name or loan #"
-            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
-        </div>
-        <div class="flex gap-2">
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
-            <i class="fas fa-filter mr-1"></i>Filter
-          </button>
-          <a href="?tab={{ tab }}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
-        </div>
-      </form>
+      </div>
     </div>
-
-    <!-- ===== COLLECTIONS TAB ===== -->
-    {% if tab == 'collections' %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex flex-wrap gap-6 text-sm">
-      <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ collections|length }}</span></div>
-      <div><span class="text-slate-500">Expected:</span> <span class="font-bold text-blue-700">K{{ totals.expected|floatformat:2|intcomma }}</span></div>
-      <div><span class="text-slate-500">Collected:</span> <span class="font-bold text-green-700">K{{ totals.collected|floatformat:2|intcomma }}</span></div>
-    </div>
-    {% if collections %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          {% for c in collections %}
-          <tr class="hover:bg-slate-50">
-            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ c.collection_date|date:"d M Y" }}</td>
-            <td class="px-4 py-3 font-medium text-slate-900">{{ c.loan.borrower.get_full_name }}</td>
-            <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' c.loan.pk %}" class="text-blue-600 hover:underline">{{ c.loan.application_number }}</a></td>
-            <td class="px-4 py-3 text-right text-slate-700">K{{ c.expected_amount|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3 text-right font-semibold text-green-700">K{{ c.collected_amount|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3">
-              {% if c.is_partial %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Partial</span>
-              {% elif c.collected_amount == 0 %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Pending</span>
-              {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Paid</span>{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-history text-4xl mb-3"></i><p>No collections found.</p></div>{% endif %}
-
-    <!-- ===== SECURITIES TAB ===== -->
-    {% elif tab == 'securities' %}
-
-    <!-- Sub-tabs: Deposits vs Transactions -->
-    <div class="flex gap-1 mb-4 bg-slate-100 rounded-lg p-1 w-fit">
-      <a href="?tab=securities&sec_type=deposits{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-         class="px-4 py-1.5 rounded text-sm font-semibold transition {% if filters.sec_type == 'deposits' %}bg-white text-violet-700 shadow{% else %}text-slate-600 hover:bg-white{% endif %}">
-        <i class="fas fa-hand-holding-usd mr-1"></i>Upfront Deposits
-      </a>
-      <a href="?tab=securities&sec_type=transactions{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-         class="px-4 py-1.5 rounded text-sm font-semibold transition {% if filters.sec_type != 'deposits' %}bg-white text-violet-700 shadow{% else %}text-slate-600 hover:bg-white{% endif %}">
-        <i class="fas fa-exchange-alt mr-1"></i>Transactions
-      </a>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
-      <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ securities|length }}</span></div>
-      <div><span class="text-slate-500">Total Amount:</span> <span class="font-bold text-violet-700">K{{ totals.amount|floatformat:2|intcomma }}</span></div>
-    </div>
-
-    {% if securities %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-
-      {% if filters.sec_type == 'deposits' %}
-      <!-- Deposits table -->
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Required</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Paid</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Verified By</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          {% for d in securities %}
-          <tr class="hover:bg-slate-50">
-            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ d.payment_date|date:"d M Y"|default:"—" }}</td>
-            <td class="px-4 py-3 font-medium text-slate-900">{{ d.loan.borrower.get_full_name }}</td>
-            <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' d.loan.pk %}" class="text-blue-600 hover:underline">{{ d.loan.application_number }}</a></td>
-            <td class="px-4 py-3 text-right text-slate-700">K{{ d.required_amount|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3 text-right font-bold text-violet-700">K{{ d.paid_amount|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3">
-              {% if d.is_verified %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Verified</span>
-              {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>{% endif %}
-            </td>
-            <td class="px-4 py-3 text-slate-500 text-xs">{{ d.verified_by.get_full_name|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      {% else %}
-      <!-- Transactions table -->
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Approved By</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          {% for t in securities %}
-          <tr class="hover:bg-slate-50">
-            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ t.created_at|date:"d M Y" }}</td>
-            <td class="px-4 py-3 font-medium text-slate-900">{{ t.loan.borrower.get_full_name }}</td>
-            <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' t.loan.pk %}" class="text-blue-600 hover:underline">{{ t.loan.application_number }}</a></td>
-            <td class="px-4 py-3 text-slate-700">{{ t.get_transaction_type_display }}</td>
-            <td class="px-4 py-3 text-right font-semibold text-violet-700">K{{ t.amount|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3">
-              {% if t.status == 'approved' %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Approved</span>
-              {% elif t.status == 'rejected' %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Rejected</span>
-              {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pending</span>{% endif %}
-            </td>
-            <td class="px-4 py-3 text-slate-500 text-xs">{{ t.approved_by.get_full_name|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-    </div>
-    {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-shield-alt text-4xl mb-3"></i><p>No records found.</p></div>{% endif %}
-
-    <!-- ===== DEFAULTS TAB ===== -->
-    {% elif tab == 'defaults' %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
-      <div><span class="text-slate-500">Records:</span> <span class="font-bold">{{ defaults|length }}</span></div>
-      <div><span class="text-slate-500">Total Collected:</span> <span class="font-bold text-red-700">K{{ totals.amount|floatformat:2|intcomma }}</span></div>
-    </div>
-    {% if defaults %}
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount Paid</th>
-            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Balance After</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Method</th>
-            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          {% for dc in defaults %}
-          <tr class="hover:bg-slate-50">
-            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ dc.collection_date|date:"d M Y" }}</td>
-            <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' dc.loan.pk %}" class="text-blue-600 hover:underline">{{ dc.loan.application_number }}</a></td>
-            <td class="px-4 py-3 font-medium text-slate-900">{{ dc.loan.borrower.get_full_name }}</td>
-            <td class="px-4 py-3 text-right font-bold text-green-700">K{{ dc.amount_paid|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3 text-right {% if dc.balance_after == 0 %}text-green-600 font-bold{% else %}text-slate-700{% endif %}">
-              K{{ dc.balance_after|floatformat:2|intcomma }}
-              {% if dc.balance_after == 0 %}<span class="ml-1 text-xs bg-green-100 text-green-700 px-1 rounded">Closed</span>{% endif %}
-            </td>
-            <td class="px-4 py-3 text-slate-600">{{ dc.get_payment_method_display }}</td>
-            <td class="px-4 py-3 text-slate-500 text-xs">{{ dc.recorded_by.get_full_name|default:"—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}<div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>No default collections found.</p></div>{% endif %}
-    {% endif %}
-
   </div>
 </div>
+
+<script>
+function toggleOfficer(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('hidden');
+}
+// Auto-expand selected officer
+{% if selected_officer %}
+const el = document.getElementById('off-{{ selected_officer.pk }}');
+if (el) el.classList.remove('hidden');
+{% endif %}
+</script>
 {% endblock %}
