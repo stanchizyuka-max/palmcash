@@ -4455,3 +4455,101 @@ def officer_performance(request):
     rows.sort(key=lambda r: r['collection_rate'])
 
     return render(request, 'dashboard/officer_performance.html', {'rows': rows})
+
+
+@login_required
+def admin_manager_view(request):
+    """Admin selects a branch to view its manager dashboard."""
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+
+    branch_id = request.GET.get('branch')
+    if branch_id:
+        try:
+            branch = Branch.objects.get(pk=branch_id)
+            manager = branch.manager
+            if not manager:
+                messages.warning(request, f'{branch.name} has no manager assigned.')
+                return redirect('dashboard:admin_manager_view')
+            # Temporarily impersonate: pass branch context to manager dashboard template
+            return _render_manager_dashboard_for_branch(request, branch, manager)
+        except Branch.DoesNotExist:
+            messages.error(request, 'Branch not found.')
+
+    branches = Branch.objects.filter(is_active=True).select_related('manager').order_by('name')
+    return render(request, 'dashboard/admin_manager_view.html', {'branches': branches})
+
+
+def _render_manager_dashboard_for_branch(request, branch, manager):
+    """Render manager dashboard context for a specific branch (admin view)."""
+    from django.db.models import Q, Sum
+    from datetime import date
+
+    today = date.today()
+    officers = User.objects.filter(role='loan_officer', officer_assignment__branch=branch.name)
+    groups = BorrowerGroup.objects.filter(
+        Q(branch=branch.name) | Q(assigned_officer__officer_assignment__branch=branch.name)
+    ).distinct()
+    clients_count = User.objects.filter(
+        Q(group_memberships__group__branch=branch.name) |
+        Q(assigned_officer__officer_assignment__branch=branch.name),
+        role='borrower',
+    ).distinct().count()
+
+    branch_officers = User.objects.filter(
+        role='loan_officer', officer_assignment__branch=branch.name
+    ).values_list('id', flat=True)
+
+    loans = Loan.objects.filter(
+        Q(loan_officer_id__in=branch_officers) |
+        Q(borrower__group_memberships__group__branch=branch.name)
+    ).distinct()
+
+    from loans.models import SecurityDeposit
+    pending_security = SecurityDeposit.objects.filter(
+        is_verified=False, paid_amount__gt=0,
+        loan__loan_officer__officer_assignment__branch=branch.name
+    ).count()
+
+    context = {
+        'branch': branch,
+        'viewing_as_admin': True,
+        'manager': manager,
+        'today': today,
+        'officers_count': officers.count(),
+        'groups_count': groups.count(),
+        'clients_count': clients_count,
+        'today_expected': 0,
+        'today_collected': 0,
+        'collection_rate': 0,
+        'pending_security': pending_security,
+        'pending_topups': 0,
+        'pending_returns': 0,
+        'officer_stats': [],
+        'total_disbursed': loans.filter(status__in=['active', 'completed']).aggregate(t=Sum('principal_amount'))['t'] or 0,
+        'branch_loans_active': loans.filter(status='active').count(),
+        'branch_loans_completed': loans.filter(status='completed').count(),
+        'branch_loans_pending': loans.filter(status='approved').count(),
+        'branch_loans_total': loans.count(),
+        'vault_balance': _get_vault_balance(branch),
+        'pending_payments_count': 0,
+        'pending_upfront_verifications': Loan.objects.filter(
+            id__in=loans.filter(status='approved', upfront_payment_paid__gt=0, upfront_payment_verified=False).values_list('id', flat=True)
+        ).select_related('borrower', 'loan_officer'),
+        'ready_to_disburse': Loan.objects.filter(
+            id__in=loans.filter(status='approved', upfront_payment_verified=True).values_list('id', flat=True)
+        ).select_related('borrower', 'loan_officer'),
+        'recent_applications': [],
+        'pending_applications_count': 0,
+        'pending_document_verifications': 0,
+        'verified_document_clients': 0,
+        'total_document_clients': 0,
+        'verification_rate': 0,
+        'total_expenses': 0,
+        'total_transfers': 0,
+        'total_deposits': 0,
+        'total_funds': 0,
+        'pending_loan_approvals': 0,
+        'ready_for_disbursement': 0,
+    }
+    return render(request, 'dashboard/manager_enhanced.html', context)
