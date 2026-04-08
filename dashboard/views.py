@@ -667,6 +667,38 @@ def manager_dashboard(request):
         'branch_loans_total': loans.count(),
         'vault_balance': _get_vault_balance(branch),
     }
+
+    # 1. Overdue loans for this branch
+    from payments.models import PaymentSchedule as PS
+    active_branch_loans = loans.filter(status='active').select_related('borrower', 'loan_officer')
+    overdue_loans = []
+    for loan in active_branch_loans:
+        oldest = PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).order_by('due_date').first()
+        if oldest:
+            overdue_loans.append({
+                'loan': loan,
+                'days_overdue': (today - oldest.due_date).days,
+                'balance': loan.balance_remaining or 0,
+            })
+    overdue_loans.sort(key=lambda x: -x['days_overdue'])
+    context['overdue_loans'] = overdue_loans[:20]
+
+    # 2. Loans approaching maturity (next 30 days)
+    from datetime import timedelta
+    in_30 = today + timedelta(days=30)
+    context['maturing_loans'] = loans.filter(
+        status='active', maturity_date__gte=today, maturity_date__lte=in_30
+    ).select_related('borrower').order_by('maturity_date')[:10]
+
+    # 3. Pending processing fees
+    from loans.models import LoanApplication
+    context['pending_processing_fees'] = LoanApplication.objects.filter(
+        loan_officer__officer_assignment__branch__iexact=branch.name,
+        processing_fee__isnull=False,
+        processing_fee__gt=0,
+        processing_fee_verified=False,
+        status='pending',
+    ).select_related('borrower', 'loan_officer')[:10]
     
     return render(request, 'dashboard/manager_enhanced.html', context)
 
