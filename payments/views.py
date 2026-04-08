@@ -939,3 +939,35 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
 
         messages.success(request, f'{recorded} default payment(s) recorded for {group.name}. {skipped} skipped.')
         return redirect('payments:default_collection')
+
+
+class DefaultCollectionHistoryView(LoginRequiredMixin, View):
+    """View history of all default collections recorded by this officer."""
+    template_name = 'payments/default_collection_history.html'
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        from .models import DefaultCollection
+        from django.db.models import Q, Sum
+
+        if request.user.role == 'loan_officer':
+            qs = DefaultCollection.objects.filter(
+                recorded_by=request.user
+            ).select_related('loan', 'loan__borrower').order_by('-collection_date', '-created_at')
+        elif request.user.role == 'manager':
+            try:
+                branch = request.user.managed_branch
+                qs = DefaultCollection.objects.filter(
+                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                ).select_related('loan', 'loan__borrower', 'recorded_by').distinct().order_by('-collection_date')
+            except Exception:
+                qs = DefaultCollection.objects.none()
+        else:
+            qs = DefaultCollection.objects.all().select_related(
+                'loan', 'loan__borrower', 'recorded_by'
+            ).order_by('-collection_date')
+
+        total = qs.aggregate(total=Sum('amount_paid'))['total'] or 0
+        return render(request, self.template_name, {'collections': qs, 'total': total})

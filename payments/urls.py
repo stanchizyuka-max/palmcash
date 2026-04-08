@@ -16,4 +16,5 @@ urlpatterns = [
     path('bulk-collection/group/<int:group_id>/', views.BulkCollectionGroupView.as_view(), name='bulk_collection_group'),
     path('default-collection/', views.DefaultCollectionView.as_view(), name='default_collection'),
     path('default-collection/group/<int:group_id>/', views.DefaultCollectionGroupView.as_view(), name='default_collection_group'),
+    path('default-collection/history/', views.DefaultCollectionHistoryView.as_view(), name='default_collection_history'),
 ]
