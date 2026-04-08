@@ -96,8 +96,6 @@ urlpatterns = [
     path('branch-comparison/', views.branch_comparison, name='branch_comparison'),
     path('loan-aging/', views.loan_aging, name='loan_aging'),
     path('officer-performance/', views.officer_performance, name='officer_performance'),
-    path('loan-aging/', views.loan_aging, name='loan_aging'),
-    path('officer-performance/', views.officer_performance, name='officer_performance'),
 
     # Vault
     path('vault/', vault_views.vault_dashboard, name='vault'),

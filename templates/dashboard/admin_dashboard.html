@@ -230,6 +230,62 @@
         </div>
       </div>
 
+      <!-- Expenses & Funds -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-5 py-4 flex items-center gap-3">
+          <i class="fas fa-receipt text-white text-xl"></i>
+          <h2 class="text-lg font-bold text-white">Expenses & Funds</h2>
+        </div>
+        <div class="p-4 space-y-2">
+          <a href="{% url 'dashboard:expense_list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
+            <i class="fas fa-receipt text-amber-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">All Expenses</span>
+          </a>
+          <a href="{% url 'dashboard:fund_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
+            <i class="fas fa-exchange-alt text-amber-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Fund History</span>
+          </a>
+          <a href="{% url 'dashboard:vault_bank_withdrawal' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
+            <i class="fas fa-university text-amber-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Bank Withdrawal</span>
+          </a>
+          <a href="{% url 'dashboard:vault_bank_deposit' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
+            <i class="fas fa-arrow-up text-amber-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Bank Deposit</span>
+          </a>
+          <a href="{% url 'dashboard:vault_fund_deposit' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
+            <i class="fas fa-arrow-down text-amber-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Fund Received</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Transfer History -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-cyan-600 to-cyan-700 px-5 py-4 flex items-center gap-3">
+          <i class="fas fa-history text-white text-xl"></i>
+          <h2 class="text-lg font-bold text-white">Transfer History</h2>
+        </div>
+        <div class="p-4 space-y-2">
+          <a href="{% url 'dashboard:admin_transfer_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
+            <i class="fas fa-user-friends text-cyan-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Officer Transfers</span>
+          </a>
+          <a href="{% url 'dashboard:admin_client_transfer_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
+            <i class="fas fa-people-arrows text-cyan-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Client Transfers</span>
+          </a>
+          <a href="{% url 'dashboard:approval_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
+            <i class="fas fa-check-double text-cyan-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Approval History</span>
+          </a>
+          <a href="{% url 'dashboard:admin_loan_statistics' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
+            <i class="fas fa-chart-line text-cyan-500 w-5"></i>
+            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Loan Statistics</span>
+          </a>
+        </div>
+      </div>
+
     </div>
 
     <!-- Recent Activity -->

@@ -1747,24 +1747,28 @@ def manager_loan_reject(request, loan_id):
 
 @login_required
 def expense_list(request):
-    """View and filter expenses for manager's branch"""
+    """View and filter expenses — manager sees their branch, admin sees all"""
     from expenses.models import Expense, ExpenseCode
-    
+
     user = request.user
-    
-    # Check if user is manager
-    if user.role != 'manager':
-        return render(request, 'dashboard/access_denied.html')
-    
-    try:
-        branch = user.managed_branch
-        if not branch:
+
+    if user.role == 'admin' or user.is_superuser:
+        branch_filter = request.GET.get('branch', '')
+        if branch_filter:
+            expenses = Expense.objects.filter(branch=branch_filter).order_by('-expense_date')
+        else:
+            expenses = Expense.objects.all().order_by('-expense_date')
+        branch = None
+    elif user.role == 'manager':
+        try:
+            branch = user.managed_branch
+            if not branch:
+                return render(request, 'dashboard/access_denied.html')
+        except Exception:
             return render(request, 'dashboard/access_denied.html')
-    except:
+        expenses = Expense.objects.filter(branch=branch.name).order_by('-expense_date')
+    else:
         return render(request, 'dashboard/access_denied.html')
-    
-    # Get expenses for this branch
-    expenses = Expense.objects.filter(branch=branch.name).order_by('-expense_date')
     
     # Filter by date range
     start_date = request.GET.get('start_date')
