@@ -1285,6 +1285,7 @@ class HistoryHubView(LoginRequiredMixin, View):
 
         collections = securities = defaults = None
         totals = {}
+        extra = {}
 
         if tab == 'collections':
             qs = scope_collections(PaymentCollection.objects.all()).select_related(
@@ -1307,23 +1308,78 @@ class HistoryHubView(LoginRequiredMixin, View):
             collections = qs[:300]
 
         elif tab == 'securities':
-            qs = scope_collections(SecurityTransaction.objects.all()).select_related(
-                'loan__borrower', 'initiated_by', 'approved_by'
-            ).order_by('-created_at')
-            if date_from: qs = qs.filter(created_at__date__gte=date_from)
-            if date_to:   qs = qs.filter(created_at__date__lte=date_to)
-            if search:
-                qs = qs.filter(
-                    Q(loan__borrower__first_name__icontains=search) |
-                    Q(loan__borrower__last_name__icontains=search) |
-                    Q(loan__application_number__icontains=search)
-                ).distinct()
-            txn_type = request.GET.get('transaction_type', '')
-            status = request.GET.get('status', '')
-            if txn_type: qs = qs.filter(transaction_type=txn_type)
-            if status:   qs = qs.filter(status=status)
-            totals = {'amount': qs.aggregate(a=Sum('amount'))['a'] or 0}
-            securities = qs[:300]
+            from loans.models import SecurityTransaction, SecurityDeposit
+            sec_type = request.GET.get('sec_type', 'transactions')  # 'deposits' or 'transactions'
+
+            if sec_type == 'deposits':
+                # Show SecurityDeposit records
+                if user.role == 'loan_officer':
+                    qs = SecurityDeposit.objects.filter(
+                        Q(loan__loan_officer=user) |
+                        Q(loan__borrower__group_memberships__group__assigned_officer=user)
+                    ).distinct()
+                elif user.role == 'manager':
+                    try:
+                        branch = user.managed_branch
+                        qs = SecurityDeposit.objects.filter(
+                            Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                            Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                        ).distinct()
+                    except Exception:
+                        qs = SecurityDeposit.objects.none()
+                else:
+                    qs = SecurityDeposit.objects.all()
+
+                qs = qs.select_related('loan__borrower', 'verified_by').order_by('-payment_date')
+                if date_from: qs = qs.filter(payment_date__date__gte=date_from)
+                if date_to:   qs = qs.filter(payment_date__date__lte=date_to)
+                if search:
+                    qs = qs.filter(
+                        Q(loan__borrower__first_name__icontains=search) |
+                        Q(loan__borrower__last_name__icontains=search) |
+                        Q(loan__application_number__icontains=search)
+                    ).distinct()
+                status = request.GET.get('status', '')
+                if status == 'verified':   qs = qs.filter(is_verified=True)
+                elif status == 'pending':  qs = qs.filter(is_verified=False)
+                totals = {'amount': qs.aggregate(a=Sum('paid_amount'))['a'] or 0}
+                securities = qs[:300]
+                extra = {'sec_type': 'deposits'}
+            else:
+                # Show SecurityTransaction records
+                if user.role == 'loan_officer':
+                    qs = SecurityTransaction.objects.filter(
+                        Q(loan__loan_officer=user) |
+                        Q(loan__borrower__group_memberships__group__assigned_officer=user)
+                    ).distinct()
+                elif user.role == 'manager':
+                    try:
+                        branch = user.managed_branch
+                        qs = SecurityTransaction.objects.filter(
+                            Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                            Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                        ).distinct()
+                    except Exception:
+                        qs = SecurityTransaction.objects.none()
+                else:
+                    qs = SecurityTransaction.objects.all()
+
+                qs = qs.select_related('loan__borrower', 'initiated_by', 'approved_by').order_by('-created_at')
+                if date_from: qs = qs.filter(created_at__date__gte=date_from)
+                if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+                if search:
+                    qs = qs.filter(
+                        Q(loan__borrower__first_name__icontains=search) |
+                        Q(loan__borrower__last_name__icontains=search) |
+                        Q(loan__application_number__icontains=search)
+                    ).distinct()
+                txn_type = request.GET.get('transaction_type', '')
+                status = request.GET.get('status', '')
+                if txn_type: qs = qs.filter(transaction_type=txn_type)
+                if status:   qs = qs.filter(status=status)
+                totals = {'amount': qs.aggregate(a=Sum('amount'))['a'] or 0}
+                securities = qs[:300]
+                extra = {'sec_type': 'transactions'}
 
         elif tab == 'defaults':
             qs = scope_collections(DefaultCollection.objects.all()).select_related(
@@ -1346,11 +1402,13 @@ class HistoryHubView(LoginRequiredMixin, View):
             'securities': securities,
             'defaults': defaults,
             'totals': totals,
+            'sec_type': extra.get('sec_type', 'transactions') if tab == 'securities' else '',
             'filters': {
                 'date_from': date_from,
                 'date_to': date_to,
                 'search': search,
                 'status': request.GET.get('status', ''),
                 'transaction_type': request.GET.get('transaction_type', ''),
+                'sec_type': request.GET.get('sec_type', 'transactions'),
             },
         })
