@@ -676,155 +676,44 @@ def admin_dashboard(request):
     """Admin Dashboard"""
     if request.user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
-    
-    # System metrics
-    branches = Branch.objects.all()
-    officers = User.objects.filter(role='loan_officer')
-    clients = User.objects.filter(role='borrower')
+
     loans = Loan.objects.all()
-    
-    # High-value loans
-    pending_approvals = LoanApprovalRequest.objects.filter(status='pending')
-    approved_this_week = LoanApprovalRequest.objects.filter(
-        status='approved',
-        approval_date__gte=date.today() - timedelta(days=7)
-    )
-    
-    # Total disbursed
-    # Debug: Check loan counts for admin dashboard
-    print(f"DEBUG ADMIN: Total loans in system = {loans.count()}")
-    print(f"DEBUG ADMIN: Active loans = {loans.filter(status='active').count()}")
-    print(f"DEBUG ADMIN: Completed loans = {loans.filter(status='completed').count()}")
-    print(f"DEBUG ADMIN: Disbursed loans = {loans.filter(status='disbursed').count()}")
-    
-    # Check for any loans with different statuses
-    all_statuses = loans.values_list('status', flat=True).distinct()
-    print(f"DEBUG ADMIN: All loan statuses = {list(all_statuses)}")
-    
-    total_disbursed = loans.filter(
-        status__in=['active', 'completed', 'disbursed']
-    ).aggregate(total=Sum('principal_amount'))['total'] or 0
-    
-    print(f"DEBUG ADMIN: Total disbursed amount = {total_disbursed}")
-    
-    # System collection rate
-    all_collections = PaymentCollection.objects.filter(status='completed')
-    if all_collections.exists():
-        system_collection_rate = (
-            all_collections.filter(is_partial=False).count() / 
-            all_collections.count() * 100
-        )
-    else:
-        system_collection_rate = 0
-    
-    # Branch performance
-    branch_stats = []
-    for branch in branches:
-        try:
-            branch_groups = BorrowerGroup.objects.filter(branch=branch.name)
-            branch_clients = sum(g.member_count for g in branch_groups)
-            branch_loans = Loan.objects.filter(
-                Q(loan_officer__officer_assignment__branch=branch.name) |
-                Q(borrower__group_memberships__group__branch=branch.name),
-                status__in=['active', 'completed', 'disbursed']
-            ).distinct()
-            branch_disbursed = branch_loans.aggregate(total=Sum('principal_amount'))['total'] or 0
-            
-            branch_collections = PaymentCollection.objects.filter(
-                Q(loan__loan_officer__officer_assignment__branch=branch.name) |
-                Q(loan__borrower__group_memberships__group__branch=branch.name),
-                status='completed'
-            ).distinct()
-            
-            if branch_collections.exists():
-                branch_rate = (
-                    branch_collections.filter(is_partial=False).count() / 
-                    branch_collections.count() * 100
-                )
-            else:
-                branch_rate = 0
-            
-            stats = {
-                'name': branch.name,
-                'clients': branch_clients,
-                'total_disbursed': branch_disbursed,
-                'collection_rate': round(branch_rate, 1),
-            }
-            branch_stats.append(stats)
-        except:
-            pass
-    
-    # System health
     active_loans = loans.filter(status='active').count()
-    completed_loans = loans.filter(status='completed').count()
-    defaulted_loans = loans.filter(status='defaulted').count()
     total_loans = loans.count()
-    
-    # Add pending security deposits count
-    pending_security_deposits = 0
+    total_disbursed = loans.filter(status__in=['active', 'completed', 'disbursed']).aggregate(total=Sum('principal_amount'))['total'] or 0
+    total_repaid = PaymentCollection.objects.filter(status='completed').aggregate(total=Sum('collected_amount'))['total'] or 0
+
+    from payments.models import PaymentSchedule as PS
+    overdue_count = PS.objects.filter(is_paid=False, due_date__lt=date.today()).values('loan').distinct().count()
+
+    pending_security = 0
     try:
         from loans.models import SecurityDeposit
-        pending_security_deposits = SecurityDeposit.objects.filter(
-            is_verified=False,
-            paid_amount__gt=0  # Only count deposits that have been paid but not verified
-        ).count()
-    except:
+        pending_security = SecurityDeposit.objects.filter(is_verified=False, paid_amount__gt=0).count()
+    except Exception:
         pass
-    
-    active_pct = (active_loans / total_loans * 100) if total_loans > 0 else 0
-    completed_pct = (completed_loans / total_loans * 100) if total_loans > 0 else 0
-    defaulted_pct = (defaulted_loans / total_loans * 100) if total_loans > 0 else 0
-    
+
+    from loans.models import LoanApplication
+    recent_applications = LoanApplication.objects.all().order_by('-created_at')[:5]
+
+    new_signups = User.objects.filter(
+        date_joined__gte=date.today().replace(day=1)
+    ).count()
+
     context = {
         'total_users': User.objects.count(),
         'active_users': User.objects.filter(is_active=True).count(),
-        'total_borrowers': clients.count(),
-        'total_officers': officers.count(),
-        'total_managers': User.objects.filter(role='manager').count(),
+        'borrowers_count': User.objects.filter(role='borrower').count(),
         'total_loans': total_loans,
         'active_loans': active_loans,
-        'completed_loans': completed_loans,
-        'defaulted_loans': defaulted_loans,
-        'pending_security_deposits': pending_security_deposits,
-        'pending_documents': 0,  # Will be calculated from ClientDocument
+        'pending_security': pending_security,
         'total_disbursed': total_disbursed,
-        'total_repaid': 0,  # Will be calculated from PaymentCollection
-        'overdue_count': 0,  # Will be calculated from PaymentSchedule
-        'monthly_signups': 0,  # Will be calculated
-        'monthly_applications': 0,  # Will be calculated
-        'active_pct': round(active_pct, 1),
-        'completed_pct': round(completed_pct, 1),
-        'defaulted_pct': round(defaulted_pct, 1),
-        'system_collection_rate': round(system_collection_rate, 1),
-        'pending_approvals_count': pending_approvals.count(),
-        'approved_this_week': approved_this_week.count(),
-        'branch_stats': branch_stats,
-        'transfers_this_month': 0,
-        'client_transfers_this_month': 0,
-        'pending_overrides': 0,
-        'default_rate': round(defaulted_pct, 1),
+        'total_repaid': total_repaid,
+        'overdue_count': overdue_count,
+        'new_signups': new_signups,
         'recent_users': User.objects.all().order_by('-date_joined')[:5],
-        'recent_loans': Loan.objects.all().order_by('-application_date')[:5],
+        'recent_applications': recent_applications,
     }
-    
-    # Add transfer counts from audit logs
-    try:
-        from adminpanel.models import OfficerTransferLog, ClientTransferLog
-        from datetime import datetime
-        current_month = date.today().replace(day=1)
-        
-        transfers_this_month = OfficerTransferLog.objects.filter(
-            timestamp__gte=current_month
-        ).count()
-        context['transfers_this_month'] = transfers_this_month
-        
-        client_transfers_this_month = ClientTransferLog.objects.filter(
-            timestamp__gte=current_month
-        ).count()
-        context['client_transfers_this_month'] = client_transfers_this_month
-    except:
-        pass
-    
     return render(request, 'dashboard/admin_dashboard.html', context)
 
 
