@@ -1246,7 +1246,7 @@ class SecuritiesHistoryView(LoginRequiredMixin, View):
 
 
 class HistoryHubView(LoginRequiredMixin, View):
-    """Hub page: group-based navigation for Collections, Securities, Default Collections."""
+    """Hierarchical history: Officers → Groups → Clients → Records."""
     template_name = 'payments/history.html'
 
     def get(self, request):
@@ -1261,147 +1261,140 @@ class HistoryHubView(LoginRequiredMixin, View):
 
         user = request.user
         tab = request.GET.get('tab', 'collections')
+        officer_id = request.GET.get('officer')
         group_id = request.GET.get('group')
-        officer_id = request.GET.get('officer')  # manager selects officer first
+        client_id = request.GET.get('client')
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
         search = request.GET.get('search', '').strip()
 
-        # Build navigation structure
-        nav_officers = []  # for manager: list of officers with groups
-        nav_groups = []    # for officer: list of their groups
-
-        selected_officer = None
-        selected_group = None
-
+        # ── Determine scope based on role ──────────────────────────────────
         if user.role == 'manager':
             try:
                 branch = user.managed_branch
-                officers = _User.objects.filter(
+                branch_officers = _User.objects.filter(
                     role='loan_officer',
                     officer_assignment__branch__iexact=branch.name,
                     is_active=True
-                ).order_by('first_name')
-                for o in officers:
-                    groups = BorrowerGroup.objects.filter(
-                        assigned_officer=o, is_active=True
-                    ).order_by('name')
-                    nav_officers.append({'officer': o, 'groups': groups})
-                if officer_id:
-                    selected_officer = _User.objects.filter(pk=officer_id).first()
-                if group_id:
-                    selected_group = BorrowerGroup.objects.filter(pk=group_id).first()
+                ).order_by('first_name', 'last_name')
             except Exception:
-                pass
-
+                branch_officers = _User.objects.none()
         elif user.role == 'loan_officer':
-            nav_groups = BorrowerGroup.objects.filter(
-                assigned_officer=user, is_active=True
-            ).order_by('name')
-            if group_id:
-                selected_group = BorrowerGroup.objects.filter(pk=group_id, assigned_officer=user).first()
+            branch_officers = _User.objects.filter(pk=user.pk)
+            if not officer_id:
+                officer_id = str(user.pk)
+        else:
+            branch_officers = _User.objects.filter(role='loan_officer', is_active=True).order_by('first_name')
 
-        # Build base queryset scope
-        def scope(qs_model):
-            if selected_group:
-                borrowers = selected_group.members.filter(is_active=True).values_list('borrower_id', flat=True)
-                return qs_model.objects.filter(loan__borrower_id__in=borrowers).distinct()
-            elif selected_officer:
-                return qs_model.objects.filter(
-                    Q(loan__loan_officer=selected_officer) |
-                    Q(loan__borrower__group_memberships__group__assigned_officer=selected_officer)
-                ).distinct()
-            elif user.role == 'loan_officer':
-                return qs_model.objects.filter(
-                    Q(loan__loan_officer=user) |
-                    Q(loan__borrower__group_memberships__group__assigned_officer=user)
-                ).distinct()
-            elif user.role == 'manager':
-                try:
-                    branch = user.managed_branch
-                    return qs_model.objects.filter(
-                        Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                        Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
-                    ).distinct()
-                except Exception:
-                    return qs_model.objects.none()
-            return qs_model.objects.all()
+        # ── Resolve selected objects ───────────────────────────────────────
+        selected_officer = _User.objects.filter(pk=officer_id).first() if officer_id else None
+        selected_group = BorrowerGroup.objects.filter(pk=group_id).first() if group_id else None
+        selected_client = _User.objects.filter(pk=client_id, role='borrower').first() if client_id else None
 
-        def apply_search(qs):
-            if search:
-                return qs.filter(
-                    Q(loan__borrower__first_name__icontains=search) |
-                    Q(loan__borrower__last_name__icontains=search) |
-                    Q(loan__application_number__icontains=search) |
-                    Q(loan__borrower__group_memberships__group__name__icontains=search) |
-                    Q(loan__loan_officer__first_name__icontains=search) |
-                    Q(loan__loan_officer__last_name__icontains=search)
-                ).distinct()
-            return qs
+        # ── Smart search: resolve what was searched ────────────────────────
+        search_results = None
+        if search:
+            # Search officers
+            matched_officers = branch_officers.filter(
+                Q(first_name__icontains=search) | Q(last_name__icontains=search)
+            )
+            # Search groups
+            matched_groups = BorrowerGroup.objects.filter(
+                Q(name__icontains=search),
+                assigned_officer__in=branch_officers
+            )
+            # Search clients
+            matched_clients = _User.objects.filter(
+                Q(first_name__icontains=search) | Q(last_name__icontains=search),
+                role='borrower',
+                group_memberships__group__assigned_officer__in=branch_officers,
+                group_memberships__is_active=True,
+            ).distinct()
+            search_results = {
+                'officers': matched_officers,
+                'groups': matched_groups,
+                'clients': matched_clients,
+            }
 
-        collections = securities = defaults = None
+        # ── Build level data ───────────────────────────────────────────────
+        level = 'officers'
+        groups_for_officer = None
+        clients_for_group = None
+        records = None
         totals = {}
         extra = {}
 
-        if tab == 'collections':
-            qs = scope(PaymentCollection).select_related('loan__borrower', 'collected_by').filter(
-                collected_amount__gt=0
-            ).order_by('-collection_date')
-            if date_from: qs = qs.filter(collection_date__gte=date_from)
-            if date_to:   qs = qs.filter(collection_date__lte=date_to)
-            qs = apply_search(qs)
-            status = request.GET.get('status', '')
-            if status == 'paid':    qs = qs.filter(status='completed', is_partial=False)
-            elif status == 'partial': qs = qs.filter(is_partial=True)
-            t = qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
-            totals = {'expected': t['exp'] or 0, 'collected': t['col'] or 0}
-            collections = qs[:300]
+        if selected_client:
+            level = 'records'
+            # Get records for this client
+            def get_records(qs_model):
+                return qs_model.objects.filter(loan__borrower=selected_client).distinct()
 
-        elif tab == 'securities':
-            sec_type = request.GET.get('sec_type', 'transactions')
-            if sec_type == 'deposits':
-                qs = scope(SecurityDeposit).select_related('loan__borrower', 'verified_by').order_by('-payment_date')
-                if date_from: qs = qs.filter(payment_date__date__gte=date_from)
-                if date_to:   qs = qs.filter(payment_date__date__lte=date_to)
-                qs = apply_search(qs)
+            if tab == 'collections':
+                qs = get_records(PaymentCollection).select_related('loan').filter(
+                    collected_amount__gt=0
+                ).order_by('-collection_date')
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
                 status = request.GET.get('status', '')
-                if status == 'verified': qs = qs.filter(is_verified=True)
-                elif status == 'pending': qs = qs.filter(is_verified=False)
-                totals = {'amount': qs.aggregate(a=Sum('paid_amount'))['a'] or 0}
-                securities = qs[:300]
-                extra = {'sec_type': 'deposits'}
-            else:
-                qs = scope(SecurityTransaction).select_related('loan__borrower', 'initiated_by', 'approved_by').order_by('-created_at')
-                if date_from: qs = qs.filter(created_at__date__gte=date_from)
-                if date_to:   qs = qs.filter(created_at__date__lte=date_to)
-                qs = apply_search(qs)
-                txn_type = request.GET.get('transaction_type', '')
-                status = request.GET.get('status', '')
-                if txn_type: qs = qs.filter(transaction_type=txn_type)
-                if status:   qs = qs.filter(status=status)
-                totals = {'amount': qs.aggregate(a=Sum('amount'))['a'] or 0}
-                securities = qs[:300]
-                extra = {'sec_type': 'transactions'}
+                if status == 'paid':    qs = qs.filter(status='completed', is_partial=False)
+                elif status == 'partial': qs = qs.filter(is_partial=True)
+                t = qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+                totals = {'expected': t['exp'] or 0, 'collected': t['col'] or 0}
+                records = qs
 
-        elif tab == 'defaults':
-            qs = scope(DefaultCollection).select_related('loan__borrower', 'recorded_by').order_by('-collection_date')
-            if date_from: qs = qs.filter(collection_date__gte=date_from)
-            if date_to:   qs = qs.filter(collection_date__lte=date_to)
-            qs = apply_search(qs)
-            totals = {'amount': qs.aggregate(a=Sum('amount_paid'))['a'] or 0}
-            defaults = qs[:300]
+            elif tab == 'securities':
+                sec_type = request.GET.get('sec_type', 'transactions')
+                if sec_type == 'deposits':
+                    qs = get_records(SecurityDeposit).select_related('loan', 'verified_by').order_by('-payment_date')
+                    if date_from: qs = qs.filter(payment_date__date__gte=date_from)
+                    if date_to:   qs = qs.filter(payment_date__date__lte=date_to)
+                    totals = {'amount': qs.aggregate(a=Sum('paid_amount'))['a'] or 0}
+                    extra = {'sec_type': 'deposits'}
+                else:
+                    qs = get_records(SecurityTransaction).select_related('loan', 'approved_by').order_by('-created_at')
+                    if date_from: qs = qs.filter(created_at__date__gte=date_from)
+                    if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+                    txn_type = request.GET.get('transaction_type', '')
+                    if txn_type: qs = qs.filter(transaction_type=txn_type)
+                    totals = {'amount': qs.aggregate(a=Sum('amount'))['a'] or 0}
+                    extra = {'sec_type': 'transactions'}
+                records = qs
+
+            elif tab == 'defaults':
+                qs = get_records(DefaultCollection).select_related('loan', 'recorded_by').order_by('-collection_date')
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                totals = {'amount': qs.aggregate(a=Sum('amount_paid'))['a'] or 0}
+                records = qs
+
+        elif selected_group:
+            level = 'clients'
+            clients_for_group = _User.objects.filter(
+                group_memberships__group=selected_group,
+                group_memberships__is_active=True,
+                role='borrower',
+            ).distinct().order_by('first_name', 'last_name')
+
+        elif selected_officer:
+            level = 'groups'
+            groups_for_officer = BorrowerGroup.objects.filter(
+                assigned_officer=selected_officer, is_active=True
+            ).order_by('name')
 
         return render(request, self.template_name, {
             'tab': tab,
-            'collections': collections,
-            'securities': securities,
-            'defaults': defaults,
-            'totals': totals,
-            'sec_type': extra.get('sec_type', 'transactions') if tab == 'securities' else '',
-            'nav_officers': nav_officers,
-            'nav_groups': nav_groups,
+            'level': level,
+            'branch_officers': branch_officers,
             'selected_officer': selected_officer,
             'selected_group': selected_group,
+            'selected_client': selected_client,
+            'groups_for_officer': groups_for_officer,
+            'clients_for_group': clients_for_group,
+            'records': records,
+            'totals': totals,
+            'sec_type': extra.get('sec_type', 'transactions'),
+            'search_results': search_results,
             'filters': {
                 'date_from': date_from,
                 'date_to': date_to,
@@ -1409,7 +1402,8 @@ class HistoryHubView(LoginRequiredMixin, View):
                 'status': request.GET.get('status', ''),
                 'transaction_type': request.GET.get('transaction_type', ''),
                 'sec_type': request.GET.get('sec_type', 'transactions'),
-                'group': group_id or '',
                 'officer': officer_id or '',
+                'group': group_id or '',
+                'client': client_id or '',
             },
         })
