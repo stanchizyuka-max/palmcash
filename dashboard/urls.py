@@ -101,6 +101,7 @@ urlpatterns = [
     path('collection-trend/', views.collection_trend, name='collection_trend'),
     path('chronic-defaulters/', views.chronic_defaulters, name='chronic_defaulters'),
     path('processing-fees/', views.processing_fees_summary, name='processing_fees_summary'),
+    path('manager/processing-fees/', views.manager_processing_fees, name='manager_processing_fees'),
     path('borrower-completeness/', views.borrower_profile_completeness, name='borrower_profile_completeness'),
     path('officer-activity/', views.officer_activity, name='officer_activity'),
 

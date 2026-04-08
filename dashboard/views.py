@@ -690,16 +690,29 @@ def manager_dashboard(request):
         status='active', maturity_date__gte=today, maturity_date__lte=in_30
     ).select_related('borrower').order_by('maturity_date')[:10]
 
-    # 3. Pending processing fees
+    # 3. Processing fees
     from loans.models import LoanApplication
-    context['pending_processing_fees'] = LoanApplication.objects.filter(
+    from datetime import timedelta
+    branch_apps = LoanApplication.objects.filter(
         loan_officer__officer_assignment__branch__iexact=branch.name,
         processing_fee__isnull=False,
         processing_fee__gt=0,
+    )
+    context['pending_processing_fees'] = branch_apps.filter(
         processing_fee_verified=False,
-        status='pending',
-    ).select_related('borrower', 'loan_officer')[:10]
-    
+    ).select_related('borrower', 'loan_officer').order_by('-created_at')[:20]
+    month_start = today.replace(day=1)
+    context['fees_collected_this_month'] = branch_apps.filter(
+        processing_fee_verified=True,
+        processing_fee_verified_at__date__gte=month_start,
+    ).aggregate(t=Sum('processing_fee'))['t'] or 0
+    context['fees_total_verified'] = branch_apps.filter(
+        processing_fee_verified=True,
+    ).aggregate(t=Sum('processing_fee'))['t'] or 0
+    context['fees_total_pending'] = branch_apps.filter(
+        processing_fee_verified=False,
+    ).aggregate(t=Sum('processing_fee'))['t'] or 0
+
     return render(request, 'dashboard/manager_enhanced.html', context)
 
 
@@ -4688,6 +4701,73 @@ def chronic_defaulters(request):
             })
     defaulters.sort(key=lambda x: (-x['overdue_count'], x['never_paid']))
     return render(request, 'dashboard/chronic_defaulters.html', {'defaulters': defaulters})
+
+
+@login_required
+def manager_processing_fees(request):
+    """Branch-scoped processing fees report for managers."""
+    if request.user.role not in ['manager', 'admin'] and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    from loans.models import LoanApplication
+    from django.db.models import Sum
+    from datetime import date
+
+    try:
+        branch = request.user.managed_branch
+    except Exception:
+        branch = None
+
+    if request.user.role == 'admin' or request.user.is_superuser:
+        apps = LoanApplication.objects.filter(
+            processing_fee__isnull=False, processing_fee__gt=0
+        )
+    else:
+        if not branch:
+            return render(request, 'dashboard/access_denied.html')
+        apps = LoanApplication.objects.filter(
+            loan_officer__officer_assignment__branch__iexact=branch.name,
+            processing_fee__isnull=False,
+            processing_fee__gt=0,
+        )
+
+    apps = apps.select_related('borrower', 'loan_officer', 'processing_fee_verified_by')
+
+    total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
+    verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
+    pending_fees = apps.filter(processing_fee_verified=False).aggregate(t=Sum('processing_fee'))['t'] or 0
+
+    today = date.today()
+    month_start = today.replace(day=1)
+    this_month = apps.filter(
+        processing_fee_verified=True,
+        processing_fee_verified_at__date__gte=month_start,
+    ).aggregate(t=Sum('processing_fee'))['t'] or 0
+
+    officer_fees = []
+    from accounts.models import User as _User
+    officers = _User.objects.filter(
+        submitted_loan_applications__in=apps
+    ).distinct()
+    for officer in officers:
+        oa = apps.filter(loan_officer=officer)
+        officer_fees.append({
+            'officer': officer,
+            'count': oa.count(),
+            'total': oa.aggregate(t=Sum('processing_fee'))['t'] or 0,
+            'verified': oa.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0,
+            'pending': oa.filter(processing_fee_verified=False).aggregate(t=Sum('processing_fee'))['t'] or 0,
+        })
+    officer_fees.sort(key=lambda x: -x['total'])
+
+    return render(request, 'dashboard/manager_processing_fees.html', {
+        'branch': branch,
+        'apps': apps.order_by('-created_at'),
+        'total_fees': total_fees,
+        'verified_fees': verified_fees,
+        'pending_fees': pending_fees,
+        'this_month': this_month,
+        'officer_fees': officer_fees,
+    })
 
 
 @login_required

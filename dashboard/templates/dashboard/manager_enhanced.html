@@ -90,6 +90,22 @@
                 </div>
             </div>
 
+            <!-- Processing Fees This Month -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-violet-500 hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Fees This Month</p>
+                        <p class="text-2xl font-bold text-violet-600">K{{ fees_collected_this_month|floatformat:0|intcomma }}</p>
+                        {% if fees_total_pending > 0 %}
+                        <p class="text-xs text-amber-600 mt-1">K{{ fees_total_pending|floatformat:0|intcomma }} pending</p>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'dashboard:manager_processing_fees' %}" class="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center hover:bg-violet-200">
+                        <i class="fas fa-coins text-violet-600 text-xl"></i>
+                    </a>
+                </div>
+            </div>
+
             <!-- Vault Balance -->
             <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
                 <div class="flex items-center justify-between">
@@ -563,7 +579,10 @@
                 <h3 class="text-xl font-bold text-white flex items-center">
                     <i class="fas fa-coins mr-2"></i>Processing Fees Awaiting Verification
                 </h3>
-                <span class="bg-white text-violet-700 font-bold px-3 py-1 rounded-full text-sm">{{ pending_processing_fees|length }}</span>
+                <div class="flex items-center gap-3">
+                    <span class="bg-white text-violet-700 font-bold px-3 py-1 rounded-full text-sm">{{ pending_processing_fees|length }}</span>
+                    <a href="{% url 'dashboard:manager_processing_fees' %}" class="text-violet-100 hover:text-white text-xs font-semibold underline">View All</a>
+                </div>
             </div>
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 border-b border-slate-200">
@@ -578,12 +597,19 @@
                 <tbody class="divide-y divide-slate-100">
                     {% for app in pending_processing_fees %}
                     <tr class="hover:bg-violet-50">
-                        <td class="px-4 py-3 font-mono text-xs">{{ app.application_number }}</td>
+                        <td class="px-4 py-3 font-mono text-xs">
+                            <a href="{% url 'loans:approve_application' app.pk %}" class="text-blue-600 hover:underline">{{ app.application_number }}</a>
+                        </td>
                         <td class="px-4 py-3 font-medium text-slate-900">{{ app.borrower.get_full_name }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ app.loan_officer.get_full_name|default:"—" }}</td>
                         <td class="px-4 py-3 text-right font-bold text-violet-700">K{{ app.processing_fee|floatformat:2|intcomma }}</td>
                         <td class="px-4 py-3">
-                            <a href="{% url 'loans:approve_application' app.pk %}" class="px-3 py-1 bg-violet-600 text-white rounded text-xs font-semibold hover:bg-violet-700">Verify</a>
+                            <form method="post" action="{% url 'loans:verify_processing_fee' app.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700">
+                                    <i class="fas fa-check mr-1"></i>Verify
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
