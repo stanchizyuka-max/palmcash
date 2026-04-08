@@ -4143,3 +4143,315 @@ def manager_document_verification(request):
     }
     
     return render(request, 'dashboard/manager_document_verification.html', context)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin Report Views
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def financial_summary(request):
+    """System-wide financial summary (admin only)."""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+
+    from loans.models import BranchVault, SecurityDeposit
+    from payments.models import DefaultCollection
+    from expenses.models import VaultTransaction
+    from clients.models import Branch
+    from payments.models import PaymentSchedule
+
+    # System-wide totals
+    total_capital = VaultTransaction.objects.filter(
+        transaction_type='capital_injection'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_disbursed = Loan.objects.filter(
+        status__in=['active', 'completed']
+    ).aggregate(total=Sum('principal_amount'))['total'] or 0
+
+    total_repaid = PaymentCollection.objects.filter(
+        status='completed'
+    ).aggregate(total=Sum('collected_amount'))['total'] or 0
+
+    total_outstanding = (total_disbursed or 0) - (total_repaid or 0)
+
+    total_security = SecurityDeposit.objects.filter(
+        is_verified=True
+    ).aggregate(total=Sum('paid_amount'))['total'] or 0
+
+    total_default_collections = DefaultCollection.objects.aggregate(
+        total=Sum('amount_paid')
+    )['total'] or 0
+
+    # Per-branch breakdown
+    branches = Branch.objects.filter(is_active=True)
+    branch_rows = []
+    for branch in branches:
+        vault_balance = 0
+        try:
+            vault_balance = BranchVault.objects.get(branch=branch).balance
+        except Exception:
+            pass
+
+        branch_loans = Loan.objects.filter(
+            Q(loan_officer__officer_assignment__branch=branch.name) |
+            Q(borrower__group_memberships__group__branch=branch.name)
+        ).distinct()
+
+        b_disbursed = branch_loans.filter(
+            status__in=['active', 'completed']
+        ).aggregate(total=Sum('principal_amount'))['total'] or 0
+
+        b_repaid = PaymentCollection.objects.filter(
+            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
+            Q(loan__borrower__group_memberships__group__branch=branch.name),
+            status='completed'
+        ).distinct().aggregate(total=Sum('collected_amount'))['total'] or 0
+
+        b_outstanding = (b_disbursed or 0) - (b_repaid or 0)
+        b_active = branch_loans.filter(status='active').count()
+
+        branch_rows.append({
+            'branch': branch,
+            'vault_balance': vault_balance,
+            'disbursed': b_disbursed,
+            'repaid': b_repaid,
+            'outstanding': b_outstanding,
+            'active_loans': b_active,
+        })
+
+    context = {
+        'total_capital': total_capital,
+        'total_disbursed': total_disbursed,
+        'total_repaid': total_repaid,
+        'total_outstanding': total_outstanding,
+        'total_security': total_security,
+        'total_default_collections': total_default_collections,
+        'branch_rows': branch_rows,
+    }
+    return render(request, 'dashboard/financial_summary.html', context)
+
+
+@login_required
+def branch_comparison(request):
+    """Side-by-side branch comparison (admin only)."""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+
+    from loans.models import BranchVault, SecurityDeposit
+    from clients.models import Branch, OfficerAssignment
+    from payments.models import PaymentSchedule
+
+    branches = Branch.objects.filter(is_active=True)
+    rows = []
+    for branch in branches:
+        manager_name = branch.manager.get_full_name() if branch.manager else '—'
+
+        officers_count = OfficerAssignment.objects.filter(branch=branch.name).count()
+        groups_count = BorrowerGroup.objects.filter(branch=branch.name, is_active=True).count()
+        clients_count = User.objects.filter(
+            Q(group_memberships__group__branch=branch.name) |
+            Q(assigned_officer__officer_assignment__branch=branch.name),
+            role='borrower',
+        ).distinct().count()
+
+        branch_loans = Loan.objects.filter(
+            Q(loan_officer__officer_assignment__branch=branch.name) |
+            Q(borrower__group_memberships__group__branch=branch.name)
+        ).distinct()
+
+        active_loans = branch_loans.filter(status='active').count()
+        total_disbursed = branch_loans.filter(
+            status__in=['active', 'completed']
+        ).aggregate(total=Sum('principal_amount'))['total'] or 0
+
+        completed_collections = PaymentCollection.objects.filter(
+            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
+            Q(loan__borrower__group_memberships__group__branch=branch.name),
+            status='completed'
+        ).distinct()
+        total_repaid = completed_collections.aggregate(total=Sum('collected_amount'))['total'] or 0
+
+        all_collections = PaymentCollection.objects.filter(
+            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
+            Q(loan__borrower__group_memberships__group__branch=branch.name),
+        ).distinct()
+        total_expected = all_collections.aggregate(total=Sum('expected_amount'))['total'] or 0
+        collection_rate = round((total_repaid / total_expected * 100), 1) if total_expected > 0 else 0
+
+        vault_balance = 0
+        try:
+            vault_balance = BranchVault.objects.get(branch=branch).balance
+        except Exception:
+            pass
+
+        today = date.today()
+        default_count = branch_loans.filter(
+            status='active',
+            payment_schedule__is_paid=False,
+            payment_schedule__due_date__lt=today,
+        ).distinct().count()
+
+        rows.append({
+            'branch': branch,
+            'manager_name': manager_name,
+            'officers_count': officers_count,
+            'groups_count': groups_count,
+            'clients_count': clients_count,
+            'active_loans': active_loans,
+            'total_disbursed': total_disbursed,
+            'total_repaid': total_repaid,
+            'collection_rate': collection_rate,
+            'vault_balance': vault_balance,
+            'default_count': default_count,
+        })
+
+    # Sort by collection rate descending
+    rows.sort(key=lambda r: r['collection_rate'], reverse=True)
+
+    return render(request, 'dashboard/branch_comparison.html', {'rows': rows})
+
+
+@login_required
+def loan_aging(request):
+    """Loan aging report grouped by days overdue (admin only)."""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+
+    from payments.models import PaymentSchedule
+
+    today = date.today()
+    active_loans = Loan.objects.filter(status='active').select_related(
+        'borrower', 'loan_officer'
+    )
+
+    buckets = {
+        'current':   {'label': 'Current',          'days_min': None, 'days_max': 0,   'color': 'green',  'loans': []},
+        '1_7':       {'label': '1–7 days overdue',  'days_min': 1,    'days_max': 7,   'color': 'yellow', 'loans': []},
+        '8_30':      {'label': '8–30 days overdue', 'days_min': 8,    'days_max': 30,  'color': 'orange', 'loans': []},
+        '31_60':     {'label': '31–60 days overdue','days_min': 31,   'days_max': 60,  'color': 'red',    'loans': []},
+        '60_plus':   {'label': '60+ days overdue',  'days_min': 61,   'days_max': None,'color': 'red',    'loans': []},
+    }
+
+    for loan in active_loans:
+        oldest = PaymentSchedule.objects.filter(
+            loan=loan, is_paid=False, due_date__lt=today
+        ).order_by('due_date').first()
+
+        days = (today - oldest.due_date).days if oldest else 0
+        balance = loan.balance_remaining or 0
+
+        entry = {
+            'loan': loan,
+            'days_overdue': days,
+            'balance': balance,
+        }
+
+        if days == 0:
+            buckets['current']['loans'].append(entry)
+        elif days <= 7:
+            buckets['1_7']['loans'].append(entry)
+        elif days <= 30:
+            buckets['8_30']['loans'].append(entry)
+        elif days <= 60:
+            buckets['31_60']['loans'].append(entry)
+        else:
+            buckets['60_plus']['loans'].append(entry)
+
+    # Compute totals per bucket
+    for key, bucket in buckets.items():
+        bucket['count'] = len(bucket['loans'])
+        bucket['total_balance'] = sum(e['balance'] for e in bucket['loans'])
+
+    return render(request, 'dashboard/loan_aging.html', {'buckets': buckets})
+
+
+@login_required
+def officer_performance(request):
+    """Officer performance report (admin only)."""
+    if request.user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+
+    from clients.models import OfficerAssignment
+    from payments.models import PaymentSchedule
+
+    today = date.today()
+    officers = User.objects.filter(role='loan_officer', is_active=True).select_related(
+        'officer_assignment'
+    )
+
+    rows = []
+    for officer in officers:
+        branch = ''
+        try:
+            branch = officer.officer_assignment.branch
+        except Exception:
+            pass
+
+        groups_count = BorrowerGroup.objects.filter(
+            assigned_officer=officer, is_active=True
+        ).count()
+
+        clients_count = User.objects.filter(
+            Q(assigned_officer=officer) |
+            Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True),
+            role='borrower',
+        ).distinct().count()
+
+        active_loans = Loan.objects.filter(
+            Q(loan_officer=officer) |
+            Q(borrower__group_memberships__group__assigned_officer=officer),
+            status='active'
+        ).distinct()
+        active_loans_count = active_loans.count()
+
+        total_disbursed = Loan.objects.filter(
+            Q(loan_officer=officer) |
+            Q(borrower__group_memberships__group__assigned_officer=officer),
+            status__in=['active', 'completed']
+        ).distinct().aggregate(total=Sum('principal_amount'))['total'] or 0
+
+        completed_collections = PaymentCollection.objects.filter(
+            Q(loan__loan_officer=officer) |
+            Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+            status='completed'
+        ).distinct()
+        total_collected = completed_collections.aggregate(total=Sum('collected_amount'))['total'] or 0
+
+        all_collections = PaymentCollection.objects.filter(
+            Q(loan__loan_officer=officer) |
+            Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        ).distinct()
+        total_expected = all_collections.aggregate(total=Sum('expected_amount'))['total'] or 0
+        collection_rate = round((total_collected / total_expected * 100), 1) if total_expected > 0 else 0
+
+        default_count = active_loans.filter(
+            payment_schedule__is_paid=False,
+            payment_schedule__due_date__lt=today,
+        ).distinct().count()
+
+        last_collection = PaymentCollection.objects.filter(
+            Q(loan__loan_officer=officer) |
+            Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+            status='completed'
+        ).order_by('-collection_date').first()
+        last_activity = last_collection.collection_date if last_collection else None
+
+        rows.append({
+            'officer': officer,
+            'branch': branch,
+            'groups_count': groups_count,
+            'clients_count': clients_count,
+            'active_loans_count': active_loans_count,
+            'total_disbursed': total_disbursed,
+            'total_collected': total_collected,
+            'collection_rate': collection_rate,
+            'default_count': default_count,
+            'last_activity': last_activity,
+        })
+
+    # Sort by collection rate ascending (worst performers first)
+    rows.sort(key=lambda r: r['collection_rate'])
+
+    return render(request, 'dashboard/officer_performance.html', {'rows': rows})
