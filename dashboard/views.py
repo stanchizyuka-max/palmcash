@@ -674,7 +674,7 @@ def manager_dashboard(request):
 @login_required
 def admin_dashboard(request):
     """Admin Dashboard"""
-    if request.user.role != 'admin':
+    if request.user.role != 'admin' and not request.user.is_superuser:
         return render(request, 'dashboard/access_denied.html')
 
     loans = Loan.objects.all()
