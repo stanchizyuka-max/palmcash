@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('expenses', '0004_populate_expense_codes'),
-        ('clients', '0013_rename_clients_adm_admin_u_idx_clients_adm_admin_u_b673c4_idx_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -969,5 +969,277 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
                 'loan', 'loan__borrower', 'recorded_by'
             ).order_by('-collection_date')
 
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        search = request.GET.get('search', '').strip()
+
+        if date_from:
+            qs = qs.filter(collection_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(collection_date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            ).distinct()
+
         total = qs.aggregate(total=Sum('amount_paid'))['total'] or 0
-        return render(request, self.template_name, {'collections': qs, 'total': total})
+        return render(request, self.template_name, {
+            'collections': qs,
+            'total': total,
+            'filters': {'date_from': date_from, 'date_to': date_to, 'search': search},
+        })
+
+
+class CollectionHistoryView(LoginRequiredMixin, View):
+    """Collection history with date range, group, client search, and status filters."""
+    template_name = 'payments/collection_history.html'
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
+        from django.db.models import Q, Sum
+        from datetime import date, timedelta
+        from loans.models import Loan
+        from clients.models import BorrowerGroup
+
+        officer = request.user
+
+        # Base queryset scoped to officer
+        if officer.role == 'loan_officer':
+            qs = PaymentCollection.objects.filter(
+                Q(loan__loan_officer=officer) |
+                Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+            ).distinct()
+        elif officer.role == 'manager':
+            try:
+                branch = officer.managed_branch
+                qs = PaymentCollection.objects.filter(
+                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                ).distinct()
+            except Exception:
+                qs = PaymentCollection.objects.none()
+        else:
+            qs = PaymentCollection.objects.all()
+
+        qs = qs.select_related('loan__borrower', 'collected_by').order_by('-collection_date')
+
+        # Filters
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        group_id = request.GET.get('group')
+        search = request.GET.get('search', '').strip()
+        status = request.GET.get('status')
+
+        # Default: last 7 days if no date filter
+        if not date_from and not date_to:
+            date_from = (date.today() - timedelta(days=6)).isoformat()
+            date_to = date.today().isoformat()
+
+        if date_from:
+            qs = qs.filter(collection_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(collection_date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            )
+        if group_id:
+            qs = qs.filter(
+                loan__borrower__group_memberships__group_id=group_id,
+                loan__borrower__group_memberships__is_active=True
+            ).distinct()
+        if status == 'paid':
+            qs = qs.filter(status='completed', is_partial=False)
+        elif status == 'partial':
+            qs = qs.filter(is_partial=True)
+        elif status == 'pending':
+            qs = qs.filter(collected_amount=0)
+
+        totals = qs.aggregate(
+            total_expected=Sum('expected_amount'),
+            total_collected=Sum('collected_amount'),
+        )
+
+        # Groups for filter dropdown
+        if officer.role == 'loan_officer':
+            groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
+        elif officer.role == 'manager':
+            try:
+                groups = BorrowerGroup.objects.filter(branch__iexact=officer.managed_branch.name, is_active=True)
+            except Exception:
+                groups = BorrowerGroup.objects.none()
+        else:
+            groups = BorrowerGroup.objects.filter(is_active=True)
+
+        return render(request, self.template_name, {
+            'collections': qs[:200],  # cap at 200 rows
+            'total_expected': totals['total_expected'] or 0,
+            'total_collected': totals['total_collected'] or 0,
+            'groups': groups,
+            'filters': {
+                'date_from': date_from,
+                'date_to': date_to,
+                'group': group_id,
+                'search': search,
+                'status': status,
+            },
+        })
+
+
+class CollectionsHistoryView(LoginRequiredMixin, View):
+    """Collections history with date range, group, status, and client search filters."""
+    template_name = 'payments/collections_history.html'
+
+    def get(self, request):
+        from django.db.models import Q, Sum
+        from datetime import date, timedelta
+        from clients.models import BorrowerGroup
+
+        user = request.user
+
+        if user.role == 'loan_officer':
+            qs = PaymentCollection.objects.filter(
+                Q(loan__loan_officer=user) |
+                Q(loan__borrower__group_memberships__group__assigned_officer=user)
+            ).distinct()
+        elif user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                qs = PaymentCollection.objects.filter(
+                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                ).distinct()
+            except Exception:
+                qs = PaymentCollection.objects.none()
+        else:
+            qs = PaymentCollection.objects.all()
+
+        qs = qs.select_related('loan__borrower', 'collected_by').order_by('-collection_date')
+
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        group_id = request.GET.get('group', '')
+        search = request.GET.get('search', '').strip()
+        status = request.GET.get('status', '')
+
+        if date_from:
+            qs = qs.filter(collection_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(collection_date__lte=date_to)
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            ).distinct()
+        if group_id:
+            qs = qs.filter(
+                loan__borrower__group_memberships__group_id=group_id,
+                loan__borrower__group_memberships__is_active=True
+            ).distinct()
+        if status == 'paid':
+            qs = qs.filter(status='completed', is_partial=False)
+        elif status == 'partial':
+            qs = qs.filter(is_partial=True)
+        elif status == 'pending':
+            qs = qs.filter(collected_amount=0)
+
+        totals = qs.aggregate(
+            total_expected=Sum('expected_amount'),
+            total_collected=Sum('collected_amount'),
+        )
+
+        if user.role == 'loan_officer':
+            groups = BorrowerGroup.objects.filter(assigned_officer=user, is_active=True)
+        elif user.role == 'manager':
+            try:
+                groups = BorrowerGroup.objects.filter(branch__iexact=user.managed_branch.name, is_active=True)
+            except Exception:
+                groups = BorrowerGroup.objects.none()
+        else:
+            groups = BorrowerGroup.objects.filter(is_active=True)
+
+        return render(request, self.template_name, {
+            'collections': qs[:300],
+            'total_expected': totals['total_expected'] or 0,
+            'total_collected': totals['total_collected'] or 0,
+            'groups': groups,
+            'filters': {
+                'date_from': date_from,
+                'date_to': date_to,
+                'group': group_id,
+                'search': search,
+                'status': status,
+            },
+        })
+
+
+class SecuritiesHistoryView(LoginRequiredMixin, View):
+    """Securities transaction history with filters."""
+    template_name = 'payments/securities_history.html'
+
+    def get(self, request):
+        from django.db.models import Q, Sum
+        from loans.models import SecurityTransaction
+
+        user = request.user
+
+        if user.role == 'loan_officer':
+            qs = SecurityTransaction.objects.filter(
+                Q(loan__loan_officer=user) |
+                Q(loan__borrower__group_memberships__group__assigned_officer=user)
+            ).distinct()
+        elif user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                qs = SecurityTransaction.objects.filter(
+                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                ).distinct()
+            except Exception:
+                qs = SecurityTransaction.objects.none()
+        else:
+            qs = SecurityTransaction.objects.all()
+
+        qs = qs.select_related('loan__borrower', 'initiated_by', 'approved_by').order_by('-created_at')
+
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        txn_type = request.GET.get('transaction_type', '')
+        status = request.GET.get('status', '')
+        search = request.GET.get('search', '').strip()
+
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+        if txn_type:
+            qs = qs.filter(transaction_type=txn_type)
+        if status:
+            qs = qs.filter(status=status)
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            ).distinct()
+
+        total_amount = qs.aggregate(total=Sum('amount'))['total'] or 0
+
+        return render(request, self.template_name, {
+            'transactions': qs[:300],
+            'total_amount': total_amount,
+            'filters': {
+                'date_from': date_from,
+                'date_to': date_to,
+                'transaction_type': txn_type,
+                'status': status,
+                'search': search,
+            },
+        })

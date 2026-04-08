@@ -17,6 +17,33 @@
       </div>
     </div>
 
+    <!-- Filter Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
+      <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-slate-600 uppercase">From</label>
+          <input type="date" name="date_from" value="{{ filters.date_from }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-slate-600 uppercase">To</label>
+          <input type="date" name="date_to" value="{{ filters.date_to }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+          <label class="text-xs font-semibold text-slate-600 uppercase">Client Search</label>
+          <input type="text" name="search" value="{{ filters.search }}" placeholder="Name or loan #"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+            <i class="fas fa-filter mr-1"></i>Filter
+          </button>
+          <a href="{% url 'payments:default_collection_history' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+        </div>
+      </form>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
       <div><span class="text-slate-500">Total Records:</span> <span class="font-bold text-slate-900">{{ collections|length }}</span></div>
       <div><span class="text-slate-500">Total Collected:</span> <span class="font-bold text-green-700">K{{ total|floatformat:2|intcomma }}</span></div>

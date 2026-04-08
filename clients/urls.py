@@ -11,6 +11,7 @@ urlpatterns = [
     path('groups/<int:pk>/edit/', views.GroupUpdateView.as_view(), name='group_edit'),
     path('groups/<int:pk>/add-member/', views.AddMemberView.as_view(), name='add_member'),
     path('groups/<int:pk>/remove-member/<int:membership_id>/', views.RemoveMemberView.as_view(), name='remove_member'),
+    path('groups/<int:pk>/transfer-member/<int:membership_id>/', views.TransferMemberView.as_view(), name='transfer_member'),
     path('groups/<int:pk>/assign-officer/', views.AssignOfficerToGroupView.as_view(), name='assign_officer'),
     
     # Borrower registration
