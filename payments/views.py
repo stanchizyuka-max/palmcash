@@ -637,6 +637,8 @@ class BulkCollectionView(LoginRequiredMixin, View):
     template_name = 'payments/bulk_collection.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         if request.user.role not in ['loan_officer', 'admin']:
             messages.error(request, 'Only loan officers can record bulk collections.')
             return redirect('dashboard:dashboard')
@@ -688,6 +690,8 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
     template_name = 'payments/bulk_collection_group.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
         if request.user.role not in ['loan_officer', 'admin']:
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -800,7 +804,9 @@ class DefaultCollectionView(LoginRequiredMixin, View):
     template_name = 'payments/default_collection.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['loan_officer', 'admin']:
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if request.user.role not in ['loan_officer', 'admin', 'manager']:
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
@@ -840,7 +846,9 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
     template_name = 'payments/default_collection_group.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.role not in ['loan_officer', 'admin']:
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if request.user.role not in ['loan_officer', 'admin', 'manager']:
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
