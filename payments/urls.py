@@ -18,6 +18,7 @@ urlpatterns = [
     path('default-collection/group/<int:group_id>/', views.DefaultCollectionGroupView.as_view(), name='default_collection_group'),
     path('default-collection/history/', views.DefaultCollectionHistoryView.as_view(), name='default_collection_history'),
     path('collection-history/', views.CollectionHistoryView.as_view(), name='collection_history'),
+    path('history/', views.HistoryHubView.as_view(), name='history'),
     path('collections-history/', views.CollectionsHistoryView.as_view(), name='collections_history'),
     path('securities-history/', views.SecuritiesHistoryView.as_view(), name='securities_history'),
 ]

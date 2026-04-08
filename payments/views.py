@@ -1243,3 +1243,114 @@ class SecuritiesHistoryView(LoginRequiredMixin, View):
                 'search': search,
             },
         })
+
+
+class HistoryHubView(LoginRequiredMixin, View):
+    """Hub page showing all history tabs: Collections, Securities, Default Collections."""
+    template_name = 'payments/history.html'
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
+        from django.db.models import Q, Sum
+        from loans.models import SecurityTransaction
+        from .models import DefaultCollection
+
+        user = request.user
+        tab = request.GET.get('tab', 'collections')
+
+        # --- Shared filters ---
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        search = request.GET.get('search', '').strip()
+
+        # --- Scope helper ---
+        def scope_collections(qs):
+            if user.role == 'loan_officer':
+                return qs.filter(
+                    Q(loan__loan_officer=user) |
+                    Q(loan__borrower__group_memberships__group__assigned_officer=user)
+                ).distinct()
+            elif user.role == 'manager':
+                try:
+                    branch = user.managed_branch
+                    return qs.filter(
+                        Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+                        Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                    ).distinct()
+                except Exception:
+                    return qs.none()
+            return qs
+
+        collections = securities = defaults = None
+        totals = {}
+
+        if tab == 'collections':
+            qs = scope_collections(PaymentCollection.objects.all()).select_related(
+                'loan__borrower', 'collected_by'
+            ).order_by('-collection_date')
+            if date_from: qs = qs.filter(collection_date__gte=date_from)
+            if date_to:   qs = qs.filter(collection_date__lte=date_to)
+            if search:
+                qs = qs.filter(
+                    Q(loan__borrower__first_name__icontains=search) |
+                    Q(loan__borrower__last_name__icontains=search) |
+                    Q(loan__application_number__icontains=search)
+                ).distinct()
+            status = request.GET.get('status', '')
+            if status == 'paid':    qs = qs.filter(status='completed', is_partial=False)
+            elif status == 'partial': qs = qs.filter(is_partial=True)
+            elif status == 'pending': qs = qs.filter(collected_amount=0)
+            t = qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+            totals = {'expected': t['exp'] or 0, 'collected': t['col'] or 0}
+            collections = qs[:300]
+
+        elif tab == 'securities':
+            qs = scope_collections(SecurityTransaction.objects.all()).select_related(
+                'loan__borrower', 'initiated_by', 'approved_by'
+            ).order_by('-created_at')
+            if date_from: qs = qs.filter(created_at__date__gte=date_from)
+            if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+            if search:
+                qs = qs.filter(
+                    Q(loan__borrower__first_name__icontains=search) |
+                    Q(loan__borrower__last_name__icontains=search) |
+                    Q(loan__application_number__icontains=search)
+                ).distinct()
+            txn_type = request.GET.get('transaction_type', '')
+            status = request.GET.get('status', '')
+            if txn_type: qs = qs.filter(transaction_type=txn_type)
+            if status:   qs = qs.filter(status=status)
+            totals = {'amount': qs.aggregate(a=Sum('amount'))['a'] or 0}
+            securities = qs[:300]
+
+        elif tab == 'defaults':
+            qs = scope_collections(DefaultCollection.objects.all()).select_related(
+                'loan__borrower', 'recorded_by'
+            ).order_by('-collection_date')
+            if date_from: qs = qs.filter(collection_date__gte=date_from)
+            if date_to:   qs = qs.filter(collection_date__lte=date_to)
+            if search:
+                qs = qs.filter(
+                    Q(loan__borrower__first_name__icontains=search) |
+                    Q(loan__borrower__last_name__icontains=search) |
+                    Q(loan__application_number__icontains=search)
+                ).distinct()
+            totals = {'amount': qs.aggregate(a=Sum('amount_paid'))['a'] or 0}
+            defaults = qs[:300]
+
+        return render(request, self.template_name, {
+            'tab': tab,
+            'collections': collections,
+            'securities': securities,
+            'defaults': defaults,
+            'totals': totals,
+            'filters': {
+                'date_from': date_from,
+                'date_to': date_to,
+                'search': search,
+                'status': request.GET.get('status', ''),
+                'transaction_type': request.GET.get('transaction_type', ''),
+            },
+        })
