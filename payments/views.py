@@ -1290,6 +1290,8 @@ class HistoryHubView(LoginRequiredMixin, View):
         if tab == 'collections':
             qs = scope_collections(PaymentCollection.objects.all()).select_related(
                 'loan__borrower', 'collected_by'
+            ).filter(
+                collected_amount__gt=0  # Only show records where payment was actually made
             ).order_by('-collection_date')
             if date_from: qs = qs.filter(collection_date__gte=date_from)
             if date_to:   qs = qs.filter(collection_date__lte=date_to)
@@ -1302,7 +1304,6 @@ class HistoryHubView(LoginRequiredMixin, View):
             status = request.GET.get('status', '')
             if status == 'paid':    qs = qs.filter(status='completed', is_partial=False)
             elif status == 'partial': qs = qs.filter(is_partial=True)
-            elif status == 'pending': qs = qs.filter(collected_amount=0)
             t = qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
             totals = {'expected': t['exp'] or 0, 'collected': t['col'] or 0}
             collections = qs[:300]
