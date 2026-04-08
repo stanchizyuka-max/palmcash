@@ -4212,9 +4212,15 @@ def financial_summary(request):
         b_outstanding = (b_disbursed or 0) - (b_repaid or 0)
         b_active = branch_loans.filter(status='active').count()
 
+        b_capital = VaultTransaction.objects.filter(
+            transaction_type='capital_injection',
+            branch=branch.name
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
         branch_rows.append({
             'branch': branch,
             'vault_balance': vault_balance,
+            'capital_injected': b_capital,
             'disbursed': b_disbursed,
             'repaid': b_repaid,
             'outstanding': b_outstanding,
@@ -4229,6 +4235,9 @@ def financial_summary(request):
         'total_security': total_security,
         'total_default_collections': total_default_collections,
         'branch_rows': branch_rows,
+        'capital_history': VaultTransaction.objects.filter(
+            transaction_type='capital_injection'
+        ).select_related('recorded_by').order_by('-transaction_date')[:50],
     }
     return render(request, 'dashboard/financial_summary.html', context)
 
