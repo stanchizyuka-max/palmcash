@@ -91,6 +91,12 @@ urlpatterns = [
     path('reports/security-transactions/', reports_views.security_transactions_report, name='report_security_transactions'),
     path('reports/disbursements/', reports_views.disbursement_report, name='report_disbursements'),
     path('reports/client-balances/', reports_views.client_balances_report, name='report_client_balances'),
+    path('financial-summary/', views.financial_summary, name='financial_summary'),
+    path('branch-comparison/', views.branch_comparison, name='branch_comparison'),
+    path('loan-aging/', views.loan_aging, name='loan_aging'),
+    path('officer-performance/', views.officer_performance, name='officer_performance'),
+    path('loan-aging/', views.loan_aging, name='loan_aging'),
+    path('officer-performance/', views.officer_performance, name='officer_performance'),
 
     # Vault
     path('vault/', vault_views.vault_dashboard, name='vault'),

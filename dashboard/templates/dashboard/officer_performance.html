@@ -1,0 +1,67 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Officer Performance{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4">
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Officer Performance</h1>
+        <p class="text-slate-500 text-sm mt-1">Sorted by collection rate — worst performers first</p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+
+    {% if rows %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Branch</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Groups</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Clients</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Active Loans</th>
+            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Disbursed</th>
+            <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Collection %</th>
+            <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Defaults</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Last Activity</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in rows %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium text-slate-900">{{ row.officer.get_full_name }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ row.branch|default:"—" }}</td>
+            <td class="px-4 py-3 text-center text-slate-700">{{ row.groups_count }}</td>
+            <td class="px-4 py-3 text-center text-slate-700">{{ row.clients_count }}</td>
+            <td class="px-4 py-3 text-center text-slate-700">{{ row.active_loans_count }}</td>
+            <td class="px-4 py-3 text-right text-slate-700">K{{ row.total_disbursed|floatformat:0|intcomma }}</td>
+            <td class="px-4 py-3 text-right font-semibold text-green-700">K{{ row.total_collected|floatformat:0|intcomma }}</td>
+            <td class="px-4 py-3 text-center">
+              <span class="px-2 py-0.5 rounded-full text-xs font-bold
+                {% if row.collection_rate >= 80 %}bg-green-100 text-green-700
+                {% elif row.collection_rate >= 50 %}bg-yellow-100 text-yellow-700
+                {% else %}bg-red-100 text-red-700{% endif %}">
+                {{ row.collection_rate }}%
+              </span>
+            </td>
+            <td class="px-4 py-3 text-center {% if row.default_count > 0 %}text-red-600 font-bold{% else %}text-slate-400{% endif %}">{{ row.default_count }}</td>
+            <td class="px-4 py-3 text-slate-500 text-xs">{{ row.last_activity|date:"d M Y"|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200">
+      <i class="fas fa-user-tie text-4xl mb-3"></i>
+      <p>No loan officers found.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
