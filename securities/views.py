@@ -261,8 +261,7 @@ def client_detail(request, client_id):
 
         balance = (upfront + topups + adjustments + carry_fwd) - returned
 
-        # Transactions list for this loan
-        transactions = []
+        # Transactions list for this loan        transactions = []
 
         try:
             dep = loan.security_deposit
@@ -309,8 +308,11 @@ def client_detail(request, client_id):
             'transactions': transactions,
         })
 
-        for k in ('upfront', 'topups', 'adjustments', 'returned', 'balance'):
-            totals[k] += locals()[k]
+        totals['upfront'] += upfront
+        totals['topups'] += topups
+        totals['adjustments'] += adjustments
+        totals['returned'] += returned
+        totals['balance'] += balance
 
     return render(request, 'securities/client_detail.html', {
         'client': client,
