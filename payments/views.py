@@ -1378,9 +1378,25 @@ class HistoryHubView(LoginRequiredMixin, View):
 
         elif selected_officer:
             level = 'groups'
-            groups_for_officer = BorrowerGroup.objects.filter(
+            raw_groups = BorrowerGroup.objects.filter(
                 assigned_officer=selected_officer, is_active=True
             ).order_by('name')
+            groups_for_officer = []
+            for g in raw_groups:
+                client_ids = _User.objects.filter(
+                    group_memberships__group=g,
+                    group_memberships__is_active=True,
+                    role='borrower',
+                ).values_list('pk', flat=True).distinct()
+                total_collected = PaymentCollection.objects.filter(
+                    loan__borrower__in=client_ids,
+                    collected_amount__gt=0,
+                ).aggregate(t=Sum('collected_amount'))['t'] or 0
+                groups_for_officer.append({
+                    'group': g,
+                    'client_count': len(client_ids),
+                    'total_collected': total_collected,
+                })
 
         return render(request, self.template_name, {
             'tab': tab,
