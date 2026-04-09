@@ -4714,6 +4714,8 @@ def manager_processing_fees(request):
 
     try:
         branch = request.user.managed_branch
+        if not branch:
+            branch = None
     except Exception:
         branch = None
 
@@ -4721,14 +4723,14 @@ def manager_processing_fees(request):
         apps = LoanApplication.objects.filter(
             processing_fee__isnull=False, processing_fee__gt=0
         )
-    else:
-        if not branch:
-            return render(request, 'dashboard/access_denied.html')
+    elif branch:
         apps = LoanApplication.objects.filter(
             loan_officer__officer_assignment__branch__iexact=branch.name,
             processing_fee__isnull=False,
             processing_fee__gt=0,
         )
+    else:
+        apps = LoanApplication.objects.none()
 
     apps = apps.select_related('borrower', 'loan_officer', 'processing_fee_verified_by')
 
