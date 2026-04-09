@@ -23,8 +23,9 @@
     <!-- Summary bar -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex gap-6 text-sm">
       <div><span class="text-slate-500">Clients:</span> <span class="font-bold text-slate-900" id="total-clients">{{ rows|length }}</span></div>
-      <div><span class="text-slate-500">Total Expected:</span> <span class="font-bold text-blue-700" id="total-expected">K{{ rows|length }}</span></div>
+      <div><span class="text-slate-500">Total Expected:</span> <span class="font-bold text-blue-700" id="total-expected">K0.00</span></div>
       <div><span class="text-slate-500">Total Entered:</span> <span class="font-bold text-green-700" id="total-entered">K0.00</span></div>
+      <div><span class="text-slate-500">Total Loan Balance:</span> <span class="font-bold text-red-700" id="total-balance">K0.00</span></div>
     </div>
 
     <form method="post" id="bulk-form">
@@ -73,7 +74,7 @@
                     <option value="bank_transfer">Bank Transfer</option>
                   </select>
                 </td>
-                <td class="px-3 py-3 font-semibold balance-cell text-slate-700">K{{ row.expected|floatformat:2|intcomma }}</td>
+                <td class="px-3 py-3 font-semibold text-red-700" data-balance="{{ row.loan_balance }}">K{{ row.loan_balance|floatformat:2|intcomma }}</td>
                 <td class="px-3 py-3">
                   <span class="status-badge px-2 py-0.5 rounded-full text-xs font-semibold {% if row.is_overdue %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
                     {% if row.is_overdue %}Overdue{% else %}Pending{% endif %}
@@ -82,6 +83,16 @@
               </tr>
               {% endfor %}
             </tbody>
+            <tfoot class="bg-slate-100 border-t-2 border-slate-300">
+              <tr>
+                <td colspan="3" class="px-3 py-3 text-xs font-bold text-slate-600 uppercase">Totals</td>
+                <td class="px-3 py-3 font-bold text-blue-700" id="footer-expected">K0.00</td>
+                <td class="px-3 py-3 font-bold text-green-700" id="footer-entered">K0.00</td>
+                <td></td>
+                <td class="px-3 py-3 font-bold text-red-700" id="footer-balance">K0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -107,26 +118,29 @@
 </div>
 
 <script>
-// Pre-calculate total expected
-const rows = document.querySelectorAll('#collection-table tr');
+const tableRows = document.querySelectorAll('#collection-table tr');
 let totalExpected = 0;
-rows.forEach(r => {
-  const exp = parseFloat(r.dataset.expected || 0);
-  totalExpected += exp;
+let totalBalance = 0;
+
+tableRows.forEach(r => {
+  totalExpected += parseFloat(r.dataset.expected || 0);
+  const balCell = r.querySelector('[data-balance]');
+  if (balCell) totalBalance += parseFloat(balCell.dataset.balance || 0);
 });
-document.getElementById('total-expected').textContent = 'K' + totalExpected.toFixed(2);
+
+document.getElementById('total-expected').textContent = 'K' + totalExpected.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+document.getElementById('total-balance').textContent = 'K' + totalBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+document.getElementById('footer-expected').textContent = 'K' + totalExpected.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+document.getElementById('footer-balance').textContent = 'K' + totalBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+function fmt(n) { return 'K' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
 function updateRow(input) {
   const row = input.closest('tr');
   const expected = parseFloat(input.dataset.expected) || 0;
   const paid = parseFloat(input.value) || 0;
-  const balance = Math.max(0, expected - paid);
   const isOverdue = row.classList.contains('bg-red-50');
 
-  // Update balance
-  row.querySelector('.balance-cell').textContent = 'K' + balance.toFixed(2);
-
-  // Update status
   const badge = row.querySelector('.status-badge');
   badge.className = 'status-badge px-2 py-0.5 rounded-full text-xs font-semibold';
   if (paid === 0) {
@@ -140,12 +154,12 @@ function updateRow(input) {
     badge.textContent = 'Paid';
   }
 
-  // Update total entered
   let totalEntered = 0;
   document.querySelectorAll('.amount-input').forEach(inp => {
     totalEntered += parseFloat(inp.value) || 0;
   });
-  document.getElementById('total-entered').textContent = 'K' + totalEntered.toFixed(2);
+  document.getElementById('total-entered').textContent = fmt(totalEntered);
+  document.getElementById('footer-entered').textContent = fmt(totalEntered);
 }
 </script>
 {% endblock %}

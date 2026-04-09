@@ -718,6 +718,7 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
                 'loan': loan,
                 'schedule': sched,
                 'expected': outstanding,
+                'loan_balance': loan.balance_remaining or 0,
                 'is_overdue': sched.due_date < today,
             })
         return rows
