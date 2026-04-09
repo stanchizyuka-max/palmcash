@@ -988,9 +988,19 @@ def pending_approvals(request):
     from loans.models import LoanApplication, SecurityDeposit
 
     if user.role == 'manager':
-        branch = user.managed_branch
+        try:
+            branch = user.managed_branch
+        except Exception:
+            branch = None
         if not branch:
             return render(request, 'dashboard/access_denied.html')
+
+        from django.db.models import Q
+        branch_loan_ids = Loan.objects.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
+            Q(borrower__group_memberships__group__branch__iexact=branch.name) |
+            Q(borrower__group_memberships__group__assigned_officer__officer_assignment__branch__iexact=branch.name)
+        ).values_list('id', flat=True).distinct()
 
         pending_applications = LoanApplication.objects.filter(
             status='pending',
@@ -1000,11 +1010,11 @@ def pending_approvals(request):
         pending_deposits = SecurityDeposit.objects.filter(
             is_verified=False,
             paid_amount__gt=0,
-            loan__loan_officer__officer_assignment__branch=branch.name
+            loan_id__in=branch_loan_ids,
         ).select_related('loan', 'loan__borrower', 'loan__loan_officer').order_by('-payment_date')
 
         pending_security_txns = SecurityTransaction.objects.filter(
-            loan__loan_officer__officer_assignment__branch=branch.name,
+            loan_id__in=branch_loan_ids,
             status='pending',
         ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at')
 
