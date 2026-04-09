@@ -27,15 +27,7 @@
           <p class="text-2xl font-bold text-orange-600">{{ total_pending }}</p>
         </div>
       </div>
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
-        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-          <i class="fas fa-lock text-blue-600 text-xl"></i>
-        </div>
-        <div>
-          <p class="text-xs text-slate-500 uppercase font-semibold">Security Deposits</p>
-          <p class="text-2xl font-bold text-blue-600">{{ total_deposits }}</p>
-        </div>
-      </div>
+
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
         <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
           <i class="fas fa-shield-alt text-violet-600 text-xl"></i>
@@ -50,8 +42,8 @@
           <i class="fas fa-coins text-green-600 text-xl"></i>
         </div>
         <div>
-          <p class="text-xs text-slate-500 uppercase font-semibold">Deposits Collected</p>
-          <p class="text-xl font-bold text-green-600">K{{ total_collected|floatformat:0|intcomma }}</p>
+          <p class="text-xs text-slate-500 uppercase font-semibold">Total Items</p>
+          <p class="text-2xl font-bold text-green-600">{{ total_pending|add:pending_security_txns|length }}</p>
         </div>
       </div>
     </div>
@@ -62,11 +54,6 @@
         class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition bg-orange-600 text-white">
         <i class="fas fa-file-alt mr-1"></i>Applications
         {% if total_pending > 0 %}<span class="ml-1 bg-white text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{{ total_pending }}</span>{% endif %}
-      </button>
-      <button onclick="showTab('deposits')" id="tab-deposits"
-        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
-        <i class="fas fa-lock mr-1"></i>Security Deposits
-        {% if total_deposits > 0 %}<span class="ml-1 bg-blue-100 text-blue-700 text-xs font-bold px-1.5 py-0.5 rounded-full">{{ total_deposits }}</span>{% endif %}
       </button>
       <button onclick="showTab('transactions')" id="tab-transactions"
         class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
@@ -145,63 +132,6 @@
       </div>
     </div>
 
-    <!-- ── TAB: Security Deposits ── -->
-    <div id="panel-deposits" class="hidden">
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-          <h2 class="font-bold text-white text-lg flex items-center gap-2">
-            <i class="fas fa-lock"></i> Security Deposits — Awaiting Verification
-          </h2>
-          <div class="text-blue-100 text-sm">
-            Collected: <span class="font-bold text-white">K{{ total_collected|floatformat:0|intcomma }}</span>
-            &nbsp;/&nbsp; Required: <span class="font-bold text-white">K{{ total_required|floatformat:0|intcomma }}</span>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Required</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Paid</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              {% for deposit in pending_deposits %}
-              <tr class="hover:bg-blue-50">
-                <td class="px-4 py-3 font-mono text-xs">
-                  <a href="{% url 'loans:detail' deposit.loan.pk %}" class="text-blue-600 hover:underline">{{ deposit.loan.application_number }}</a>
-                </td>
-                <td class="px-4 py-3 font-medium text-slate-900">{{ deposit.loan.borrower.get_full_name }}</td>
-                <td class="px-4 py-3 text-slate-600">{{ deposit.loan.loan_officer.get_full_name|default:"—" }}</td>
-                <td class="px-4 py-3 text-right text-slate-700">K{{ deposit.required_amount|floatformat:2|intcomma }}</td>
-                <td class="px-4 py-3 text-right font-bold text-green-700">K{{ deposit.paid_amount|floatformat:2|intcomma }}</td>
-                <td class="px-4 py-3 text-slate-400 text-xs">{{ deposit.payment_date|date:"d M Y"|default:"—" }}</td>
-                <td class="px-4 py-3">
-                  <form method="post" action="{% url 'dashboard:verify_security_deposit' deposit.loan.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" onclick="return confirm('Verify this security deposit?')"
-                      class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">
-                      <i class="fas fa-check mr-1"></i>Verify
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="7" class="px-4 py-12 text-center text-slate-400">
-                <i class="fas fa-check-circle text-4xl mb-2 block text-green-400"></i>No pending security deposits
-              </td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <!-- ── TAB: Security Transactions ── -->
     <div id="panel-transactions" class="hidden">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -269,10 +199,9 @@
 </div>
 
 <script>
-const TABS = ['applications', 'deposits', 'transactions'];
+const TABS = ['applications', 'transactions'];
 const COLORS = {
   applications: 'bg-orange-600 text-white',
-  deposits: 'bg-blue-600 text-white',
   transactions: 'bg-violet-600 text-white',
 };
 
@@ -294,9 +223,7 @@ function setRejectReason(form) {
   return confirm('Reject this application?');
 }
 
-// Auto-open tab with pending items
 {% if pending_security_txns %}showTab('transactions');
-{% elif total_deposits > 0 %}showTab('deposits');
 {% else %}showTab('applications');{% endif %}
 </script>
 {% endblock %}
