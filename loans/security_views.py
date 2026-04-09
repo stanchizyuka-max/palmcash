@@ -86,6 +86,9 @@ def security_transaction_approve(request, txn_id):
             else:
                 messages.error(request, err)
 
+        next_url = request.POST.get('next') or request.GET.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('loans:detail', pk=txn.loan_id)
 
     return render(request, 'loans/security_transaction_review.html', {'txn': txn})

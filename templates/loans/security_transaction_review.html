@@ -9,7 +9,7 @@
 
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold text-slate-900">Review Security Transaction</h1>
-      <a href="{% url 'loans:detail' txn.loan.pk %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
+      <a href="{{ request.GET.next|default_if_none:'' }}{% if not request.GET.next %}{% url 'loans:detail' txn.loan.pk %}{% endif %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
         <i class="fas fa-arrow-left mr-1"></i>Back
       </a>
     </div>
@@ -51,6 +51,7 @@
 
     <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
       <div class="mb-4">
         <label class="block text-sm font-semibold text-slate-700 mb-1">Rejection Reason (if rejecting)</label>
         <input type="text" name="reason"
