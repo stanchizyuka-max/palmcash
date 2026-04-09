@@ -714,6 +714,17 @@ def manager_dashboard(request):
         processing_fee_verified=False,
     ).aggregate(t=Sum('processing_fee'))['t'] or 0
 
+    # Pending security transactions by type
+    pending_sec_qs = SecurityTransaction.objects.filter(
+        loan_id__in=loans.values_list('id', flat=True),
+        status='pending',
+    )
+    context['pending_returns'] = pending_sec_qs.filter(transaction_type='return').count()
+    context['pending_adjustments'] = pending_sec_qs.filter(transaction_type='adjustment').count()
+    context['pending_withdrawals'] = pending_sec_qs.filter(transaction_type='withdrawal').count()
+    context['pending_carry_forwards'] = pending_sec_qs.filter(transaction_type='carry_forward').count()
+    context['pending_sec_txns_total'] = pending_sec_qs.count()
+
     return render(request, 'dashboard/manager_enhanced.html', context)
 
 
