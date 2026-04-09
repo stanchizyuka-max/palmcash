@@ -1,121 +1,279 @@
 {% extends 'base_tailwind.html' %}
-
-{% block title %}Admin - Pending Loan Approvals{% endblock %}
-
+{% load humanize %}
+{% block title %}Pending Approvals — Admin{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Pending Loan Approvals</h1>
-                    <p class="mt-2 text-gray-600">High-value loans awaiting admin approval (K6,000+)</p>
-                </div>
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4">
+
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <i class="fas fa-tasks text-orange-500"></i> Pending Approvals
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">All items awaiting admin review</p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+        <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+          <i class="fas fa-file-alt text-orange-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 uppercase font-semibold">Loan Applications</p>
+          <p class="text-2xl font-bold text-orange-600">{{ pending_applications|length }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+          <i class="fas fa-star text-red-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 uppercase font-semibold">High-Value Loans</p>
+          <p class="text-2xl font-bold text-red-600">{{ total_pending }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+        <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+          <i class="fas fa-shield-alt text-violet-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 uppercase font-semibold">Security Transactions</p>
+          <p class="text-2xl font-bold text-violet-600">{{ pending_security_txns|length }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit mb-6 shadow-sm">
+      <button onclick="showTab('applications')" id="tab-applications"
+        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition bg-orange-600 text-white">
+        <i class="fas fa-file-alt mr-1"></i>Applications
+        {% if pending_applications %}<span class="ml-1 bg-white text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{{ pending_applications|length }}</span>{% endif %}
+      </button>
+      <button onclick="showTab('highvalue')" id="tab-highvalue"
+        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+        <i class="fas fa-star mr-1"></i>High-Value Loans
+        {% if total_pending %}<span class="ml-1 bg-red-100 text-red-700 text-xs font-bold px-1.5 py-0.5 rounded-full">{{ total_pending }}</span>{% endif %}
+      </button>
+      <button onclick="showTab('transactions')" id="tab-transactions"
+        class="tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+        <i class="fas fa-shield-alt mr-1"></i>Security Transactions
+        {% if pending_security_txns %}<span class="ml-1 bg-violet-100 text-violet-700 text-xs font-bold px-1.5 py-0.5 rounded-full">{{ pending_security_txns|length }}</span>{% endif %}
+      </button>
+    </div>
+
+    <!-- ── TAB: Loan Applications ── -->
+    <div id="panel-applications">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between">
+          <h2 class="font-bold text-white text-lg flex items-center gap-2"><i class="fas fa-file-alt"></i> Loan Applications</h2>
+          <a href="{% url 'loans:applications_list' %}" class="text-orange-100 hover:text-white text-sm font-semibold">View All →</a>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">App #</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for app in pending_applications %}
+              <tr class="hover:bg-orange-50">
+                <td class="px-4 py-3 font-mono text-xs font-semibold">
+                  <a href="{% url 'loans:approve_application' app.pk %}" class="text-blue-600 hover:underline">{{ app.application_number }}</a>
+                </td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ app.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ app.loan_officer.get_full_name }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ app.group.name|default:"—" }}</td>
+                <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ app.loan_amount|floatformat:0|intcomma }}</td>
+                <td class="px-4 py-3 text-slate-400 text-xs">{{ app.created_at|date:"d M Y" }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-2">
+                    <a href="{% url 'loans:approve_application' app.pk %}" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700">
+                      <i class="fas fa-eye mr-1"></i>Review
+                    </a>
+                    <form method="post" action="{% url 'loans:approve_application' app.pk %}">
+                      {% csrf_token %}<input type="hidden" name="status" value="approved"><input type="hidden" name="rejection_reason" value="">
+                      <button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700"><i class="fas fa-check mr-1"></i>Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'loans:approve_application' app.pk %}" onsubmit="return setRejectReason(this)">
+                      {% csrf_token %}<input type="hidden" name="status" value="rejected"><input type="hidden" name="rejection_reason" class="reject-reason">
+                      <button type="submit" class="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600"><i class="fas fa-times mr-1"></i>Reject</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7" class="px-4 py-12 text-center text-slate-400">
+                <i class="fas fa-check-circle text-4xl mb-2 block text-green-400"></i>No pending loan applications
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: High-Value Loans ── -->
+    <div id="panel-highvalue" class="hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+          <h2 class="font-bold text-white text-lg flex items-center gap-2"><i class="fas fa-star"></i> High-Value Loans (K6,000+)</h2>
+          <p class="text-red-200 text-xs mt-1">Loans requiring admin approval before disbursement</p>
+        </div>
+        <!-- Search/filter -->
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+          <form method="get" class="flex flex-wrap gap-3 items-end">
+            <input type="hidden" name="tab" value="highvalue">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Search</label>
+              <input type="text" name="search" value="{{ search_query }}" placeholder="Borrower name or loan ID"
+                class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-400 w-56">
             </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Branch</label>
+              <select name="branch" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-red-400">
+                <option value="">All Branches</option>
+                {% for b in branches %}<option value="{{ b.name }}" {% if branch_filter == b.name %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">Filter</button>
+            <a href="{% url 'dashboard:admin_pending_approvals' %}" class="px-4 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+          </form>
         </div>
-
-        <!-- Search and Filter -->
-        <div class="bg-white rounded-lg shadow mb-6 p-6">
-            <form method="get" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                        <input type="text" name="search" value="{{ search_query }}" placeholder="Search by borrower or loan ID" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Min Amount</label>
-                        <input type="number" name="min_amount" value="{{ min_amount }}" placeholder="Min amount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Max Amount</label>
-                        <input type="number" name="max_amount" value="{{ max_amount }}" placeholder="Max amount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
-                        <select name="branch" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">All Branches</option>
-                            {% for branch in branches %}
-                            <option value="{{ branch.name }}" {% if branch_filter == branch.name %}selected{% endif %}>{{ branch.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                            Filter
-                        </button>
-                    </div>
-                </div>
-            </form>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan ID</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Applied</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for item in pending_loans %}
+              <tr class="hover:bg-red-50">
+                <td class="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{{ item.loan.application_number|default:item.loan.id }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ item.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3 text-right font-bold text-red-700">K{{ item.loan.principal_amount|floatformat:0|intcomma }}</td>
+                <td class="px-4 py-3 text-slate-400 text-xs">{{ item.submitted_date|date:"d M Y" }}</td>
+                <td class="px-4 py-3">
+                  <a href="{% url 'dashboard:admin_loan_approval_detail' item.loan.id %}"
+                    class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700">
+                    <i class="fas fa-gavel mr-1"></i>Review
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="px-4 py-12 text-center text-slate-400">
+                <i class="fas fa-check-circle text-4xl mb-2 block text-green-400"></i>No pending high-value loans
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-
-        <!-- Pending Loans Table -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Officer</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for approval in pending_loans %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ approval.loan.id }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ approval.loan.borrower.full_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">K{{ approval.loan.principal_amount|floatformat:2 }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ approval.loan.loan_officer.full_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {% if approval.loan.borrower.group_memberships.first %}
-                                {{ approval.loan.borrower.group_memberships.first.group.name }}
-                            {% else %}
-                                <span class="text-gray-400">-</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ approval.submitted_date|date:"M d, Y" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{% url 'dashboard:admin_loan_approval_detail' approval.loan.id %}" class="text-blue-600 hover:text-blue-900">Review</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No pending approvals</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="mt-6 flex justify-center">
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                {% if page_obj.has_previous %}
-                    <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">First</a>
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}" class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Previous</a>
-                {% endif %}
-                
-                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-                
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}" class="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Next</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if min_amount %}&min_amount={{ min_amount }}{% endif %}{% if max_amount %}&max_amount={{ max_amount }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Last</a>
-                {% endif %}
-            </nav>
+        <div class="px-4 py-3 border-t border-slate-200 flex gap-2">
+          {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-slate-100 rounded text-sm hover:bg-slate-200">← Prev</a>{% endif %}
+          <span class="px-3 py-1 text-sm text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-slate-100 rounded text-sm hover:bg-slate-200">Next →</a>{% endif %}
         </div>
         {% endif %}
-
-        <!-- Summary -->
-        <div class="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p class="text-sm text-red-800">Pending approvals: <strong>{{ total_pending }}</strong></p>
-        </div>
+      </div>
     </div>
+
+    <!-- ── TAB: Security Transactions ── -->
+    <div id="panel-transactions" class="hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-violet-600 to-violet-700 px-6 py-4">
+          <h2 class="font-bold text-white text-lg flex items-center gap-2"><i class="fas fa-shield-alt"></i> Security Transactions — Awaiting Approval</h2>
+          <p class="text-violet-200 text-xs mt-1">Returns · Adjustments · Withdrawals submitted by officers</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Type</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Requested By</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Notes</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {% for txn in pending_security_txns %}
+              <tr class="hover:bg-violet-50">
+                <td class="px-4 py-3 font-mono text-xs"><a href="{% url 'loans:detail' txn.loan.pk %}" class="text-blue-600 hover:underline">{{ txn.loan.application_number }}</a></td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ txn.loan.borrower.get_full_name }}</td>
+                <td class="px-4 py-3">
+                  {% if txn.transaction_type == 'return' %}<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold"><i class="fas fa-undo mr-1"></i>Return</span>
+                  {% elif txn.transaction_type == 'adjustment' %}<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold"><i class="fas fa-sliders-h mr-1"></i>Adjustment</span>
+                  {% elif txn.transaction_type == 'withdrawal' %}<span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold"><i class="fas fa-minus-circle mr-1"></i>Withdrawal</span>
+                  {% else %}<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">{{ txn.get_transaction_type_display }}</span>{% endif %}
+                </td>
+                <td class="px-4 py-3 text-right font-bold text-violet-700">K{{ txn.amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ txn.initiated_by.get_full_name|default:"—" }}</td>
+                <td class="px-4 py-3 text-slate-400 text-xs">{{ txn.created_at|date:"d M Y" }}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs max-w-xs truncate">{{ txn.notes|default:"—" }}</td>
+                <td class="px-4 py-3">
+                  <a href="{% url 'loans:security_transaction_review' txn.pk %}"
+                    class="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700 inline-flex items-center gap-1">
+                    <i class="fas fa-gavel"></i> Approve / Reject
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" class="px-4 py-12 text-center text-slate-400">
+                <i class="fas fa-check-circle text-4xl mb-2 block text-green-400"></i>No pending security transactions
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
+
+<script>
+const TABS = ['applications', 'highvalue', 'transactions'];
+const COLORS = {
+  applications: 'bg-orange-600 text-white',
+  highvalue: 'bg-red-600 text-white',
+  transactions: 'bg-violet-600 text-white',
+};
+function showTab(name) {
+  TABS.forEach(t => {
+    document.getElementById('panel-' + t).classList.add('hidden');
+    document.getElementById('tab-' + t).className = 'tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100';
+  });
+  document.getElementById('panel-' + name).classList.remove('hidden');
+  document.getElementById('tab-' + name).className = 'tab-btn px-5 py-2 rounded-lg text-sm font-semibold transition ' + COLORS[name];
+}
+function setRejectReason(form) {
+  var reason = prompt('Reason for rejection:');
+  if (!reason || reason.trim() === '') return false;
+  form.querySelector('.reject-reason').value = reason.trim();
+  return confirm('Reject this application?');
+}
+{% if pending_security_txns %}showTab('transactions');
+{% elif total_pending %}showTab('highvalue');
+{% else %}showTab('applications');{% endif %}
+</script>
 {% endblock %}

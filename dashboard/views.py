@@ -3456,6 +3456,12 @@ def admin_pending_approvals(request):
         'min_amount': min_amount,
         'max_amount': max_amount,
         'branches': branches,
+        'pending_security_txns': SecurityTransaction.objects.filter(
+            status='pending'
+        ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at'),
+        'pending_applications': __import__('loans.models', fromlist=['LoanApplication']).LoanApplication.objects.filter(
+            status='pending'
+        ).select_related('borrower', 'loan_officer', 'group').order_by('-created_at'),
     }
     
     return render(request, 'dashboard/admin_pending_approvals.html', context)
