@@ -33,11 +33,19 @@ def _security_stats_for_loans(loans_qs):
         amount__gt=0,
     ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-    returned = SecurityReturnRequest.objects.filter(
-        loan__in=loans_qs, status__in=['approved', 'completed']
-    ).aggregate(total=Sum('return_amount'))['total'] or _zero()
+    returned = SecurityTransaction.objects.filter(
+        loan__in=loans_qs,
+        status='approved',
+        transaction_type='return',
+    ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-    balance = (upfront + topups + adjustments) - returned
+    carry_forwards = SecurityTransaction.objects.filter(
+        loan__in=loans_qs,
+        status='approved',
+        transaction_type='carry_forward',
+    ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+    balance = (upfront + topups + adjustments + carry_forwards) - returned
 
     return {
         'upfront': upfront,
