@@ -396,9 +396,10 @@ def manager_dashboard(request):
             status='pending'
         ).count()
         
-        pending_returns = SecurityReturnRequest.objects.filter(
+        pending_returns = SecurityTransaction.objects.filter(
             loan__loan_officer__officer_assignment__branch=branch.name,
-            status='pending'
+            transaction_type='return',
+            status='pending',
         ).count()
         
         # Pending loan approvals (approved loans with verified deposits but not yet approved by manager)
@@ -1002,6 +1003,11 @@ def pending_approvals(request):
             loan__loan_officer__officer_assignment__branch=branch.name
         ).select_related('loan', 'loan__borrower', 'loan__loan_officer').order_by('-payment_date')
 
+        pending_security_txns = SecurityTransaction.objects.filter(
+            loan__loan_officer__officer_assignment__branch=branch.name,
+            status='pending',
+        ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at')
+
     elif user.role == 'admin':
         pending_applications = LoanApplication.objects.filter(
             status='pending'
@@ -1011,6 +1017,10 @@ def pending_approvals(request):
             is_verified=False,
             paid_amount__gt=0
         ).select_related('loan', 'loan__borrower').order_by('-payment_date')
+
+        pending_security_txns = SecurityTransaction.objects.filter(
+            status='pending',
+        ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at')
     else:
         return render(request, 'dashboard/access_denied.html')
 
@@ -1025,6 +1035,7 @@ def pending_approvals(request):
     context = {
         'pending_applications': pending_applications,
         'pending_deposits': pending_deposits,
+        'pending_security_txns': pending_security_txns,
         'total_pending': pending_applications.count(),
         'total_deposits': pending_deposits.count(),
         'total_required': total_required,
