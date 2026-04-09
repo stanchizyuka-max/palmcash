@@ -8,11 +8,9 @@ from django.db import transaction as db_transaction
 
 
 def initiate_security_adjustment(loan, amount, notes, initiated_by):
-    """
-    Officer initiates: use part of security deposit to reduce loan balance.
-    Returns (SecurityTransaction, error_message)
-    """
     from .models import SecurityTransaction
+    if loan.status != 'active':
+        return None, 'Balance adjustment can only be done on an active loan.'
     try:
         deposit = loan.security_deposit
     except Exception:
@@ -71,12 +69,9 @@ def initiate_security_return(loan, amount, notes, initiated_by):
 
 
 def initiate_security_withdrawal(loan, new_loan_amount, notes, initiated_by):
-    """
-    Officer initiates: partially reduce security to match 10% of a smaller new loan.
-    The withdrawal amount = current_security - (10% of new_loan_amount).
-    Returns (SecurityTransaction, error_message)
-    """
     from .models import SecurityTransaction
+    if loan.status != 'active':
+        return None, 'Security withdrawal can only be done on an active loan.'
     try:
         deposit = loan.security_deposit
     except Exception:

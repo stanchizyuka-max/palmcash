@@ -137,6 +137,7 @@ def security_topup(request, loan_id=None):
     if selected_borrower_id:
         loans_for_borrower = Loan.objects.filter(
             borrower_id=selected_borrower_id,
+            status='active',
             security_deposit__is_verified=True,
         ).select_related('borrower', 'security_deposit').order_by('-created_at')
 
@@ -146,11 +147,12 @@ def security_topup(request, loan_id=None):
         try:
             loan = Loan.objects.select_related('borrower', 'security_deposit').get(
                 pk=selected_loan_id,
+                status='active',
                 security_deposit__is_verified=True,
             )
             deposit = loan.security_deposit
         except Loan.DoesNotExist:
-            messages.error(request, 'Loan not found or has no verified security deposit.')
+            messages.error(request, 'Loan not found, not active, or has no verified security deposit.')
 
     if request.method == 'POST' and loan:
         new_loan_amount = request.POST.get('new_loan_amount', '0')
