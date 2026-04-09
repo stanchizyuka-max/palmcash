@@ -17,6 +17,7 @@ urlpatterns = [
     
     # Action URLs
     path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
+    path('security-topup/<int:pk>/action/', views.security_topup_action, name='security_topup_action'),
     path('approved-security-deposits/', views.approved_security_deposits, name='approved_security_deposits'),
     path('collection-details/', views.collection_details, name='collection_details'),
     

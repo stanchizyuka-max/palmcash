@@ -996,7 +996,7 @@ def collection_details(request):
 def pending_approvals(request):
     """Pending Approvals View - Shows loan applications awaiting manager approval and security deposits"""
     user = request.user
-    from loans.models import LoanApplication, SecurityDeposit
+    from loans.models import LoanApplication, SecurityDeposit, SecurityTopUpRequest
 
     if user.role == 'manager':
         try:
@@ -1029,6 +1029,11 @@ def pending_approvals(request):
             status='pending',
         ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at')
 
+        pending_topup_requests = SecurityTopUpRequest.objects.filter(
+            loan_id__in=branch_loan_ids,
+            status='pending',
+        ).select_related('loan', 'loan__borrower', 'requested_by').order_by('-requested_date')
+
     elif user.role == 'admin':
         pending_applications = LoanApplication.objects.filter(
             status='pending'
@@ -1042,6 +1047,10 @@ def pending_approvals(request):
         pending_security_txns = SecurityTransaction.objects.filter(
             status='pending',
         ).select_related('loan', 'loan__borrower', 'initiated_by').order_by('-created_at')
+
+        pending_topup_requests = SecurityTopUpRequest.objects.filter(
+            status='pending',
+        ).select_related('loan', 'loan__borrower', 'requested_by').order_by('-requested_date')
     else:
         return render(request, 'dashboard/access_denied.html')
 
@@ -1057,6 +1066,7 @@ def pending_approvals(request):
         'pending_applications': pending_applications,
         'pending_deposits': pending_deposits,
         'pending_security_txns': pending_security_txns,
+        'pending_topup_requests': pending_topup_requests,
         'total_pending': pending_applications.count(),
         'total_deposits': pending_deposits.count(),
         'total_required': total_required,
@@ -1065,6 +1075,39 @@ def pending_approvals(request):
     }
 
     return render(request, 'dashboard/pending_approvals.html', context)
+
+
+@login_required
+def security_topup_action(request, pk):
+    """Approve or reject a SecurityTopUpRequest."""
+    if request.user.role not in ['manager', 'admin'] and not request.user.is_superuser:
+        messages.error(request, 'Permission denied.')
+        return redirect('dashboard:pending_approvals')
+    from loans.models import SecurityTopUpRequest
+    from django.utils import timezone as tz
+    req = get_object_or_404(SecurityTopUpRequest, pk=pk)
+    if request.method == 'POST':
+        decision = request.POST.get('decision')
+        if decision == 'approve' and req.status == 'pending':
+            req.status = 'approved'
+            req.approved_by = request.user
+            req.approval_date = tz.now()
+            req.save(update_fields=['status', 'approved_by', 'approval_date'])
+            try:
+                dep = req.loan.security_deposit
+                dep.paid_amount += req.requested_amount
+                dep.save(update_fields=['paid_amount', 'updated_at'])
+            except Exception:
+                pass
+            messages.success(request, f'Top-up of K{req.requested_amount} approved.')
+        elif decision == 'reject' and req.status == 'pending':
+            req.status = 'rejected'
+            req.approved_by = request.user
+            req.approval_date = tz.now()
+            req.rejection_reason = request.POST.get('reason', '')
+            req.save(update_fields=['status', 'approved_by', 'approval_date', 'rejection_reason'])
+            messages.warning(request, 'Top-up request rejected.')
+    return redirect(request.POST.get('next') or 'dashboard:pending_approvals')
 
 
 @login_required

@@ -251,11 +251,15 @@ def client_detail(request, client_id):
             loan=loan, status='approved', transaction_type='adjustment', amount__gt=0
         ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        returned = SecurityReturnRequest.objects.filter(
-            loan=loan, status__in=['approved', 'completed']
-        ).aggregate(total=Sum('return_amount'))['total'] or _zero()
+        returned = SecurityTransaction.objects.filter(
+            loan=loan, status='approved', transaction_type='return'
+        ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        balance = (upfront + topups + adjustments) - returned
+        carry_fwd = SecurityTransaction.objects.filter(
+            loan=loan, status='approved', transaction_type='carry_forward'
+        ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+        balance = (upfront + topups + adjustments + carry_fwd) - returned
 
         # Transactions list for this loan
         transactions = []
@@ -291,14 +295,7 @@ def client_detail(request, client_id):
                 'notes': adj.notes,
             })
 
-        for ret in SecurityReturnRequest.objects.filter(loan=loan).order_by('-requested_date'):
-            transactions.append({
-                'date': ret.requested_date,
-                'type': 'Return',
-                'amount': ret.return_amount,
-                'status': ret.get_status_display(),
-                'notes': ret.reason,
-            })
+        # SecurityReturnRequest is unused — returns go through SecurityTransaction
 
         transactions.sort(key=lambda x: x['date'] or '', reverse=True)
 
