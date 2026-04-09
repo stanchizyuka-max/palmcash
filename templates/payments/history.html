@@ -161,22 +161,21 @@
         </thead>
         <tbody class="divide-y divide-slate-100">
           {% for row in groups_for_officer %}
-          <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ row.group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-             class="table-row hover:bg-green-50 transition group cursor-pointer">
+          <tr class="hover:bg-green-50 transition cursor-pointer" onclick="window.location='?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ row.group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}'">
             <td class="px-5 py-4">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
                   <i class="fas fa-layer-group text-green-600 text-sm"></i>
                 </div>
-                <span class="font-semibold text-slate-900 group-hover:text-green-700">{{ row.group.name }}</span>
+                <span class="font-semibold text-slate-900">{{ row.group.name }}</span>
               </div>
             </td>
             <td class="px-5 py-4 text-center">
               <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">{{ row.client_count }} client{{ row.client_count|pluralize }}</span>
             </td>
             <td class="px-5 py-4 text-right font-bold text-green-700">K{{ row.total_collected|floatformat:2|intcomma }}</td>
-            <td class="px-5 py-4 text-right"><i class="fas fa-chevron-right text-slate-400 group-hover:text-green-600"></i></td>
-          </a>
+            <td class="px-5 py-4 text-right"><i class="fas fa-chevron-right text-slate-400"></i></td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
