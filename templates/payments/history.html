@@ -108,6 +108,27 @@
     <!-- LEVEL 1: Officers -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     {% if level == 'officers' and not filters.search %}
+    <!-- Branch-wide summary -->
+    {% if branch_totals %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
+        <p class="text-lg font-bold text-blue-700">K{{ branch_totals.collections_expected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
+        <p class="text-lg font-bold text-green-700">K{{ branch_totals.collections_collected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
+        <p class="text-lg font-bold text-violet-700">K{{ branch_totals.securities_amount|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
+        <p class="text-lg font-bold text-red-700">K{{ branch_totals.defaults_collected|floatformat:2|intcomma }}</p>
+      </div>
+    </div>
+    {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
         <h2 class="font-bold text-white">Loan Officers</h2>
@@ -144,6 +165,27 @@
     <!-- LEVEL 2: Groups -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     {% elif level == 'groups' %}
+    <!-- Officer performance summary -->
+    {% if totals %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
+        <p class="text-lg font-bold text-blue-700">K{{ totals.collections_expected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
+        <p class="text-lg font-bold text-green-700">K{{ totals.collections_collected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
+        <p class="text-lg font-bold text-violet-700">K{{ totals.securities_amount|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
+        <p class="text-lg font-bold text-red-700">K{{ totals.defaults_collected|floatformat:2|intcomma }}</p>
+      </div>
+    </div>
+    {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-green-600 to-green-700 px-5 py-3 flex items-center justify-between">
         <h2 class="font-bold text-white">Groups — {{ selected_officer.get_full_name }}</h2>
@@ -155,6 +197,7 @@
           <tr>
             <th class="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
             <th class="px-5 py-3 text-center text-xs font-bold text-slate-600 uppercase">Clients</th>
+            <th class="px-5 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
             <th class="px-5 py-3 text-right text-xs font-bold text-slate-600 uppercase">Total Collected</th>
             <th class="px-5 py-3"></th>
           </tr>
@@ -173,6 +216,7 @@
             <td class="px-5 py-4 text-center">
               <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">{{ row.client_count }} client{{ row.client_count|pluralize }}</span>
             </td>
+            <td class="px-5 py-4 text-right text-slate-600">K{{ row.total_expected|floatformat:2|intcomma }}</td>
             <td class="px-5 py-4 text-right font-bold text-green-700">K{{ row.total_collected|floatformat:2|intcomma }}</td>
             <td class="px-5 py-4 text-right"><i class="fas fa-chevron-right text-slate-400"></i></td>
           </tr>
@@ -188,6 +232,27 @@
     <!-- LEVEL 3: Clients -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     {% elif level == 'clients' %}
+    <!-- Group performance summary -->
+    {% if totals %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
+        <p class="text-lg font-bold text-blue-700">K{{ totals.collections_expected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
+        <p class="text-lg font-bold text-green-700">K{{ totals.collections_collected|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
+        <p class="text-lg font-bold text-violet-700">K{{ totals.securities_amount|floatformat:2|intcomma }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
+        <p class="text-lg font-bold text-red-700">K{{ totals.defaults_collected|floatformat:2|intcomma }}</p>
+      </div>
+    </div>
+    {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 flex items-center justify-between">
         <h2 class="font-bold text-white">Clients — {{ selected_group.name }}</h2>

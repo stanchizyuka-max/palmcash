@@ -1377,27 +1377,118 @@ class HistoryHubView(LoginRequiredMixin, View):
                 role='borrower',
             ).distinct().order_by('first_name', 'last_name')
 
+            # Group-level performance summary
+            group_client_ids = clients_for_group.values_list('pk', flat=True)
+            def _date_filter_col(qs):
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                return qs
+            def _date_filter_sec(qs):
+                if date_from: qs = qs.filter(created_at__date__gte=date_from)
+                if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+                return qs
+            def _date_filter_def(qs):
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                return qs
+
+            col_qs = _date_filter_col(PaymentCollection.objects.filter(loan__borrower__in=group_client_ids, collected_amount__gt=0))
+            col_agg = col_qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+            sec_qs = _date_filter_sec(SecurityTransaction.objects.filter(loan__borrower__in=group_client_ids, status='approved'))
+            sec_agg = sec_qs.aggregate(t=Sum('amount'))
+            def_qs = _date_filter_def(DefaultCollection.objects.filter(loan__borrower__in=group_client_ids))
+            def_agg = def_qs.aggregate(t=Sum('amount_paid'))
+            totals = {
+                'collections_expected': col_agg['exp'] or 0,
+                'collections_collected': col_agg['col'] or 0,
+                'securities_amount': sec_agg['t'] or 0,
+                'defaults_collected': def_agg['t'] or 0,
+            }
+
         elif selected_officer:
             level = 'groups'
             raw_groups = BorrowerGroup.objects.filter(
                 assigned_officer=selected_officer, is_active=True
             ).order_by('name')
             groups_for_officer = []
+            all_client_ids = _User.objects.filter(
+                group_memberships__group__assigned_officer=selected_officer,
+                group_memberships__is_active=True,
+                role='borrower',
+            ).values_list('pk', flat=True).distinct()
+
             for g in raw_groups:
                 client_ids = _User.objects.filter(
                     group_memberships__group=g,
                     group_memberships__is_active=True,
                     role='borrower',
                 ).values_list('pk', flat=True).distinct()
-                total_collected = PaymentCollection.objects.filter(
-                    loan__borrower__in=client_ids,
-                    collected_amount__gt=0,
-                ).aggregate(t=Sum('collected_amount'))['t'] or 0
+                col = PaymentCollection.objects.filter(
+                    loan__borrower__in=client_ids, collected_amount__gt=0,
+                )
+                if date_from: col = col.filter(collection_date__gte=date_from)
+                if date_to:   col = col.filter(collection_date__lte=date_to)
+                col_agg = col.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
                 groups_for_officer.append({
                     'group': g,
                     'client_count': len(client_ids),
-                    'total_collected': total_collected,
+                    'total_collected': col_agg['col'] or 0,
+                    'total_expected': col_agg['exp'] or 0,
                 })
+
+            # Officer-level totals
+            def _df_col(qs):
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                return qs
+            def _df_sec(qs):
+                if date_from: qs = qs.filter(created_at__date__gte=date_from)
+                if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+                return qs
+            def _df_def(qs):
+                if date_from: qs = qs.filter(collection_date__gte=date_from)
+                if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                return qs
+
+            o_col = _df_col(PaymentCollection.objects.filter(loan__borrower__in=all_client_ids, collected_amount__gt=0))
+            o_col_agg = o_col.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+            o_sec = _df_sec(SecurityTransaction.objects.filter(loan__borrower__in=all_client_ids, status='approved'))
+            o_sec_agg = o_sec.aggregate(t=Sum('amount'))
+            o_def = _df_def(DefaultCollection.objects.filter(loan__borrower__in=all_client_ids))
+            o_def_agg = o_def.aggregate(t=Sum('amount_paid'))
+            totals = {
+                'collections_expected': o_col_agg['exp'] or 0,
+                'collections_collected': o_col_agg['col'] or 0,
+                'securities_amount': o_sec_agg['t'] or 0,
+                'defaults_collected': o_def_agg['t'] or 0,
+            }
+
+        # Branch-level totals (for officers level)
+        branch_totals = None
+        if level == 'officers':
+            all_branch_client_ids = _User.objects.filter(
+                group_memberships__group__assigned_officer__in=branch_officers,
+                group_memberships__is_active=True,
+                role='borrower',
+            ).values_list('pk', flat=True).distinct()
+            b_col = PaymentCollection.objects.filter(loan__borrower__in=all_branch_client_ids, collected_amount__gt=0)
+            b_sec = SecurityTransaction.objects.filter(loan__borrower__in=all_branch_client_ids, status='approved')
+            b_def = DefaultCollection.objects.filter(loan__borrower__in=all_branch_client_ids)
+            if date_from:
+                b_col = b_col.filter(collection_date__gte=date_from)
+                b_sec = b_sec.filter(created_at__date__gte=date_from)
+                b_def = b_def.filter(collection_date__gte=date_from)
+            if date_to:
+                b_col = b_col.filter(collection_date__lte=date_to)
+                b_sec = b_sec.filter(created_at__date__lte=date_to)
+                b_def = b_def.filter(collection_date__lte=date_to)
+            b_col_agg = b_col.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+            branch_totals = {
+                'collections_expected': b_col_agg['exp'] or 0,
+                'collections_collected': b_col_agg['col'] or 0,
+                'securities_amount': b_sec.aggregate(t=Sum('amount'))['t'] or 0,
+                'defaults_collected': b_def.aggregate(t=Sum('amount_paid'))['t'] or 0,
+            }
 
         return render(request, self.template_name, {
             'tab': tab,
@@ -1410,6 +1501,7 @@ class HistoryHubView(LoginRequiredMixin, View):
             'clients_for_group': clients_for_group,
             'records': records,
             'totals': totals,
+            'branch_totals': branch_totals,
             'sec_type': extra.get('sec_type', 'transactions'),
             'search_results': search_results,
             'filters': {
