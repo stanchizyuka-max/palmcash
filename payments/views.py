@@ -1394,14 +1394,14 @@ class HistoryHubView(LoginRequiredMixin, View):
 
             col_qs = _date_filter_col(PaymentCollection.objects.filter(loan__borrower__in=group_client_ids, collected_amount__gt=0))
             col_agg = col_qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
-            sec_qs = _date_filter_sec(SecurityTransaction.objects.filter(loan__borrower__in=group_client_ids, status='approved'))
-            sec_agg = sec_qs.aggregate(t=Sum('amount'))
+            from loans.models import SecurityDeposit as _SD
+            sec_dep_agg = _SD.objects.filter(loan__borrower__in=group_client_ids, is_verified=True).aggregate(t=Sum('paid_amount'))
             def_qs = _date_filter_def(DefaultCollection.objects.filter(loan__borrower__in=group_client_ids))
             def_agg = def_qs.aggregate(t=Sum('amount_paid'))
             totals = {
                 'collections_expected': col_agg['exp'] or 0,
                 'collections_collected': col_agg['col'] or 0,
-                'securities_amount': sec_agg['t'] or 0,
+                'securities_amount': sec_dep_agg['t'] or 0,
                 'defaults_collected': def_agg['t'] or 0,
             }
 
@@ -1452,14 +1452,14 @@ class HistoryHubView(LoginRequiredMixin, View):
 
             o_col = _df_col(PaymentCollection.objects.filter(loan__borrower__in=all_client_ids, collected_amount__gt=0))
             o_col_agg = o_col.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
-            o_sec = _df_sec(SecurityTransaction.objects.filter(loan__borrower__in=all_client_ids, status='approved'))
-            o_sec_agg = o_sec.aggregate(t=Sum('amount'))
+            from loans.models import SecurityDeposit as _SD2
+            o_sec_dep = _SD2.objects.filter(loan__borrower__in=all_client_ids, is_verified=True).aggregate(t=Sum('paid_amount'))
             o_def = _df_def(DefaultCollection.objects.filter(loan__borrower__in=all_client_ids))
             o_def_agg = o_def.aggregate(t=Sum('amount_paid'))
             totals = {
                 'collections_expected': o_col_agg['exp'] or 0,
                 'collections_collected': o_col_agg['col'] or 0,
-                'securities_amount': o_sec_agg['t'] or 0,
+                'securities_amount': o_sec_dep['t'] or 0,
                 'defaults_collected': o_def_agg['t'] or 0,
             }
 
@@ -1496,10 +1496,9 @@ class HistoryHubView(LoginRequiredMixin, View):
                             'group': c.group_memberships.filter(is_active=True).select_related('group').first(),
                         })
                     elif breakdown == 'securities':
-                        qs = SecurityTransaction.objects.filter(loan__borrower=c, status='approved')
-                        if date_from: qs = qs.filter(created_at__date__gte=date_from)
-                        if date_to:   qs = qs.filter(created_at__date__lte=date_to)
-                        agg = qs.aggregate(t=Sum('amount'))
+                        from loans.models import SecurityDeposit as _SD4
+                        qs = _SD4.objects.filter(loan__borrower=c, is_verified=True)
+                        agg = qs.aggregate(t=Sum('paid_amount'))
                         client_breakdown.append({
                             'client': c,
                             'amount': agg['t'] or 0,
@@ -1527,21 +1526,20 @@ class HistoryHubView(LoginRequiredMixin, View):
                 role='borrower',
             ).values_list('pk', flat=True).distinct()
             b_col = PaymentCollection.objects.filter(loan__borrower__in=all_branch_client_ids, collected_amount__gt=0)
-            b_sec = SecurityTransaction.objects.filter(loan__borrower__in=all_branch_client_ids, status='approved')
             b_def = DefaultCollection.objects.filter(loan__borrower__in=all_branch_client_ids)
             if date_from:
                 b_col = b_col.filter(collection_date__gte=date_from)
-                b_sec = b_sec.filter(created_at__date__gte=date_from)
                 b_def = b_def.filter(collection_date__gte=date_from)
             if date_to:
                 b_col = b_col.filter(collection_date__lte=date_to)
-                b_sec = b_sec.filter(created_at__date__lte=date_to)
                 b_def = b_def.filter(collection_date__lte=date_to)
             b_col_agg = b_col.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+            from loans.models import SecurityDeposit as _SD3
+            b_sec_dep = _SD3.objects.filter(loan__borrower__in=all_branch_client_ids, is_verified=True).aggregate(t=Sum('paid_amount'))
             branch_totals = {
                 'collections_expected': b_col_agg['exp'] or 0,
                 'collections_collected': b_col_agg['col'] or 0,
-                'securities_amount': b_sec.aggregate(t=Sum('amount'))['t'] or 0,
+                'securities_amount': b_sec_dep['t'] or 0,
                 'defaults_collected': b_def.aggregate(t=Sum('amount_paid'))['t'] or 0,
             }
 
