@@ -448,108 +448,212 @@ def officer_performance_report(request):
         return render(request, 'dashboard/access_denied.html')
 
     from django.db.models import Q, Sum
-    from loans.models import Loan, LoanApplication, SecurityDeposit
+    from loans.models import Loan, LoanApplication
     from payments.models import PaymentCollection, DefaultCollection
-    from datetime import date, timedelta
+    from datetime import date, datetime
 
     officer = request.user
-
-    # Date filters — default to current month
     today = date.today()
+
     date_from_str = request.GET.get('date_from', today.replace(day=1).isoformat())
     date_to_str = request.GET.get('date_to', today.isoformat())
+    activity_type = request.GET.get('activity_type', '')
+    search = request.GET.get('search', '').strip()
+
     try:
-        from datetime import datetime
         date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
         date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
     except Exception:
         date_from = today.replace(day=1)
         date_to = today
 
-    officer_q = Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+    loan_q = Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer)
+    col_q = Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
 
-    # Loans disbursed in period
-    disbursed_loans = Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
-        disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to
-    ).distinct().select_related('borrower')
+    # Build unified activity log
+    activities = []
 
-    # Total collected in period
-    collections = PaymentCollection.objects.filter(
-        officer_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0
-    ).distinct()
-    total_collected = collections.aggregate(t=Sum('collected_amount'))['t'] or 0
-    total_expected = collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+    # 1. Disbursements
+    if not activity_type or activity_type == 'disbursement':
+        qs = Loan.objects.filter(
+            loan_q,
+            disbursement_date__date__gte=date_from,
+            disbursement_date__date__lte=date_to,
+        ).distinct().select_related('borrower', 'loan_officer')
+        if search:
+            qs = qs.filter(
+                Q(borrower__first_name__icontains=search) |
+                Q(borrower__last_name__icontains=search) |
+                Q(application_number__icontains=search)
+            )
+        for loan in qs:
+            activities.append({
+                'date': loan.disbursement_date.date() if loan.disbursement_date else None,
+                'type': 'Disbursement',
+                'type_color': 'blue',
+                'reference': loan.application_number,
+                'reference_url': f'/loans/{loan.pk}/',
+                'client': loan.borrower.get_full_name(),
+                'amount': loan.principal_amount,
+                'status': 'Disbursed',
+                'status_color': 'blue',
+                'performed_by': loan.loan_officer.get_full_name() if loan.loan_officer else '—',
+                'pk': loan.pk,
+                'model': 'loan',
+            })
 
-    # New clients registered in period
-    new_clients = User.objects.filter(
-        Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
-        role='borrower', date_joined__date__gte=date_from, date_joined__date__lte=date_to,
-    ).distinct()
+    # 2. Collections
+    if not activity_type or activity_type == 'collection':
+        qs = PaymentCollection.objects.filter(
+            col_q,
+            collection_date__gte=date_from,
+            collection_date__lte=date_to,
+            collected_amount__gt=0,
+        ).distinct().select_related('loan__borrower', 'collected_by')
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            )
+        for c in qs:
+            activities.append({
+                'date': c.collection_date,
+                'type': 'Collection',
+                'type_color': 'green',
+                'reference': c.loan.application_number,
+                'reference_url': f'/loans/{c.loan.pk}/',
+                'client': c.loan.borrower.get_full_name(),
+                'amount': c.collected_amount,
+                'status': 'Partial' if c.is_partial else 'Paid',
+                'status_color': 'yellow' if c.is_partial else 'green',
+                'performed_by': c.collected_by.get_full_name() if c.collected_by else '—',
+                'pk': c.loan.pk,
+                'model': 'loan',
+            })
 
-    # Loans completed in period — use maturity_date as completion date proxy
-    completed_loans = Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
-        status='completed',
-        maturity_date__gte=date_from, maturity_date__lte=date_to
-    ).distinct().select_related('borrower')
+    # 3. Default Collections
+    if not activity_type or activity_type == 'default':
+        qs = DefaultCollection.objects.filter(
+            col_q,
+            collection_date__gte=date_from,
+            collection_date__lte=date_to,
+        ).distinct().select_related('loan__borrower', 'recorded_by')
+        if search:
+            qs = qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            )
+        for dc in qs:
+            activities.append({
+                'date': dc.collection_date,
+                'type': 'Default Collection',
+                'type_color': 'red',
+                'reference': dc.loan.application_number,
+                'reference_url': f'/loans/{dc.loan.pk}/',
+                'client': dc.loan.borrower.get_full_name(),
+                'amount': dc.amount_paid,
+                'status': 'Collected',
+                'status_color': 'red',
+                'performed_by': dc.recorded_by.get_full_name() if dc.recorded_by else '—',
+                'pk': dc.loan.pk,
+                'model': 'loan',
+            })
 
-    # Default collections in period
-    default_collections = DefaultCollection.objects.filter(
-        officer_q, collection_date__gte=date_from, collection_date__lte=date_to
-    ).distinct().select_related('loan__borrower')
-    total_defaults_collected = default_collections.aggregate(t=Sum('amount_paid'))['t'] or 0
+    # 4. Loan Completions
+    if not activity_type or activity_type == 'completion':
+        qs = Loan.objects.filter(
+            loan_q,
+            status='completed',
+            maturity_date__gte=date_from,
+            maturity_date__lte=date_to,
+        ).distinct().select_related('borrower', 'loan_officer')
+        if search:
+            qs = qs.filter(
+                Q(borrower__first_name__icontains=search) |
+                Q(borrower__last_name__icontains=search) |
+                Q(application_number__icontains=search)
+            )
+        for loan in qs:
+            activities.append({
+                'date': loan.maturity_date,
+                'type': 'Loan Completion',
+                'type_color': 'teal',
+                'reference': loan.application_number,
+                'reference_url': f'/loans/{loan.pk}/',
+                'client': loan.borrower.get_full_name(),
+                'amount': loan.total_amount or loan.principal_amount,
+                'status': 'Completed',
+                'status_color': 'teal',
+                'performed_by': loan.loan_officer.get_full_name() if loan.loan_officer else '—',
+                'pk': loan.pk,
+                'model': 'loan',
+            })
 
-    # Processing fees in period
-    apps_with_fees = LoanApplication.objects.filter(
-        loan_officer=officer, processing_fee__gt=0,
-        created_at__date__gte=date_from, created_at__date__lte=date_to,
-    ).select_related('borrower')
-    total_fees = apps_with_fees.aggregate(t=Sum('processing_fee'))['t'] or 0
-    verified_fees = apps_with_fees.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
+    # 5. Processing Fees
+    if not activity_type or activity_type == 'fee':
+        qs = LoanApplication.objects.filter(
+            loan_officer=officer,
+            processing_fee__gt=0,
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to,
+        ).select_related('borrower', 'processing_fee_verified_by')
+        if search:
+            qs = qs.filter(
+                Q(borrower__first_name__icontains=search) |
+                Q(borrower__last_name__icontains=search) |
+                Q(application_number__icontains=search)
+            )
+        for app in qs:
+            activities.append({
+                'date': app.created_at.date(),
+                'type': 'Processing Fee',
+                'type_color': 'violet',
+                'reference': app.application_number,
+                'reference_url': f'/loans/applications/{app.pk}/approve/',
+                'client': app.borrower.get_full_name(),
+                'amount': app.processing_fee,
+                'status': 'Verified' if app.processing_fee_verified else 'Pending',
+                'status_color': 'green' if app.processing_fee_verified else 'amber',
+                'performed_by': app.processing_fee_verified_by.get_full_name() if app.processing_fee_verified_by else officer.get_full_name(),
+                'pk': app.pk,
+                'model': 'application',
+            })
 
-    # All applications in period
-    applications = LoanApplication.objects.filter(
-        loan_officer=officer, created_at__date__gte=date_from, created_at__date__lte=date_to,
-    ).select_related('borrower').order_by('-created_at')
+    # Sort by date descending
+    activities.sort(key=lambda x: x['date'] or date.min, reverse=True)
 
-    # Collection breakdown by client
-    from collections import defaultdict
-    client_collections = {}
-    for c in collections.select_related('loan__borrower'):
-        cid = c.loan.borrower_id
-        if cid not in client_collections:
-            client_collections[cid] = {
-                'client': c.loan.borrower,
-                'expected': 0, 'collected': 0, 'count': 0,
-            }
-        client_collections[cid]['expected'] += c.expected_amount
-        client_collections[cid]['collected'] += c.collected_amount
-        client_collections[cid]['count'] += 1
-    client_collection_rows = sorted(client_collections.values(), key=lambda x: -x['collected'])
+    # Totals
+    total_amount = sum(a['amount'] for a in activities if a['amount'])
+
+    # Summary counts (always full period, no type filter)
+    all_col = PaymentCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0).distinct()
+    all_def = DefaultCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to).distinct()
+    all_dis = Loan.objects.filter(loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to).distinct()
+    all_comp = Loan.objects.filter(loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to).distinct()
+    all_fees = LoanApplication.objects.filter(loan_officer=officer, processing_fee__gt=0, created_at__date__gte=date_from, created_at__date__lte=date_to)
 
     return render(request, 'dashboard/officer_performance_report.html', {
         'date_from': date_from,
         'date_to': date_to,
-        'disbursed_loans': disbursed_loans,
-        'disbursed_count': disbursed_loans.count(),
-        'disbursed_amount': disbursed_loans.aggregate(t=Sum('principal_amount'))['t'] or 0,
-        'total_collected': total_collected,
-        'total_expected': total_expected,
-        'collection_rate': round(total_collected / total_expected * 100, 1) if total_expected > 0 else 0,
-        'new_clients': new_clients,
-        'new_clients_count': new_clients.count(),
-        'completed_loans': completed_loans,
-        'completed_count': completed_loans.count(),
-        'default_collections': default_collections,
-        'total_defaults_collected': total_defaults_collected,
-        'total_fees': total_fees,
-        'verified_fees': verified_fees,
-        'applications': applications,
-        'apps_pending': applications.filter(status='pending').count(),
-        'apps_approved': applications.filter(status='approved').count(),
-        'apps_rejected': applications.filter(status='rejected').count(),
-        'client_collection_rows': client_collection_rows,
+        'activity_type': activity_type,
+        'search': search,
+        'activities': activities,
+        'total_amount': total_amount,
+        'activity_count': len(activities),
+        # Summary cards
+        'disbursed_count': all_dis.count(),
+        'disbursed_amount': all_dis.aggregate(t=Sum('principal_amount'))['t'] or 0,
+        'total_collected': all_col.aggregate(t=Sum('collected_amount'))['t'] or 0,
+        'total_expected': all_col.aggregate(t=Sum('expected_amount'))['t'] or 0,
+        'completed_count': all_comp.count(),
+        'defaults_collected': all_def.aggregate(t=Sum('amount_paid'))['t'] or 0,
+        'total_fees': all_fees.aggregate(t=Sum('processing_fee'))['t'] or 0,
+        'new_clients_count': User.objects.filter(
+            Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
+            role='borrower', date_joined__date__gte=date_from, date_joined__date__lte=date_to,
+        ).distinct().count(),
     })
 
 
