@@ -111,23 +111,32 @@
     <!-- Branch-wide summary -->
     {% if branch_totals %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-      <div class="text-center">
+      <a href="?tab={{ tab }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-blue-500 bg-blue-50{% else %}border-transparent hover:border-blue-300 hover:bg-blue-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
         <p class="text-lg font-bold text-blue-700">K{{ branch_totals.collections_expected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-blue-500 mt-1">Collected: K{{ branch_totals.collections_collected|floatformat:2|intcomma }}</p>
+      </a>
+      <a href="?tab={{ tab }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-green-500 bg-green-50{% else %}border-transparent hover:border-green-300 hover:bg-green-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
         <p class="text-lg font-bold text-green-700">K{{ branch_totals.collections_collected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-green-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=securities"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'securities' %}border-violet-500 bg-violet-50{% else %}border-transparent hover:border-violet-300 hover:bg-violet-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
         <p class="text-lg font-bold text-violet-700">K{{ branch_totals.securities_amount|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-violet-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=defaults"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'defaults' %}border-red-500 bg-red-50{% else %}border-transparent hover:border-red-300 hover:bg-red-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
         <p class="text-lg font-bold text-red-700">K{{ branch_totals.defaults_collected|floatformat:2|intcomma }}</p>
-      </div>
+        <p class="text-xs text-red-500 mt-1">Click to see clients</p>
+      </a>
     </div>
+    {% include 'payments/_breakdown_table.html' %}
     {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
@@ -168,23 +177,31 @@
     <!-- Officer performance summary -->
     {% if totals %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-      <div class="text-center">
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-blue-500 bg-blue-50{% else %}border-transparent hover:border-blue-300 hover:bg-blue-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
         <p class="text-lg font-bold text-blue-700">K{{ totals.collections_expected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-green-500 bg-green-50{% else %}border-transparent hover:border-green-300 hover:bg-green-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
         <p class="text-lg font-bold text-green-700">K{{ totals.collections_collected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-green-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=securities"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'securities' %}border-violet-500 bg-violet-50{% else %}border-transparent hover:border-violet-300 hover:bg-violet-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
         <p class="text-lg font-bold text-violet-700">K{{ totals.securities_amount|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-violet-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=defaults"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'defaults' %}border-red-500 bg-red-50{% else %}border-transparent hover:border-red-300 hover:bg-red-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
         <p class="text-lg font-bold text-red-700">K{{ totals.defaults_collected|floatformat:2|intcomma }}</p>
-      </div>
+        <p class="text-xs text-red-500 mt-1">Click to see clients</p>
+      </a>
     </div>
+    {% include 'payments/_breakdown_table.html' %}
     {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-green-600 to-green-700 px-5 py-3 flex items-center justify-between">
@@ -235,23 +252,31 @@
     <!-- Group performance summary -->
     {% if totals %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-      <div class="text-center">
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ selected_group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-blue-500 bg-blue-50{% else %}border-transparent hover:border-blue-300 hover:bg-blue-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Expected</p>
         <p class="text-lg font-bold text-blue-700">K{{ totals.collections_expected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ selected_group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=collections"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'collections' %}border-green-500 bg-green-50{% else %}border-transparent hover:border-green-300 hover:bg-green-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Collected</p>
         <p class="text-lg font-bold text-green-700">K{{ totals.collections_collected|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-green-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ selected_group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=securities"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'securities' %}border-violet-500 bg-violet-50{% else %}border-transparent hover:border-violet-300 hover:bg-violet-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Securities</p>
         <p class="text-lg font-bold text-violet-700">K{{ totals.securities_amount|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="text-center">
+        <p class="text-xs text-violet-500 mt-1">Click to see clients</p>
+      </a>
+      <a href="?tab={{ tab }}&officer={{ selected_officer.pk }}&group={{ selected_group.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}&breakdown=defaults"
+         class="text-center p-3 rounded-xl border-2 {% if breakdown == 'defaults' %}border-red-500 bg-red-50{% else %}border-transparent hover:border-red-300 hover:bg-red-50{% endif %} transition cursor-pointer">
         <p class="text-xs text-slate-500 uppercase font-semibold">Defaults Collected</p>
         <p class="text-lg font-bold text-red-700">K{{ totals.defaults_collected|floatformat:2|intcomma }}</p>
-      </div>
+        <p class="text-xs text-red-500 mt-1">Click to see clients</p>
+      </a>
     </div>
+    {% include 'payments/_breakdown_table.html' %}
     {% endif %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 flex items-center justify-between">

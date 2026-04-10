@@ -1463,6 +1463,61 @@ class HistoryHubView(LoginRequiredMixin, View):
                 'defaults_collected': o_def_agg['t'] or 0,
             }
 
+        # Client breakdown when a summary card is clicked
+        breakdown = request.GET.get('breakdown', '')
+        client_breakdown = []
+        breakdown_client_ids = None
+
+        if breakdown and (selected_officer or selected_group):
+            if selected_group:
+                breakdown_client_ids = _User.objects.filter(
+                    group_memberships__group=selected_group,
+                    group_memberships__is_active=True, role='borrower',
+                ).values_list('pk', flat=True).distinct()
+            elif selected_officer:
+                breakdown_client_ids = _User.objects.filter(
+                    group_memberships__group__assigned_officer=selected_officer,
+                    group_memberships__is_active=True, role='borrower',
+                ).values_list('pk', flat=True).distinct()
+
+            if breakdown_client_ids is not None:
+                clients_bd = _User.objects.filter(pk__in=breakdown_client_ids).order_by('first_name', 'last_name')
+                for c in clients_bd:
+                    if breakdown == 'collections':
+                        qs = PaymentCollection.objects.filter(loan__borrower=c, collected_amount__gt=0)
+                        if date_from: qs = qs.filter(collection_date__gte=date_from)
+                        if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                        agg = qs.aggregate(exp=Sum('expected_amount'), col=Sum('collected_amount'))
+                        client_breakdown.append({
+                            'client': c,
+                            'expected': agg['exp'] or 0,
+                            'collected': agg['col'] or 0,
+                            'count': qs.count(),
+                            'group': c.group_memberships.filter(is_active=True).select_related('group').first(),
+                        })
+                    elif breakdown == 'securities':
+                        qs = SecurityTransaction.objects.filter(loan__borrower=c, status='approved')
+                        if date_from: qs = qs.filter(created_at__date__gte=date_from)
+                        if date_to:   qs = qs.filter(created_at__date__lte=date_to)
+                        agg = qs.aggregate(t=Sum('amount'))
+                        client_breakdown.append({
+                            'client': c,
+                            'amount': agg['t'] or 0,
+                            'count': qs.count(),
+                            'group': c.group_memberships.filter(is_active=True).select_related('group').first(),
+                        })
+                    elif breakdown == 'defaults':
+                        qs = DefaultCollection.objects.filter(loan__borrower=c)
+                        if date_from: qs = qs.filter(collection_date__gte=date_from)
+                        if date_to:   qs = qs.filter(collection_date__lte=date_to)
+                        agg = qs.aggregate(t=Sum('amount_paid'))
+                        client_breakdown.append({
+                            'client': c,
+                            'amount': agg['t'] or 0,
+                            'count': qs.count(),
+                            'group': c.group_memberships.filter(is_active=True).select_related('group').first(),
+                        })
+
         # Branch-level totals (for officers level)
         branch_totals = None
         if level == 'officers':
@@ -1502,6 +1557,8 @@ class HistoryHubView(LoginRequiredMixin, View):
             'records': records,
             'totals': totals,
             'branch_totals': branch_totals,
+            'breakdown': breakdown,
+            'client_breakdown': client_breakdown,
             'sec_type': extra.get('sec_type', 'transactions'),
             'search_results': search_results,
             'filters': {
