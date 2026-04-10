@@ -1,0 +1,250 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}My Performance Report{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4">
+
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <i class="fas fa-chart-line text-blue-600"></i> Performance Report
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">{{ user.get_full_name }}</p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+
+    <!-- Date filter -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <form method="get" class="flex flex-wrap gap-4 items-end">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">From</label>
+          <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">To</label>
+          <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+        </div>
+        <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+          <i class="fas fa-filter mr-1"></i>Apply
+        </button>
+        <a href="{% url 'dashboard:officer_performance_report' %}" class="px-5 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">This Month</a>
+      </form>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Loans Disbursed</p>
+        <p class="text-3xl font-bold text-blue-600">{{ disbursed_count }}</p>
+        <p class="text-xs text-slate-400 mt-1">K{{ disbursed_amount|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Total Collected</p>
+        <p class="text-2xl font-bold text-green-600">K{{ total_collected|floatformat:0|intcomma }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ collection_rate }}% of K{{ total_expected|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">New Clients</p>
+        <p class="text-3xl font-bold text-purple-600">{{ new_clients_count }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Loans Completed</p>
+        <p class="text-3xl font-bold text-teal-600">{{ completed_count }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Defaults Collected</p>
+        <p class="text-2xl font-bold text-red-600">K{{ total_defaults_collected|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Processing Fees</p>
+        <p class="text-2xl font-bold text-violet-600">K{{ total_fees|floatformat:0|intcomma }}</p>
+        <p class="text-xs text-slate-400 mt-1">K{{ verified_fees|floatformat:0|intcomma }} verified</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Applications</p>
+        <p class="text-3xl font-bold text-orange-600">{{ applications|length }}</p>
+        <p class="text-xs text-slate-400 mt-1">{{ apps_approved }} approved · {{ apps_pending }} pending</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Collection Rate</p>
+        <p class="text-3xl font-bold {% if collection_rate >= 80 %}text-green-600{% elif collection_rate >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ collection_rate }}%</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+      <!-- Collections by Client -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-5 py-3">
+          <h2 class="font-bold text-white">Collections by Client</h2>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+              <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
+              <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
+              <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Rate</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for row in client_collection_rows %}
+            <tr class="hover:bg-green-50">
+              <td class="px-4 py-2 font-medium text-slate-900">{{ row.client.get_full_name }}</td>
+              <td class="px-4 py-2 text-right text-slate-600">K{{ row.expected|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-2 text-right font-bold text-green-700">K{{ row.collected|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-2 text-right">
+                {% if row.expected > 0 %}
+                {% widthratio row.collected row.expected 100 as rate %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                  {% if rate >= 100 %}bg-green-100 text-green-700
+                  {% elif rate >= 50 %}bg-yellow-100 text-yellow-700
+                  {% else %}bg-red-100 text-red-700{% endif %}">{{ rate }}%</span>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">No collections in this period</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Loan Applications -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3 flex items-center justify-between">
+          <h2 class="font-bold text-white">Loan Applications</h2>
+          <div class="flex gap-2 text-xs font-bold">
+            <span class="bg-yellow-300 text-yellow-900 px-2 py-0.5 rounded-full">{{ apps_pending }} pending</span>
+            <span class="bg-green-400 text-white px-2 py-0.5 rounded-full">{{ apps_approved }} approved</span>
+            <span class="bg-red-400 text-white px-2 py-0.5 rounded-full">{{ apps_rejected }} rejected</span>
+          </div>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">App #</th>
+              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+              <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for app in applications %}
+            <tr class="hover:bg-orange-50">
+              <td class="px-4 py-2 font-mono text-xs text-blue-600">
+                <a href="{% url 'loans:approve_application' app.pk %}">{{ app.application_number }}</a>
+              </td>
+              <td class="px-4 py-2 font-medium text-slate-900">{{ app.borrower.get_full_name }}</td>
+              <td class="px-4 py-2 text-right font-semibold text-slate-800">K{{ app.loan_amount|floatformat:0|intcomma }}</td>
+              <td class="px-4 py-2">
+                {% if app.status == 'pending' %}<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Pending</span>
+                {% elif app.status == 'approved' %}<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Approved</span>
+                {% elif app.status == 'rejected' %}<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Rejected</span>
+                {% else %}<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">{{ app.status|title }}</span>{% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">No applications in this period</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Disbursed Loans -->
+    {% if disbursed_loans %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 flex items-center justify-between">
+        <h2 class="font-bold text-white">Loans Disbursed</h2>
+        <span class="bg-white text-blue-700 font-bold text-xs px-2 py-1 rounded-full">{{ disbursed_count }}</span>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Principal</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Disbursed</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for loan in disbursed_loans %}
+          <tr class="hover:bg-blue-50">
+            <td class="px-4 py-2 font-mono text-xs"><a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a></td>
+            <td class="px-4 py-2 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-2 text-right font-bold text-blue-700">K{{ loan.principal_amount|floatformat:0|intcomma }}</td>
+            <td class="px-4 py-2 text-slate-500 text-xs">{{ loan.disbursement_date|date:"d M Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Completed Loans -->
+    {% if completed_loans %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+      <div class="bg-gradient-to-r from-teal-600 to-teal-700 px-5 py-3 flex items-center justify-between">
+        <h2 class="font-bold text-white">Loans Completed</h2>
+        <span class="bg-white text-teal-700 font-bold text-xs px-2 py-1 rounded-full">{{ completed_count }}</span>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Principal</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for loan in completed_loans %}
+          <tr class="hover:bg-teal-50">
+            <td class="px-4 py-2 font-mono text-xs"><a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a></td>
+            <td class="px-4 py-2 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-2 text-right font-bold text-teal-700">K{{ loan.principal_amount|floatformat:0|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Default Collections -->
+    {% if default_collections %}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+      <div class="bg-gradient-to-r from-red-600 to-red-700 px-5 py-3 flex items-center justify-between">
+        <h2 class="font-bold text-white">Default Collections</h2>
+        <span class="font-bold text-white text-sm">K{{ total_defaults_collected|floatformat:0|intcomma }}</span>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Loan #</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for dc in default_collections %}
+          <tr class="hover:bg-red-50">
+            <td class="px-4 py-2 text-slate-500 text-xs">{{ dc.collection_date|date:"d M Y" }}</td>
+            <td class="px-4 py-2 font-mono text-xs"><a href="{% url 'loans:detail' dc.loan.pk %}" class="text-blue-600 hover:underline">{{ dc.loan.application_number }}</a></td>
+            <td class="px-4 py-2 font-medium text-slate-900">{{ dc.loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-2 text-right font-bold text-red-700">K{{ dc.amount_paid|floatformat:2|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

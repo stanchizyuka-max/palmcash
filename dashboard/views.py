@@ -411,6 +411,115 @@ def loan_officer_dashboard(request):
 
 
 @login_required
+def officer_performance_report(request):
+    """Dedicated performance report for loan officers with date filtering."""
+    if request.user.role not in ['loan_officer', 'manager', 'admin'] and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+
+    from django.db.models import Q, Sum
+    from loans.models import Loan, LoanApplication, SecurityDeposit
+    from payments.models import PaymentCollection, DefaultCollection
+    from datetime import date, timedelta
+
+    officer = request.user
+
+    # Date filters — default to current month
+    today = date.today()
+    date_from_str = request.GET.get('date_from', today.replace(day=1).isoformat())
+    date_to_str = request.GET.get('date_to', today.isoformat())
+    try:
+        from datetime import datetime
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+    except Exception:
+        date_from = today.replace(day=1)
+        date_to = today
+
+    officer_q = Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer)
+
+    # Loans disbursed in period
+    disbursed_loans = Loan.objects.filter(
+        officer_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to
+    ).distinct().select_related('borrower')
+
+    # Total collected in period
+    collections = PaymentCollection.objects.filter(
+        officer_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0
+    ).distinct()
+    total_collected = collections.aggregate(t=Sum('collected_amount'))['t'] or 0
+    total_expected = collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+
+    # New clients registered in period
+    new_clients = User.objects.filter(
+        Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
+        role='borrower', date_joined__date__gte=date_from, date_joined__date__lte=date_to,
+    ).distinct()
+
+    # Loans completed in period
+    completed_loans = Loan.objects.filter(
+        officer_q, status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to
+    ).distinct().select_related('borrower')
+
+    # Default collections in period
+    default_collections = DefaultCollection.objects.filter(
+        officer_q, collection_date__gte=date_from, collection_date__lte=date_to
+    ).distinct().select_related('loan__borrower')
+    total_defaults_collected = default_collections.aggregate(t=Sum('amount_paid'))['t'] or 0
+
+    # Processing fees in period
+    apps_with_fees = LoanApplication.objects.filter(
+        loan_officer=officer, processing_fee__gt=0,
+        created_at__date__gte=date_from, created_at__date__lte=date_to,
+    ).select_related('borrower')
+    total_fees = apps_with_fees.aggregate(t=Sum('processing_fee'))['t'] or 0
+    verified_fees = apps_with_fees.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
+
+    # All applications in period
+    applications = LoanApplication.objects.filter(
+        loan_officer=officer, created_at__date__gte=date_from, created_at__date__lte=date_to,
+    ).select_related('borrower').order_by('-created_at')
+
+    # Collection breakdown by client
+    from collections import defaultdict
+    client_collections = {}
+    for c in collections.select_related('loan__borrower'):
+        cid = c.loan.borrower_id
+        if cid not in client_collections:
+            client_collections[cid] = {
+                'client': c.loan.borrower,
+                'expected': 0, 'collected': 0, 'count': 0,
+            }
+        client_collections[cid]['expected'] += c.expected_amount
+        client_collections[cid]['collected'] += c.collected_amount
+        client_collections[cid]['count'] += 1
+    client_collection_rows = sorted(client_collections.values(), key=lambda x: -x['collected'])
+
+    return render(request, 'dashboard/officer_performance_report.html', {
+        'date_from': date_from,
+        'date_to': date_to,
+        'disbursed_loans': disbursed_loans,
+        'disbursed_count': disbursed_loans.count(),
+        'disbursed_amount': disbursed_loans.aggregate(t=Sum('principal_amount'))['t'] or 0,
+        'total_collected': total_collected,
+        'total_expected': total_expected,
+        'collection_rate': round(total_collected / total_expected * 100, 1) if total_expected > 0 else 0,
+        'new_clients': new_clients,
+        'new_clients_count': new_clients.count(),
+        'completed_loans': completed_loans,
+        'completed_count': completed_loans.count(),
+        'default_collections': default_collections,
+        'total_defaults_collected': total_defaults_collected,
+        'total_fees': total_fees,
+        'verified_fees': verified_fees,
+        'applications': applications,
+        'apps_pending': applications.filter(status='pending').count(),
+        'apps_approved': applications.filter(status='approved').count(),
+        'apps_rejected': applications.filter(status='rejected').count(),
+        'client_collection_rows': client_collection_rows,
+    })
+
+
+@login_required
 def manager_dashboard(request):
     """Manager Dashboard"""
     manager = request.user
