@@ -1400,6 +1400,7 @@ def admin_dashboard(request):
     ).count()
 
     context = {
+        'today': date.today(),
         'total_users': User.objects.count(),
         'active_users': User.objects.filter(is_active=True).count(),
         'borrowers_count': User.objects.filter(role='borrower').count(),

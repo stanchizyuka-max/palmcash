@@ -1,337 +1,271 @@
 {% extends 'base_tailwind.html' %}
 {% load humanize %}
-{% block title %}System Administrator Dashboard{% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
 {% block content %}
 <div class="min-h-screen bg-slate-50 py-8">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto px-4">
 
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-slate-900">System Administrator Dashboard</h1>
-      <p class="text-slate-500 mt-1">Complete system overview and administration</p>
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">System Administrator</h1>
+        <p class="text-slate-500 mt-1">Welcome back, {{ user.get_full_name }} — full system overview</p>
+      </div>
+      <p class="text-sm text-slate-400">{{ today|date:"l, F j, Y" }}</p>
     </div>
 
     <!-- Key Metrics -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-blue-600">{{ total_users|default:"—" }}</p>
+        <p class="text-2xl font-bold text-blue-600">{{ total_users }}</p>
         <p class="text-xs text-slate-500 mt-1">Total Users</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-green-600">{{ active_users|default:"—" }}</p>
-        <p class="text-xs text-slate-500 mt-1">Active Users</p>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-purple-600">{{ total_loans|default:"—" }}</p>
-        <p class="text-xs text-slate-500 mt-1">Total Loans</p>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-orange-600">{{ pending_security|default:"0" }}</p>
-        <p class="text-xs text-slate-500 mt-1">Pending Security</p>
-      </div>
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-slate-600">{{ borrowers_count|default:"—" }}</p>
+        <p class="text-2xl font-bold text-purple-600">{{ borrowers_count }}</p>
         <p class="text-xs text-slate-500 mt-1">Borrowers</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-        <p class="text-2xl font-bold text-red-600">{{ active_loans|default:"—" }}</p>
+        <p class="text-2xl font-bold text-green-600">{{ active_loans }}</p>
         <p class="text-xs text-slate-500 mt-1">Active Loans</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+        <p class="text-xl font-bold text-orange-600">K{{ total_disbursed|floatformat:0|intcomma }}</p>
+        <p class="text-xs text-slate-500 mt-1">Total Disbursed</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+        <p class="text-2xl font-bold text-red-600">{{ overdue_count }}</p>
+        <p class="text-xs text-slate-500 mt-1">Overdue Loans</p>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+        <p class="text-2xl font-bold text-teal-600">{{ new_signups }}</p>
+        <p class="text-xs text-slate-500 mt-1">New This Month</p>
       </div>
     </div>
 
-    <!-- Organized Sections -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+      <h2 class="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+        <i class="fas fa-bolt text-yellow-500"></i> Quick Actions
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
-      <!-- Users & Access -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-users-cog text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Users & Access</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'accounts:manage_users' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition group">
-            <i class="fas fa-users text-blue-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700">Manage Users</span>
-          </a>
-          <a href="{% url 'dashboard:manage_officers' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition group">
-            <i class="fas fa-user-tie text-blue-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700">Manage Officers</span>
-          </a>
-          <a href="{% url 'dashboard:admin_officers_list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition group">
-            <i class="fas fa-list text-blue-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700">All Officers & Managers</span>
-          </a>
-          <a href="{% url 'dashboard:groups_permissions' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition group">
-            <i class="fas fa-lock text-blue-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700">Roles & Permissions</span>
-          </a>
-        </div>
-      </div>
+        <a href="{% url 'dashboard:admin_pending_approvals' %}" class="flex flex-col items-center p-4 bg-orange-50 rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:shadow-md transition text-center">
+          <i class="fas fa-tasks text-orange-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-orange-900">Pending Approvals</span>
+          {% if pending_security > 0 %}<span class="mt-1 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">{{ pending_security }}</span>{% endif %}
+        </a>
 
-      <!-- Loans -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-green-600 to-green-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-money-bill-wave text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Loans</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:admin_all_loans' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-list text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">All Loans</span>
-          </a>
-          <a href="{% url 'loans:applications_list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-file-alt text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Applications</span>
-          </a>
-          <a href="{% url 'dashboard:admin_pending_approvals' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-check-circle text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Approvals</span>
-          </a>
-          <a href="{% url 'loans:manage_loan_types' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-tags text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Loan Types</span>
-          </a>
-          <a href="{% url 'loans:manage_loan_documents' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-file-invoice text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Documents</span>
-          </a>
-          <a href="{% url 'payments:history' %}?tab=securities" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-shield-alt text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Securities</span>
-          </a>
-          <a href="{% url 'securities:summary' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition group">
-            <i class="fas fa-shield-alt text-green-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-green-700">Securities Summary</span>
-          </a>
-        </div>
-      </div>
+        <a href="{% url 'dashboard:admin_performance_report' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-md transition text-center">
+          <i class="fas fa-chart-line text-purple-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-purple-900">Activity Report</span>
+        </a>
 
-      <!-- Collections -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-hand-holding-usd text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Collections</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'payments:list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition group">
-            <i class="fas fa-credit-card text-orange-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-orange-700">Payments</span>
-          </a>
-          <a href="{% url 'payments:bulk_collection' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition group">
-            <i class="fas fa-list-check text-orange-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-orange-700">Bulk Collection</span>
-          </a>
-          <a href="{% url 'payments:default_collection' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition group">
-            <i class="fas fa-exclamation-circle text-orange-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-orange-700">Default Collections</span>
-          </a>
-          <a href="{% url 'payments:history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition group">
-            <i class="fas fa-history text-orange-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-orange-700">History</span>
-          </a>
-        </div>
-      </div>
+        <a href="{% url 'payments:history' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-xl border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-md transition text-center">
+          <i class="fas fa-history text-indigo-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-indigo-900">History</span>
+        </a>
 
-      <!-- Branches -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-building text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Branches</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:admin_branches_list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-building text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Branches</span>
-          </a>
-          <a href="{% url 'dashboard:vault' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-vault text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Vault</span>
-          </a>
-          <a href="{% url 'dashboard:capital_injection' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-plus-circle text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Inject Capital</span>
-          </a>
-          <a href="{% url 'dashboard:vault_branch_transfer' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-exchange-alt text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Transfers</span>
-          </a>
-          <a href="{% url 'dashboard:admin_client_transfer' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-people-arrows text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Transfer Clients</span>
-          </a>
-          <a href="{% url 'dashboard:admin_officer_transfer' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-emerald-50 transition group">
-            <i class="fas fa-user-friends text-emerald-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-emerald-700">Transfer Officers</span>
-          </a>
-        </div>
+        <a href="{% url 'dashboard:admin_manager_view' %}" class="flex flex-col items-center p-4 bg-green-50 rounded-xl border-2 border-green-200 hover:border-green-400 hover:shadow-md transition text-center">
+          <i class="fas fa-eye text-green-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-green-900">Manager View</span>
+        </a>
+
+        <a href="{% url 'dashboard:vault' %}" class="flex flex-col items-center p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 hover:shadow-md transition text-center">
+          <i class="fas fa-vault text-emerald-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-emerald-900">Vault</span>
+        </a>
+
+        <a href="{% url 'dashboard:capital_injection' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-xl border-2 border-teal-200 hover:border-teal-400 hover:shadow-md transition text-center">
+          <i class="fas fa-plus-circle text-teal-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-teal-900">Inject Capital</span>
+        </a>
+
+        <a href="{% url 'dashboard:admin_all_loans' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:shadow-md transition text-center">
+          <i class="fas fa-money-bill-wave text-blue-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-blue-900">All Loans</span>
+        </a>
+
+        <a href="{% url 'loans:applications_list' %}" class="flex flex-col items-center p-4 bg-yellow-50 rounded-xl border-2 border-yellow-200 hover:border-yellow-400 hover:shadow-md transition text-center">
+          <i class="fas fa-file-alt text-yellow-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-yellow-900">Applications</span>
+        </a>
+
+        <a href="{% url 'accounts:manage_users' %}" class="flex flex-col items-center p-4 bg-slate-50 rounded-xl border-2 border-slate-200 hover:border-slate-400 hover:shadow-md transition text-center">
+          <i class="fas fa-users text-slate-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-slate-900">Manage Users</span>
+        </a>
+
+        <a href="{% url 'dashboard:admin_branches_list' %}" class="flex flex-col items-center p-4 bg-cyan-50 rounded-xl border-2 border-cyan-200 hover:border-cyan-400 hover:shadow-md transition text-center">
+          <i class="fas fa-building text-cyan-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-cyan-900">Branches</span>
+        </a>
+
+        <a href="{% url 'dashboard:financial_summary' %}" class="flex flex-col items-center p-4 bg-amber-50 rounded-xl border-2 border-amber-200 hover:border-amber-400 hover:shadow-md transition text-center">
+          <i class="fas fa-coins text-amber-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-amber-900">Financial Summary</span>
+        </a>
+
+        <a href="{% url 'dashboard:chronic_defaulters' %}" class="flex flex-col items-center p-4 bg-red-50 rounded-xl border-2 border-red-200 hover:border-red-400 hover:shadow-md transition text-center">
+          <i class="fas fa-exclamation-triangle text-red-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-red-900">Chronic Defaulters</span>
+        </a>
+
+        <a href="{% url 'securities:summary' %}" class="flex flex-col items-center p-4 bg-violet-50 rounded-xl border-2 border-violet-200 hover:border-violet-400 hover:shadow-md transition text-center">
+          <i class="fas fa-shield-alt text-violet-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-violet-900">Securities</span>
+        </a>
+
+        <a href="{% url 'dashboard:processing_fees_summary' %}" class="flex flex-col items-center p-4 bg-pink-50 rounded-xl border-2 border-pink-200 hover:border-pink-400 hover:shadow-md transition text-center">
+          <i class="fas fa-receipt text-pink-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-pink-900">Processing Fees</span>
+        </a>
+
+        <a href="{% url 'dashboard:audit_logs' %}" class="flex flex-col items-center p-4 bg-slate-50 rounded-xl border-2 border-slate-200 hover:border-slate-400 hover:shadow-md transition text-center">
+          <i class="fas fa-clipboard-list text-slate-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-slate-900">Audit Logs</span>
+        </a>
+
+        <a href="/admin/" class="flex flex-col items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-400 hover:shadow-md transition text-center">
+          <i class="fas fa-tools text-gray-600 text-2xl mb-2"></i>
+          <span class="text-xs font-semibold text-gray-900">Django Admin</span>
+        </a>
+
       </div>
+    </div>
+
+    <!-- Three column section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
       <!-- Reports -->
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-chart-bar text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Reports</h2>
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 flex items-center gap-2">
+          <i class="fas fa-chart-bar text-white"></i>
+          <h3 class="font-bold text-white">Reports</h3>
         </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:report_security_transactions' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-file-alt text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Reports</span>
+        <div class="p-3 space-y-1">
+          <a href="{% url 'dashboard:admin_performance_report' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-chart-line text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Activity Report</span>
           </a>
-          <a href="{% url 'dashboard:analytics' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-chart-pie text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Analytics</span>
+          <a href="{% url 'dashboard:financial_summary' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-coins text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Financial Summary</span>
           </a>
-          <a href="{% url 'dashboard:audit_logs' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-history text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Audit Logs</span>
+          <a href="{% url 'dashboard:branch_comparison' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-balance-scale text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Branch Comparison</span>
           </a>
-          <a href="{% url 'dashboard:admin_loan_statistics' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-chart-line text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Loan Statistics</span>
+          <a href="{% url 'dashboard:loan_aging' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-clock text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Loan Aging</span>
           </a>
-          <a href="{% url 'dashboard:financial_summary' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-coins text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Financial Summary</span>
+          <a href="{% url 'dashboard:officer_performance' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-trophy text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Officer Performance</span>
           </a>
-          <a href="{% url 'dashboard:branch_comparison' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-balance-scale text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Branch Comparison</span>
+          <a href="{% url 'dashboard:collection_trend' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-chart-area text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Collection Trend</span>
           </a>
-          <a href="{% url 'dashboard:loan_aging' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-clock text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Loan Aging</span>
+          <a href="{% url 'dashboard:report_security_transactions' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-shield-alt text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Security Transactions</span>
           </a>
-          <a href="{% url 'dashboard:officer_performance' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-trophy text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Officer Performance</span>
+          <a href="{% url 'dashboard:report_disbursements' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-money-bill-wave text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Disbursements</span>
           </a>
-          <a href="{% url 'dashboard:admin_performance_report' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-chart-line text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Activity Report</span>
+          <a href="{% url 'dashboard:report_client_balances' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-purple-50 transition group">
+            <i class="fas fa-users text-purple-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-purple-700">Client Balances</span>
           </a>
-          <a href="{% url 'dashboard:processing_fees_summary' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition group">
-            <i class="fas fa-coins text-purple-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">Processing Fees</span>
+        </div>
+      </div>
+
+      <!-- Monitoring -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-rose-600 to-rose-700 px-5 py-3 flex items-center gap-2">
+          <i class="fas fa-bell text-white"></i>
+          <h3 class="font-bold text-white">Monitoring & Alerts</h3>
+        </div>
+        <div class="p-3 space-y-1">
+          <a href="{% url 'dashboard:chronic_defaulters' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-exclamation-triangle text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Chronic Defaulters</span>
+          </a>
+          <a href="{% url 'dashboard:loans_approaching_maturity' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-calendar-times text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Approaching Maturity</span>
+          </a>
+          <a href="{% url 'dashboard:pending_officer_approvals' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-user-clock text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Pending Officer Approvals</span>
+          </a>
+          <a href="{% url 'dashboard:officer_activity' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-user-check text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Officer Activity</span>
+          </a>
+          <a href="{% url 'dashboard:borrower_profile_completeness' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-id-card text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Profile Completeness</span>
+          </a>
+          <a href="{% url 'dashboard:processing_fees_summary' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-coins text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Processing Fees</span>
+          </a>
+          <a href="{% url 'dashboard:admin_loan_statistics' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-50 transition group">
+            <i class="fas fa-chart-line text-rose-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-rose-700">Loan Statistics</span>
           </a>
         </div>
       </div>
 
       <!-- Administration -->
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-cogs text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Administration</h2>
+        <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3 flex items-center gap-2">
+          <i class="fas fa-cogs text-white"></i>
+          <h3 class="font-bold text-white">Administration</h3>
         </div>
-        <div class="p-4 space-y-2">
-          <a href="/admin/" class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition group">
-            <i class="fas fa-tools text-slate-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">Django Admin</span>
+        <div class="p-3 space-y-1">
+          <a href="{% url 'accounts:manage_users' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-users text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Manage Users</span>
           </a>
-          <a href="{% url 'dashboard:admin_override_assignment' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition group">
-            <i class="fas fa-shield-alt text-slate-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">Override Assignment</span>
+          <a href="{% url 'dashboard:admin_officers_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-user-tie text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Officers & Managers</span>
           </a>
-          <a href="{% url 'dashboard:admin_manager_view' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition group">
-            <i class="fas fa-eye text-slate-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">Manager View</span>
+          <a href="{% url 'dashboard:admin_branches_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-building text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Branches</span>
           </a>
-          <a href="{% url 'documents:verification_dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition group">
-            <i class="fas fa-id-card text-slate-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">Document Verification</span>
+          <a href="{% url 'dashboard:admin_officer_transfer' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-user-friends text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Transfer Officers</span>
           </a>
-        </div>
-      </div>
-
-      <!-- Expenses & Funds -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-receipt text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Expenses & Funds</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:expense_list' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
-            <i class="fas fa-receipt text-amber-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">All Expenses</span>
+          <a href="{% url 'dashboard:admin_client_transfer' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-people-arrows text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Transfer Clients</span>
           </a>
-          <a href="{% url 'dashboard:fund_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
-            <i class="fas fa-exchange-alt text-amber-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Fund History</span>
+          <a href="{% url 'dashboard:admin_override_assignment' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-shield-alt text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Override Assignment</span>
           </a>
-          <a href="{% url 'dashboard:vault_bank_withdrawal' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
-            <i class="fas fa-university text-amber-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Bank Withdrawal</span>
+          <a href="{% url 'dashboard:groups_permissions' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-lock text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Roles & Permissions</span>
           </a>
-          <a href="{% url 'dashboard:vault_bank_deposit' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
-            <i class="fas fa-arrow-up text-amber-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Bank Deposit</span>
+          <a href="{% url 'documents:verification_dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-id-card text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Document Verification</span>
           </a>
-          <a href="{% url 'dashboard:vault_fund_deposit' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 transition group">
-            <i class="fas fa-arrow-down text-amber-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-amber-700">Fund Received</span>
+          <a href="{% url 'dashboard:audit_logs' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-clipboard-list text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Audit Logs</span>
           </a>
-        </div>
-      </div>
-
-      <!-- Transfer History -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-cyan-600 to-cyan-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-history text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Transfer History</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:admin_transfer_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
-            <i class="fas fa-user-friends text-cyan-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Officer Transfers</span>
-          </a>
-          <a href="{% url 'dashboard:admin_client_transfer_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
-            <i class="fas fa-people-arrows text-cyan-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Client Transfers</span>
-          </a>
-          <a href="{% url 'dashboard:approval_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
-            <i class="fas fa-check-double text-cyan-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Approval History</span>
-          </a>
-          <a href="{% url 'dashboard:admin_loan_statistics' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition group">
-            <i class="fas fa-chart-line text-cyan-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-cyan-700">Loan Statistics</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Monitoring & Alerts -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-rose-600 to-rose-700 px-5 py-4 flex items-center gap-3">
-          <i class="fas fa-bell text-white text-xl"></i>
-          <h2 class="text-lg font-bold text-white">Monitoring & Alerts</h2>
-        </div>
-        <div class="p-4 space-y-2">
-          <a href="{% url 'dashboard:pending_officer_approvals' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-user-clock text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Pending Officer Approvals</span>
-          </a>
-          <a href="{% url 'dashboard:loans_approaching_maturity' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-calendar-times text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Loans Approaching Maturity</span>
-          </a>
-          <a href="{% url 'dashboard:collection_trend' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-chart-area text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Collection Trend</span>
-          </a>
-          <a href="{% url 'dashboard:chronic_defaulters' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-exclamation-triangle text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Chronic Defaulters</span>
-          </a>
-          <a href="{% url 'dashboard:processing_fees_summary' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-coins text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Processing Fees</span>
-          </a>
-          <a href="{% url 'dashboard:borrower_profile_completeness' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-user-check text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Profile Completeness</span>
-          </a>
-          <a href="{% url 'dashboard:officer_activity' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-rose-50 transition group">
-            <i class="fas fa-user-clock text-rose-500 w-5"></i>
-            <span class="text-sm font-medium text-slate-700 group-hover:text-rose-700">Officer Activity</span>
+          <a href="/admin/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition group">
+            <i class="fas fa-tools text-slate-400 w-4"></i>
+            <span class="text-sm text-slate-700 group-hover:text-slate-900">Django Admin</span>
           </a>
         </div>
       </div>
@@ -339,16 +273,18 @@
     </div>
 
     <!-- Recent Activity -->
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fas fa-users text-blue-500"></i>Recent Users</h3>
+        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <i class="fas fa-users text-blue-500"></i> Recent Users
+        </h3>
         {% for u in recent_users %}
         <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
           <div>
             <p class="text-sm font-medium text-slate-800">{{ u.get_full_name|default:u.username }}</p>
-            <p class="text-xs text-slate-400">{{ u.get_role_display }} {% if u.email %}• {{ u.email }}{% endif %}</p>
+            <p class="text-xs text-slate-400">{{ u.get_role_display }}</p>
           </div>
-          <span class="text-xs text-slate-400">{{ u.date_joined|date:"M d" }}</span>
+          <span class="text-xs text-slate-400">{{ u.date_joined|date:"d M" }}</span>
         </div>
         {% empty %}
         <p class="text-sm text-slate-400">No recent users</p>
@@ -356,14 +292,21 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fas fa-file-alt text-green-500"></i>Recent Applications</h3>
+        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <i class="fas fa-file-alt text-green-500"></i> Recent Applications
+        </h3>
         {% for app in recent_applications %}
         <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
           <div>
             <p class="text-sm font-medium text-slate-800">{{ app.borrower.get_full_name }}</p>
             <p class="text-xs text-slate-400">K{{ app.loan_amount|floatformat:0|intcomma }}</p>
           </div>
-          <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if app.status == 'approved' %}bg-green-100 text-green-700{% elif app.status == 'rejected' %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">{{ app.get_status_display }}</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+            {% if app.status == 'approved' %}bg-green-100 text-green-700
+            {% elif app.status == 'rejected' %}bg-red-100 text-red-700
+            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+            {{ app.get_status_display }}
+          </span>
         </div>
         {% empty %}
         <p class="text-sm text-slate-400">No recent applications</p>
@@ -371,23 +314,34 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fas fa-chart-line text-purple-500"></i>Financial Summary</h3>
+        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <i class="fas fa-chart-line text-purple-500"></i> Financial Snapshot
+        </h3>
         <div class="space-y-3">
           <div class="flex justify-between text-sm">
             <span class="text-slate-500">Total Disbursed</span>
-            <span class="font-bold text-slate-800">K{{ total_disbursed|default:"0"|floatformat:0|intcomma }}</span>
+            <span class="font-bold text-slate-800">K{{ total_disbursed|floatformat:0|intcomma }}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-slate-500">Total Repaid</span>
-            <span class="font-bold text-green-600">K{{ total_repaid|default:"0"|floatformat:0|intcomma }}</span>
+            <span class="font-bold text-green-600">K{{ total_repaid|floatformat:0|intcomma }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-slate-500">Overdue Payments</span>
-            <span class="font-bold text-red-600">{{ overdue_count|default:"0" }}</span>
+            <span class="text-slate-500">Active Loans</span>
+            <span class="font-bold text-blue-600">{{ active_loans }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-slate-500">Monthly Signups</span>
-            <span class="font-bold text-blue-600">{{ new_signups|default:"0" }}</span>
+            <span class="text-slate-500">Overdue Loans</span>
+            <span class="font-bold text-red-600">{{ overdue_count }}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-500">Pending Security</span>
+            <span class="font-bold text-orange-600">{{ pending_security }}</span>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-100">
+            <a href="{% url 'dashboard:admin_performance_report' %}" class="text-purple-600 text-sm font-semibold hover:underline">
+              View Full Activity Report →
+            </a>
           </div>
         </div>
       </div>
