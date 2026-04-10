@@ -17,6 +17,7 @@
       <thead class="bg-slate-50 border-b border-slate-200">
         <tr>
           <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+          <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
           {% if breakdown == 'collections' %}
           <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
           <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
@@ -41,6 +42,11 @@
               </div>
               <span class="font-medium text-slate-900">{{ row.client.get_full_name }}</span>
             </div>
+          </td>
+          <td class="px-4 py-3 text-slate-500 text-xs">
+            {% if row.group %}
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-semibold">{{ row.group.group.name }}</span>
+            {% else %}—{% endif %}
           </td>
           {% if breakdown == 'collections' %}
           <td class="px-4 py-3 text-right text-slate-600">K{{ row.expected|floatformat:2|intcomma }}</td>
@@ -78,7 +84,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">No data for this period</td></tr>
+        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No data for this period</td></tr>
         {% endfor %}
       </tbody>
     </table>
