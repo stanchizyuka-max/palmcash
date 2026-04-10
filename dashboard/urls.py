@@ -14,6 +14,7 @@ urlpatterns = [
     path('loan-officer/performance/', views.officer_performance_report, name='officer_performance_report'),
     path('loan-officer/applications/', views.officer_applications, name='officer_applications'),
     path('manager/performance/', views.manager_performance_report, name='manager_performance_report'),
+    path('admin/performance/', views.admin_performance_report, name='admin_performance_report'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
     path('loan-officer/document-verification/', views.loan_officer_document_verification, name='loan_officer_document_verification'),
