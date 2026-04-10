@@ -411,6 +411,198 @@ def loan_officer_dashboard(request):
 
 
 @login_required
+def manager_performance_report(request):
+    """Branch-wide financial activity log for managers."""
+    if request.user.role not in ['manager', 'admin'] and not request.user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+
+    from django.db.models import Q, Sum
+    from loans.models import Loan, LoanApplication
+    from payments.models import PaymentCollection, DefaultCollection
+    from datetime import date, datetime
+
+    today = date.today()
+    date_from_str = request.GET.get('date_from', today.replace(day=1).isoformat())
+    date_to_str = request.GET.get('date_to', today.isoformat())
+    activity_type = request.GET.get('activity_type', '')
+    search = request.GET.get('search', '').strip()
+    officer_filter = request.GET.get('officer', '')
+
+    try:
+        date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+        date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+    except Exception:
+        date_from = today.replace(day=1)
+        date_to = today
+
+    try:
+        branch = request.user.managed_branch
+    except Exception:
+        branch = None
+
+    if request.user.role == 'admin' or request.user.is_superuser:
+        branch_officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name')
+        loan_q = Q()
+        col_q = Q()
+    elif branch:
+        branch_officers = User.objects.filter(
+            role='loan_officer', officer_assignment__branch__iexact=branch.name, is_active=True
+        ).order_by('first_name')
+        loan_q = (
+            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
+            Q(borrower__group_memberships__group__branch__iexact=branch.name)
+        )
+        col_q = (
+            Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
+            Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+        )
+    else:
+        return render(request, 'dashboard/access_denied.html')
+
+    if officer_filter:
+        loan_q &= Q(loan_officer_id=officer_filter)
+        col_q &= Q(loan__loan_officer_id=officer_filter)
+
+    def _search_loan(qs):
+        if search:
+            return qs.filter(
+                Q(borrower__first_name__icontains=search) |
+                Q(borrower__last_name__icontains=search) |
+                Q(application_number__icontains=search)
+            )
+        return qs
+
+    def _search_col(qs):
+        if search:
+            return qs.filter(
+                Q(loan__borrower__first_name__icontains=search) |
+                Q(loan__borrower__last_name__icontains=search) |
+                Q(loan__application_number__icontains=search)
+            )
+        return qs
+
+    activities = []
+
+    if not activity_type or activity_type == 'disbursement':
+        qs = _search_loan(Loan.objects.filter(
+            loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to
+        ).distinct().select_related('borrower', 'loan_officer'))
+        for loan in qs:
+            activities.append({
+                'date': loan.disbursement_date.date() if loan.disbursement_date else None,
+                'type': 'Disbursement', 'type_color': 'blue',
+                'reference': loan.application_number,
+                'reference_url': f'/loans/{loan.pk}/',
+                'client': loan.borrower.get_full_name(),
+                'officer': loan.loan_officer.get_full_name() if loan.loan_officer else '—',
+                'amount': loan.principal_amount,
+                'status': 'Disbursed', 'status_color': 'blue',
+            })
+
+    if not activity_type or activity_type == 'collection':
+        qs = _search_col(PaymentCollection.objects.filter(
+            col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0
+        ).distinct().select_related('loan__borrower', 'loan__loan_officer'))
+        for c in qs:
+            activities.append({
+                'date': c.collection_date,
+                'type': 'Collection', 'type_color': 'green',
+                'reference': c.loan.application_number,
+                'reference_url': f'/loans/{c.loan.pk}/',
+                'client': c.loan.borrower.get_full_name(),
+                'officer': c.loan.loan_officer.get_full_name() if c.loan.loan_officer else '—',
+                'amount': c.collected_amount,
+                'status': 'Partial' if c.is_partial else 'Paid',
+                'status_color': 'yellow' if c.is_partial else 'green',
+            })
+
+    if not activity_type or activity_type == 'default':
+        qs = _search_col(DefaultCollection.objects.filter(
+            col_q, collection_date__gte=date_from, collection_date__lte=date_to
+        ).distinct().select_related('loan__borrower', 'loan__loan_officer'))
+        for dc in qs:
+            activities.append({
+                'date': dc.collection_date,
+                'type': 'Default Collection', 'type_color': 'red',
+                'reference': dc.loan.application_number,
+                'reference_url': f'/loans/{dc.loan.pk}/',
+                'client': dc.loan.borrower.get_full_name(),
+                'officer': dc.loan.loan_officer.get_full_name() if dc.loan.loan_officer else '—',
+                'amount': dc.amount_paid,
+                'status': 'Collected', 'status_color': 'red',
+            })
+
+    if not activity_type or activity_type == 'completion':
+        qs = _search_loan(Loan.objects.filter(
+            loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to
+        ).distinct().select_related('borrower', 'loan_officer'))
+        for loan in qs:
+            activities.append({
+                'date': loan.maturity_date,
+                'type': 'Loan Completion', 'type_color': 'teal',
+                'reference': loan.application_number,
+                'reference_url': f'/loans/{loan.pk}/',
+                'client': loan.borrower.get_full_name(),
+                'officer': loan.loan_officer.get_full_name() if loan.loan_officer else '—',
+                'amount': loan.total_amount or loan.principal_amount,
+                'status': 'Completed', 'status_color': 'teal',
+            })
+
+    if not activity_type or activity_type == 'fee':
+        fee_q = Q(loan_officer__officer_assignment__branch__iexact=branch.name) if branch else Q()
+        if officer_filter:
+            fee_q &= Q(loan_officer_id=officer_filter)
+        qs = LoanApplication.objects.filter(
+            fee_q, processing_fee__gt=0,
+            created_at__date__gte=date_from, created_at__date__lte=date_to,
+        ).select_related('borrower', 'loan_officer')
+        if search:
+            qs = qs.filter(
+                Q(borrower__first_name__icontains=search) |
+                Q(borrower__last_name__icontains=search) |
+                Q(application_number__icontains=search)
+            )
+        for app in qs:
+            activities.append({
+                'date': app.created_at.date(),
+                'type': 'Processing Fee', 'type_color': 'violet',
+                'reference': app.application_number,
+                'reference_url': f'/loans/applications/{app.pk}/approve/',
+                'client': app.borrower.get_full_name(),
+                'officer': app.loan_officer.get_full_name() if app.loan_officer else '—',
+                'amount': app.processing_fee,
+                'status': 'Verified' if app.processing_fee_verified else 'Pending',
+                'status_color': 'green' if app.processing_fee_verified else 'amber',
+            })
+
+    activities.sort(key=lambda x: x['date'] or date.min, reverse=True)
+    total_amount = sum(a['amount'] for a in activities if a['amount'])
+
+    # Summary totals (full period, no type filter)
+    all_col = PaymentCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0).distinct()
+    all_def = DefaultCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to).distinct()
+    all_dis = Loan.objects.filter(loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to).distinct()
+    all_comp = Loan.objects.filter(loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to).distinct()
+
+    return render(request, 'dashboard/manager_performance_report.html', {
+        'date_from': date_from, 'date_to': date_to,
+        'activity_type': activity_type, 'search': search,
+        'officer_filter': officer_filter,
+        'branch_officers': branch_officers,
+        'branch': branch,
+        'activities': activities,
+        'total_amount': total_amount,
+        'activity_count': len(activities),
+        'disbursed_count': all_dis.count(),
+        'disbursed_amount': all_dis.aggregate(t=Sum('principal_amount'))['t'] or 0,
+        'total_collected': all_col.aggregate(t=Sum('collected_amount'))['t'] or 0,
+        'total_expected': all_col.aggregate(t=Sum('expected_amount'))['t'] or 0,
+        'completed_count': all_comp.count(),
+        'defaults_collected': all_def.aggregate(t=Sum('amount_paid'))['t'] or 0,
+    })
+
+
+@login_required
 def officer_applications(request):
     """Dedicated loan applications page for loan officers."""
     if request.user.role not in ['loan_officer', 'manager', 'admin']:

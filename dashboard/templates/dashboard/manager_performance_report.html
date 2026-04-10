@@ -1,0 +1,187 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+{% block title %}Branch Performance Report{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+  <div class="max-w-7xl mx-auto px-4">
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <i class="fas fa-chart-bar text-green-600"></i> Branch Performance Report
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">
+          {% if branch %}{{ branch.name }}{% else %}All Branches{% endif %} ·
+          {{ date_from|date:"d M Y" }} — {{ date_to|date:"d M Y" }}
+        </p>
+      </div>
+      <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Disbursed</p>
+        <p class="text-2xl font-bold text-blue-600">{{ disbursed_count }}</p>
+        <p class="text-xs text-slate-400 mt-1">K{{ disbursed_amount|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Collected</p>
+        <p class="text-2xl font-bold text-green-600">K{{ total_collected|floatformat:0|intcomma }}</p>
+        <p class="text-xs text-slate-400 mt-1">of K{{ total_expected|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Completed</p>
+        <p class="text-2xl font-bold text-teal-600">{{ completed_count }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Defaults Collected</p>
+        <p class="text-2xl font-bold text-red-600">K{{ defaults_collected|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-center">
+        <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Collection Rate</p>
+        {% if total_expected > 0 %}
+        <p class="text-2xl font-bold {% if total_collected >= total_expected %}text-green-600{% elif total_collected >= total_expected|floatformat:0|add:'0' %}text-yellow-600{% else %}text-red-600{% endif %}">
+          {% widthratio total_collected total_expected 100 %}%
+        </p>
+        {% else %}
+        <p class="text-2xl font-bold text-slate-400">—</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4">
+      <form method="get" class="flex flex-wrap gap-3 items-end">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">From</label>
+          <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">To</label>
+          <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+            class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Activity Type</label>
+          <select name="activity_type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-400">
+            <option value="">All Types</option>
+            <option value="disbursement" {% if activity_type == 'disbursement' %}selected{% endif %}>Disbursement</option>
+            <option value="collection" {% if activity_type == 'collection' %}selected{% endif %}>Collection</option>
+            <option value="default" {% if activity_type == 'default' %}selected{% endif %}>Default Collection</option>
+            <option value="completion" {% if activity_type == 'completion' %}selected{% endif %}>Loan Completion</option>
+            <option value="fee" {% if activity_type == 'fee' %}selected{% endif %}>Processing Fee</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Officer</label>
+          <select name="officer" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-400">
+            <option value="">All Officers</option>
+            {% for o in branch_officers %}
+            <option value="{{ o.pk }}" {% if officer_filter == o.pk|stringformat:'s' %}selected{% endif %}>{{ o.get_full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex-1 min-w-[160px]">
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Search</label>
+          <input type="text" name="search" value="{{ search }}" placeholder="Client or loan #"
+            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-400">
+        </div>
+        <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
+          <i class="fas fa-filter mr-1"></i>Filter
+        </button>
+        <a href="{% url 'dashboard:manager_performance_report' %}" class="px-5 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
+      </form>
+    </div>
+
+    <!-- Results summary -->
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-sm text-slate-600">
+        <span class="font-bold text-slate-900">{{ activity_count }}</span> activities
+        {% if activity_type or search or officer_filter %} matching filters{% endif %}
+      </p>
+      <div class="bg-white rounded-lg border border-slate-200 px-4 py-2 text-sm">
+        <span class="text-slate-500">Total:</span>
+        <span class="font-bold text-slate-900 ml-1">K{{ total_amount|floatformat:2|intcomma }}</span>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Activity</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reference</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for a in activities %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">{{ a.date|date:"d M Y"|default:"—" }}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                  {% if a.type_color == 'blue' %}bg-blue-100 text-blue-700
+                  {% elif a.type_color == 'green' %}bg-green-100 text-green-700
+                  {% elif a.type_color == 'red' %}bg-red-100 text-red-700
+                  {% elif a.type_color == 'teal' %}bg-teal-100 text-teal-700
+                  {% elif a.type_color == 'violet' %}bg-violet-100 text-violet-700
+                  {% else %}bg-slate-100 text-slate-600{% endif %}">
+                  {{ a.type }}
+                </span>
+              </td>
+              <td class="px-4 py-3 font-mono text-xs">
+                <a href="{{ a.reference_url }}" class="text-blue-600 hover:underline">{{ a.reference }}</a>
+              </td>
+              <td class="px-4 py-3 font-medium text-slate-900">{{ a.client }}</td>
+              <td class="px-4 py-3 text-slate-500 text-xs">{{ a.officer }}</td>
+              <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ a.amount|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                  {% if a.status_color == 'green' %}bg-green-100 text-green-700
+                  {% elif a.status_color == 'blue' %}bg-blue-100 text-blue-700
+                  {% elif a.status_color == 'teal' %}bg-teal-100 text-teal-700
+                  {% elif a.status_color == 'yellow' %}bg-yellow-100 text-yellow-700
+                  {% elif a.status_color == 'red' %}bg-red-100 text-red-700
+                  {% elif a.status_color == 'amber' %}bg-amber-100 text-amber-700
+                  {% else %}bg-slate-100 text-slate-600{% endif %}">
+                  {{ a.status }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <a href="{{ a.reference_url }}" class="px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs font-semibold hover:bg-slate-200">View</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="px-4 py-16 text-center text-slate-400">
+                <i class="fas fa-inbox text-4xl mb-3 block"></i>
+                No activities found for this period{% if activity_type or search or officer_filter %} matching your filters{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if activities %}
+          <tfoot class="bg-slate-100 border-t-2 border-slate-300">
+            <tr>
+              <td colspan="5" class="px-4 py-3 font-bold text-slate-700 text-sm">Total ({{ activity_count }} records)</td>
+              <td class="px-4 py-3 text-right font-bold text-slate-900">K{{ total_amount|floatformat:2|intcomma }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
