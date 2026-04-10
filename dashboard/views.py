@@ -316,7 +316,97 @@ def loan_officer_dashboard(request):
             loan__loan_officer=officer, status='pending'
         ).count(),
     }
-    
+
+    # 1. Processing fees status
+    from loans.models import LoanApplication
+    officer_apps = LoanApplication.objects.filter(loan_officer=officer, processing_fee__gt=0)
+    context['fees_pending_count'] = officer_apps.filter(processing_fee_verified=False).count()
+    context['fees_verified_count'] = officer_apps.filter(processing_fee_verified=True).count()
+    context['fees_pending_list'] = officer_apps.filter(
+        processing_fee_verified=False
+    ).select_related('borrower').order_by('-created_at')[:10]
+
+    # 2. Overdue clients list
+    from payments.models import PaymentSchedule as PS2
+    overdue_schedules = PS2.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        loan__status='active', is_paid=False, due_date__lt=today,
+    ).select_related('loan__borrower', 'loan').order_by('due_date').distinct()
+    overdue_clients = {}
+    for sched in overdue_schedules:
+        lid = sched.loan_id
+        if lid not in overdue_clients:
+            overdue_clients[lid] = {
+                'loan': sched.loan,
+                'days_overdue': (today - sched.due_date).days,
+                'overdue_amount': sched.total_amount - sched.amount_paid,
+            }
+    context['overdue_clients_list'] = sorted(overdue_clients.values(), key=lambda x: -x['days_overdue'])[:20]
+
+    # 4. Loan applications status
+    context['my_applications'] = LoanApplication.objects.filter(
+        loan_officer=officer
+    ).select_related('borrower').order_by('-created_at')[:15]
+    context['apps_pending'] = LoanApplication.objects.filter(loan_officer=officer, status='pending').count()
+    context['apps_approved'] = LoanApplication.objects.filter(loan_officer=officer, status='approved').count()
+    context['apps_rejected'] = LoanApplication.objects.filter(loan_officer=officer, status='rejected').count()
+
+    # 5. Default collections summary
+    from payments.models import DefaultCollection
+    default_loans = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='active',
+    ).filter(
+        payment_schedule__is_paid=False,
+        payment_schedule__due_date__lt=today,
+    ).distinct()
+    context['default_loans_count'] = default_loans.count()
+    context['default_total_outstanding'] = default_loans.aggregate(
+        t=Sum('balance_remaining')
+    )['t'] or 0
+    context['default_collected_this_month'] = DefaultCollection.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        collection_date__gte=today.replace(day=1),
+    ).aggregate(t=Sum('amount_paid'))['t'] or 0
+
+    # 6. Securities amounts summary
+    from loans.models import SecurityDeposit as SD
+    sec_loans = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        security_deposit__is_verified=True,
+    ).distinct()
+    sec_agg = SD.objects.filter(loan__in=sec_loans).aggregate(
+        total_paid=Sum('paid_amount'),
+        total_used=Sum('security_used'),
+        total_returned=Sum('security_returned'),
+    )
+    context['sec_total_held'] = sec_agg['total_paid'] or 0
+    context['sec_total_used'] = sec_agg['total_used'] or 0
+    context['sec_total_returned'] = sec_agg['total_returned'] or 0
+    context['sec_total_available'] = max(0, (sec_agg['total_paid'] or 0) - (sec_agg['total_used'] or 0) - (sec_agg['total_returned'] or 0))
+
+    # 7. This month's performance
+    month_start = today.replace(day=1)
+    context['month_disbursed'] = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        disbursement_date__date__gte=month_start,
+    ).distinct().count()
+    context['month_collected'] = PaymentCollection.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        collection_date__gte=month_start,
+        collected_amount__gt=0,
+    ).distinct().aggregate(t=Sum('collected_amount'))['t'] or 0
+    context['month_new_clients'] = User.objects.filter(
+        Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
+        role='borrower',
+        date_joined__date__gte=month_start,
+    ).distinct().count()
+    context['month_completed_loans'] = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='completed',
+        updated_at__date__gte=month_start,
+    ).distinct().count()
+
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
 
 
