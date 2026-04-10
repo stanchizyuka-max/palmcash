@@ -435,11 +435,12 @@ def officer_performance_report(request):
         date_from = today.replace(day=1)
         date_to = today
 
-    officer_q = Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer)
+    officer_q = Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
 
     # Loans disbursed in period
     disbursed_loans = Loan.objects.filter(
-        officer_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to
     ).distinct().select_related('borrower')
 
     # Total collected in period
@@ -457,7 +458,8 @@ def officer_performance_report(request):
 
     # Loans completed in period
     completed_loans = Loan.objects.filter(
-        officer_q, status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to
     ).distinct().select_related('borrower')
 
     # Default collections in period
