@@ -487,10 +487,11 @@ def officer_performance_report(request):
         role='borrower', date_joined__date__gte=date_from, date_joined__date__lte=date_to,
     ).distinct()
 
-    # Loans completed in period
+    # Loans completed in period — use maturity_date as completion date proxy
     completed_loans = Loan.objects.filter(
         Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
-        status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to
+        status='completed',
+        maturity_date__gte=date_from, maturity_date__lte=date_to
     ).distinct().select_related('borrower')
 
     # Default collections in period
