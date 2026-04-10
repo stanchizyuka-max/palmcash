@@ -115,46 +115,6 @@
         </table>
       </div>
 
-      <!-- Loan Applications -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3 flex items-center justify-between">
-          <h2 class="font-bold text-white">Loan Applications</h2>
-          <div class="flex gap-2 text-xs font-bold">
-            <span class="bg-yellow-300 text-yellow-900 px-2 py-0.5 rounded-full">{{ apps_pending }} pending</span>
-            <span class="bg-green-400 text-white px-2 py-0.5 rounded-full">{{ apps_approved }} approved</span>
-            <span class="bg-red-400 text-white px-2 py-0.5 rounded-full">{{ apps_rejected }} rejected</span>
-          </div>
-        </div>
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">App #</th>
-              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
-              <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
-              <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            {% for app in applications %}
-            <tr class="hover:bg-orange-50">
-              <td class="px-4 py-2 font-mono text-xs text-blue-600">
-                <a href="{% url 'loans:approve_application' app.pk %}">{{ app.application_number }}</a>
-              </td>
-              <td class="px-4 py-2 font-medium text-slate-900">{{ app.borrower.get_full_name }}</td>
-              <td class="px-4 py-2 text-right font-semibold text-slate-800">K{{ app.loan_amount|floatformat:0|intcomma }}</td>
-              <td class="px-4 py-2">
-                {% if app.status == 'pending' %}<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Pending</span>
-                {% elif app.status == 'approved' %}<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Approved</span>
-                {% elif app.status == 'rejected' %}<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Rejected</span>
-                {% else %}<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">{{ app.status|title }}</span>{% endif %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-400">No applications in this period</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
     </div>
 
     <!-- Disbursed Loans -->

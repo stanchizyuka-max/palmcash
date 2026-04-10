@@ -411,6 +411,37 @@ def loan_officer_dashboard(request):
 
 
 @login_required
+def officer_applications(request):
+    """Dedicated loan applications page for loan officers."""
+    if request.user.role not in ['loan_officer', 'manager', 'admin']:
+        return render(request, 'dashboard/access_denied.html')
+    from loans.models import LoanApplication
+    officer = request.user
+    status_filter = request.GET.get('status', '')
+    search = request.GET.get('search', '').strip()
+    apps = LoanApplication.objects.filter(loan_officer=officer).select_related('borrower', 'group').order_by('-created_at')
+    if status_filter:
+        apps = apps.filter(status=status_filter)
+    if search:
+        from django.db.models import Q
+        apps = apps.filter(
+            Q(borrower__first_name__icontains=search) |
+            Q(borrower__last_name__icontains=search) |
+            Q(application_number__icontains=search)
+        )
+    all_apps = LoanApplication.objects.filter(loan_officer=officer)
+    return render(request, 'dashboard/officer_applications.html', {
+        'apps': apps,
+        'status_filter': status_filter,
+        'search': search,
+        'total': all_apps.count(),
+        'pending': all_apps.filter(status='pending').count(),
+        'approved': all_apps.filter(status='approved').count(),
+        'rejected': all_apps.filter(status='rejected').count(),
+    })
+
+
+@login_required
 def officer_performance_report(request):
     """Dedicated performance report for loan officers with date filtering."""
     if request.user.role not in ['loan_officer', 'manager', 'admin'] and not request.user.is_superuser:
