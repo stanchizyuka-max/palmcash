@@ -534,11 +534,13 @@ def manager_performance_report(request):
 
     if not activity_type or activity_type == 'completion':
         qs = _search_loan(Loan.objects.filter(
-            loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to
+            loan_q, status='completed',
+            updated_at__date__gte=date_from,
+            updated_at__date__lte=date_to,
         ).distinct().select_related('borrower', 'loan_officer'))
         for loan in qs:
             activities.append({
-                'date': loan.maturity_date,
+                'date': loan.updated_at.date() if loan.updated_at else loan.maturity_date,
                 'type': 'Loan Completion', 'type_color': 'teal',
                 'reference': loan.application_number,
                 'reference_url': f'/loans/{loan.pk}/',
@@ -582,7 +584,7 @@ def manager_performance_report(request):
     all_col = PaymentCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0).distinct()
     all_def = DefaultCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to).distinct()
     all_dis = Loan.objects.filter(loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to).distinct()
-    all_comp = Loan.objects.filter(loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to).distinct()
+    all_comp = Loan.objects.filter(loan_q, status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to).distinct()
 
     return render(request, 'dashboard/manager_performance_report.html', {
         'date_from': date_from, 'date_to': date_to,
@@ -758,8 +760,8 @@ def officer_performance_report(request):
         qs = Loan.objects.filter(
             loan_q,
             status='completed',
-            maturity_date__gte=date_from,
-            maturity_date__lte=date_to,
+            updated_at__date__gte=date_from,
+            updated_at__date__lte=date_to,
         ).distinct().select_related('borrower', 'loan_officer')
         if search:
             qs = qs.filter(
@@ -769,7 +771,7 @@ def officer_performance_report(request):
             )
         for loan in qs:
             activities.append({
-                'date': loan.maturity_date,
+                'date': loan.updated_at.date() if loan.updated_at else loan.maturity_date,
                 'type': 'Loan Completion',
                 'type_color': 'teal',
                 'reference': loan.application_number,
@@ -823,7 +825,7 @@ def officer_performance_report(request):
     all_col = PaymentCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0).distinct()
     all_def = DefaultCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to).distinct()
     all_dis = Loan.objects.filter(loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to).distinct()
-    all_comp = Loan.objects.filter(loan_q, status='completed', maturity_date__gte=date_from, maturity_date__lte=date_to).distinct()
+    all_comp = Loan.objects.filter(loan_q, status='completed', updated_at__date__gte=date_from, updated_at__date__lte=date_to).distinct()
     all_fees = LoanApplication.objects.filter(loan_officer=officer, processing_fee__gt=0, created_at__date__gte=date_from, created_at__date__lte=date_to)
 
     return render(request, 'dashboard/officer_performance_report.html', {
