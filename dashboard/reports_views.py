@@ -117,6 +117,7 @@ def disbursement_report(request):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     branch_filter = request.GET.get('branch')
+    group_filter = request.GET.get('group')
 
     if date_from:
         qs = qs.filter(disbursement_date__date__gte=date_from)
@@ -124,6 +125,11 @@ def disbursement_report(request):
         qs = qs.filter(disbursement_date__date__lte=date_to)
     if branch_filter and request.user.role == 'admin':
         qs = qs.filter(loan_officer__officer_assignment__branch=branch_filter)
+    if group_filter:
+        qs = qs.filter(
+            borrower__group_memberships__group_id=group_filter,
+            borrower__group_memberships__is_active=True
+        )
 
     total = qs.aggregate(total=Sum('principal_amount'))['total'] or 0
 
@@ -131,33 +137,43 @@ def disbursement_report(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="disbursements.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Loan ID', 'Client', 'Amount', 'Disbursement Date', 'Branch'])
+        writer.writerow(['Loan ID', 'Client', 'Group', 'Amount', 'Disbursement Date', 'Branch'])
         for loan in qs:
             branch = ''
             try:
                 branch = loan.loan_officer.officer_assignment.branch
             except Exception:
                 pass
+            
+            # Get borrower's group
+            group_name = ''
+            membership = loan.borrower.group_memberships.filter(is_active=True).first()
+            if membership:
+                group_name = membership.group.name
+            
             writer.writerow([
                 loan.application_number,
                 loan.borrower.get_full_name(),
+                group_name,
                 loan.principal_amount,
                 loan.disbursement_date.date() if loan.disbursement_date else '',
                 branch,
             ])
-        writer.writerow(['', 'TOTAL', total, '', ''])
+        writer.writerow(['', 'TOTAL', '', total, '', ''])
         return response
 
     paginator = Paginator(qs, 25)
     page = paginator.get_page(request.GET.get('page'))
 
-    from clients.models import Branch
+    from clients.models import Branch, BorrowerGroup
     branches = Branch.objects.filter(is_active=True) if request.user.role == 'admin' else []
+    groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
 
     return render(request, 'dashboard/reports_disbursements.html', {
         'page_obj': page,
         'total': total,
         'branches': branches,
+        'groups': groups,
         'filters': request.GET,
     })
 

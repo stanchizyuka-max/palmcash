@@ -15,7 +15,7 @@
 
     <!-- Filters -->
     <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="From">
         <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="To">
         {% if branches %}
@@ -24,6 +24,10 @@
           {% for b in branches %}<option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
         </select>
         {% endif %}
+        <select name="group" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Groups</option>
+          {% for g in groups %}<option value="{{ g.id }}" {% if filters.group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
+        </select>
         <div class="flex gap-2">
           <button type="submit" class="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg text-sm font-semibold hover:bg-orange-700">Filter</button>
           <a href="{% url 'dashboard:report_disbursements' %}" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
@@ -38,6 +42,7 @@
             <tr>
               <th class="px-4 py-3 text-left font-semibold">Loan ID</th>
               <th class="px-4 py-3 text-left font-semibold">Client</th>
+              <th class="px-4 py-3 text-left font-semibold">Group</th>
               <th class="px-4 py-3 text-left font-semibold">Amount</th>
               <th class="px-4 py-3 text-left font-semibold">Disbursement Date</th>
               <th class="px-4 py-3 text-left font-semibold">Branch</th>
@@ -48,6 +53,15 @@
             <tr class="hover:bg-slate-50">
               <td class="px-4 py-3 font-mono font-semibold text-slate-700">{{ loan.application_number }}</td>
               <td class="px-4 py-3 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
+              <td class="px-4 py-3 text-slate-600">
+                {% with loan.borrower.group_memberships.filter|first as membership %}
+                  {% if membership.is_active %}
+                    {{ membership.group.name }}
+                  {% else %}
+                    —
+                  {% endif %}
+                {% endwith %}
+              </td>
               <td class="px-4 py-3 font-bold text-slate-800">K{{ loan.principal_amount|floatformat:2|intcomma }}</td>
               <td class="px-4 py-3 text-slate-600">{{ loan.disbursement_date|date:"d M Y" }}</td>
               <td class="px-4 py-3 text-slate-600">
@@ -55,13 +69,13 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">No disbursements found.</td></tr>
+            <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No disbursements found.</td></tr>
             {% endfor %}
           </tbody>
           <tfoot class="bg-slate-50 border-t-2 border-slate-300">
             <tr>
               <td class="px-4 py-3 font-bold text-slate-700">Total</td>
-              <td></td>
+              <td colspan="2"></td>
               <td class="px-4 py-3 font-bold text-slate-900">K{{ total|floatformat:2|intcomma }}</td>
               <td colspan="2"></td>
             </tr>
