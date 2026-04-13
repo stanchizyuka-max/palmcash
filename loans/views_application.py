@@ -146,6 +146,18 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
             return LoanApplication.objects.all()
 
 
+class LoanApplicationDetailView(LoginRequiredMixin, DetailView):
+    """View-only page for loan application details"""
+    model = LoanApplication
+    template_name = 'loans/application_detail_view.html'
+    context_object_name = 'application'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['borrower'] = self.object.borrower
+        return context
+
+
 class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
     model = LoanApplication
     fields = ['status', 'rejection_reason']

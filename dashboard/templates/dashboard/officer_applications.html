@@ -87,7 +87,7 @@
                 {% else %}<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">{{ app.status|title }}</span>{% endif %}
               </td>
               <td class="px-4 py-3">
-                <a href="{% url 'loans:approve_application' app.pk %}" class="px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs font-semibold hover:bg-slate-200">View</a>
+                <a href="{% url 'loans:application_detail_view' app.pk %}" class="px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs font-semibold hover:bg-slate-200">View</a>
               </td>
             </tr>
             {% empty %}
