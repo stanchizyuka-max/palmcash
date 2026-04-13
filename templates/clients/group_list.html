@@ -3,67 +3,77 @@
 {% block title %}Borrower Groups - PalmCash{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 <style>
-    .flatpickr-calendar {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border-radius: 0.75rem;
-    }
-    .flatpickr-day.selected {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-    }
-    .flatpickr-day.today {
-        border-color: #3b82f6;
+    .table-container {
+        overflow-x: auto;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     }
     
-    .group-card {
-        transition: all 0.3s ease;
-        border: 1px solid #e5e7eb;
+    .sticky-header th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #1e40af;
     }
     
-    .group-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #3b82f6;
+    tbody tr:hover {
+        background-color: #f3f4f6;
+        transition: background-color 0.15s ease;
     }
     
-    .stat-card {
-        transition: all 0.3s ease;
+    .sort-icon {
+        display: inline-block;
+        margin-left: 0.25rem;
+        opacity: 0.5;
     }
     
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    .sort-active {
+        opacity: 1;
+        color: #fbbf24;
     }
     
-    .progress-ring {
-        transform: rotate(-90deg);
+    .progress-bar-container {
+        width: 100%;
+        height: 8px;
+        background-color: #e5e7eb;
+        border-radius: 9999px;
+        overflow: hidden;
     }
     
-    .progress-ring-circle {
-        transition: stroke-dashoffset 0.35s;
-        transform-origin: 50% 50%;
+    .progress-bar {
+        height: 100%;
+        transition: width 0.3s ease;
+        border-radius: 9999px;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
+<div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <!-- Header Section -->
-        <div class="mb-8">
-            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+        <div class="mb-6">
+            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                 <div>
-                    <h1 class="text-4xl font-bold text-gray-900 flex items-center">
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
                         <i class="fas fa-users text-blue-600 mr-3"></i>
                         Borrower Groups
                     </h1>
-                    <p class="text-gray-600 mt-2 text-lg">Manage borrower groups and loan officer assignments</p>
+                    <p class="text-gray-600 mt-1">Manage borrower groups and loan officer assignments</p>
                 </div>
-                {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
-                <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' %}
+                <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                     <i class="fas fa-plus mr-2"></i>
                     Create Group
                 </a>
@@ -71,311 +81,271 @@
             </div>
         </div>
 
-        <!-- Statistics Dashboard -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Total Groups -->
-            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-5 border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Groups</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ total_groups }}</p>
-                        <p class="text-sm text-green-600 mt-2">
-                            <i class="fas fa-arrow-up mr-1"></i>
-                            <span>{{ active_groups }} active</span>
-                        </p>
+                        <p class="text-sm text-gray-600 font-medium">Total Groups</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_groups }}</p>
                     </div>
-                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
-                        <i class="fas fa-users text-blue-600 text-2xl"></i>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
                     </div>
                 </div>
             </div>
 
-            <!-- Active Groups -->
-            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+            <div class="bg-white rounded-lg shadow p-5 border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Active Groups</p>
-                        <p class="text-3xl font-bold text-green-600 mt-2">{{ active_groups }}</p>
-                        <p class="text-sm text-gray-600 mt-2">
+                        <p class="text-sm text-gray-600 font-medium">Active Groups</p>
+                        <p class="text-2xl font-bold text-green-600 mt-1">{{ active_groups }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-5 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Occupancy Rate</p>
+                        <p class="text-2xl font-bold text-purple-600 mt-1">
                             {% if total_groups > 0 %}
-                            {% widthratio active_groups total_groups 100 as percentage %}
-                            {{ percentage }}% of total
+                            {% widthratio active_groups total_groups 100 %}%
                             {% else %}
-                            0% of total
+                            0%
                             {% endif %}
                         </p>
                     </div>
-                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
-                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-pie text-purple-600 text-xl"></i>
                     </div>
-                </div>
-            </div>
-
-            <!-- Total Members -->
-            <div class="stat-card bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Members</p>
-                        <p class="text-3xl font-bold text-purple-600 mt-2">
-                            {% for group in groups %}
-                                {{ group.member_count }}
-                                {% if not forloop.last %}+{% endif %}
-                            {% endfor %}
-                        </p>
-                        <p class="text-sm text-gray-600 mt-2">Across all groups</p>
-                    </div>
-                    <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center">
-                        <i class="fas fa-user-friends text-purple-600 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Calendar Widget -->
-            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-calendar-alt mr-2 text-blue-600"></i>
-                        Calendar
-                    </h3>
-                </div>
-                <input type="text" id="groupCalendar" class="w-full" placeholder="Select date">
-                <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p class="text-xs text-gray-600 mb-1">Selected Date:</p>
-                    <p id="selectedDate" class="text-sm font-semibold text-blue-900">Today</p>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a href="{% url 'clients:officer_workload' %}" class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all duration-200">
-                    <i class="fas fa-chart-bar text-blue-600 text-xl mr-3"></i>
-                    <div>
-                        <p class="text-sm font-medium text-blue-900">Officer Workload</p>
-                        <p class="text-xs text-blue-700">View dashboard</p>
-                    </div>
-                </a>
-                
-                <a href="{% url 'clients:officer_clients' user.id %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200 hover:from-green-100 hover:to-green-200 transition-all duration-200">
-                    <i class="fas fa-user-tie text-green-600 text-xl mr-3"></i>
-                    <div>
-                        <p class="text-sm font-medium text-green-900">My Clients</p>
-                        <p class="text-xs text-green-700">Manage clients</p>
-                    </div>
-                </a>
-                
-                <button onclick="window.print()" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-purple-200 transition-all duration-200">
-                    <i class="fas fa-print text-purple-600 text-xl mr-3"></i>
-                    <div>
-                        <p class="text-sm font-medium text-purple-900">Print Report</p>
-                        <p class="text-xs text-purple-700">Export data</p>
-                    </div>
-                </button>
-            </div>
-        </div>
-
-        <!-- Groups Grid -->
+        <!-- Groups Table -->
         {% if groups %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for group in groups %}
-            <div class="group-card bg-white rounded-xl shadow-lg overflow-hidden">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
-                                <i class="fas fa-users text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white">{{ group.name }}</h3>
-                                <p class="text-blue-100 text-sm">{{ group.description|truncatewords:8 }}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            {% if group.is_active %}
-                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                                Active
-                            </span>
-                            {% else %}
-                            <span class="px-3 py-1 bg-gray-500 text-white text-xs font-semibold rounded-full">
-                                Inactive
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Content -->
-                <div class="p-6">
-                    <!-- Officer Assignment -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-500 font-medium">Assigned Officer</span>
-                            {% if group.assigned_officer %}
-                            <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Assigned</span>
-                            {% else %}
-                            <span class="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">Unassigned</span>
-                            {% endif %}
-                        </div>
-                        {% if group.assigned_officer %}
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                                <i class="fas fa-user text-gray-600 text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">{{ group.assigned_officer.get_full_name }}</p>
-                                <p class="text-xs text-gray-500">{{ group.assigned_officer.email }}</p>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="flex items-center text-gray-400">
-                            <i class="fas fa-user-slash mr-2"></i>
-                            <span class="text-sm">No officer assigned</span>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Member Stats -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-500 font-medium">Members</span>
-                            {% if group.max_members %}
-                            {% widthratio group.member_count group.max_members 100 as percentage %}
-                            <span class="text-xs font-semibold {% if percentage <= 40 %}text-green-600{% elif percentage <= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                                {{ group.member_count }} / {{ group.max_members }} ({{ percentage }}%)
-                            </span>
-                            {% else %}
-                            <span class="text-xs text-blue-600">{{ group.member_count }} members</span>
-                            {% endif %}
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                            {% if group.max_members %}
-                            {% widthratio group.member_count group.max_members 100 as percentage %}
-                            <div class="h-3 rounded-full transition-all duration-300 {% if percentage <= 40 %}bg-green-500{% elif percentage <= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ percentage }}%"></div>
-                            {% else %}
-                            <div class="bg-blue-500 h-3 rounded-full" style="width: 100%"></div>
-                            {% endif %}
-                        </div>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+            <div class="table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="sticky-header">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <a href="?sort={% if current_sort == 'name' %}-name{% else %}name{% endif %}" class="flex items-center hover:text-yellow-300">
+                                    Group Name
+                                    <i class="fas fa-sort sort-icon {% if current_sort == 'name' or current_sort == '-name' %}sort-active{% endif %}"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <a href="?sort={% if current_sort == 'branch' %}-branch{% else %}branch{% endif %}" class="flex items-center hover:text-yellow-300">
+                                    Branch
+                                    <i class="fas fa-sort sort-icon {% if current_sort == 'branch' or current_sort == '-branch' %}sort-active{% endif %}"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <a href="?sort={% if current_sort == 'officer' %}-officer{% else %}officer{% endif %}" class="flex items-center hover:text-yellow-300">
+                                    Assigned Officer
+                                    <i class="fas fa-sort sort-icon {% if current_sort == 'officer' or current_sort == '-officer' %}sort-active{% endif %}"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <a href="?sort={% if current_sort == '-capacity_percentage' %}capacity_percentage{% else %}-capacity_percentage{% endif %}" class="flex items-center hover:text-yellow-300">
+                                    Members / Capacity
+                                    <i class="fas fa-sort sort-icon {% if current_sort == 'capacity_percentage' or current_sort == '-capacity_percentage' %}sort-active{% endif %}"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                Payment Day
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                <a href="?sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}" class="flex items-center hover:text-yellow-300">
+                                    Status
+                                    <i class="fas fa-sort sort-icon {% if current_sort == 'status' or current_sort == '-status' %}sort-active{% endif %}"></i>
+                                </a>
+                            </th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for group in groups %}
                         {% if group.max_members %}
-                        <p class="text-xs text-gray-500 mt-1">
-                            {% widthratio group.member_count group.max_members 100 as percentage %}
-                            {% if percentage <= 40 %}
-                            <span class="text-green-600">● Low occupancy</span>
-                            {% elif percentage <= 80 %}
-                            <span class="text-yellow-600">● Medium occupancy</span>
-                            {% else %}
-                            <span class="text-red-600">● High occupancy</span>
-                            {% endif %}
-                        </p>
+                        {% widthratio group.member_count group.max_members 100 as percentage %}
                         {% else %}
-                        <p class="text-xs text-gray-500 mt-1">No capacity limit</p>
+                        {% widthratio 0 1 100 as percentage %}
                         {% endif %}
-                    </div>
+                        <tr>
+                            <!-- Group Name -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-users text-blue-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-semibold text-gray-900">{{ group.name }}</div>
+                                        {% if group.description %}
+                                        <div class="text-xs text-gray-500">{{ group.description|truncatewords:5 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
 
-                    <!-- Branch Info -->
-                    {% if group.branch %}
-                    <div class="mb-4">
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-map-marker-alt mr-2"></i>
-                            <span>{{ group.branch }}</span>
-                        </div>
-                    </div>
-                    {% endif %}
+                            <!-- Branch -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center text-sm text-gray-900">
+                                    <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                                    {{ group.branch|default:"N/A" }}
+                                </div>
+                            </td>
 
-                    <!-- Payment Schedule -->
-                    {% if group.payment_day %}
-                    <div class="mb-4">
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-calendar-day mr-2"></i>
-                            <span>Payment Day: {{ group.payment_day }}</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
+                            <!-- Assigned Officer -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if group.assigned_officer %}
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user text-gray-600 text-xs"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">{{ group.assigned_officer.get_full_name }}</div>
+                                        <div class="text-xs text-gray-500">{{ group.assigned_officer.email|truncatewords:1 }}</div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-sm text-gray-400 italic">Unassigned</span>
+                                {% endif %}
+                            </td>
 
-                <!-- Actions -->
-                <div class="px-6 pb-6">
-                    <div class="flex gap-2">
-                        <a href="{% url 'clients:group_detail' group.pk %}" class="flex-1 items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                            <i class="fas fa-eye mr-2"></i>
-                            View Details
+                            <!-- Members / Capacity -->
+                            <td class="px-6 py-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between text-sm">
+                                        {% if group.max_members %}
+                                        <span class="font-semibold {% if percentage <= 40 %}text-green-600{% elif percentage <= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                            {{ group.member_count }} / {{ group.max_members }}
+                                        </span>
+                                        <span class="text-xs font-bold {% if percentage <= 40 %}text-green-600{% elif percentage <= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                            {{ percentage }}%
+                                        </span>
+                                        {% else %}
+                                        <span class="font-semibold text-blue-600">{{ group.member_count }} members</span>
+                                        <span class="text-xs text-gray-500">No limit</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        {% if group.max_members %}
+                                        <div class="progress-bar {% if percentage <= 40 %}bg-green-500{% elif percentage <= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ percentage }}%"></div>
+                                        {% else %}
+                                        <div class="progress-bar bg-blue-500" style="width: 100%"></div>
+                                        {% endif %}
+                                    </div>
+                                    {% if group.max_members %}
+                                    <div class="text-xs {% if percentage == 0 %}text-gray-500{% elif percentage <= 40 %}text-green-600{% elif percentage <= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                        {% if percentage == 0 %}
+                                        ● Empty
+                                        {% elif percentage <= 40 %}
+                                        ● Low occupancy
+                                        {% elif percentage <= 80 %}
+                                        ● Medium occupancy
+                                        {% else %}
+                                        ● High occupancy
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Payment Day -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center text-sm text-gray-700">
+                                    <i class="fas fa-calendar-day text-gray-400 mr-2"></i>
+                                    {{ group.payment_day|default:"Not set" }}
+                                </div>
+                            </td>
+
+                            <!-- Status -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if group.is_active %}
+                                <span class="status-badge bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="status-badge bg-gray-100 text-gray-800">
+                                    <i class="fas fa-times-circle mr-1"></i>
+                                    Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <a href="{% url 'clients:group_detail' group.pk %}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if user.role == 'admin' or user.role == 'manager' %}
+                                    <a href="{% url 'clients:group_edit' group.pk %}" class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors" title="Edit Group">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="text-sm text-gray-700">
+                        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} groups
+                    </div>
+                    <div class="flex space-x-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i>Previous
                         </a>
-                        {% if user.role == 'admin' or user.role == 'manager' %}
-                        <a href="{% url 'clients:group_edit' group.pk %}" class="flex-1 items-center justify-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                            <i class="fas fa-edit mr-2"></i>
-                            Edit
+                        {% endif %}
+                        
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded font-medium">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                            Next<i class="fas fa-arrow-right ml-2"></i>
                         </a>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
+            {% endif %}
         </div>
-
-        <!-- Pagination -->
-        {% if is_paginated %}
-        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div class="text-sm text-gray-700">
-                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} groups
-                </div>
-                <div class="flex space-x-2">
-                    {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200">
-                        <i class="fas fa-arrow-left mr-2"></i>Previous
-                    </a>
-                    {% endif %}
-                    {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                        Next<i class="fas fa-arrow-right ml-2"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
         {% else %}
         <!-- Empty State -->
-        <div class="bg-white rounded-xl shadow-lg p-12 text-center border border-gray-100">
-            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div class="bg-white rounded-lg shadow p-12 text-center border border-gray-200">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-users text-gray-400 text-3xl"></i>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">No Groups Found</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">No Groups Found</h3>
             <p class="text-gray-600 mb-6">Get started by creating your first borrower group</p>
-            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' or perms.clients.can_create_group %}
-            <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' %}
+            <a href="{% url 'clients:group_create' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                 <i class="fas fa-plus mr-2"></i>
                 Create First Group
             </a>
             {% endif %}
         </div>
         {% endif %}
+
     </div>
 </div>
-
-<!-- Calendar Script -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize calendar
-        flatpickr("#groupCalendar", {
-            mode: "single",
-            dateFormat: "Y-m-d",
-            defaultDate: new Date(),
-            inline: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                // Update selected date display
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const formattedDate = new Date(dateStr).toLocaleDateString('en-US', options);
-                document.getElementById('selectedDate').textContent = formattedDate;
-                
-                // Optional: Filter groups by date if needed
-                console.log('Selected date:', dateStr);
-            }
-        });
-    });
-</script>
 {% endblock %}

@@ -27,7 +27,18 @@ class GroupListView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
-        queryset = BorrowerGroup.objects.all()
+        from django.db.models import Count, Case, When, IntegerField, F, FloatField
+        from django.db.models.functions import Cast
+        
+        queryset = BorrowerGroup.objects.annotate(
+            member_count=Count('members', filter=models.Q(members__is_active=True)),
+            capacity_percentage=Case(
+                When(max_members__isnull=False, max_members__gt=0,
+                     then=Cast(F('member_count') * 100.0 / F('max_members'), FloatField())),
+                default=0.0,
+                output_field=FloatField()
+            )
+        )
         
         if self.request.user.role == 'loan_officer':
             queryset = queryset.filter(assigned_officer=self.request.user)
@@ -39,12 +50,36 @@ class GroupListView(LoginRequiredMixin, ListView):
             except:
                 queryset = BorrowerGroup.objects.none()
         
-        return queryset.order_by('-created_at')
+        # Handle sorting
+        sort_by = self.request.GET.get('sort', '-capacity_percentage')
+        valid_sorts = {
+            'name': 'name',
+            '-name': '-name',
+            'branch': 'branch',
+            '-branch': '-branch',
+            'officer': 'assigned_officer__last_name',
+            '-officer': '-assigned_officer__last_name',
+            'status': 'is_active',
+            '-status': '-is_active',
+            'capacity': 'capacity_percentage',
+            '-capacity': '-capacity_percentage',
+            'capacity_percentage': 'capacity_percentage',
+            '-capacity_percentage': '-capacity_percentage',
+        }
+        
+        if sort_by in valid_sorts:
+            queryset = queryset.order_by(valid_sorts[sort_by], '-created_at')
+        else:
+            # Default: highest capacity first
+            queryset = queryset.order_by('-capacity_percentage', '-created_at')
+        
+        return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_groups'] = self.get_queryset().count()
         context['active_groups'] = self.get_queryset().filter(is_active=True).count()
+        context['current_sort'] = self.request.GET.get('sort', '-capacity_percentage')
         return context
 
 
