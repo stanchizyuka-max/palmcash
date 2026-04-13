@@ -125,17 +125,11 @@
         </div>
 
         <!-- Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="mb-6">
             <!-- Line Chart -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Expected vs Collected Trend</h3>
-                <canvas id="lineChart" height="250"></canvas>
-            </div>
-
-            <!-- Bar Chart -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Collection Rate by Week</h3>
-                <canvas id="barChart" height="250"></canvas>
+                <canvas id="lineChart" height="100"></canvas>
             </div>
         </div>
 
@@ -277,50 +271,6 @@ new Chart(lineCtx, {
                 ticks: {
                     callback: function(value) {
                         return 'K' + value.toLocaleString();
-                    }
-                }
-            }
-        }
-    }
-});
-
-// Bar Chart - Collection Rates
-const barCtx = document.getElementById('barChart').getContext('2d');
-new Chart(barCtx, {
-    type: 'bar',
-    data: {
-        labels: {{ chart_labels|safe }},
-        datasets: [{
-            label: 'Collection Rate (%)',
-            data: {{ chart_rates|safe }},
-            backgroundColor: {{ chart_rates|safe }}.map(rate => {
-                if (rate >= 80) return 'rgba(16, 185, 129, 0.8)';
-                if (rate >= 40) return 'rgba(234, 179, 8, 0.8)';
-                return 'rgba(239, 68, 68, 0.8)';
-            }),
-            borderColor: {{ chart_rates|safe }}.map(rate => {
-                if (rate >= 80) return 'rgb(16, 185, 129)';
-                if (rate >= 40) return 'rgb(234, 179, 8)';
-                return 'rgb(239, 68, 68)';
-            }),
-            borderWidth: 2
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                ticks: {
-                    callback: function(value) {
-                        return value + '%';
                     }
                 }
             }

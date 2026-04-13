@@ -50,6 +50,7 @@ def security_transactions_report(request):
     date_to = request.GET.get('date_to')
     tx_type = request.GET.get('type')
     branch_filter = request.GET.get('branch')
+    group_filter = request.GET.get('group')
     client_filter = request.GET.get('client')
 
     if date_from:
@@ -60,6 +61,11 @@ def security_transactions_report(request):
         qs = qs.filter(transaction_type=tx_type)
     if branch_filter and request.user.role == 'admin':
         qs = qs.filter(loan__loan_officer__officer_assignment__branch=branch_filter)
+    if group_filter:
+        qs = qs.filter(
+            loan__borrower__group_memberships__group_id=group_filter,
+            loan__borrower__group_memberships__is_active=True
+        )
     if client_filter:
         qs = qs.filter(
             Q(loan__borrower__first_name__icontains=client_filter) |
@@ -73,36 +79,46 @@ def security_transactions_report(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="security_transactions.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Client', 'Loan ID', 'Type', 'Amount', 'Date', 'Branch', 'Status'])
+        writer.writerow(['Client', 'Loan ID', 'Group', 'Type', 'Amount', 'Date', 'Branch', 'Status'])
         for tx in qs:
             branch = ''
             try:
                 branch = tx.loan.loan_officer.officer_assignment.branch
             except Exception:
                 pass
+            
+            # Get borrower's group
+            group_name = ''
+            membership = tx.loan.borrower.group_memberships.filter(is_active=True).first()
+            if membership:
+                group_name = membership.group.name
+            
             writer.writerow([
                 tx.loan.borrower.get_full_name(),
                 tx.loan.application_number,
+                group_name,
                 tx.get_transaction_type_display(),
                 tx.amount,
                 tx.created_at.date(),
                 branch,
                 tx.get_status_display(),
             ])
-        writer.writerow(['', '', 'TOTAL', total, '', '', ''])
+        writer.writerow(['', '', '', 'TOTAL', total, '', '', ''])
         return response
 
     paginator = Paginator(qs, 25)
     page = paginator.get_page(request.GET.get('page'))
 
-    from clients.models import Branch
+    from clients.models import Branch, BorrowerGroup
     branches = Branch.objects.filter(is_active=True) if request.user.role == 'admin' else []
+    groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
 
     return render(request, 'dashboard/reports_security.html', {
         'page_obj': page,
         'total': total,
         'tx_types': SecurityTransaction.TRANSACTION_TYPES,
         'branches': branches,
+        'groups': groups,
         'filters': request.GET,
     })
 
