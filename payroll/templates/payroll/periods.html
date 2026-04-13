@@ -3,9 +3,14 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Payroll Periods</h1>
-        <p class="text-gray-600 mt-2">Monthly payroll cycles and payment tracking</p>
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Payroll Periods</h1>
+            <p class="text-gray-600 mt-2">Monthly payroll cycles and payment tracking</p>
+        </div>
+        <a href="{% url 'payroll:generate_period' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            + Generate New Period
+        </a>
     </div>
     
     <!-- Periods List -->
@@ -50,8 +55,14 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
-                        No payroll periods found. Run: python manage.py generate_payroll
+                    <td colspan="7" class="px-6 py-8 text-center">
+                        <div class="text-gray-500 mb-4">
+                            <p class="text-lg font-medium">No payroll periods found</p>
+                            <p class="text-sm mt-1">Generate your first payroll period to start tracking employee payments</p>
+                        </div>
+                        <a href="{% url 'payroll:generate_period' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                            Generate Payroll Period
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}

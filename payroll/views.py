@@ -362,3 +362,84 @@ def edit_salary(request, employee_id):
     }
     
     return render(request, 'payroll/edit_salary.html', context)
+
+
+@payroll_permission_required
+def generate_period(request):
+    """Generate a new payroll period"""
+    from .models import PayrollPeriod, PayrollRecord
+    from django.utils import timezone
+    from datetime import date
+    from calendar import monthrange
+    
+    if request.method == 'POST':
+        month = int(request.POST.get('month'))
+        year = int(request.POST.get('year'))
+        
+        # Check if period already exists
+        existing = PayrollPeriod.objects.filter(month=month, year=year).first()
+        if existing:
+            messages.warning(request, f'Payroll period for {existing} already exists')
+            return redirect('payroll:period_detail', period_id=existing.id)
+        
+        # Create period
+        period = PayrollPeriod.objects.create(
+            month=month,
+            year=year,
+            status='open'
+        )
+        
+        # Get all active employees with salary set
+        employees = Employee.objects.filter(is_active=True, monthly_salary__gt=0)
+        
+        if not employees.exists():
+            messages.error(request, 'No active employees with salary configured')
+            period.delete()
+            return redirect('payroll:generate_period')
+        
+        # Generate records for each employee
+        records_created = 0
+        for employee in employees:
+            # Calculate due date
+            payment_day = min(employee.payment_day, monthrange(year, month)[1])
+            due_date = date(year, month, payment_day)
+            
+            PayrollRecord.objects.create(
+                period=period,
+                employee=employee,
+                expected_amount=employee.monthly_salary,
+                due_date=due_date,
+                status='pending'
+            )
+            records_created += 1
+        
+        # Update period totals
+        period.update_totals()
+        
+        # Log the action
+        log_payroll_access(
+            request.user,
+            'view_dashboard',
+            f'Generated Payroll Period: {period}',
+            request,
+            f'Created {records_created} payment records'
+        )
+        
+        messages.success(request, f'✓ Payroll period for {period} created with {records_created} employee records')
+        return redirect('payroll:period_detail', period_id=period.id)
+    
+    # GET request - show form
+    today = timezone.now().date()
+    active_employees = Employee.objects.filter(is_active=True, monthly_salary__gt=0).count()
+    total_payroll = Employee.objects.filter(is_active=True).aggregate(
+        total=Sum('monthly_salary')
+    )['total'] or 0
+    
+    context = {
+        'current_month': today.month,
+        'current_year': today.year,
+        'active_employees': active_employees,
+        'total_payroll': total_payroll,
+    }
+    
+    return render(request, 'payroll/generate_period.html', context)

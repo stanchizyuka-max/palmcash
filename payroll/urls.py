@@ -14,6 +14,7 @@ urlpatterns = [
     
     # Payroll periods and records
     path('periods/', views.payroll_periods, name='periods'),
+    path('periods/generate/', views.generate_period, name='generate_period'),
     path('periods/<int:period_id>/', views.period_detail, name='period_detail'),
     path('records/<int:record_id>/pay/', views.process_payment, name='process_payment'),
     
