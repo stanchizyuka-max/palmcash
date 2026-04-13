@@ -39,6 +39,7 @@
           <tr>
             <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
             <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
             <th class="px-4 py-2 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
             <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Days Overdue</th>
             <th class="px-4 py-2 text-right text-xs font-bold text-slate-600 uppercase">Balance</th>
@@ -49,6 +50,15 @@
           <tr class="hover:bg-slate-50">
             <td class="px-4 py-2 font-mono"><a href="{% url 'loans:detail' entry.loan.pk %}" class="text-blue-600 hover:underline">{{ entry.loan.application_number }}</a></td>
             <td class="px-4 py-2 font-medium text-slate-900">{{ entry.loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-2 text-slate-600">
+              {% with entry.loan.borrower.group_memberships.filter|first as membership %}
+                {% if membership.is_active %}
+                  {{ membership.group.name }}
+                {% else %}
+                  —
+                {% endif %}
+              {% endwith %}
+            </td>
             <td class="px-4 py-2 text-slate-600">{{ entry.loan.loan_officer.get_full_name|default:"—" }}</td>
             <td class="px-4 py-2 text-right font-bold {% if entry.days_overdue == 0 %}text-green-600{% elif entry.days_overdue <= 7 %}text-yellow-600{% elif entry.days_overdue <= 30 %}text-orange-600{% else %}text-red-600{% endif %}">
               {% if entry.days_overdue == 0 %}Current{% else %}{{ entry.days_overdue }}d{% endif %}

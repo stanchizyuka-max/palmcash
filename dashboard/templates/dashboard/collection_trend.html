@@ -3,7 +3,6 @@
 {% block title %}Collection Trend Analytics{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
     .trend-up { color: #10b981; }
     .trend-down { color: #ef4444; }
@@ -124,15 +123,6 @@
             </form>
         </div>
 
-        <!-- Charts -->
-        <div class="mb-6">
-            <!-- Line Chart -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Expected vs Collected Trend</h3>
-                <canvas id="lineChart" height="100"></canvas>
-            </div>
-        </div>
-
         <!-- Data Table -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto">
@@ -235,47 +225,4 @@
 
     </div>
 </div>
-
-<script>
-// Line Chart - Expected vs Collected
-const lineCtx = document.getElementById('lineChart').getContext('2d');
-new Chart(lineCtx, {
-    type: 'line',
-    data: {
-        labels: {{ chart_labels|safe }},
-        datasets: [{
-            label: 'Expected',
-            data: {{ chart_expected|safe }},
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4
-        }, {
-            label: 'Collected',
-            data: {{ chart_collected|safe }},
-            borderColor: 'rgb(16, 185, 129)',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return 'K' + value.toLocaleString();
-                    }
-                }
-            }
-        }
-    }
-});
-</script>
 {% endblock %}
