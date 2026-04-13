@@ -15,7 +15,7 @@
 
     <!-- Filters -->
     <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
           <option value="">All Statuses</option>
           <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
@@ -25,6 +25,12 @@
         <select name="branch" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
           <option value="">All Branches</option>
           {% for b in branches %}<option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        {% if officers %}
+        <select name="officer" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Officers</option>
+          {% for o in officers %}<option value="{{ o.id }}" {% if filters.officer == o.id|stringformat:"s" %}selected{% endif %}>{{ o.get_full_name }}</option>{% endfor %}
         </select>
         {% endif %}
         {% if groups %}
@@ -45,27 +51,61 @@
         <table class="w-full text-sm">
           <thead class="bg-slate-800 text-white">
             <tr>
-              <th class="px-4 py-3 text-left font-semibold">Client</th>
-              <th class="px-4 py-3 text-left font-semibold">Active Loans</th>
-              <th class="px-4 py-3 text-left font-semibold">Outstanding Balance</th>
+              <th class="px-4 py-3 text-left font-semibold">Loan Officer / Branch / Group / Client</th>
+              <th class="px-4 py-3 text-center font-semibold">Active Loans</th>
+              <th class="px-4 py-3 text-right font-semibold">Outstanding Balance</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
-            {% for row in page_obj %}
-            <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-medium text-slate-900">{{ row.client.get_full_name }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.active_loans }}</td>
-              <td class="px-4 py-3 font-bold text-slate-800">K{{ row.outstanding|floatformat:2|intcomma }}</td>
-            </tr>
+          <tbody>
+            {% for officer_data in officers_list %}
+              <!-- Loan Officer Row -->
+              <tr class="bg-blue-50 border-t-2 border-blue-200">
+                <td class="px-4 py-3 font-bold text-blue-900">
+                  <i class="fas fa-user-tie mr-2"></i>{{ officer_data.officer.get_full_name }}
+                </td>
+                <td class="px-4 py-3 text-center font-bold text-blue-900">{{ officer_data.total_active_loans }}</td>
+                <td class="px-4 py-3 text-right font-bold text-blue-900">K{{ officer_data.total_outstanding|floatformat:2|intcomma }}</td>
+              </tr>
+              
+              <!-- Branch Row -->
+              <tr class="bg-purple-50">
+                <td class="px-8 py-2 font-semibold text-purple-800">
+                  <i class="fas fa-building mr-2"></i>{{ officer_data.branch }}
+                </td>
+                <td colspan="2"></td>
+              </tr>
+              
+              {% for group_data in officer_data.groups_list %}
+                <!-- Group Row -->
+                <tr class="bg-green-50">
+                  <td class="px-12 py-2 font-semibold text-green-800">
+                    <i class="fas fa-users mr-2"></i>{{ group_data.group_name }}
+                  </td>
+                  <td class="px-4 py-2 text-center font-semibold text-green-800">{{ group_data.total_active_loans }}</td>
+                  <td class="px-4 py-2 text-right font-semibold text-green-800">K{{ group_data.total_outstanding|floatformat:2|intcomma }}</td>
+                </tr>
+                
+                {% for client_data in group_data.clients %}
+                  <!-- Client Row -->
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-16 py-2 text-slate-700">
+                      <i class="fas fa-user mr-2 text-slate-400"></i>{{ client_data.client.get_full_name }}
+                    </td>
+                    <td class="px-4 py-2 text-center text-slate-700">{{ client_data.active_loans }}</td>
+                    <td class="px-4 py-2 text-right text-slate-800">K{{ client_data.outstanding|floatformat:2|intcomma }}</td>
+                  </tr>
+                {% endfor %}
+              {% endfor %}
+              
             {% empty %}
-            <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">No clients found.</td></tr>
+            <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">No data found.</td></tr>
             {% endfor %}
           </tbody>
-          <tfoot class="bg-slate-50 border-t-2 border-slate-300">
+          <tfoot class="bg-slate-800 text-white border-t-4 border-slate-900">
             <tr>
-              <td class="px-4 py-3 font-bold text-slate-700">Total Outstanding</td>
-              <td></td>
-              <td class="px-4 py-3 font-bold text-slate-900">K{{ total_outstanding|floatformat:2|intcomma }}</td>
+              <td class="px-4 py-4 font-bold text-lg">GRAND TOTAL</td>
+              <td class="px-4 py-4 text-center font-bold text-lg">{{ grand_total_active_loans }}</td>
+              <td class="px-4 py-4 text-right font-bold text-lg">K{{ grand_total_outstanding|floatformat:2|intcomma }}</td>
             </tr>
           </tfoot>
         </table>
@@ -76,13 +116,6 @@
       <a href="?{{ request.GET.urlencode }}&export=csv" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
         <i class="fas fa-download mr-2"></i>Export CSV
       </a>
-      {% if page_obj.has_other_pages %}
-      <div class="flex gap-1">
-        {% if page_obj.has_previous %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">«</a>{% endif %}
-        <span class="px-3 py-2 bg-green-600 text-white rounded-lg text-sm">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">»</a>{% endif %}
-      </div>
-      {% endif %}
     </div>
 
   </div>
