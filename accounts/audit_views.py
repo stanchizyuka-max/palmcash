@@ -63,18 +63,34 @@ def user_audit_list(request):
     today = date.today()
     
     for user in users:
-        last_session = user.login_sessions.first()
-        actions_today = user.activity_logs.filter(timestamp__date=today).count()
+        # Try to get last session, fallback to Django's last_login
+        last_session = user.login_sessions.first() if hasattr(user, 'login_sessions') else None
+        last_login = None
+        
+        if last_session:
+            last_login = last_session.login_time
+        elif user.last_login:
+            # Fallback to Django's built-in last_login
+            last_login = user.last_login
+        
+        # Get actions today
+        actions_today = 0
+        if hasattr(user, 'activity_logs'):
+            actions_today = user.activity_logs.filter(timestamp__date=today).count()
         
         # Check if currently active
         is_active = False
         if last_session and last_session.is_active:
             time_since_login = timezone.now() - last_session.login_time
             is_active = time_since_login < timedelta(minutes=30)
+        elif user.last_login:
+            # Consider active if logged in within last 30 minutes
+            time_since_login = timezone.now() - user.last_login
+            is_active = time_since_login < timedelta(minutes=30)
         
         user_data.append({
             'user': user,
-            'last_login': last_session.login_time if last_session else None,
+            'last_login': last_login,
             'actions_today': actions_today,
             'is_active': is_active,
         })
@@ -99,60 +115,85 @@ def user_activity_detail(request, user_id):
     
     target_user = get_object_or_404(User, id=user_id)
     
-    # Get last login session
-    last_session = target_user.login_sessions.first()
-    active_session = target_user.login_sessions.filter(is_active=True).first()
+    # Get last login session with fallback
+    last_session = None
+    active_session = None
+    if hasattr(target_user, 'login_sessions'):
+        last_session = target_user.login_sessions.first()
+        active_session = target_user.login_sessions.filter(is_active=True).first()
     
-    # Get last activity
-    last_activity = target_user.activity_logs.first()
+    # Get last activity with fallback
+    last_activity = None
+    if hasattr(target_user, 'activity_logs'):
+        last_activity = target_user.activity_logs.first()
     
     # Check if currently active
     is_active = False
     if active_session:
         time_since_login = timezone.now() - active_session.login_time
         is_active = time_since_login < timedelta(minutes=30)
+    elif target_user.last_login:
+        time_since_login = timezone.now() - target_user.last_login
+        is_active = time_since_login < timedelta(minutes=30)
     
     # Activity statistics
     today = date.today()
     week_ago = today - timedelta(days=7)
     
-    actions_today = target_user.activity_logs.filter(timestamp__date=today).count()
-    actions_this_week = target_user.activity_logs.filter(timestamp__date__gte=week_ago).count()
-    critical_actions = target_user.activity_logs.filter(severity='critical').count()
+    actions_today = 0
+    actions_this_week = 0
+    critical_actions = 0
+    logs = []
     
-    # Get activity logs with filters
-    logs = target_user.activity_logs.all()
-    
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    action_filter = request.GET.get('action', '')
-    severity_filter = request.GET.get('severity', '')
-    
-    if date_from:
-        logs = logs.filter(timestamp__date__gte=date_from)
-    if date_to:
-        logs = logs.filter(timestamp__date__lte=date_to)
-    if action_filter:
-        logs = logs.filter(action=action_filter)
-    if severity_filter:
-        logs = logs.filter(severity=severity_filter)
-    
+    if hasattr(target_user, 'activity_logs'):
+        actions_today = target_user.activity_logs.filter(timestamp__date=today).count()
+        actions_this_week = target_user.activity_logs.filter(timestamp__date__gte=week_ago).count()
+        critical_actions = target_user.activity_logs.filter(severity='critical').count()
+        
+        # Get activity logs with filters
+        logs = target_user.activity_logs.all()
+        
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        action_filter = request.GET.get('action', '')
+        severity_filter = request.GET.get('severity', '')
+        
+        if date_from:
+            logs = logs.filter(timestamp__date__gte=date_from)
+        if date_to:
+            logs = logs.filter(timestamp__date__lte=date_to)
+        if action_filter:
+            logs = logs.filter(action=action_filter)
+        if severity_filter:
+            logs = logs.filter(severity=severity_filter)
+    else:
+        # No activity logs table yet
+        date_from = ''
+        date_to = ''
+        action_filter = ''
+        severity_filter = ''
     # Paginate logs
     from django.core.paginator import Paginator
-    paginator = Paginator(logs, 50)
+    paginator = Paginator(logs, 50) if logs else Paginator([], 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     # Get recent login sessions
-    recent_sessions = target_user.login_sessions.all()[:10]
+    recent_sessions = []
+    if hasattr(target_user, 'login_sessions'):
+        recent_sessions = target_user.login_sessions.all()[:10]
     
     # Activity timeline (last 20 actions)
-    timeline_actions = target_user.activity_logs.all()[:20]
+    timeline_actions = []
+    if hasattr(target_user, 'activity_logs'):
+        timeline_actions = target_user.activity_logs.all()[:20]
     
     # Action breakdown
-    action_breakdown = target_user.activity_logs.values('action').annotate(
-        count=Count('id')
-    ).order_by('-count')[:10]
+    action_breakdown = []
+    if hasattr(target_user, 'activity_logs'):
+        action_breakdown = target_user.activity_logs.values('action').annotate(
+            count=Count('id')
+        ).order_by('-count')[:10]
     
     context = {
         'target_user': target_user,

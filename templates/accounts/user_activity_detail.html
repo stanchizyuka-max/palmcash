@@ -54,6 +54,8 @@
                         <p class="text-lg font-bold text-slate-900">
                             {% if last_session %}
                                 {{ last_session.login_time|naturaltime }}
+                            {% elif target_user.last_login %}
+                                {{ target_user.last_login|naturaltime }}
                             {% else %}
                                 Never
                             {% endif %}
