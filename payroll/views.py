@@ -27,37 +27,53 @@ def payroll_dashboard(request):
     # Log access
     log_payroll_access(request.user, 'view_dashboard', 'Payroll Dashboard', request)
     
+    from .models import PayrollPeriod, PayrollRecord
+    from django.utils import timezone
+    
     # Get statistics
     total_employees = Employee.objects.filter(is_active=True).count()
-    total_payroll = SalaryRecord.objects.aggregate(
-        total=Sum('base_salary')
+    total_payroll = Employee.objects.filter(is_active=True).aggregate(
+        total=Sum('monthly_salary')
     )['total'] or 0
     
-    # This month's payments
-    today = date.today()
-    month_start = today.replace(day=1)
-    monthly_payments = PayrollPayment.objects.filter(
-        payment_date__gte=month_start,
-        status='paid'
-    ).aggregate(total=Sum('amount_paid'))['total'] or 0
-    
-    pending_payments = PayrollPayment.objects.filter(status='pending').count()
+    # Get current month's period
+    today = timezone.now().date()
+    try:
+        current_period = PayrollPeriod.objects.get(month=today.month, year=today.year)
+        monthly_expected = current_period.total_expected
+        monthly_paid = current_period.total_paid
+        pending_payments = current_period.payroll_records.filter(status__in=['pending', 'partial', 'overdue']).count()
+    except PayrollPeriod.DoesNotExist:
+        current_period = None
+        monthly_expected = 0
+        monthly_paid = 0
+        pending_payments = 0
     
     # Recent employees
     recent_employees = Employee.objects.filter(is_active=True).select_related('user')[:10]
     
-    # Recent payments
-    recent_payments = PayrollPayment.objects.select_related(
-        'employee__user', 'processed_by'
-    ).order_by('-payment_date')[:10]
+    # Recent payments (from payroll records)
+    recent_payments = PayrollRecord.objects.filter(
+        status='paid'
+    ).select_related('employee__user', 'processed_by').order_by('-payment_date')[:10]
+    
+    # Pending payments for current period
+    pending_records = []
+    if current_period:
+        pending_records = current_period.payroll_records.filter(
+            status__in=['pending', 'overdue']
+        ).select_related('employee__user')[:10]
     
     context = {
         'total_employees': total_employees,
         'total_payroll': total_payroll,
-        'monthly_payments': monthly_payments,
+        'monthly_expected': monthly_expected,
+        'monthly_paid': monthly_paid,
         'pending_payments': pending_payments,
+        'current_period': current_period,
         'recent_employees': recent_employees,
         'recent_payments': recent_payments,
+        'pending_records': pending_records,
     }
     
     return render(request, 'payroll/dashboard.html', context)
@@ -170,3 +186,114 @@ def audit_logs(request):
     }
     
     return render(request, 'payroll/audit_logs.html', context)
+
+
+
+@payroll_permission_required
+def payroll_periods(request):
+    """List all payroll periods"""
+    log_payroll_access(request.user, 'view_dashboard', 'Payroll Periods', request)
+    
+    from .models import PayrollPeriod
+    periods = PayrollPeriod.objects.all()[:12]  # Last 12 months
+    
+    context = {
+        'periods': periods,
+    }
+    
+    return render(request, 'payroll/periods.html', context)
+
+
+@payroll_permission_required
+def period_detail(request, period_id):
+    """View payroll period details and records"""
+    from .models import PayrollPeriod, PayrollRecord
+    
+    period = get_object_or_404(PayrollPeriod, id=period_id)
+    
+    log_payroll_access(
+        request.user,
+        'view_dashboard',
+        f'Payroll Period: {period}',
+        request
+    )
+    
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    search = request.GET.get('search', '').strip()
+    
+    records = period.payroll_records.select_related('employee__user').all()
+    
+    if status_filter:
+        records = records.filter(status=status_filter)
+    
+    if search:
+        records = records.filter(
+            Q(employee__employee_id__icontains=search) |
+            Q(employee__user__first_name__icontains=search) |
+            Q(employee__user__last_name__icontains=search)
+        )
+    
+    # Count by status
+    from django.db.models import Count, Sum
+    status_counts = period.payroll_records.values('status').annotate(count=Count('id'))
+    
+    context = {
+        'period': period,
+        'records': records,
+        'status_filter': status_filter,
+        'search': search,
+        'status_counts': {item['status']: item['count'] for item in status_counts},
+    }
+    
+    return render(request, 'payroll/period_detail.html', context)
+
+
+@payroll_permission_required
+def process_payment(request, record_id):
+    """Process payment for a payroll record"""
+    from .models import PayrollRecord
+    from django.utils import timezone
+    
+    record = get_object_or_404(PayrollRecord, id=record_id)
+    
+    if request.method == 'POST':
+        amount_paid = request.POST.get('amount_paid')
+        payment_date = request.POST.get('payment_date')
+        payment_reference = request.POST.get('payment_reference', '')
+        notes = request.POST.get('notes', '')
+        
+        try:
+            amount_paid = float(amount_paid)
+            
+            # Update record
+            record.amount_paid += amount_paid
+            record.payment_date = payment_date or timezone.now().date()
+            record.payment_reference = payment_reference
+            record.notes = notes
+            record.processed_by = request.user
+            record.update_status()
+            
+            # Update period totals
+            record.period.update_totals()
+            
+            # Log the action
+            log_payroll_access(
+                request.user,
+                'create_payment',
+                f'Payment: {record.employee.user.get_full_name()} - K{amount_paid:,.2f}',
+                request,
+                f'Processed payment for {record.period}'
+            )
+            
+            messages.success(request, f'✓ Payment of K{amount_paid:,.2f} recorded for {record.employee.user.get_full_name()}')
+            return redirect('payroll:period_detail', period_id=record.period.id)
+            
+        except ValueError:
+            messages.error(request, 'Invalid amount entered')
+    
+    context = {
+        'record': record,
+    }
+    
+    return render(request, 'payroll/process_payment.html', context)
