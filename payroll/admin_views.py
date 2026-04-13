@@ -36,8 +36,29 @@ def manage_payroll_access(request):
     users_with_access = []
     users_without_access = []
     
+    # Get payroll permission
+    try:
+        view_perm = Permission.objects.get(codename='can_view_payroll')
+    except Permission.DoesNotExist:
+        view_perm = None
+    
     for user in eligible_users:
-        if user.has_perm('payroll.can_view_payroll'):
+        # Check if user has explicit permission (not just superuser status)
+        has_explicit_permission = False
+        
+        if view_perm:
+            # Check direct user permissions
+            if user.user_permissions.filter(id=view_perm.id).exists():
+                has_explicit_permission = True
+            
+            # Check group permissions
+            if not has_explicit_permission:
+                for group in user.groups.all():
+                    if group.permissions.filter(id=view_perm.id).exists():
+                        has_explicit_permission = True
+                        break
+        
+        if has_explicit_permission:
             users_with_access.append(user)
         else:
             users_without_access.append(user)
