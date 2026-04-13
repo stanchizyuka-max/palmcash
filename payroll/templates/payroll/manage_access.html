@@ -34,9 +34,9 @@
                     {% csrf_token %}
                     <input type="hidden" name="user_id" value="{{ user.id }}">
                     <input type="hidden" name="action" value="revoke">
-                    <button type="submit" 
+                    <button type="button" 
                             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                            onclick="return confirm('Revoke payroll access from {{ user.get_full_name|default:user.username }}?')">
+                            onclick="confirmRevoke('{{ user.get_full_name|default:user.username }}', '{{ user.username }}', this.form)">
                         Revoke Access
                     </button>
                 </form>
@@ -74,8 +74,9 @@
                     {% csrf_token %}
                     <input type="hidden" name="user_id" value="{{ user.id }}">
                     <input type="hidden" name="action" value="grant">
-                    <button type="submit" 
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <button type="button" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            onclick="confirmGrant('{{ user.get_full_name|default:user.username }}', '{{ user.username }}', this.form)">
                         Grant Access
                     </button>
                 </form>
@@ -90,4 +91,48 @@
         </a>
     </div>
 </div>
+
+<script>
+function confirmRevoke(fullName, username, form) {
+    // Create custom confirmation dialog
+    const confirmed = confirm(
+        `⚠️ REVOKE PAYROLL ACCESS\n\n` +
+        `User: ${fullName} (@${username})\n\n` +
+        `This will:\n` +
+        `✗ Remove all payroll permissions\n` +
+        `✗ Log out user from ALL devices immediately\n` +
+        `✗ Hide "Payroll" link from their navigation\n` +
+        `✗ Block access to all salary information\n\n` +
+        `The user will need to login again, but will NOT be able to access payroll.\n\n` +
+        `Are you sure you want to revoke payroll access?`
+    );
+    
+    if (confirmed) {
+        form.submit();
+    }
+}
+
+function confirmGrant(fullName, username, form) {
+    // Create custom confirmation dialog
+    const confirmed = confirm(
+        `✓ GRANT PAYROLL ACCESS\n\n` +
+        `User: ${fullName} (@${username})\n\n` +
+        `This will:\n` +
+        `✓ Grant permission to view payroll information\n` +
+        `✓ Grant permission to manage payroll records\n` +
+        `✓ Grant permission to generate payroll reports\n` +
+        `✓ Show "Payroll" link in their navigation\n` +
+        `✓ Allow access to all employee salary data\n\n` +
+        `⚠️ WARNING: Payroll contains sensitive salary information!\n` +
+        `Only grant access to trusted personnel.\n\n` +
+        `User must logout and login again for changes to take effect.\n\n` +
+        `Are you sure you want to grant payroll access?`
+    );
+    
+    if (confirmed) {
+        form.submit();
+    }
+}
+</script>
+
 {% endblock %}
