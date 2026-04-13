@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import audit_views
 
 app_name = 'accounts'
 
@@ -23,4 +24,8 @@ urlpatterns = [
     path('user/<int:pk>/edit/', views.UserEditView.as_view(), name='edit_user'),
     path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
     path('user/<int:pk>/promote/', views.PromoteToManagerView.as_view(), name='promote_manager'),
+    
+    # Audit and Activity Tracking URLs
+    path('audit/', audit_views.user_audit_list, name='user_audit_list'),
+    path('audit/user/<int:user_id>/', audit_views.user_activity_detail, name='user_activity_detail'),
 ]

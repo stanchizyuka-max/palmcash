@@ -30,9 +30,9 @@ class LoanListView(LoginRequiredMixin, ListView):
             try:
                 branch = user.managed_branch
                 from django.db.models import Q
+                # Only show loans where the loan officer is from this branch
                 return Loan.objects.filter(
-                    Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
-                    Q(borrower__group_memberships__group__branch__iexact=branch.name)
+                    loan_officer__officer_assignment__branch__iexact=branch.name
                 ).distinct()
             except Exception:
                 return Loan.objects.none()

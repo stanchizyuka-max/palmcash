@@ -61,3 +61,26 @@ def register_admin_models():
 
 # Call registration function
 register_admin_models()
+
+
+# Register login tracking models
+from .login_tracking import UserLoginSession, UserActivityLog
+
+@admin.register(UserLoginSession)
+class UserLoginSessionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'login_time', 'logout_time', 'is_active', 'ip_address']
+    list_filter = ['is_active', 'login_time']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'ip_address']
+    readonly_fields = ['login_time', 'logout_time', 'session_key', 'user_agent']
+    date_hierarchy = 'login_time'
+
+@admin.register(UserActivityLog)
+class UserActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['user', 'action', 'target_type', 'target_name', 'severity', 'timestamp']
+    list_filter = ['action', 'severity', 'timestamp', 'target_type']
+    search_fields = ['user__username', 'description', 'target_name']
+    readonly_fields = ['timestamp', 'user', 'action', 'description', 'ip_address']
+    date_hierarchy = 'timestamp'
+    
+    def has_add_permission(self, request):
+        return False  # Logs should only be created programmatically

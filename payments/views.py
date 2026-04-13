@@ -960,9 +960,9 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
         elif request.user.role == 'manager':
             try:
                 branch = request.user.managed_branch
+                # Only show collections where the loan officer is from this branch
                 qs = DefaultCollection.objects.filter(
-                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                    loan__loan_officer__officer_assignment__branch__iexact=branch.name
                 ).select_related('loan', 'loan__borrower', 'recorded_by').distinct().order_by('-collection_date')
             except Exception:
                 qs = DefaultCollection.objects.none()
@@ -1018,9 +1018,9 @@ class CollectionHistoryView(LoginRequiredMixin, View):
         elif officer.role == 'manager':
             try:
                 branch = officer.managed_branch
+                # Only show collections where the loan officer is from this branch
                 qs = PaymentCollection.objects.filter(
-                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                    loan__loan_officer__officer_assignment__branch__iexact=branch.name
                 ).distinct()
             except Exception:
                 qs = PaymentCollection.objects.none()
@@ -1113,9 +1113,9 @@ class CollectionsHistoryView(LoginRequiredMixin, View):
         elif user.role == 'manager':
             try:
                 branch = user.managed_branch
+                # Only show collections where the loan officer is from this branch
                 qs = PaymentCollection.objects.filter(
-                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                    loan__loan_officer__officer_assignment__branch__iexact=branch.name
                 ).distinct()
             except Exception:
                 qs = PaymentCollection.objects.none()
@@ -1200,9 +1200,9 @@ class SecuritiesHistoryView(LoginRequiredMixin, View):
         elif user.role == 'manager':
             try:
                 branch = user.managed_branch
+                # Only show transactions where the loan officer is from this branch
                 qs = SecurityTransaction.objects.filter(
-                    Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                    Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                    loan__loan_officer__officer_assignment__branch__iexact=branch.name
                 ).distinct()
             except Exception:
                 qs = SecurityTransaction.objects.none()

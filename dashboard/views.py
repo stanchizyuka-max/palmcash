@@ -559,14 +559,9 @@ def manager_performance_report(request):
         branch_officers = User.objects.filter(
             role='loan_officer', officer_assignment__branch__iexact=branch.name, is_active=True
         ).order_by('first_name')
-        loan_q = (
-            Q(loan_officer__officer_assignment__branch__iexact=branch.name) |
-            Q(borrower__group_memberships__group__branch__iexact=branch.name)
-        )
-        col_q = (
-            Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-            Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
-        )
+        # Only show loans where the loan officer is from this branch
+        loan_q = Q(loan_officer__officer_assignment__branch__iexact=branch.name)
+        col_q = Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name)
     else:
         return render(request, 'dashboard/access_denied.html')
 
@@ -997,11 +992,10 @@ def manager_dashboard(request):
         role='borrower',
     ).distinct().count()
     
-    # Today's collections - include both officer-assigned loans and group member loans
+    # Today's collections - only include loans where officer is from this branch
     today = date.today()
     today_collections = PaymentCollection.objects.filter(
-        Q(loan__loan_officer__officer_assignment__branch=branch.name) |
-        Q(loan__borrower__group_memberships__group__branch=branch.name),
+        loan__loan_officer__officer_assignment__branch=branch.name,
         collection_date=today
     ).distinct()
     
@@ -1766,11 +1760,10 @@ def approved_security_deposits(request):
 
             from loans.models import SecurityDeposit
             from django.db.models import Q
+            # Only show deposits where the loan officer is from this branch
             approved_deposits = SecurityDeposit.objects.filter(
                 is_verified=True,
-            ).filter(
-                Q(loan__loan_officer__officer_assignment__branch__iexact=branch.name) |
-                Q(loan__borrower__group_memberships__group__branch__iexact=branch.name)
+                loan__loan_officer__officer_assignment__branch__iexact=branch.name
             ).select_related('loan', 'loan__borrower').distinct().order_by('-verification_date')
 
             branch_display_name = branch.name
@@ -5004,8 +4997,7 @@ def financial_summary(request):
         ).aggregate(total=Sum('principal_amount'))['total'] or 0
 
         b_repaid = PaymentCollection.objects.filter(
-            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
-            Q(loan__borrower__group_memberships__group__branch=branch.name),
+            loan__loan_officer__officer_assignment__branch=branch.name,
             status='completed'
         ).distinct().aggregate(total=Sum('collected_amount'))['total'] or 0
 
@@ -5102,15 +5094,13 @@ def branch_comparison(request):
         ).aggregate(total=Sum('principal_amount'))['total'] or 0
 
         completed_collections = PaymentCollection.objects.filter(
-            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
-            Q(loan__borrower__group_memberships__group__branch=branch.name),
+            loan__loan_officer__officer_assignment__branch=branch.name,
             status='completed'
         ).distinct()
         total_repaid = completed_collections.aggregate(total=Sum('collected_amount'))['total'] or 0
 
         all_collections = PaymentCollection.objects.filter(
-            Q(loan__loan_officer__officer_assignment__branch=branch.name) |
-            Q(loan__borrower__group_memberships__group__branch=branch.name),
+            loan__loan_officer__officer_assignment__branch=branch.name
         ).distinct()
         total_expected = all_collections.aggregate(total=Sum('expected_amount'))['total'] or 0
         collection_rate = round((total_repaid / total_expected * 100), 1) if total_expected > 0 else 0

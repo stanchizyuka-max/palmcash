@@ -294,18 +294,24 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
 
 from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.contrib.auth import logout
+from .audit_views import log_login, log_logout
 
 class CustomLoginView(DjangoLoginView):
     template_name = 'accounts/login.html'
     redirect_authenticated_user = True
-
+    
     def form_valid(self, form):
+        """Log the login activity"""
         user = form.get_user()
         if user.role == 'loan_officer' and not user.is_approved:
             from django.contrib import messages
             messages.error(self.request, 'Your account is pending approval.')
             return self.form_invalid(form)
-        return super().form_valid(form)
+        
+        response = super().form_valid(form)
+        # Track login
+        log_login(self.request.user, self.request)
+        return response
 
     def form_invalid(self, form):
         # Check if the credentials are valid but user is inactive/unapproved

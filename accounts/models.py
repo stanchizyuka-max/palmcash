@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
+from django.utils import timezone
 
 class UserManager(DjangoUserManager):
     """Custom manager for User model"""
@@ -220,3 +221,50 @@ class User(AbstractUser):
     
     class Meta:
         db_table = 'auth_user'
+
+    def get_last_login_session(self):
+        """Get the most recent login session"""
+        from .login_tracking import UserLoginSession
+        return self.login_sessions.first()
+    
+    def get_active_session(self):
+        """Get current active session"""
+        from .login_tracking import UserLoginSession
+        return self.login_sessions.filter(is_active=True).first()
+    
+    def get_last_activity(self):
+        """Get the most recent activity"""
+        from .login_tracking import UserActivityLog
+        return self.activity_logs.first()
+    
+    def get_actions_today(self):
+        """Count actions performed today"""
+        from .login_tracking import UserActivityLog
+        from datetime import date
+        return self.activity_logs.filter(timestamp__date=date.today()).count()
+    
+    def get_actions_this_week(self):
+        """Count actions performed this week"""
+        from .login_tracking import UserActivityLog
+        from datetime import date, timedelta
+        week_ago = date.today() - timedelta(days=7)
+        return self.activity_logs.filter(timestamp__date__gte=week_ago).count()
+    
+    def get_critical_actions_count(self):
+        """Count critical actions"""
+        from .login_tracking import UserActivityLog
+        return self.activity_logs.filter(severity='critical').count()
+    
+    @property
+    def is_currently_active(self):
+        """Check if user has an active session"""
+        session = self.get_active_session()
+        if session:
+            # Consider active if logged in within last 30 minutes
+            from datetime import timedelta
+            return (timezone.now() - session.login_time) < timedelta(minutes=30)
+        return False
+
+
+# Import login tracking models
+from .login_tracking import UserLoginSession, UserActivityLog
