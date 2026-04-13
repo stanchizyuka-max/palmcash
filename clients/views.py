@@ -48,6 +48,25 @@ class GroupListView(LoginRequiredMixin, ListView):
             except:
                 queryset = BorrowerGroup.objects.none()
         
+        # Apply filters
+        branch_filter = self.request.GET.get('branch', '')
+        search_filter = self.request.GET.get('search', '')
+        status_filter = self.request.GET.get('status', '')
+        
+        if branch_filter:
+            queryset = queryset.filter(branch__icontains=branch_filter)
+        
+        if search_filter:
+            queryset = queryset.filter(
+                Q(name__icontains=search_filter) |
+                Q(description__icontains=search_filter) |
+                Q(assigned_officer__first_name__icontains=search_filter) |
+                Q(assigned_officer__last_name__icontains=search_filter)
+            )
+        
+        if status_filter:
+            queryset = queryset.filter(is_active=(status_filter == 'active'))
+        
         # Handle sorting
         sort_by = self.request.GET.get('sort', '-capacity_percentage')
         valid_sorts = {
@@ -78,6 +97,13 @@ class GroupListView(LoginRequiredMixin, ListView):
         context['total_groups'] = self.get_queryset().count()
         context['active_groups'] = self.get_queryset().filter(is_active=True).count()
         context['current_sort'] = self.request.GET.get('sort', '-capacity_percentage')
+        context['branch_filter'] = self.request.GET.get('branch', '')
+        context['search_filter'] = self.request.GET.get('search', '')
+        context['status_filter'] = self.request.GET.get('status', '')
+        
+        # Get unique branches for filter dropdown
+        context['branches'] = BorrowerGroup.objects.values_list('branch', flat=True).distinct().order_by('branch')
+        
         return context
 
 
