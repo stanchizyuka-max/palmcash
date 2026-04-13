@@ -393,9 +393,17 @@ def generate_period(request):
         employees = Employee.objects.filter(is_active=True, monthly_salary__gt=0)
         
         if not employees.exists():
-            messages.error(request, 'No active employees with salary configured')
+            # Check if there are employees without salary
+            employees_without_salary = Employee.objects.filter(is_active=True, monthly_salary=0).count()
+            if employees_without_salary > 0:
+                messages.error(
+                    request, 
+                    f'No employees with salary configured. Please set salaries for {employees_without_salary} employee(s) first.'
+                )
+            else:
+                messages.error(request, 'No active employees found. Please sync employees first.')
             period.delete()
-            return redirect('payroll:generate_period')
+            return redirect('payroll:employee_list')
         
         # Generate records for each employee
         records_created = 0
@@ -431,6 +439,7 @@ def generate_period(request):
     # GET request - show form
     today = timezone.now().date()
     active_employees = Employee.objects.filter(is_active=True, monthly_salary__gt=0).count()
+    employees_without_salary = Employee.objects.filter(is_active=True, monthly_salary=0).count()
     total_payroll = Employee.objects.filter(is_active=True).aggregate(
         total=Sum('monthly_salary')
     )['total'] or 0
@@ -439,6 +448,7 @@ def generate_period(request):
         'current_month': today.month,
         'current_year': today.year,
         'active_employees': active_employees,
+        'employees_without_salary': employees_without_salary,
         'total_payroll': total_payroll,
     }
     
