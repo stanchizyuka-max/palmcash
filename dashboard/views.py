@@ -4954,6 +4954,12 @@ def financial_summary(request):
     from expenses.models import VaultTransaction
     from clients.models import Branch
     from payments.models import PaymentSchedule
+    from datetime import datetime
+
+    # Get filter parameters
+    branch_filter = request.GET.get('branch', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
 
     # System-wide totals
     total_capital = VaultTransaction.objects.filter(
@@ -5021,6 +5027,30 @@ def financial_summary(request):
             'active_loans': b_active,
         })
 
+    # Capital injection history with filters
+    capital_history = VaultTransaction.objects.filter(
+        transaction_type='capital_injection'
+    )
+    
+    if branch_filter:
+        capital_history = capital_history.filter(branch=branch_filter)
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            capital_history = capital_history.filter(transaction_date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            capital_history = capital_history.filter(transaction_date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    capital_history = capital_history.select_related('recorded_by').order_by('-transaction_date')[:100]
+
     context = {
         'total_capital': total_capital,
         'total_disbursed': total_disbursed,
@@ -5029,9 +5059,11 @@ def financial_summary(request):
         'total_security': total_security,
         'total_default_collections': total_default_collections,
         'branch_rows': branch_rows,
-        'capital_history': VaultTransaction.objects.filter(
-            transaction_type='capital_injection'
-        ).select_related('recorded_by').order_by('-transaction_date')[:50],
+        'capital_history': capital_history,
+        'branches': branches,
+        'branch_filter': branch_filter,
+        'date_from': date_from,
+        'date_to': date_to,
     }
     return render(request, 'dashboard/financial_summary.html', context)
 
