@@ -19,6 +19,7 @@
           <tr>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
             <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Balance</th>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Maturity Date</th>
@@ -31,6 +32,15 @@
           <tr class="hover:bg-slate-50">
             <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a></td>
             <td class="px-4 py-3 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-3 text-slate-600">
+              {% with loan.borrower.group_memberships.filter|first as membership %}
+                {% if membership.is_active %}
+                  {{ membership.group.name }}
+                {% else %}
+                  —
+                {% endif %}
+              {% endwith %}
+            </td>
             <td class="px-4 py-3 text-slate-600">{{ loan.loan_officer.get_full_name|default:"—" }}</td>
             <td class="px-4 py-3 text-right font-semibold text-orange-700">K{{ loan.balance_remaining|floatformat:2|intcomma }}</td>
             <td class="px-4 py-3 text-slate-600">{{ loan.maturity_date|date:"d M Y" }}</td>
