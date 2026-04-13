@@ -255,6 +255,7 @@ def process_payment(request, record_id):
     """Process payment for a payroll record"""
     from .models import PayrollRecord
     from django.utils import timezone
+    from decimal import Decimal
     
     record = get_object_or_404(PayrollRecord, id=record_id)
     
@@ -265,7 +266,7 @@ def process_payment(request, record_id):
         notes = request.POST.get('notes', '')
         
         try:
-            amount_paid = float(amount_paid)
+            amount_paid = Decimal(str(amount_paid))
             
             # Update record
             record.amount_paid += amount_paid
