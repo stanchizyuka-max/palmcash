@@ -41,22 +41,38 @@ def user_audit_list(request):
             Q(email__icontains=search)
         )
     
+    # Get currently active users from Django sessions for filtering
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone as tz
+    
+    active_sessions = Session.objects.filter(expire_date__gte=tz.now())
+    active_user_ids_for_filter = set()
+    
+    for session in active_sessions:
+        data = session.get_decoded()
+        user_id = data.get('_auth_user_id')
+        if user_id:
+            active_user_ids_for_filter.add(int(user_id))
+    
     if status_filter == 'active':
-        # Users with active sessions in last 30 minutes
-        thirty_min_ago = timezone.now() - timedelta(minutes=30)
-        active_user_ids = UserLoginSession.objects.filter(
-            is_active=True,
-            login_time__gte=thirty_min_ago
-        ).values_list('user_id', flat=True)
-        users = users.filter(id__in=active_user_ids)
+        # Users with active Django sessions
+        users = users.filter(id__in=active_user_ids_for_filter)
     elif status_filter == 'offline':
-        # Users without active sessions
-        thirty_min_ago = timezone.now() - timedelta(minutes=30)
-        active_user_ids = UserLoginSession.objects.filter(
-            is_active=True,
-            login_time__gte=thirty_min_ago
-        ).values_list('user_id', flat=True)
-        users = users.exclude(id__in=active_user_ids)
+        # Users without active Django sessions
+        users = users.exclude(id__in=active_user_ids_for_filter)
+    
+    # Get currently active users from Django sessions
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone as tz
+    
+    active_sessions = Session.objects.filter(expire_date__gte=tz.now())
+    active_user_ids = set()
+    
+    for session in active_sessions:
+        data = session.get_decoded()
+        user_id = data.get('_auth_user_id')
+        if user_id:
+            active_user_ids.add(int(user_id))
     
     # Enrich users with activity data
     user_data = []
@@ -78,14 +94,12 @@ def user_audit_list(request):
         if hasattr(user, 'activity_logs'):
             actions_today = user.activity_logs.filter(timestamp__date=today).count()
         
-        # Check if currently active
-        is_active = False
-        if last_session and last_session.is_active:
+        # Check if currently active - use Django sessions as primary source
+        is_active = user.id in active_user_ids
+        
+        # If not found in Django sessions, check our tracking
+        if not is_active and last_session and last_session.is_active:
             time_since_login = timezone.now() - last_session.login_time
-            is_active = time_since_login < timedelta(minutes=30)
-        elif user.last_login:
-            # Consider active if logged in within last 30 minutes
-            time_since_login = timezone.now() - user.last_login
             is_active = time_since_login < timedelta(minutes=30)
         
         user_data.append({
@@ -127,13 +141,23 @@ def user_activity_detail(request, user_id):
     if hasattr(target_user, 'activity_logs'):
         last_activity = target_user.activity_logs.first()
     
-    # Check if currently active
+    # Check if currently active - use Django sessions as primary source
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone as tz
+    
     is_active = False
-    if active_session:
+    active_sessions = Session.objects.filter(expire_date__gte=tz.now())
+    
+    for session in active_sessions:
+        data = session.get_decoded()
+        user_id = data.get('_auth_user_id')
+        if user_id and int(user_id) == target_user.id:
+            is_active = True
+            break
+    
+    # If not found in Django sessions, check our tracking
+    if not is_active and active_session:
         time_since_login = timezone.now() - active_session.login_time
-        is_active = time_since_login < timedelta(minutes=30)
-    elif target_user.last_login:
-        time_since_login = timezone.now() - target_user.last_login
         is_active = time_since_login < timedelta(minutes=30)
     
     # Activity statistics

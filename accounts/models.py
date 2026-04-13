@@ -253,6 +253,18 @@ class User(AbstractUser):
     @property
     def is_currently_active(self):
         """Check if user has an active session"""
+        # Check Django sessions first
+        from django.contrib.sessions.models import Session
+        from django.utils import timezone as tz
+        
+        active_sessions = Session.objects.filter(expire_date__gte=tz.now())
+        for session in active_sessions:
+            data = session.get_decoded()
+            user_id = data.get('_auth_user_id')
+            if user_id and int(user_id) == self.id:
+                return True
+        
+        # Fallback to our tracking
         session = self.get_active_session()
         if session:
             # Consider active if logged in within last 30 minutes
