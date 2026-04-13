@@ -29,10 +29,10 @@ class GroupListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = BorrowerGroup.objects.annotate(
-            active_member_count=Count('members', filter=Q(members__is_active=True)),
+            annotated_member_count=Count('members', filter=Q(members__is_active=True)),
             capacity_percentage=Case(
                 When(max_members__isnull=False, max_members__gt=0,
-                     then=Cast(F('active_member_count') * 100.0 / F('max_members'), FloatField())),
+                     then=Cast(F('annotated_member_count') * 100.0 / F('max_members'), FloatField())),
                 default=0.0,
                 output_field=FloatField()
             )
