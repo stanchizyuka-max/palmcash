@@ -69,6 +69,7 @@ def payroll_dashboard(request):
         'total_payroll': total_payroll,
         'monthly_expected': monthly_expected,
         'monthly_paid': monthly_paid,
+        'monthly_payments': monthly_paid,  # Add this for template compatibility
         'pending_payments': pending_payments,
         'current_period': current_period,
         'recent_employees': recent_employees,
