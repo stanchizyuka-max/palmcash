@@ -261,15 +261,35 @@ class AddMemberView(LoginRequiredMixin, View):
             messages.error(request, 'This group is full or inactive.')
             return redirect('clients:group_detail', pk=pk)
         
-        # Check if already a member
+        # Check if borrower already has an active group membership
+        active_membership = GroupMembership.objects.filter(
+            borrower=borrower,
+            is_active=True
+        ).select_related('group').first()
+        
+        if active_membership:
+            messages.error(
+                request, 
+                f'{borrower.full_name} is already an active member of "{active_membership.group.name}" '
+                f'({active_membership.group.branch}). A client can only be in one active group at a time. '
+                f'Please deactivate their current membership first.'
+            )
+            return redirect('clients:group_detail', pk=pk)
+        
+        # Check if already a member of THIS group (inactive)
         existing = GroupMembership.objects.filter(
             borrower=borrower,
-            group=group,
-            is_active=True
-        ).exists()
+            group=group
+        ).first()
         
         if existing:
-            messages.warning(request, f'{borrower.full_name} is already a member of this group.')
+            if existing.is_active:
+                messages.warning(request, f'{borrower.full_name} is already a member of this group.')
+            else:
+                # Reactivate inactive membership
+                existing.is_active = True
+                existing.save()
+                messages.success(request, f'{borrower.full_name} reactivated in {group.name}!')
             return redirect('clients:group_detail', pk=pk)
         
         # Add member
@@ -1081,6 +1101,32 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         reg_form = BorrowerRegistrationForm(request.POST)
 
         if reg_form.is_valid():
+            # Check for duplicate NRC
+            national_id = reg_form.cleaned_data.get('national_id')
+            if national_id:
+                existing_user = User.objects.filter(national_id=national_id).first()
+                if existing_user:
+                    # Get their branch info
+                    branch_info = "Unknown branch"
+                    active_group = GroupMembership.objects.filter(
+                        borrower=existing_user,
+                        is_active=True
+                    ).select_related('group').first()
+                    if active_group:
+                        branch_info = active_group.group.branch
+                    
+                    messages.error(
+                        request,
+                        f'NRC {national_id} already exists in the system. '
+                        f'Client: {existing_user.get_full_name()} ({branch_info}). '
+                        f'Please contact the system administrator if this is an error.'
+                    )
+                    return render(request, self.template_name, {
+                        'step': 1,
+                        'steps_meta': [(1, 'Basic Info'), (2, 'Details'), (3, 'Loan Application')],
+                        'reg_form': reg_form,
+                    })
+            
             import secrets
             borrower = reg_form.save(commit=False)
             borrower.role = 'borrower'
@@ -1167,17 +1213,31 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             # Add borrower to the selected group
             if group:
                 from clients.models import GroupMembership
-                existing = GroupMembership.objects.filter(borrower=borrower, group=group).first()
-                if existing:
-                    if not existing.is_active:
-                        existing.is_active = True
-                        existing.save(update_fields=['is_active'])
-                else:
-                    GroupMembership.objects.create(
-                        borrower=borrower,
-                        group=group,
-                        added_by=request.user,
+                
+                # Check if borrower already has an active group
+                active_membership = GroupMembership.objects.filter(
+                    borrower=borrower,
+                    is_active=True
+                ).select_related('group').first()
+                
+                if active_membership and active_membership.group != group:
+                    messages.warning(
+                        request,
+                        f'{borrower.get_full_name()} is already in group "{active_membership.group.name}". '
+                        f'They can only be in one active group at a time.'
                     )
+                else:
+                    existing = GroupMembership.objects.filter(borrower=borrower, group=group).first()
+                    if existing:
+                        if not existing.is_active:
+                            existing.is_active = True
+                            existing.save(update_fields=['is_active'])
+                    else:
+                        GroupMembership.objects.create(
+                            borrower=borrower,
+                            group=group,
+                            added_by=request.user,
+                        )
                 # Ensure borrower is assigned to the group's officer
                 if group.assigned_officer:
                     borrower.assigned_officer = group.assigned_officer
