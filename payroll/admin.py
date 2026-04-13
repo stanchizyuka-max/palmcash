@@ -4,9 +4,9 @@ from .models import Employee, SalaryRecord, PayrollPayment, PayrollAuditLog
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ['employee_id', 'get_full_name', 'department', 'position', 'hire_date', 'is_active']
-    list_filter = ['is_active', 'department', 'hire_date']
-    search_fields = ['employee_id', 'user__first_name', 'user__last_name', 'position']
+    list_display = ['employee_id', 'get_full_name', 'branch', 'position', 'hire_date', 'is_active']
+    list_filter = ['is_active', 'branch', 'hire_date']
+    search_fields = ['employee_id', 'user__first_name', 'user__last_name', 'position', 'branch']
     raw_id_fields = ['user']
     
     def get_full_name(self, obj):

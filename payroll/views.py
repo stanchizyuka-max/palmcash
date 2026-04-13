@@ -69,7 +69,7 @@ def employee_list(request):
     log_payroll_access(request.user, 'view_employee', 'Employee List', request)
     
     search = request.GET.get('search', '').strip()
-    department = request.GET.get('department', '')
+    branch = request.GET.get('branch', '')
     
     employees = Employee.objects.filter(is_active=True).select_related('user')
     
@@ -81,17 +81,17 @@ def employee_list(request):
             Q(position__icontains=search)
         )
     
-    if department:
-        employees = employees.filter(department=department)
+    if branch:
+        employees = employees.filter(branch=branch)
     
-    # Get unique departments
-    departments = Employee.objects.values_list('department', flat=True).distinct()
+    # Get unique branches
+    branches = Employee.objects.exclude(branch='').values_list('branch', flat=True).distinct().order_by('branch')
     
     context = {
         'employees': employees,
-        'departments': departments,
+        'branches': branches,
         'search': search,
-        'department': department,
+        'branch': branch,
     }
     
     return render(request, 'payroll/employee_list.html', context)

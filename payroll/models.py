@@ -7,7 +7,7 @@ class Employee(models.Model):
     """Employee record linked to User account"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile')
     employee_id = models.CharField(max_length=20, unique=True)
-    department = models.CharField(max_length=100)
+    branch = models.CharField(max_length=100, blank=True, help_text='Branch where employee works')
     position = models.CharField(max_length=100)
     hire_date = models.DateField()
     is_active = models.BooleanField(default=True)
@@ -24,6 +24,11 @@ class Employee(models.Model):
     
     def __str__(self):
         return f"{self.employee_id} - {self.user.get_full_name()}"
+    
+    @property
+    def department(self):
+        """Backward compatibility - return branch as department"""
+        return self.branch or 'Unassigned'
 
 
 class SalaryRecord(models.Model):

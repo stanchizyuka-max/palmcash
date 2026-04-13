@@ -126,7 +126,7 @@
                         </div>
                         <div>
                             <p class="font-medium">{{ employee.user.get_full_name }}</p>
-                            <p class="text-sm text-gray-600">{{ employee.position }}</p>
+                            <p class="text-sm text-gray-600">{{ employee.position }}{% if employee.branch %} • {{ employee.branch }}{% endif %}</p>
                         </div>
                     </div>
                     <span class="text-sm text-gray-500">{{ employee.employee_id }}</span>
