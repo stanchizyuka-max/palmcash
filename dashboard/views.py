@@ -5415,32 +5415,140 @@ def loans_approaching_maturity(request):
 
 @login_required
 def collection_trend(request):
-    """Weekly collection trend for the last 8 weeks."""
-    if request.user.role != 'admin' and not request.user.is_superuser:
+    """Enhanced weekly collection trend with analytics and filtering."""
+    if request.user.role not in ['admin', 'manager'] and not request.user.is_superuser:
         return render(request, 'dashboard/access_denied.html')
+    
     from datetime import timedelta
-    from django.db.models import Sum
+    from django.db.models import Sum, Q
+    from clients.models import Branch, BorrowerGroup
+    from accounts.models import User
+    
     today = date.today()
+    
+    # Get filters
+    branch_filter = request.GET.get('branch', '')
+    officer_filter = request.GET.get('officer', '')
+    group_filter = request.GET.get('group', '')
+    weeks_count = int(request.GET.get('weeks', 8))
+    
+    # Build base queryset
+    collections_qs = PaymentCollection.objects.all()
+    
+    if branch_filter:
+        collections_qs = collections_qs.filter(
+            loan__loan_officer__officer_assignment__branch=branch_filter
+        )
+    
+    if officer_filter:
+        collections_qs = collections_qs.filter(loan__loan_officer_id=officer_filter)
+    
+    if group_filter:
+        collections_qs = collections_qs.filter(
+            loan__borrower__group_memberships__group_id=group_filter,
+            loan__borrower__group_memberships__is_active=True
+        )
+    
+    # Calculate weekly trends
     weeks = []
-    for i in range(7, -1, -1):
+    for i in range(weeks_count - 1, -1, -1):
         week_start = today - timedelta(days=today.weekday()) - timedelta(weeks=i)
         week_end = week_start + timedelta(days=6)
-        expected = PaymentCollection.objects.filter(
-            collection_date__gte=week_start, collection_date__lte=week_end
-        ).aggregate(t=Sum('expected_amount'))['t'] or 0
-        collected = PaymentCollection.objects.filter(
-            collection_date__gte=week_start, collection_date__lte=week_end,
+        
+        week_collections = collections_qs.filter(
+            collection_date__gte=week_start,
+            collection_date__lte=week_end
+        )
+        
+        expected = week_collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+        collected = week_collections.filter(
             status='completed'
         ).aggregate(t=Sum('collected_amount'))['t'] or 0
-        rate = round((collected / expected * 100), 1) if expected > 0 else 0
+        
+        # Calculate rate and performance
+        if expected > 0:
+            rate = round((collected / expected * 100), 1)
+            has_data = True
+            
+            # Performance classification
+            if rate <= 40:
+                performance = 'critical'
+                performance_label = 'Critical'
+                performance_color = 'red'
+            elif rate <= 80:
+                performance = 'average'
+                performance_label = 'Average'
+                performance_color = 'yellow'
+            else:
+                performance = 'good'
+                performance_label = 'Good'
+                performance_color = 'green'
+        else:
+            rate = 0
+            has_data = False
+            performance = 'no-data'
+            performance_label = 'No Data'
+            performance_color = 'gray'
+        
         weeks.append({
-            'label': f"W{8-i} ({week_start.strftime('%d %b')})",
+            'label': f"W{weeks_count - i}",
+            'date_range': f"{week_start.strftime('%d %b')} - {week_end.strftime('%d %b')}",
             'week_start': week_start,
+            'week_end': week_end,
             'expected': expected,
             'collected': collected,
             'rate': rate,
+            'has_data': has_data,
+            'performance': performance,
+            'performance_label': performance_label,
+            'performance_color': performance_color,
         })
-    return render(request, 'dashboard/collection_trend.html', {'weeks': weeks})
+    
+    # Calculate week-over-week changes
+    for i in range(1, len(weeks)):
+        prev_rate = weeks[i-1]['rate']
+        curr_rate = weeks[i]['rate']
+        change = curr_rate - prev_rate
+        weeks[i]['rate_change'] = change
+        weeks[i]['rate_change_direction'] = 'up' if change > 0 else 'down' if change < 0 else 'same'
+    
+    # Calculate summary statistics
+    total_expected = sum(w['expected'] for w in weeks)
+    total_collected = sum(w['collected'] for w in weeks)
+    overall_rate = round((total_collected / total_expected * 100), 1) if total_expected > 0 else 0
+    
+    # Get filter options
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
+    groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+    
+    # Prepare chart data
+    chart_labels = [w['label'] for w in weeks]
+    chart_expected = [float(w['expected']) for w in weeks]
+    chart_collected = [float(w['collected']) for w in weeks]
+    chart_rates = [w['rate'] for w in weeks]
+    
+    context = {
+        'weeks': weeks,
+        'total_expected': total_expected,
+        'total_collected': total_collected,
+        'overall_rate': overall_rate,
+        'branches': branches,
+        'officers': officers,
+        'groups': groups,
+        'filters': {
+            'branch': branch_filter,
+            'officer': officer_filter,
+            'group': group_filter,
+            'weeks': weeks_count,
+        },
+        'chart_labels': chart_labels,
+        'chart_expected': chart_expected,
+        'chart_collected': chart_collected,
+        'chart_rates': chart_rates,
+    }
+    
+    return render(request, 'dashboard/collection_trend.html', context)
 
 
 @login_required
