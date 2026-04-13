@@ -298,3 +298,67 @@ def process_payment(request, record_id):
     }
     
     return render(request, 'payroll/process_payment.html', context)
+
+
+@payroll_permission_required
+def edit_salary(request, employee_id):
+    """Edit employee salary settings"""
+    employee = get_object_or_404(Employee, id=employee_id)
+    
+    if request.method == 'POST':
+        monthly_salary = request.POST.get('monthly_salary')
+        payment_day = request.POST.get('payment_day')
+        payment_method = request.POST.get('payment_method')
+        bank_name = request.POST.get('bank_name', '')
+        bank_account_number = request.POST.get('bank_account_number', '')
+        notes = request.POST.get('notes', '')
+        
+        try:
+            # Update employee salary settings
+            old_salary = employee.monthly_salary
+            employee.monthly_salary = float(monthly_salary)
+            employee.payment_day = int(payment_day)
+            employee.payment_method = payment_method
+            employee.bank_name = bank_name
+            employee.bank_account_number = bank_account_number
+            employee.save()
+            
+            # Create salary record for history
+            SalaryRecord.objects.create(
+                employee=employee,
+                base_salary=float(monthly_salary),
+                allowances=0,
+                deductions=0,
+                effective_date=timezone.now().date(),
+                notes=notes or f'Salary updated from K{old_salary:,.2f} to K{monthly_salary}',
+                created_by=request.user
+            )
+            
+            # Log the action
+            log_payroll_access(
+                request.user,
+                'edit_salary',
+                f'Employee: {employee.user.get_full_name()}',
+                request,
+                f'Updated salary to K{monthly_salary}, payment day: {payment_day}'
+            )
+            
+            messages.success(request, f'✓ Salary settings updated for {employee.user.get_full_name()}')
+            return redirect('payroll:employee_list')
+            
+        except ValueError:
+            messages.error(request, 'Invalid values entered')
+    
+    # Get salary history
+    salary_records = SalaryRecord.objects.filter(employee=employee).select_related('created_by')[:10]
+    
+    # Generate list of days (1-31)
+    days = list(range(1, 32))
+    
+    context = {
+        'employee': employee,
+        'salary_records': salary_records,
+        'days': days,
+    }
+    
+    return render(request, 'payroll/edit_salary.html', context)
