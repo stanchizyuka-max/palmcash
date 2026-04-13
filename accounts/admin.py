@@ -64,7 +64,7 @@ register_admin_models()
 
 
 # Register login tracking models
-from .login_tracking import UserLoginSession, UserActivityLog
+from .models import UserLoginSession, UserActivityLog
 
 @admin.register(UserLoginSession)
 class UserLoginSessionAdmin(admin.ModelAdmin):

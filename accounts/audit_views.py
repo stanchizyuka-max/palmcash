@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import date, timedelta
-from .login_tracking import UserLoginSession, UserActivityLog
+from .models import UserLoginSession, UserActivityLog
 
 User = get_user_model()
 
