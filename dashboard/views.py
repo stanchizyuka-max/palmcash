@@ -4360,7 +4360,9 @@ def admin_all_loans(request):
     if user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
     
-    loans = Loan.objects.all().order_by('-created_at')
+    from clients.models import GroupMembership
+    
+    loans = Loan.objects.all().select_related('borrower', 'loan_officer').order_by('-created_at')
     
     # Search by borrower name or loan ID
     search_query = request.GET.get('search', '')
@@ -4400,6 +4402,23 @@ def admin_all_loans(request):
     if max_amount:
         loans = loans.filter(principal_amount__lte=max_amount)
     
+    # Calculate total amount for filtered loans
+    from django.db.models import Sum
+    total_amount = loans.aggregate(total=Sum('principal_amount'))['total'] or 0
+    
+    # Add group information to each loan
+    loans_with_groups = []
+    for loan in loans[:100]:  # Limit to first 100 for performance
+        membership = GroupMembership.objects.filter(
+            borrower=loan.borrower,
+            is_active=True
+        ).select_related('group').first()
+        
+        loans_with_groups.append({
+            'loan': loan,
+            'group': membership.group if membership else None,
+        })
+    
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(loans, 20)
@@ -4413,7 +4432,9 @@ def admin_all_loans(request):
     context = {
         'page_obj': page_obj,
         'loans': page_obj.object_list,
+        'loans_with_groups': loans_with_groups,
         'total_loans': loans.count(),
+        'total_amount': total_amount,
         'search_query': search_query,
         'branch_filter': branch_filter,
         'status_filter': status_filter,
@@ -5406,9 +5427,16 @@ def chronic_defaulters(request):
     if request.user.role != 'admin' and not request.user.is_superuser:
         return render(request, 'dashboard/access_denied.html')
     from payments.models import PaymentSchedule
+    from clients.models import GroupMembership
+    from django.db.models import Q
+    
+    # Get search parameter
+    search = request.GET.get('search', '').strip()
+    
     today = date.today()
     # Borrowers with active loans where ALL overdue installments are unpaid
     active_loans = Loan.objects.filter(status='active').select_related('borrower', 'loan_officer')
+    
     defaulters = []
     for loan in active_loans:
         overdue = PaymentSchedule.objects.filter(
@@ -5416,15 +5444,35 @@ def chronic_defaulters(request):
         ).count()
         paid = PaymentSchedule.objects.filter(loan=loan, is_paid=True).count()
         if overdue > 0:
+            # Get borrower's group
+            membership = GroupMembership.objects.filter(
+                borrower=loan.borrower,
+                is_active=True
+            ).select_related('group').first()
+            
+            group_name = membership.group.name if membership else 'No Group'
+            
+            # Apply search filter
+            if search:
+                if not (search.lower() in group_name.lower() or
+                        search.lower() in loan.borrower.get_full_name().lower() or
+                        search.lower() in loan.application_number.lower()):
+                    continue
+            
             defaulters.append({
                 'loan': loan,
                 'overdue_count': overdue,
                 'paid_count': paid,
                 'never_paid': paid == 0,
                 'balance': loan.balance_remaining or 0,
+                'group': group_name,
             })
+    
     defaulters.sort(key=lambda x: (-x['overdue_count'], x['never_paid']))
-    return render(request, 'dashboard/chronic_defaulters.html', {'defaulters': defaulters})
+    return render(request, 'dashboard/chronic_defaulters.html', {
+        'defaulters': defaulters,
+        'search': search,
+    })
 
 
 @login_required
@@ -5502,30 +5550,66 @@ def processing_fees_summary(request):
     if request.user.role != 'admin' and not request.user.is_superuser:
         return render(request, 'dashboard/access_denied.html')
     from loans.models import LoanApplication
-    from django.db.models import Sum, Count
+    from clients.models import Branch, BorrowerGroup
+    from django.db.models import Sum, Count, Q
+    
+    # Get filter parameters
+    branch_filter = request.GET.get('branch', '')
+    officer_filter = request.GET.get('officer', '')
+    group_filter = request.GET.get('group', '')
+    status_filter = request.GET.get('status', '')
+    
     apps = LoanApplication.objects.filter(
         processing_fee__isnull=False, processing_fee__gt=0
     ).select_related('borrower', 'loan_officer')
+    
+    # Apply filters
+    if branch_filter:
+        apps = apps.filter(
+            Q(loan_officer__officer_assignment__branch__iexact=branch_filter) |
+            Q(borrower__group_memberships__group__branch__iexact=branch_filter)
+        ).distinct()
+    
+    if officer_filter:
+        apps = apps.filter(loan_officer_id=officer_filter)
+    
+    if group_filter:
+        apps = apps.filter(borrower__group_memberships__group_id=group_filter).distinct()
+    
+    if status_filter == 'verified':
+        apps = apps.filter(processing_fee_verified=True)
+    elif status_filter == 'pending':
+        apps = apps.filter(processing_fee_verified=False)
 
     total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
     verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
     pending_fees = apps.filter(processing_fee_verified=False).aggregate(t=Sum('processing_fee'))['t'] or 0
 
     # Per officer
-    from django.db.models import Q
     officer_fees = []
-    officers = User.objects.filter(role='loan_officer').filter(
+    officers_with_fees = User.objects.filter(
+        role='loan_officer',
         submitted_loan_applications__processing_fee__gt=0
     ).distinct()
-    for officer in officers:
+    
+    if branch_filter:
+        officers_with_fees = officers_with_fees.filter(officer_assignment__branch__iexact=branch_filter)
+    
+    for officer in officers_with_fees:
         officer_apps = apps.filter(loan_officer=officer)
-        officer_fees.append({
-            'officer': officer,
-            'count': officer_apps.count(),
-            'total': officer_apps.aggregate(t=Sum('processing_fee'))['t'] or 0,
-            'verified': officer_apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0,
-        })
+        if officer_apps.exists():
+            officer_fees.append({
+                'officer': officer,
+                'count': officer_apps.count(),
+                'total': officer_apps.aggregate(t=Sum('processing_fee'))['t'] or 0,
+                'verified': officer_apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0,
+            })
     officer_fees.sort(key=lambda x: -x['total'])
+    
+    # Get filter options
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    all_officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name')
+    groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
 
     return render(request, 'dashboard/processing_fees_summary.html', {
         'apps': apps.order_by('-created_at')[:100],
@@ -5533,6 +5617,13 @@ def processing_fees_summary(request):
         'verified_fees': verified_fees,
         'pending_fees': pending_fees,
         'officer_fees': officer_fees,
+        'branches': branches,
+        'all_officers': all_officers,
+        'groups': groups,
+        'branch_filter': branch_filter,
+        'officer_filter': officer_filter,
+        'group_filter': group_filter,
+        'status_filter': status_filter,
     })
 
 
