@@ -21,10 +21,13 @@ class PaymentListView(LoginRequiredMixin, ListView):
                 branch = user.managed_branch
                 from django.db.models import Q
                 from loans.models import Loan
+                # Only show loans where the loan officer is from this branch
+                # OR the loan's primary group is from this branch
                 branch_loans = Loan.objects.filter(
                     Q(loan_officer__officer_assignment__branch=branch.name) |
-                    Q(borrower__group_memberships__group__branch=branch.name)
-                ).values_list('id', flat=True)
+                    Q(borrower__group_memberships__group__branch=branch.name, 
+                      borrower__group_memberships__is_active=True)
+                ).distinct().values_list('id', flat=True)
                 return Payment.objects.filter(loan_id__in=branch_loans).order_by('-created_at')
             except Exception:
                 return Payment.objects.none()
