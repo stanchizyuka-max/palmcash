@@ -153,9 +153,29 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('loans:applications_list')
     
     def dispatch(self, request, *args, **kwargs):
+        # Check if user has permission to approve
         if request.user.role not in ['manager', 'admin']:
-            messages.error(request, 'Only managers can approve loan applications.')
+            messages.error(request, 'Only managers and admins can approve loan applications.')
             return redirect('dashboard:dashboard')
+        
+        # Check if application exists and user has access to it
+        try:
+            app = self.get_object()
+            # Managers can only approve applications from their branch
+            if request.user.role == 'manager':
+                try:
+                    branch = request.user.managed_branch
+                    # Check if loan officer is from manager's branch
+                    if app.loan_officer.officer_assignment.branch != branch.name:
+                        messages.error(request, 'You can only approve applications from your branch.')
+                        return redirect('dashboard:dashboard')
+                except Exception:
+                    messages.error(request, 'Unable to verify branch access.')
+                    return redirect('dashboard:dashboard')
+        except Exception as e:
+            messages.error(request, f'Application not found: {e}')
+            return redirect('dashboard:dashboard')
+        
         return super().dispatch(request, *args, **kwargs)
     
     def get_form(self, form_class=None):
