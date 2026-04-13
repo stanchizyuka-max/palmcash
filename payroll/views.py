@@ -379,15 +379,21 @@ def generate_period(request):
         # Check if period already exists
         existing = PayrollPeriod.objects.filter(month=month, year=year).first()
         if existing:
-            messages.warning(request, f'Payroll period for {existing} already exists')
-            return redirect('payroll:period_detail', period_id=existing.id)
-        
-        # Create period
-        period = PayrollPeriod.objects.create(
-            month=month,
-            year=year,
-            status='open'
-        )
+            # Check if it has records
+            if existing.payroll_records.exists():
+                messages.warning(request, f'Payroll period for {existing} already exists with {existing.payroll_records.count()} records')
+                return redirect('payroll:period_detail', period_id=existing.id)
+            else:
+                # Period exists but no records - regenerate
+                period = existing
+                messages.info(request, f'Regenerating records for existing period: {period}')
+        else:
+            # Create new period
+            period = PayrollPeriod.objects.create(
+                month=month,
+                year=year,
+                status='open'
+            )
         
         # Get all active employees with salary set
         employees = Employee.objects.filter(is_active=True, monthly_salary__gt=0)
