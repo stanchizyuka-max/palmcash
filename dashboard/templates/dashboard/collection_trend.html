@@ -131,6 +131,7 @@
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white uppercase">Week</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-white uppercase">Date Range</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-white uppercase">Branch</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-white uppercase">Expected</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-white uppercase">Collected</th>
                             <th class="px-6 py-4 text-center text-xs font-semibold text-white uppercase">Rate</th>
@@ -144,6 +145,13 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{{ week.label }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ week.date_range }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {% if filters.branch %}
+                                    {{ filters.branch }}
+                                {% else %}
+                                    All Branches
+                                {% endif %}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                                 {% if week.has_data %}
                                 K{{ week.expected|floatformat:2|intcomma }}
@@ -219,6 +227,25 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot class="bg-gray-50 border-t-2 border-gray-300">
+                        <tr>
+                            <td class="px-6 py-4 font-bold text-gray-900">Total</td>
+                            <td class="px-6 py-4"></td>
+                            <td class="px-6 py-4"></td>
+                            <td class="px-6 py-4 text-right font-bold text-gray-900">K{{ total_expected|floatformat:2|intcomma }}</td>
+                            <td class="px-6 py-4 text-right font-bold text-green-700">K{{ total_collected|floatformat:2|intcomma }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
+                                    {% if overall_rate >= 80 %}bg-green-100 text-green-800
+                                    {% elif overall_rate >= 40 %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800
+                                    {% endif %}">
+                                    {{ overall_rate }}%
+                                </span>
+                            </td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
