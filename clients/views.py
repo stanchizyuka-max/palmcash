@@ -5,7 +5,8 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
 from django.contrib import messages
 from django.urls import reverse_lazy
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Case, When, IntegerField, F, FloatField
+from django.db.models.functions import Cast
 from .models import BorrowerGroup, GroupMembership, OfficerAssignment
 from accounts.models import User
 
@@ -27,11 +28,8 @@ class GroupListView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
-        from django.db.models import Count, Case, When, IntegerField, F, FloatField
-        from django.db.models.functions import Cast
-        
         queryset = BorrowerGroup.objects.annotate(
-            member_count=Count('members', filter=models.Q(members__is_active=True)),
+            member_count=Count('members', filter=Q(members__is_active=True)),
             capacity_percentage=Case(
                 When(max_members__isnull=False, max_members__gt=0,
                      then=Cast(F('member_count') * 100.0 / F('max_members'), FloatField())),
