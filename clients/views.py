@@ -164,7 +164,7 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
                 )
         else:
             context['available_borrowers'] = User.objects.none()
-        context['can_modify_members'] = self.request.user.role in ['admin', 'loan_officer']
+        context['can_modify_members'] = self.request.user.role in ['manager', 'loan_officer']
         
         # Get recent actual payments grouped by borrower
         from loans.models import Loan
@@ -214,8 +214,13 @@ class GroupCreateView(LoginRequiredMixin, CreateView):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
         
+        # Admins cannot create groups - only view
+        if request.user.role == 'admin':
+            messages.error(request, 'Administrators can only view groups, not create or edit them.')
+            return redirect('clients:group_list')
+        
         # Check if user has permission to create groups
-        if not (request.user.role in ['admin', 'manager', 'loan_officer'] or 
+        if not (request.user.role in ['manager', 'loan_officer'] or 
                 request.user.has_perm('clients.can_create_group')):
             messages.error(request, 'You do not have permission to create groups.')
             return redirect('clients:group_list')
@@ -256,7 +261,12 @@ class GroupUpdateView(LoginRequiredMixin, UpdateView):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
         
-        if request.user.role not in ['admin', 'manager', 'loan_officer']:
+        # Admins cannot edit groups - only view
+        if request.user.role == 'admin':
+            messages.error(request, 'Administrators can only view groups, not create or edit them.')
+            return redirect('clients:group_list')
+        
+        if request.user.role not in ['manager', 'loan_officer']:
             messages.error(request, 'You do not have permission to edit groups.')
             return redirect('clients:group_list')
         
@@ -294,9 +304,16 @@ class AddMemberView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        if request.user.role not in ['admin', 'loan_officer']:
-            messages.error(request, 'Only loan officers can add members to groups.')
+        
+        # Admins cannot add members - only view
+        if request.user.role == 'admin':
+            messages.error(request, 'Administrators can only view groups, not modify members.')
             return redirect('clients:group_list')
+        
+        if request.user.role not in ['manager', 'loan_officer']:
+            messages.error(request, 'Only managers and loan officers can add members to groups.')
+            return redirect('clients:group_list')
+        
         if request.user.role == 'loan_officer':
             pk = kwargs.get('pk')
             group = get_object_or_404(BorrowerGroup, pk=pk)
@@ -372,8 +389,14 @@ class RemoveMemberView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return super().dispatch(request, *args, **kwargs)
-        if request.user.role not in ['admin', 'loan_officer']:
-            messages.error(request, 'Only loan officers can remove members from groups.')
+        
+        # Admins cannot remove members - only view
+        if request.user.role == 'admin':
+            messages.error(request, 'Administrators can only view groups, not modify members.')
+            return redirect('clients:group_list')
+        
+        if request.user.role not in ['manager', 'loan_officer']:
+            messages.error(request, 'Only managers and loan officers can remove members from groups.')
             return redirect('clients:group_list')
         return super().dispatch(request, *args, **kwargs)
     
