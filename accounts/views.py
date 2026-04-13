@@ -292,7 +292,7 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
         return context
 
 
-from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.contrib.auth.views import LoginView as DjangoLoginView, LogoutView as DjangoLogoutView
 from django.contrib.auth import logout
 from .audit_views import log_login, log_logout
 
@@ -328,6 +328,16 @@ class CustomLoginView(DjangoLoginView):
         except User.DoesNotExist:
             pass
         return super().form_invalid(form)
+
+
+class CustomLogoutView(DjangoLogoutView):
+    """Custom logout view that tracks logout activity"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            # Track logout before actually logging out
+            log_logout(request.user, request)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class LoanOfficerRegisterView(CreateView):
