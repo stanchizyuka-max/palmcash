@@ -9,6 +9,56 @@
       <p class="text-slate-500 text-sm mt-1">Fees collected on loan applications</p></div>
       <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
     </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Branch</label>
+          <select name="branch" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">All Branches</option>
+            {% for branch in branches %}
+            <option value="{{ branch.name }}" {% if branch_filter == branch.name %}selected{% endif %}>{{ branch.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Officer</label>
+          <select name="officer" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">All Officers</option>
+            {% for officer in all_officers %}
+            <option value="{{ officer.id }}" {% if officer_filter == officer.id|stringformat:"s" %}selected{% endif %}>{{ officer.get_full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Group</label>
+          <select name="group" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">All Groups</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" {% if group_filter == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+          <select name="status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">All Status</option>
+            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          </select>
+        </div>
+        <div class="md:col-span-4 flex gap-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+            Apply Filters
+          </button>
+          <a href="{% url 'dashboard:processing_fees_summary' %}" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300">
+            Clear
+          </a>
+        </div>
+      </form>
+    </div>
+    
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
         <p class="text-xs text-slate-500 mb-1">Total Collected</p>

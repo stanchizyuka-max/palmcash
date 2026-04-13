@@ -68,6 +68,7 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Officer</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -76,28 +77,42 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    {% for loan in loans %}
+                    {% for item in loans_with_groups %}
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ loan.id }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ loan.borrower.full_name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">K{{ loan.principal_amount|floatformat:2 }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ loan.loan_officer.full_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ item.loan.id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ item.loan.borrower.full_name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {% if item.group %}
+                                {{ item.group.name }}
+                            {% else %}
+                                <span class="text-gray-400">No Group</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">K{{ item.loan.principal_amount|floatformat:2 }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ item.loan.loan_officer.full_name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if loan.status == 'active' %}bg-green-100 text-green-800{% elif loan.status == 'completed' %}bg-blue-100 text-blue-800{% elif loan.status == 'defaulted' %}bg-red-100 text-red-800{% elif loan.status == 'rejected' %}bg-gray-100 text-gray-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                {{ loan.get_status_display }}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if item.loan.status == 'active' %}bg-green-100 text-green-800{% elif item.loan.status == 'completed' %}bg-blue-100 text-blue-800{% elif item.loan.status == 'defaulted' %}bg-red-100 text-red-800{% elif item.loan.status == 'rejected' %}bg-gray-100 text-gray-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ item.loan.get_status_display }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ loan.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ item.loan.created_at|date:"M d, Y" }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{% url 'dashboard:admin_loan_detail' loan.id %}" class="text-blue-600 hover:text-blue-900">View</a>
+                            <a href="{% url 'dashboard:admin_loan_detail' item.loan.id %}" class="text-blue-600 hover:text-blue-900">View</a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No loans found</td>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">No loans found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-900">Total</td>
+                        <td class="px-6 py-4 text-sm font-bold text-gray-900">K{{ total_amount|floatformat:2 }}</td>
+                        <td colspan="4" class="px-6 py-4 text-sm text-gray-600">{{ total_loans }} loan{{ total_loans|pluralize }}</td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
 
@@ -121,11 +136,6 @@
             </nav>
         </div>
         {% endif %}
-
-        <!-- Summary -->
-        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-sm text-blue-800">Total loans: <strong>{{ total_loans }}</strong></p>
-        </div>
     </div>
 </div>
 {% endblock %}

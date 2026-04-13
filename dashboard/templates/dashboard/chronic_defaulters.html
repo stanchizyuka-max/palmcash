@@ -3,12 +3,30 @@
 {% block title %}Chronic Defaulters{% endblock %}
 {% block content %}
 <div class="min-h-screen bg-slate-50 py-8">
-  <div class="max-w-6xl mx-auto px-4">
+  <div class="max-w-7xl mx-auto px-4">
     <div class="mb-6 flex items-center justify-between">
       <div><h1 class="text-2xl font-bold text-slate-900">Chronic Defaulters</h1>
       <p class="text-slate-500 text-sm mt-1">Active loans with overdue unpaid installments</p></div>
       <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">← Dashboard</a>
     </div>
+    
+    <!-- Search Filter -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+      <form method="get" class="flex gap-4">
+        <div class="flex-1">
+          <input type="text" name="search" value="{{ search }}" 
+                 placeholder="Search by borrower name, loan number, or group name..."
+                 class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+        </div>
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+          Search
+        </button>
+        <a href="{% url 'dashboard:chronic_defaulters' %}" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300">
+          Clear
+        </a>
+      </form>
+    </div>
+    
     {% if defaulters %}
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <table class="w-full text-sm">
@@ -16,6 +34,7 @@
           <tr>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Loan</th>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Borrower</th>
+            <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
             <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
             <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Overdue</th>
             <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Paid</th>
@@ -28,6 +47,9 @@
           <tr class="hover:bg-slate-50 {% if d.never_paid %}bg-red-50{% endif %}">
             <td class="px-4 py-3 font-mono"><a href="{% url 'loans:detail' d.loan.pk %}" class="text-blue-600 hover:underline">{{ d.loan.application_number }}</a></td>
             <td class="px-4 py-3 font-medium text-slate-900">{{ d.loan.borrower.get_full_name }}</td>
+            <td class="px-4 py-3 text-slate-700">
+              <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{{ d.group }}</span>
+            </td>
             <td class="px-4 py-3 text-slate-600">{{ d.loan.loan_officer.get_full_name|default:"—" }}</td>
             <td class="px-4 py-3 text-center font-bold text-red-600">{{ d.overdue_count }}</td>
             <td class="px-4 py-3 text-center text-green-600">{{ d.paid_count }}</td>
@@ -40,7 +62,8 @@
     </div>
     {% else %}
     <div class="bg-white rounded-xl p-12 text-center text-slate-400 border border-slate-200">
-      <i class="fas fa-check-circle text-4xl mb-3 text-green-400"></i><p>No chronic defaulters found.</p>
+      <i class="fas fa-check-circle text-4xl mb-3 text-green-400"></i>
+      <p>{% if search %}No defaulters found matching "{{ search }}"{% else %}No chronic defaulters found.{% endif %}</p>
     </div>
     {% endif %}
   </div>

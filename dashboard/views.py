@@ -4406,9 +4406,15 @@ def admin_all_loans(request):
     from django.db.models import Sum
     total_amount = loans.aggregate(total=Sum('principal_amount'))['total'] or 0
     
-    # Add group information to each loan
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(loans, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Add group information to each loan in the current page
     loans_with_groups = []
-    for loan in loans[:100]:  # Limit to first 100 for performance
+    for loan in page_obj.object_list:
         membership = GroupMembership.objects.filter(
             borrower=loan.borrower,
             is_active=True
@@ -4418,12 +4424,6 @@ def admin_all_loans(request):
             'loan': loan,
             'group': membership.group if membership else None,
         })
-    
-    # Pagination
-    from django.core.paginator import Paginator
-    paginator = Paginator(loans, 20)
-    page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
     
     # Get branches and statuses for filters
     branches = Branch.objects.filter(is_active=True).order_by('name')
