@@ -1,0 +1,93 @@
+{% extends 'base_tailwind.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Manage Payroll Access</h1>
+        <p class="text-gray-600 mt-2">Control who can view and manage sensitive payroll information</p>
+    </div>
+    
+    <!-- Users WITH Access -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div class="flex items-center mb-4">
+            <svg class="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-xl font-semibold text-green-600">
+                Users with Payroll Access ({{ users_with_access|length }})
+            </h2>
+        </div>
+        
+        <div class="space-y-3">
+            {% for user in users_with_access %}
+            <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                        {{ user.first_name.0|default:user.username.0|upper }}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</p>
+                        <p class="text-sm text-gray-600">@{{ user.username }} • {{ user.get_role_display }}</p>
+                    </div>
+                </div>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <input type="hidden" name="action" value="revoke">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            onclick="return confirm('Revoke payroll access from {{ user.get_full_name|default:user.username }}?')">
+                        Revoke Access
+                    </button>
+                </form>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No users have payroll access yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Users WITHOUT Access -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center mb-4">
+            <svg class="w-6 h-6 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-600">
+                Eligible Users ({{ users_without_access|length }})
+            </h2>
+        </div>
+        
+        <div class="space-y-3">
+            {% for user in users_without_access %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                        {{ user.first_name.0|default:user.username.0|upper }}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</p>
+                        <p class="text-sm text-gray-600">@{{ user.username }} • {{ user.get_role_display }}</p>
+                    </div>
+                </div>
+                <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <input type="hidden" name="action" value="grant">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Grant Access
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="mt-6">
+        <a href="{% url 'dashboard:dashboard' %}" class="text-blue-600 hover:text-blue-800">
+            ← Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
