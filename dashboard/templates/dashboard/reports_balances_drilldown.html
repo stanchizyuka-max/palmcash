@@ -96,7 +96,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600 font-medium">Total Outstanding Balance</p>
-                        <p class="text-3xl font-bold text-green-600 mt-1">{{ grand_total_outstanding|currency }}</p>
+                        <p class="text-3xl font-bold text-green-600 mt-1">{{ grand_total_outstanding|zmw_currency }}</p>
                     </div>
                     <div class="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center">
                         <i class="fas fa-money-bill-wave text-green-600 text-2xl"></i>
@@ -182,7 +182,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="text-sm font-bold text-gray-900">{{ item.total_outstanding|currency }}</span>
+                                <span class="text-sm font-bold text-gray-900">{{ item.total_outstanding|zmw_currency }}</span>
                             </td>
                         </tr>
                         {% empty %}
@@ -209,7 +209,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="text-sm font-bold text-gray-900">{{ grand_total_outstanding|currency }}</span>
+                                <span class="text-sm font-bold text-gray-900">{{ grand_total_outstanding|zmw_currency }}</span>
                             </td>
                         </tr>
                         {% endif %}
