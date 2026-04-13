@@ -72,12 +72,17 @@ def _client_security_stats(client):
 def securities_summary(request):
     """
     Officer-level summary.
+    Admin: all officers system-wide.
     Manager: all officers in their branch.
     Loan Officer: only themselves.
     """
     user = request.user
 
-    if user.role == 'manager':
+    if user.role == 'admin' or user.is_superuser:
+        # Admins can see all officers
+        officers = User.objects.filter(role='loan_officer').distinct()
+    
+    elif user.role == 'manager':
         try:
             branch = user.managed_branch
         except Exception:
@@ -130,9 +135,12 @@ def officer_groups(request, officer_id):
     officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
 
     # Access control
-    if user.role == 'loan_officer' and user.pk != officer.pk:
+    if user.role == 'admin' or user.is_superuser:
+        # Admins can view any officer
+        pass
+    elif user.role == 'loan_officer' and user.pk != officer.pk:
         return render(request, 'dashboard/access_denied.html')
-    if user.role == 'manager':
+    elif user.role == 'manager':
         try:
             branch = user.managed_branch
             if officer.officer_assignment.branch != branch.name:
@@ -177,9 +185,12 @@ def group_clients(request, group_id):
     group = get_object_or_404(BorrowerGroup, pk=group_id)
 
     # Access control
-    if user.role == 'loan_officer' and group.assigned_officer != user:
+    if user.role == 'admin' or user.is_superuser:
+        # Admins can view any group
+        pass
+    elif user.role == 'loan_officer' and group.assigned_officer != user:
         return render(request, 'dashboard/access_denied.html')
-    if user.role == 'manager':
+    elif user.role == 'manager':
         try:
             branch = user.managed_branch
             if group.assigned_officer and group.assigned_officer.officer_assignment.branch != branch.name:
@@ -220,7 +231,10 @@ def client_detail(request, client_id):
     client = get_object_or_404(User, pk=client_id, role='borrower')
 
     # Access control
-    if user.role == 'loan_officer':
+    if user.role == 'admin' or user.is_superuser:
+        # Admins can view any client
+        pass
+    elif user.role == 'loan_officer':
         is_mine = (
             client.assigned_officer == user or
             GroupMembership.objects.filter(
