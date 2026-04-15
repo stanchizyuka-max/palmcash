@@ -282,15 +282,36 @@ def payments_hierarchical(request):
                 loan__borrower__group_memberships__is_active=True
             )
         
-        # Get individual payments
+        # Group payments by client
+        from collections import defaultdict
+        client_data = defaultdict(lambda: {
+            'client': None,
+            'total_payments': 0,
+            'total_amount': 0,
+            'payments': [],
+        })
+        
         payments = payment_qs.distinct().order_by('-payment_date')
         
-        grand_total_payments = payments.count()
-        grand_total_amount = payments.aggregate(total=Sum('amount'))['total'] or 0
+        for payment in payments:
+            client = payment.loan.borrower
+            client_key = client.id
+            
+            if client_data[client_key]['client'] is None:
+                client_data[client_key]['client'] = client
+            
+            client_data[client_key]['total_payments'] += 1
+            client_data[client_key]['total_amount'] += payment.amount or 0
+            client_data[client_key]['payments'].append(payment)
+        
+        clients_with_payments = sorted(client_data.values(), key=lambda x: x['client'].get_full_name() if x['client'] else '')
+        
+        grand_total_payments = sum(c['total_payments'] for c in clients_with_payments)
+        grand_total_amount = sum(c['total_amount'] for c in clients_with_payments)
         
         return render(request, 'payments/hierarchical.html', {
             'view_level': 'client',
-            'payments': payments,
+            'clients_with_payments': clients_with_payments,
             'grand_total_payments': grand_total_payments,
             'grand_total_amount': grand_total_amount,
             'breadcrumbs': breadcrumbs,
