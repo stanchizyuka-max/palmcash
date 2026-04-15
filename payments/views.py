@@ -1041,11 +1041,14 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
             return self.handle_no_permission()
         from .models import DefaultCollection
         from django.db.models import Q, Sum
+        from accounts.models import User
+        from clients.models import BorrowerGroup
 
         if request.user.role == 'loan_officer':
             qs = DefaultCollection.objects.filter(
                 recorded_by=request.user
             ).select_related('loan', 'loan__borrower').order_by('-collection_date', '-created_at')
+            officers = User.objects.filter(pk=request.user.pk)
         elif request.user.role == 'manager':
             try:
                 branch = request.user.managed_branch
@@ -1053,16 +1056,25 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
                 qs = DefaultCollection.objects.filter(
                     loan__loan_officer__officer_assignment__branch__iexact=branch.name
                 ).select_related('loan', 'loan__borrower', 'recorded_by').distinct().order_by('-collection_date')
+                officers = User.objects.filter(
+                    role='loan_officer',
+                    officer_assignment__branch__iexact=branch.name,
+                    is_active=True
+                ).order_by('first_name', 'last_name')
             except Exception:
                 qs = DefaultCollection.objects.none()
+                officers = User.objects.none()
         else:
             qs = DefaultCollection.objects.all().select_related(
                 'loan', 'loan__borrower', 'recorded_by'
             ).order_by('-collection_date')
+            officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
 
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
         search = request.GET.get('search', '').strip()
+        officer_filter = request.GET.get('officer', '')
+        group_filter = request.GET.get('group', '')
 
         if date_from:
             qs = qs.filter(collection_date__gte=date_from)
@@ -1074,12 +1086,50 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
                 Q(loan__borrower__last_name__icontains=search) |
                 Q(loan__application_number__icontains=search)
             ).distinct()
+        if officer_filter:
+            qs = qs.filter(loan__loan_officer_id=officer_filter)
+        if group_filter:
+            qs = qs.filter(
+                loan__borrower__group_memberships__group_id=group_filter,
+                loan__borrower__group_memberships__is_active=True
+            )
+
+        # Get groups based on filtered officers
+        if officer_filter:
+            groups = BorrowerGroup.objects.filter(
+                assigned_officer_id=officer_filter,
+                is_active=True
+            ).order_by('name')
+        elif request.user.role == 'manager':
+            try:
+                branch = request.user.managed_branch
+                groups = BorrowerGroup.objects.filter(
+                    assigned_officer__officer_assignment__branch__iexact=branch.name,
+                    is_active=True
+                ).order_by('name')
+            except:
+                groups = BorrowerGroup.objects.none()
+        elif request.user.role == 'admin':
+            groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+        else:
+            groups = BorrowerGroup.objects.filter(
+                assigned_officer=request.user,
+                is_active=True
+            ).order_by('name')
 
         total = qs.aggregate(total=Sum('amount_paid'))['total'] or 0
         return render(request, self.template_name, {
             'collections': qs,
             'total': total,
-            'filters': {'date_from': date_from, 'date_to': date_to, 'search': search},
+            'officers': officers,
+            'groups': groups,
+            'filters': {
+                'date_from': date_from,
+                'date_to': date_to,
+                'search': search,
+                'officer': officer_filter,
+                'group': group_filter,
+            },
         })
 
 
