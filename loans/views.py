@@ -78,7 +78,10 @@ class LoanListView(LoginRequiredMixin, ListView):
         # Get filter options based on role
         if user.role == 'admin':
             context['branches'] = Branch.objects.filter(is_active=True).order_by('name')
-            context['officers'] = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
+            context['officers'] = User.objects.filter(
+                role='loan_officer', 
+                is_active=True
+            ).select_related('officer_assignment').order_by('first_name', 'last_name')
         elif user.role == 'manager':
             try:
                 branch = user.managed_branch
@@ -86,7 +89,7 @@ class LoanListView(LoginRequiredMixin, ListView):
                     role='loan_officer',
                     officer_assignment__branch=branch.name,
                     is_active=True
-                ).order_by('first_name', 'last_name')
+                ).select_related('officer_assignment').order_by('first_name', 'last_name')
             except:
                 context['officers'] = []
         elif user.role == 'loan_officer':
@@ -95,21 +98,23 @@ class LoanListView(LoginRequiredMixin, ListView):
         
         # Groups available to all roles
         if user.role == 'admin':
-            context['groups'] = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+            context['groups'] = BorrowerGroup.objects.filter(
+                is_active=True
+            ).select_related('assigned_officer').order_by('name')
         elif user.role == 'manager':
             try:
                 branch = user.managed_branch
                 context['groups'] = BorrowerGroup.objects.filter(
                     branch=branch.name,
                     is_active=True
-                ).order_by('name')
+                ).select_related('assigned_officer').order_by('name')
             except:
                 context['groups'] = []
         elif user.role == 'loan_officer':
             context['groups'] = BorrowerGroup.objects.filter(
                 assigned_officer=user,
                 is_active=True
-            ).order_by('name')
+            ).select_related('assigned_officer').order_by('name')
         
         # Store current filters
         context['filters'] = {
