@@ -1,92 +1,115 @@
 {% load humanize %}
+
 {% if breakdown and client_breakdown %}
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-  <div class="px-5 py-3 flex items-center justify-between
-    {% if breakdown == 'collections' %}bg-gradient-to-r from-green-600 to-green-700
-    {% elif breakdown == 'securities' %}bg-gradient-to-r from-violet-600 to-violet-700
-    {% else %}bg-gradient-to-r from-red-600 to-red-700{% endif %}">
-    <h3 class="font-bold text-white text-sm">
-      {% if breakdown == 'collections' %}<i class="fas fa-money-bill-wave mr-2"></i>Collections by Client
-      {% elif breakdown == 'securities' %}<i class="fas fa-shield-alt mr-2"></i>Securities by Client
-      {% else %}<i class="fas fa-exclamation-circle mr-2"></i>Default Collections by Client{% endif %}
+  <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3 flex items-center justify-between">
+    <h3 class="font-bold text-white">
+      {% if breakdown == 'collections' %}
+        <i class="fas fa-money-bill-wave mr-2"></i>Collections Breakdown by Client
+      {% elif breakdown == 'securities' %}
+        <i class="fas fa-shield-alt mr-2"></i>Securities Breakdown by Client
+      {% elif breakdown == 'defaults' %}
+        <i class="fas fa-exclamation-circle mr-2"></i>Defaults Breakdown by Client
+      {% endif %}
     </h3>
-    <span class="text-white text-xs opacity-80">{{ client_breakdown|length }} clients</span>
+    <span class="text-slate-300 text-xs">{{ client_breakdown|length }} client{{ client_breakdown|length|pluralize }}</span>
   </div>
+
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="bg-slate-50 border-b border-slate-200">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
-          <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
+          <th class="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
+          <th class="px-5 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
           {% if breakdown == 'collections' %}
-          <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
-          <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
-          <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Rate</th>
+            <th class="px-5 py-3 text-right text-xs font-bold text-slate-600 uppercase">Expected</th>
+            <th class="px-5 py-3 text-right text-xs font-bold text-slate-600 uppercase">Collected</th>
+            <th class="px-5 py-3 text-center text-xs font-bold text-slate-600 uppercase">Rate</th>
           {% else %}
-          <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
-          <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Transactions</th>
+            <th class="px-5 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
           {% endif %}
-          <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">View</th>
+          <th class="px-5 py-3 text-center text-xs font-bold text-slate-600 uppercase">Records</th>
+          <th class="px-5 py-3"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
-        {% for row in client_breakdown %}
-        <tr class="hover:bg-slate-50">
-          <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs
-                {% if breakdown == 'collections' %}bg-green-100 text-green-700
-                {% elif breakdown == 'securities' %}bg-violet-100 text-violet-700
-                {% else %}bg-red-100 text-red-700{% endif %}">
-                {{ row.client.first_name|first }}{{ row.client.last_name|first }}
+        {% for item in client_breakdown %}
+        <tr class="hover:bg-slate-50 transition cursor-pointer" 
+            onclick="window.location='?tab={{ tab }}{% if selected_officer %}&officer={{ selected_officer.pk }}{% endif %}{% if selected_group %}&group={{ selected_group.pk }}{% endif %}&client={{ item.client.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}'">
+          <td class="px-5 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600 text-sm">
+                {{ item.client.first_name|first }}{{ item.client.last_name|first }}
               </div>
-              <span class="font-medium text-slate-900">{{ row.client.get_full_name }}</span>
+              <div>
+                <p class="font-semibold text-slate-900">{{ item.client.get_full_name }}</p>
+                <p class="text-xs text-slate-400">{{ item.client.phone_number|default:"No phone" }}</p>
+              </div>
             </div>
           </td>
-          <td class="px-4 py-3 text-slate-500 text-xs">
-            {% if row.group %}
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-semibold">{{ row.group.group.name }}</span>
-            {% else %}—{% endif %}
+          <td class="px-5 py-4">
+            {% if item.group %}
+              <span class="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                <i class="fas fa-layer-group mr-1"></i>{{ item.group.group.name }}
+              </span>
+            {% else %}
+              <span class="text-slate-400 text-xs">No group</span>
+            {% endif %}
           </td>
           {% if breakdown == 'collections' %}
-          <td class="px-4 py-3 text-right text-slate-600">K{{ row.expected|floatformat:2|intcomma }}</td>
-          <td class="px-4 py-3 text-right font-bold text-green-700">K{{ row.collected|floatformat:2|intcomma }}</td>
-          <td class="px-4 py-3 text-right">
-            {% if row.expected > 0 %}
-            {% widthratio row.collected row.expected 100 as rate %}
-            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
-              {% if rate >= 100 %}bg-green-100 text-green-700
-              {% elif rate >= 50 %}bg-yellow-100 text-yellow-700
-              {% else %}bg-red-100 text-red-700{% endif %}">
-              {{ rate }}%
-            </span>
-            {% else %}—{% endif %}
-          </td>
+            <td class="px-5 py-4 text-right text-slate-700">K{{ item.expected|floatformat:2|intcomma }}</td>
+            <td class="px-5 py-4 text-right font-bold text-green-700">K{{ item.collected|floatformat:2|intcomma }}</td>
+            <td class="px-5 py-4 text-center">
+              {% if item.expected > 0 %}
+                {% widthratio item.collected item.expected 100 as rate %}
+                <div class="flex items-center justify-center gap-2">
+                  <div class="w-20 bg-slate-200 rounded-full h-2">
+                    <div class="{% if rate >= 100 %}bg-green-600{% elif rate >= 75 %}bg-blue-600{% elif rate >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full" style="width: {{ rate|default:0 }}%"></div>
+                  </div>
+                  <span class="text-xs font-medium text-slate-600">{{ rate|default:0 }}%</span>
+                </div>
+              {% else %}
+                <span class="text-xs text-slate-400">N/A</span>
+              {% endif %}
+            </td>
           {% else %}
-          <td class="px-4 py-3 text-right font-bold
-            {% if breakdown == 'securities' %}text-violet-700{% else %}text-red-700{% endif %}">
-            K{{ row.amount|floatformat:2|intcomma }}
-          </td>
-          <td class="px-4 py-3 text-center text-slate-500">{{ row.count }}</td>
+            <td class="px-5 py-4 text-right font-bold {% if breakdown == 'securities' %}text-violet-700{% else %}text-red-700{% endif %}">
+              K{{ item.amount|floatformat:2|intcomma }}
+            </td>
           {% endif %}
-          <td class="px-4 py-3">
-            {% with grp=row.group.group|default:selected_group %}
-            {% if grp and selected_officer %}
-            <a href="?tab={% if breakdown == 'collections' %}collections{% elif breakdown == 'securities' %}securities{% else %}defaults{% endif %}&officer={{ selected_officer.pk }}&group={{ grp.pk }}&client={{ row.client.pk }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}"
-               class="px-3 py-1 text-xs font-semibold rounded-lg
-               {% if breakdown == 'collections' %}bg-green-600 text-white hover:bg-green-700
-               {% elif breakdown == 'securities' %}bg-violet-600 text-white hover:bg-violet-700
-               {% else %}bg-red-600 text-white hover:bg-red-700{% endif %}">
-              View Records
-            </a>
-            {% endif %}
-            {% endwith %}
+          <td class="px-5 py-4 text-center">
+            <span class="px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">
+              {{ item.count }}
+            </span>
+          </td>
+          <td class="px-5 py-4 text-right">
+            <i class="fas fa-chevron-right text-slate-400"></i>
           </td>
         </tr>
-        {% empty %}
-        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No data for this period</td></tr>
         {% endfor %}
       </tbody>
+      <tfoot class="bg-slate-50 border-t-2 border-slate-300">
+        <tr>
+          <td class="px-5 py-4 font-bold text-slate-900" colspan="2">TOTAL</td>
+          {% if breakdown == 'collections' %}
+            <td class="px-5 py-4 text-right font-bold text-slate-900">
+              K{{ breakdown_totals.expected|floatformat:2|intcomma }}
+            </td>
+            <td class="px-5 py-4 text-right font-bold text-green-700">
+              K{{ breakdown_totals.collected|floatformat:2|intcomma }}
+            </td>
+            <td class="px-5 py-4"></td>
+          {% else %}
+            <td class="px-5 py-4 text-right font-bold {% if breakdown == 'securities' %}text-violet-700{% else %}text-red-700{% endif %}">
+              K{{ breakdown_totals.amount|floatformat:2|intcomma }}
+            </td>
+          {% endif %}
+          <td class="px-5 py-4 text-center font-bold text-slate-900">
+            {{ breakdown_totals.count }}
+          </td>
+          <td class="px-5 py-4"></td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 </div>

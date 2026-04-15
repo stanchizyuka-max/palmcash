@@ -1607,6 +1607,21 @@ class HistoryHubView(LoginRequiredMixin, View):
                             'group': c.group_memberships.filter(is_active=True).select_related('group').first(),
                         })
 
+        # Calculate breakdown totals
+        breakdown_totals = {}
+        if client_breakdown:
+            if breakdown == 'collections':
+                breakdown_totals = {
+                    'expected': sum(item['expected'] for item in client_breakdown),
+                    'collected': sum(item['collected'] for item in client_breakdown),
+                    'count': sum(item['count'] for item in client_breakdown),
+                }
+            else:  # securities or defaults
+                breakdown_totals = {
+                    'amount': sum(item['amount'] for item in client_breakdown),
+                    'count': sum(item['count'] for item in client_breakdown),
+                }
+
         # Branch-level totals (for officers level)
         branch_totals = None
         if level == 'officers':
@@ -1647,6 +1662,7 @@ class HistoryHubView(LoginRequiredMixin, View):
             'branch_totals': branch_totals,
             'breakdown': breakdown,
             'client_breakdown': client_breakdown,
+            'breakdown_totals': breakdown_totals,
             'sec_type': extra.get('sec_type', 'transactions'),
             'search_results': search_results,
             'filters': {
