@@ -99,31 +99,45 @@
         </div>
 
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
+            console.log('Filter script loaded');
+            
             const branchFilter = document.getElementById('branchFilter');
             const officerFilter = document.getElementById('officerFilter');
             const groupFilter = document.getElementById('groupFilter');
+            
+            console.log('Branch filter:', branchFilter);
+            console.log('Officer filter:', officerFilter);
+            console.log('Group filter:', groupFilter);
             
             // Store original options
             const allOfficers = officerFilter ? Array.from(officerFilter.options) : [];
             const allGroups = groupFilter ? Array.from(groupFilter.options) : [];
             
+            console.log('All officers:', allOfficers.length);
+            console.log('All groups:', allGroups.length);
+            
             // Branch change handler
             if (branchFilter && officerFilter) {
                 branchFilter.addEventListener('change', function() {
                     const selectedBranch = this.value;
+                    console.log('Branch changed to:', selectedBranch);
                     
                     // Clear and reset officer dropdown
                     officerFilter.innerHTML = '<option value="">All Officers</option>';
                     
                     // Filter officers by branch
+                    let addedCount = 0;
                     allOfficers.forEach(option => {
                         if (option.value === '') return; // Skip "All Officers" option
                         const officerBranch = option.getAttribute('data-branch');
+                        console.log('Officer:', option.text, 'Branch:', officerBranch);
                         if (!selectedBranch || officerBranch === selectedBranch) {
                             officerFilter.appendChild(option.cloneNode(true));
+                            addedCount++;
                         }
                     });
+                    console.log('Added', addedCount, 'officers');
                     
                     // Reset group filter
                     if (groupFilter) {
@@ -140,21 +154,26 @@
             if (officerFilter && groupFilter) {
                 officerFilter.addEventListener('change', function() {
                     const selectedOfficer = this.value;
+                    console.log('Officer changed to:', selectedOfficer);
                     
                     // Clear and reset group dropdown
                     groupFilter.innerHTML = '<option value="">All Groups</option>';
                     
                     // Filter groups by officer
+                    let addedCount = 0;
                     allGroups.forEach(option => {
                         if (option.value === '') return; // Skip "All Groups" option
                         const groupOfficer = option.getAttribute('data-officer');
+                        console.log('Group:', option.text, 'Officer ID:', groupOfficer);
                         if (!selectedOfficer || groupOfficer === selectedOfficer) {
                             groupFilter.appendChild(option.cloneNode(true));
+                            addedCount++;
                         }
                     });
+                    console.log('Added', addedCount, 'groups');
                 });
             }
-        });
+        })();
         </script>
         {% endif %}
 

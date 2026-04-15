@@ -1,10 +1,12 @@
 from django.urls import path
 from . import views
+from . import views_hierarchical
 
 app_name = 'payments'
 
 urlpatterns = [
-    path('', views.PaymentListView.as_view(), name='list'),
+    path('', views_hierarchical.payments_hierarchical, name='list'),
+    path('legacy/', views.PaymentListView.as_view(), name='list_legacy'),
     path('upfront/<int:loan_id>/', views.UpfrontPaymentView.as_view(), name='upfront_payment'),
     path('make/', views.MakePaymentView.as_view(), name='make'),
     path('make/<int:loan_id>/', views.MakePaymentView.as_view(), name='make'),

@@ -1,12 +1,14 @@
 from django.urls import path
 from . import views
 from . import views_application
+from . import views_hierarchical
 from . import security_views
 
 app_name = 'loans'
 
 urlpatterns = [
-    path('', views.LoanListView.as_view(), name='list'),
+    path('', views_hierarchical.loans_hierarchical, name='list'),
+    path('legacy/', views.LoanListView.as_view(), name='list_legacy'),
     path('apply/', views.LoanApplicationView.as_view(), name='apply'),
     path('calculator/', views.LoanCalculatorView.as_view(), name='calculator'),
     path('history/', views.LoanHistoryView.as_view(), name='history'),
