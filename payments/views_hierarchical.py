@@ -283,7 +283,6 @@ def payments_hierarchical(request):
             )
         
         # Group payments by client
-        from collections import defaultdict
         client_data = defaultdict(lambda: {
             'client': None,
             'total_payments': 0,
