@@ -352,14 +352,18 @@ def loan_officer_dashboard(request):
     context['apps_rejected'] = LoanApplication.objects.filter(loan_officer=officer, status='rejected').count()
 
     # 5. Default collections summary
-    from payments.models import DefaultCollection
-    default_loans = Loan.objects.filter(
+    from payments.models import DefaultCollection, PaymentSchedule as PS
+    
+    # Get loans with at least one overdue payment
+    loans_with_overdue = set()
+    for loan in Loan.objects.filter(
         Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
-        status='active',
-    ).filter(
-        payment_schedule__is_paid=False,
-        payment_schedule__due_date__lt=today,
-    ).distinct()
+        status='active'
+    ).distinct():
+        if PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).exists():
+            loans_with_overdue.add(loan.id)
+    
+    default_loans = Loan.objects.filter(id__in=loans_with_overdue)
     context['default_loans_count'] = default_loans.count()
     context['default_total_outstanding'] = default_loans.aggregate(
         t=Sum('balance_remaining')
@@ -367,7 +371,7 @@ def loan_officer_dashboard(request):
     context['default_collected_this_month'] = DefaultCollection.objects.filter(
         Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         collection_date__gte=today.replace(day=1),
-    ).aggregate(t=Sum('amount_paid'))['t'] or 0
+    ).distinct().aggregate(t=Sum('amount_paid'))['t'] or 0
 
     # 6. Securities amounts summary
     from loans.models import SecurityDeposit as SD
