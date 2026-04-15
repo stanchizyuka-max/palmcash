@@ -1305,9 +1305,23 @@ def manager_dashboard(request):
         'vault_balance': _get_vault_balance(branch),
     }
 
+    # Get filter parameters
+    officer_filter = request.GET.get('officer', '')
+    group_filter = request.GET.get('group', '')
+
     # 1. Overdue loans for this branch
     from payments.models import PaymentSchedule as PS
     active_branch_loans = loans.filter(status='active').select_related('borrower', 'loan_officer')
+    
+    # Apply filters
+    if officer_filter:
+        active_branch_loans = active_branch_loans.filter(loan_officer_id=officer_filter)
+    if group_filter:
+        active_branch_loans = active_branch_loans.filter(
+            borrower__group_memberships__group_id=group_filter,
+            borrower__group_memberships__is_active=True
+        )
+    
     overdue_loans = []
     for loan in active_branch_loans:
         oldest = PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).order_by('due_date').first()
@@ -1319,6 +1333,10 @@ def manager_dashboard(request):
             })
     overdue_loans.sort(key=lambda x: -x['days_overdue'])
     context['overdue_loans'] = overdue_loans[:20]
+    context['overdue_filters'] = {
+        'officer': officer_filter,
+        'group': group_filter,
+    }
 
     # 2. Loans approaching maturity (next 30 days)
     from datetime import timedelta

@@ -530,7 +530,6 @@
         </div>
 
         <!-- Overdue Loans -->
-        {% if overdue_loans %}
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200 mb-8">
             <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
                 <h3 class="text-xl font-bold text-white flex items-center">
@@ -538,6 +537,41 @@
                 </h3>
                 <span class="bg-white text-red-700 font-bold px-3 py-1 rounded-full text-sm">{{ overdue_loans|length }}</span>
             </div>
+            
+            <!-- Filter Form -->
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <form method="get" class="flex flex-wrap gap-3 items-end">
+                    <div class="flex flex-col gap-1 min-w-[180px]">
+                        <label class="text-xs font-semibold text-slate-600 uppercase">Loan Officer</label>
+                        <select name="officer" onchange="this.form.submit()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400">
+                            <option value="">All Officers</option>
+                            {% for officer in officers %}
+                            <option value="{{ officer.id }}" {% if overdue_filters.officer == officer.id|stringformat:"s" %}selected{% endif %}>
+                                {{ officer.get_full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1 min-w-[180px]">
+                        <label class="text-xs font-semibold text-slate-600 uppercase">Group</label>
+                        <select name="group" onchange="this.form.submit()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400">
+                            <option value="">All Groups</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}" {% if overdue_filters.group == group.id|stringformat:"s" %}selected{% endif %}>
+                                {{ group.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if overdue_filters.officer or overdue_filters.group %}
+                    <a href="?" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300">
+                        <i class="fas fa-times mr-1"></i>Clear
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+            
+            {% if overdue_loans %}
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
@@ -560,8 +594,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <div class="px-6 py-12 text-center text-slate-400">
+                <i class="fas fa-check-circle text-4xl mb-3 text-green-500"></i>
+                <p>No overdue loans found with the selected filters.</p>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
 
         <!-- Loans Approaching Maturity -->
         {% if maturing_loans %}
