@@ -407,6 +407,66 @@ def loan_officer_dashboard(request):
         updated_at__date__gte=month_start,
     ).distinct().count()
 
+    # Get filter parameters for overdue loans
+    officer_group_filter = request.GET.get('group', '')
+    limit = request.GET.get('limit', '5')  # Default to 5 records
+    
+    # Convert limit to int, handle 'all' case
+    try:
+        if limit.lower() == 'all':
+            limit_int = None
+        else:
+            limit_int = int(limit)
+    except:
+        limit_int = 5
+
+    # Build overdue loans list
+    officer_active_loans = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='active'
+    ).select_related('borrower', 'loan_officer').distinct()
+    
+    # Apply group filter
+    if officer_group_filter:
+        officer_active_loans = officer_active_loans.filter(
+            borrower__group_memberships__group_id=officer_group_filter,
+            borrower__group_memberships__is_active=True
+        )
+    
+    overdue_loans = []
+    for loan in officer_active_loans:
+        oldest = PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).order_by('due_date').first()
+        if oldest:
+            # Get borrower's group
+            membership = loan.borrower.group_memberships.filter(is_active=True).first()
+            group_name = membership.group.name if membership else 'No Group'
+            
+            overdue_loans.append({
+                'loan': loan,
+                'days_overdue': (today - oldest.due_date).days,
+                'balance': loan.balance_remaining or 0,
+                'group_name': group_name,
+            })
+    
+    # Always sort by days overdue (descending) - most overdue first
+    overdue_loans.sort(key=lambda x: -x['days_overdue'])
+    
+    # Store total count before limiting
+    total_overdue_count = len(overdue_loans)
+    
+    # Apply limit
+    if limit_int:
+        overdue_loans_limited = overdue_loans[:limit_int]
+    else:
+        overdue_loans_limited = overdue_loans
+    
+    context['overdue_loans'] = overdue_loans_limited
+    context['total_overdue_count'] = total_overdue_count
+    context['overdue_filters'] = {
+        'group': officer_group_filter,
+        'limit': limit,
+    }
+
     return render(request, 'dashboard/loan_officer_enhanced.html', context)
 
 
