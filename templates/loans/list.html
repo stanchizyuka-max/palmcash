@@ -102,7 +102,7 @@
         </div>
 
         <!-- Hierarchical Filters -->
-        {% if user.role in 'admin,manager,loan_officer' %}
+        {% if user.role == 'admin' or user.role == 'manager' or user.role == 'loan_officer' %}
         <div class="bg-white rounded-xl shadow-sm border border-secondary-100 p-4 mb-6">
             <form method="get" id="filterForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {% if user.role == 'admin' and branches %}
