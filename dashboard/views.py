@@ -352,7 +352,7 @@ def loan_officer_dashboard(request):
     context['apps_rejected'] = LoanApplication.objects.filter(loan_officer=officer, status='rejected').count()
 
     # 5. Default collections summary
-    from payments.models import DefaultCollection, DefaultProvision
+    from payments.models import DefaultCollection
     
     # Get loans with active default provisions (formally marked as defaulted)
     default_provisions = DefaultProvision.objects.filter(
