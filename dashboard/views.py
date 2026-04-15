@@ -6056,8 +6056,6 @@ def officer_processing_fees(request):
     search_query = request.GET.get('search', '').strip()
     status_filter = request.GET.get('status', '')
     group_filter = request.GET.get('group', '')
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
     
     # Base queryset - all applications by this officer with processing fees
     applications = LoanApplication.objects.filter(
@@ -6081,12 +6079,6 @@ def officer_processing_fees(request):
     
     if group_filter:
         applications = applications.filter(group_id=group_filter)
-    
-    if date_from:
-        applications = applications.filter(created_at__date__gte=date_from)
-    
-    if date_to:
-        applications = applications.filter(created_at__date__lte=date_to)
     
     # Get officer's groups for filter dropdown
     officer_groups = BorrowerGroup.objects.filter(
@@ -6117,8 +6109,6 @@ def officer_processing_fees(request):
         'search_query': search_query,
         'status_filter': status_filter,
         'group_filter': group_filter,
-        'date_from': date_from,
-        'date_to': date_to,
     }
     
     return render(request, 'dashboard/officer_processing_fees.html', context)
