@@ -228,7 +228,7 @@ def loans_hierarchical(request):
                 group_data[group_key]['group_name'] = group_name
                 if group:
                     group_data[group_key]['member_count'] = group.active_member_count
-                    group_data[group_key]['capacity'] = group.capacity or 0
+                    group_data[group_key]['capacity'] = group.max_members or 0
             
             group_data[group_key]['total_loans'] += 1
             group_data[group_key]['total_amount'] += loan.principal_amount or 0

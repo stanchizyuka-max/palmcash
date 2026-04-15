@@ -275,7 +275,8 @@ def client_detail(request, client_id):
 
         balance = (upfront + topups + adjustments + carry_fwd) - returned
 
-        # Transactions list for this loan        transactions = []
+        # Transactions list for this loan
+        transactions = []
 
         try:
             dep = loan.security_deposit
