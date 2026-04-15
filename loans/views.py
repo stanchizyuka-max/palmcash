@@ -18,25 +18,108 @@ class LoanListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         user = self.request.user
+        qs = Loan.objects.select_related('borrower', 'loan_officer', 'loan_officer__officer_assignment')
+        
+        # Base filtering by role
         if user.role == 'borrower':
-            return Loan.objects.filter(borrower=user)
-        if user.role == 'loan_officer':
+            qs = qs.filter(borrower=user)
+        elif user.role == 'loan_officer':
             from django.db.models import Q
-            return Loan.objects.filter(
+            qs = qs.filter(
                 Q(loan_officer=user) |
                 Q(borrower__group_memberships__group__assigned_officer=user)
             ).distinct()
-        if user.role == 'manager':
+        elif user.role == 'manager':
             try:
                 branch = user.managed_branch
-                from django.db.models import Q
                 # Only show loans where the loan officer is from this branch
-                return Loan.objects.filter(
+                qs = qs.filter(
                     loan_officer__officer_assignment__branch__iexact=branch.name
                 ).distinct()
             except Exception:
                 return Loan.objects.none()
-        return Loan.objects.all()  # admin sees all
+        # admin sees all
+        
+        # Apply hierarchical filters
+        branch_filter = self.request.GET.get('branch')
+        officer_filter = self.request.GET.get('officer')
+        group_filter = self.request.GET.get('group')
+        client_filter = self.request.GET.get('client')
+        
+        if branch_filter and user.role == 'admin':
+            qs = qs.filter(loan_officer__officer_assignment__branch=branch_filter)
+        
+        if officer_filter:
+            qs = qs.filter(loan_officer_id=officer_filter)
+        
+        if group_filter:
+            qs = qs.filter(
+                borrower__group_memberships__group_id=group_filter,
+                borrower__group_memberships__is_active=True
+            )
+        
+        if client_filter:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(borrower__first_name__icontains=client_filter) |
+                Q(borrower__last_name__icontains=client_filter) |
+                Q(application_number__icontains=client_filter)
+            )
+        
+        return qs.distinct().order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        from clients.models import Branch, BorrowerGroup
+        from accounts.models import User
+        
+        # Get filter options based on role
+        if user.role == 'admin':
+            context['branches'] = Branch.objects.filter(is_active=True).order_by('name')
+            context['officers'] = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
+        elif user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                context['officers'] = User.objects.filter(
+                    role='loan_officer',
+                    officer_assignment__branch=branch.name,
+                    is_active=True
+                ).order_by('first_name', 'last_name')
+            except:
+                context['officers'] = []
+        elif user.role == 'loan_officer':
+            # Loan officers don't need officer filter
+            pass
+        
+        # Groups available to all roles
+        if user.role == 'admin':
+            context['groups'] = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+        elif user.role == 'manager':
+            try:
+                branch = user.managed_branch
+                context['groups'] = BorrowerGroup.objects.filter(
+                    branch=branch.name,
+                    is_active=True
+                ).order_by('name')
+            except:
+                context['groups'] = []
+        elif user.role == 'loan_officer':
+            context['groups'] = BorrowerGroup.objects.filter(
+                assigned_officer=user,
+                is_active=True
+            ).order_by('name')
+        
+        # Store current filters
+        context['filters'] = {
+            'branch': self.request.GET.get('branch', ''),
+            'officer': self.request.GET.get('officer', ''),
+            'group': self.request.GET.get('group', ''),
+            'client': self.request.GET.get('client', ''),
+        }
+        
+        return context
 
 class LoanDetailView(LoginRequiredMixin, DetailView):
     model = Loan
