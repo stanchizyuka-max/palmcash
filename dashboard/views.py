@@ -1308,6 +1308,16 @@ def manager_dashboard(request):
     # Get filter parameters
     officer_filter = request.GET.get('officer', '')
     group_filter = request.GET.get('group', '')
+    limit = request.GET.get('limit', '5')  # Default to 5 records
+    
+    # Convert limit to int, handle 'all' case
+    try:
+        if limit.lower() == 'all':
+            limit_int = None
+        else:
+            limit_int = int(limit)
+    except:
+        limit_int = 5
 
     # 1. Overdue loans for this branch
     from payments.models import PaymentSchedule as PS
@@ -1326,16 +1336,35 @@ def manager_dashboard(request):
     for loan in active_branch_loans:
         oldest = PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).order_by('due_date').first()
         if oldest:
+            # Get borrower's group
+            membership = loan.borrower.group_memberships.filter(is_active=True).first()
+            group_name = membership.group.name if membership else 'No Group'
+            
             overdue_loans.append({
                 'loan': loan,
                 'days_overdue': (today - oldest.due_date).days,
                 'balance': loan.balance_remaining or 0,
+                'group_name': group_name,
             })
+    
+    # Always sort by days overdue (descending) - most overdue first
     overdue_loans.sort(key=lambda x: -x['days_overdue'])
-    context['overdue_loans'] = overdue_loans[:20]
+    
+    # Store total count before limiting
+    total_overdue_count = len(overdue_loans)
+    
+    # Apply limit
+    if limit_int:
+        overdue_loans_limited = overdue_loans[:limit_int]
+    else:
+        overdue_loans_limited = overdue_loans
+    
+    context['overdue_loans'] = overdue_loans_limited
+    context['total_overdue_count'] = total_overdue_count
     context['overdue_filters'] = {
         'officer': officer_filter,
         'group': group_filter,
+        'limit': limit,
     }
 
     # 2. Loans approaching maturity (next 30 days)
@@ -1380,6 +1409,109 @@ def manager_dashboard(request):
     context['pending_sec_txns_total'] = pending_sec_qs.count()
 
     return render(request, 'dashboard/manager_enhanced.html', context)
+
+
+@login_required
+def overdue_loans_full(request):
+    """Full page view of all overdue loans with pagination and advanced filters"""
+    user = request.user
+    
+    # Check if user is manager or admin
+    if user.role not in ['manager', 'admin']:
+        return render(request, 'dashboard/access_denied.html')
+    
+    from payments.models import PaymentSchedule as PS
+    from django.core.paginator import Paginator
+    from clients.models import BorrowerGroup
+    
+    # Get branch context for managers
+    if user.role == 'manager':
+        try:
+            branch = user.managed_branch
+            officers = User.objects.filter(
+                role='loan_officer',
+                officer_assignment__branch=branch.name,
+                is_active=True
+            ).order_by('first_name', 'last_name')
+            
+            # Get loans for this branch
+            loans = Loan.objects.filter(
+                status='active',
+                loan_officer__officer_assignment__branch=branch.name
+            ).select_related('borrower', 'loan_officer')
+            
+            groups = BorrowerGroup.objects.filter(
+                assigned_officer__officer_assignment__branch=branch.name,
+                is_active=True
+            ).order_by('name')
+        except:
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'You have not been assigned to a branch.'
+            })
+    else:  # admin
+        officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
+        loans = Loan.objects.filter(status='active').select_related('borrower', 'loan_officer')
+        groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+    
+    # Get filter parameters
+    officer_filter = request.GET.get('officer', '')
+    group_filter = request.GET.get('group', '')
+    search = request.GET.get('search', '').strip()
+    
+    # Apply filters
+    if officer_filter:
+        loans = loans.filter(loan_officer_id=officer_filter)
+        # Filter groups by selected officer
+        groups = groups.filter(assigned_officer_id=officer_filter)
+    if group_filter:
+        loans = loans.filter(
+            borrower__group_memberships__group_id=group_filter,
+            borrower__group_memberships__is_active=True
+        )
+    if search:
+        loans = loans.filter(
+            Q(application_number__icontains=search) |
+            Q(borrower__first_name__icontains=search) |
+            Q(borrower__last_name__icontains=search)
+        )
+    
+    # Build overdue loans list
+    today = date.today()
+    overdue_loans = []
+    
+    for loan in loans:
+        oldest = PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).order_by('due_date').first()
+        if oldest:
+            # Get borrower's group
+            membership = loan.borrower.group_memberships.filter(is_active=True).first()
+            group_name = membership.group.name if membership else 'No Group'
+            
+            overdue_loans.append({
+                'loan': loan,
+                'days_overdue': (today - oldest.due_date).days,
+                'balance': loan.balance_remaining or 0,
+                'group_name': group_name,
+            })
+    
+    # Always sort by days overdue (descending) - most overdue first
+    overdue_loans.sort(key=lambda x: -x['days_overdue'])
+    
+    # Pagination
+    paginator = Paginator(overdue_loans, 50)  # 50 per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'dashboard/overdue_loans_full.html', {
+        'page_obj': page_obj,
+        'total_count': len(overdue_loans),
+        'officers': officers,
+        'groups': groups,
+        'filters': {
+            'officer': officer_filter,
+            'group': group_filter,
+            'search': search,
+        },
+    })
 
 
 @login_required

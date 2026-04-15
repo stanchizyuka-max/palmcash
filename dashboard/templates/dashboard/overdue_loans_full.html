@@ -1,0 +1,192 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}All Overdue Loans{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4">
+        
+        <!-- Header -->
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                    All Overdue Loans
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">Complete list of loans past their due date</p>
+            </div>
+            <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
+                <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-600 font-medium">Total Overdue Loans</p>
+                    <p class="text-3xl font-bold text-red-600 mt-1">{{ total_count }}</p>
+                </div>
+                <div class="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <form method="get" class="flex flex-wrap gap-3 items-end">
+                <div class="flex flex-col gap-1 min-w-[180px]">
+                    <label class="text-xs font-semibold text-slate-600 uppercase">Loan Officer</label>
+                    <select name="officer" onchange="this.form.submit()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">All Officers</option>
+                        {% for officer in officers %}
+                        <option value="{{ officer.id }}" {% if filters.officer == officer.id|stringformat:"s" %}selected{% endif %}>
+                            {{ officer.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[180px]">
+                    <label class="text-xs font-semibold text-slate-600 uppercase">Group</label>
+                    <select name="group" onchange="this.form.submit()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="">All Groups</option>
+                        {% for group in groups %}
+                        <option value="{{ group.id }}" {% if filters.group == group.id|stringformat:"s" %}selected{% endif %}>
+                            {{ group.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+                    <label class="text-xs font-semibold text-slate-600 uppercase">Search Client/Loan</label>
+                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Name or loan number..."
+                        class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <a href="{% url 'dashboard:overdue_loans_full' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Info -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 flex items-center justify-between text-sm">
+            <div>
+                <span class="text-slate-500">Showing</span>
+                <span class="font-bold text-slate-900">{{ page_obj.start_index }}-{{ page_obj.end_index }}</span>
+                <span class="text-slate-500">of</span>
+                <span class="font-bold text-slate-900">{{ total_count }}</span>
+                <span class="text-slate-500">overdue loans</span>
+            </div>
+            <div class="text-slate-500">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+        </div>
+
+        <!-- Overdue Loans Table -->
+        {% if page_obj %}
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Loan ID</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Borrower Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Group Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Loan Officer</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-white uppercase">Days Overdue</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-white uppercase">Outstanding Balance</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-white uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for entry in page_obj %}
+                    <tr class="hover:bg-red-50 transition-colors">
+                        <td class="px-4 py-3 font-mono font-semibold text-blue-600">
+                            {{ entry.loan.application_number }}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-900">
+                            {{ entry.loan.borrower.get_full_name }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-700">
+                            {% if entry.group_name == 'No Group' %}
+                                <span class="text-slate-400 italic">No Group</span>
+                            {% else %}
+                                <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                                    {{ entry.group_name }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-600">
+                            {{ entry.loan.loan_officer.get_full_name|default:"—" }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
+                                {% if entry.days_overdue >= 30 %}bg-red-100 text-red-800
+                                {% elif entry.days_overdue >= 7 %}bg-orange-100 text-orange-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ entry.days_overdue }} days
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-900">
+                            K{{ entry.balance|floatformat:2|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <a href="{% url 'loans:detail' entry.loan.pk %}" 
+                               class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="mt-6 flex items-center justify-center gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if filters.officer %}&officer={{ filters.officer }}{% endif %}{% if filters.group %}&group={{ filters.group }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if filters.officer %}&officer={{ filters.officer }}{% endif %}{% if filters.group %}&group={{ filters.group }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">
+                <i class="fas fa-angle-left"></i>
+            </a>
+            {% endif %}
+
+            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">
+                {{ page_obj.number }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if filters.officer %}&officer={{ filters.officer }}{% endif %}{% if filters.group %}&group={{ filters.group }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if filters.officer %}&officer={{ filters.officer }}{% endif %}{% if filters.group %}&group={{ filters.group }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm hover:bg-slate-50">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
+            <i class="fas fa-check-circle text-5xl mb-4 text-green-500"></i>
+            <p class="text-lg font-semibold">No overdue loans found</p>
+            <p class="text-sm mt-2">All loans are up to date with their payments.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

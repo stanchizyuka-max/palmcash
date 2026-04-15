@@ -18,6 +18,7 @@ urlpatterns = [
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
     path('loan-officer/document-verification/', views.loan_officer_document_verification, name='loan_officer_document_verification'),
+    path('overdue-loans/', views.overdue_loans_full, name='overdue_loans_full'),
     
     # Action URLs
     path('pending-approvals/', views.pending_approvals, name='pending_approvals'),
