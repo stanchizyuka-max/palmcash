@@ -352,18 +352,18 @@ def loan_officer_dashboard(request):
     context['apps_rejected'] = LoanApplication.objects.filter(loan_officer=officer, status='rejected').count()
 
     # 5. Default collections summary
-    from payments.models import DefaultCollection, PaymentSchedule as PS
+    from payments.models import DefaultCollection, DefaultProvision
     
-    # Get loans with at least one overdue payment
-    loans_with_overdue = set()
-    for loan in Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+    # Get loans with active default provisions (formally marked as defaulted)
+    default_provisions = DefaultProvision.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         status='active'
-    ).distinct():
-        if PS.objects.filter(loan=loan, is_paid=False, due_date__lt=today).exists():
-            loans_with_overdue.add(loan.id)
+    ).select_related('loan').distinct()
     
-    default_loans = Loan.objects.filter(id__in=loans_with_overdue)
+    # Get unique defaulted loans
+    defaulted_loan_ids = default_provisions.values_list('loan_id', flat=True).distinct()
+    default_loans = Loan.objects.filter(id__in=defaulted_loan_ids)
+    
     context['default_loans_count'] = default_loans.count()
     context['default_total_outstanding'] = default_loans.aggregate(
         t=Sum('balance_remaining')
