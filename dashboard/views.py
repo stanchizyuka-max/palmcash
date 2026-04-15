@@ -6035,3 +6035,87 @@ def officer_activity(request):
             'last_login': officer.last_login,
         })
     return render(request, 'dashboard/officer_activity.html', {'rows': rows})
+
+
+@login_required
+def officer_processing_fees(request):
+    """View for loan officers to review verified processing fees with search filters."""
+    if request.user.role != 'loan_officer':
+        messages.error(request, "Access denied. This page is for loan officers only.")
+        return redirect('dashboard:dashboard')
+    
+    from loans.models import LoanApplication
+    from django.core.paginator import Paginator
+    
+    officer = request.user
+    
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '')
+    group_filter = request.GET.get('group', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Base queryset - all applications by this officer with processing fees
+    applications = LoanApplication.objects.filter(
+        loan_officer=officer,
+        processing_fee__gt=0
+    ).select_related('borrower', 'group', 'processing_fee_verified_by').order_by('-created_at')
+    
+    # Apply filters
+    if search_query:
+        applications = applications.filter(
+            Q(application_number__icontains=search_query) |
+            Q(borrower__first_name__icontains=search_query) |
+            Q(borrower__last_name__icontains=search_query) |
+            Q(borrower__email__icontains=search_query)
+        )
+    
+    if status_filter == 'verified':
+        applications = applications.filter(processing_fee_verified=True)
+    elif status_filter == 'pending':
+        applications = applications.filter(processing_fee_verified=False)
+    
+    if group_filter:
+        applications = applications.filter(group_id=group_filter)
+    
+    if date_from:
+        applications = applications.filter(created_at__date__gte=date_from)
+    
+    if date_to:
+        applications = applications.filter(created_at__date__lte=date_to)
+    
+    # Get officer's groups for filter dropdown
+    officer_groups = BorrowerGroup.objects.filter(
+        assigned_officer=officer
+    ).order_by('name')
+    
+    # Pagination
+    paginator = Paginator(applications, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Summary counts
+    total_count = applications.count()
+    verified_count = applications.filter(processing_fee_verified=True).count()
+    pending_count = applications.filter(processing_fee_verified=False).count()
+    total_fees = applications.aggregate(t=Sum('processing_fee'))['t'] or 0
+    verified_fees = applications.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
+    
+    context = {
+        'page_obj': page_obj,
+        'officer_groups': officer_groups,
+        'total_count': total_count,
+        'verified_count': verified_count,
+        'pending_count': pending_count,
+        'total_fees': total_fees,
+        'verified_fees': verified_fees,
+        # Preserve filters
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'group_filter': group_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+    
+    return render(request, 'dashboard/officer_processing_fees.html', context)

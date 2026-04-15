@@ -13,6 +13,7 @@ urlpatterns = [
     path('loan-officer/', views.loan_officer_dashboard, name='loan_officer_dashboard'),
     path('loan-officer/performance/', views.officer_performance_report, name='officer_performance_report'),
     path('loan-officer/applications/', views.officer_applications, name='officer_applications'),
+    path('loan-officer/processing-fees/', views.officer_processing_fees, name='officer_processing_fees'),
     path('manager/performance/', views.manager_performance_report, name='manager_performance_report'),
     path('admin/performance/', views.admin_performance_report, name='admin_performance_report'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
