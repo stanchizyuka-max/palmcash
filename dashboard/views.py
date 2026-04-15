@@ -4374,6 +4374,11 @@ def admin_all_loans(request):
             Q(borrower__group_memberships__group__branch=branch_filter)
         ).distinct()
     
+    # Filter by loan officer
+    officer_filter = request.GET.get('officer')
+    if officer_filter:
+        loans = loans.filter(loan_officer_id=officer_filter)
+    
     # Filter by status
     status_filter = request.GET.get('status')
     if status_filter:
@@ -4418,8 +4423,9 @@ def admin_all_loans(request):
             'group': membership.group if membership else None,
         })
     
-    # Get branches and statuses for filters
+    # Get branches, officers and statuses for filters
     branches = Branch.objects.filter(is_active=True).order_by('name')
+    officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
     statuses = Loan._meta.get_field('status').choices
     
     context = {
@@ -4430,12 +4436,14 @@ def admin_all_loans(request):
         'total_amount': total_amount,
         'search_query': search_query,
         'branch_filter': branch_filter,
+        'officer_filter': officer_filter,
         'status_filter': status_filter,
         'start_date': start_date,
         'end_date': end_date,
         'min_amount': min_amount,
         'max_amount': max_amount,
         'branches': branches,
+        'officers': officers,
         'statuses': statuses,
     }
     
@@ -5092,6 +5100,11 @@ def branch_comparison(request):
         total_disbursed = branch_loans.filter(
             status__in=['active', 'completed']
         ).aggregate(total=Sum('principal_amount'))['total'] or 0
+        
+        # Calculate total outstanding balance for active loans
+        total_outstanding = branch_loans.filter(
+            status='active'
+        ).aggregate(total=Sum('balance_remaining'))['total'] or 0
 
         completed_collections = PaymentCollection.objects.filter(
             loan__loan_officer__officer_assignment__branch=branch.name,
@@ -5126,6 +5139,7 @@ def branch_comparison(request):
             'clients_count': clients_count,
             'active_loans': active_loans,
             'total_disbursed': total_disbursed,
+            'total_outstanding': total_outstanding,
             'total_repaid': total_repaid,
             'collection_rate': collection_rate,
             'vault_balance': vault_balance,

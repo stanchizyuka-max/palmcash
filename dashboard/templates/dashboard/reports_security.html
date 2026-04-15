@@ -15,7 +15,7 @@
 
     <!-- Filters -->
     <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="From">
         <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="To">
         <select name="type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
@@ -30,6 +30,10 @@
           {% for b in branches %}<option value="{{ b.name }}" {% if filters.branch == b.name %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
         </select>
         {% endif %}
+        <select name="officer" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Officers</option>
+          {% for o in officers %}<option value="{{ o.id }}" {% if filters.officer == o.id|stringformat:"s" %}selected{% endif %}>{{ o.get_full_name }}</option>{% endfor %}
+        </select>
         <select name="group" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
           <option value="">All Groups</option>
           {% for g in groups %}<option value="{{ g.id }}" {% if filters.group == g.id|stringformat:"s" %}selected{% endif %}>{{ g.name }}</option>{% endfor %}
