@@ -1558,7 +1558,7 @@ class HistoryHubView(LoginRequiredMixin, View):
         client_breakdown = []
         breakdown_client_ids = None
 
-        if breakdown and (selected_officer or selected_group):
+        if breakdown:
             if selected_group:
                 breakdown_client_ids = _User.objects.filter(
                     group_memberships__group=selected_group,
@@ -1567,6 +1567,12 @@ class HistoryHubView(LoginRequiredMixin, View):
             elif selected_officer:
                 breakdown_client_ids = _User.objects.filter(
                     group_memberships__group__assigned_officer=selected_officer,
+                    group_memberships__is_active=True, role='borrower',
+                ).values_list('pk', flat=True).distinct()
+            else:
+                # Branch level - get all clients for branch officers
+                breakdown_client_ids = _User.objects.filter(
+                    group_memberships__group__assigned_officer__in=branch_officers,
                     group_memberships__is_active=True, role='borrower',
                 ).values_list('pk', flat=True).distinct()
 
