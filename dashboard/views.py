@@ -2094,6 +2094,12 @@ def manage_officers(request):
                 officer.save(update_fields=['is_active'])
                 messages.warning(request, f'{officer.get_full_name()} deactivated.')
 
+            elif action == 'delete' and user.role == 'admin':
+                # Only admins can delete users
+                officer_name = officer.get_full_name()
+                officer.delete()
+                messages.success(request, f'{officer_name} has been permanently deleted.')
+
             return redirect('dashboard:manage_officers')
 
         pending_officers = User.objects.filter(
@@ -2108,7 +2114,36 @@ def manage_officers(request):
 
     elif user.role == 'admin':
         if request.method == 'POST':
+            action = request.POST.get('action')
+            officer_id = request.POST.get('officer_id')
+            officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
+
+            if action == 'approve':
+                from django.utils import timezone as tz
+                officer.is_active = True
+                officer.is_approved = True
+                officer.approved_by = user
+                officer.approved_at = tz.now()
+                officer.save(update_fields=['is_active', 'is_approved', 'approved_by', 'approved_at'])
+                messages.success(request, f'{officer.get_full_name()} approved.')
+
+            elif action == 'reject':
+                officer.is_active = False
+                officer.save(update_fields=['is_active'])
+                messages.warning(request, f'{officer.get_full_name()} rejected.')
+
+            elif action == 'deactivate':
+                officer.is_active = False
+                officer.save(update_fields=['is_active'])
+                messages.warning(request, f'{officer.get_full_name()} deactivated.')
+
+            elif action == 'delete':
+                officer_name = officer.get_full_name()
+                officer.delete()
+                messages.success(request, f'{officer_name} has been permanently deleted.')
+
             return redirect('dashboard:manage_officers')
+            
         pending_officers = User.objects.filter(role='loan_officer', is_approved=False).order_by('date_joined')
         active_officers = User.objects.filter(role='loan_officer', is_approved=True).order_by('first_name', 'last_name')
         branch = None
