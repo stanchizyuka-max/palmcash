@@ -44,17 +44,18 @@ class GroupListView(LoginRequiredMixin, ListView):
         elif self.request.user.role == 'manager':
             try:
                 manager_branch = self.request.user.managed_branch.name
-                queryset = queryset.filter(branch=manager_branch)
+                # Manager sees groups from officers in their branch
+                queryset = queryset.filter(assigned_officer__officer_assignment__branch__iexact=manager_branch)
             except:
                 queryset = BorrowerGroup.objects.none()
         
         # Apply filters
-        branch_filter = self.request.GET.get('branch', '')
+        officer_filter = self.request.GET.get('officer', '')
         search_filter = self.request.GET.get('search', '')
         status_filter = self.request.GET.get('status', '')
         
-        if branch_filter:
-            queryset = queryset.filter(branch__icontains=branch_filter)
+        if officer_filter:
+            queryset = queryset.filter(assigned_officer_id=officer_filter)
         
         if search_filter:
             queryset = queryset.filter(
@@ -97,7 +98,27 @@ class GroupListView(LoginRequiredMixin, ListView):
         context['total_groups'] = self.get_queryset().count()
         context['active_groups'] = self.get_queryset().filter(is_active=True).count()
         context['current_sort'] = self.request.GET.get('sort', '-capacity_percentage')
-        context['branch_filter'] = self.request.GET.get('branch', '')
+        context['officer_filter'] = self.request.GET.get('officer', '')
+        
+        # Get officers for filter dropdown based on user role
+        from accounts.models import User
+        if self.request.user.role == 'manager':
+            try:
+                manager_branch = self.request.user.managed_branch.name
+                context['officers'] = User.objects.filter(
+                    role='loan_officer',
+                    officer_assignment__branch__iexact=manager_branch,
+                    is_active=True
+                ).order_by('first_name', 'last_name')
+            except:
+                context['officers'] = User.objects.none()
+        elif self.request.user.role == 'admin':
+            context['officers'] = User.objects.filter(
+                role='loan_officer',
+                is_active=True
+            ).order_by('first_name', 'last_name')
+        else:
+            context['officers'] = User.objects.none()
         context['search_filter'] = self.request.GET.get('search', '')
         context['status_filter'] = self.request.GET.get('status', '')
         
