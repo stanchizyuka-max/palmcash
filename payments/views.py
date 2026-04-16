@@ -948,7 +948,7 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
         import datetime
         today = datetime.date.today()
         borrowers = [m.borrower for m in group.members.filter(is_active=True)]
-        return Loan.objects.filter(
+        loans = Loan.objects.filter(
             borrower__in=borrowers,
             status='active',
             balance_remaining__gt=0,
@@ -956,6 +956,19 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
             payment_schedule__is_paid=False,
             payment_schedule__due_date__lt=today,
         ).distinct().select_related('borrower')
+        
+        # Calculate overdue amount for each loan
+        for loan in loans:
+            overdue_schedules = loan.payment_schedule.filter(
+                is_paid=False,
+                due_date__lt=today
+            )
+            loan.overdue_amount = sum(
+                (schedule.total_amount - schedule.amount_paid) 
+                for schedule in overdue_schedules
+            )
+        
+        return loans
 
     def get(self, request, group_id):
         from clients.models import BorrowerGroup

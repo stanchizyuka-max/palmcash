@@ -5842,8 +5842,9 @@ def manager_processing_fees(request):
     if request.user.role not in ['manager', 'admin'] and not request.user.is_superuser:
         return render(request, 'dashboard/access_denied.html')
     from loans.models import LoanApplication
-    from django.db.models import Sum
+    from django.db.models import Sum, Q
     from datetime import date
+    from clients.models import BorrowerGroup
 
     try:
         branch = request.user.managed_branch
@@ -5851,6 +5852,13 @@ def manager_processing_fees(request):
             branch = None
     except Exception:
         branch = None
+
+    # Get filter parameters
+    search_query = request.GET.get('search', '').strip()
+    officer_filter = request.GET.get('officer', '')
+    group_filter = request.GET.get('group', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
 
     if request.user.role == 'admin' or request.user.is_superuser:
         apps = LoanApplication.objects.filter(
@@ -5865,7 +5873,56 @@ def manager_processing_fees(request):
     else:
         apps = LoanApplication.objects.none()
 
-    apps = apps.select_related('borrower', 'loan_officer', 'processing_fee_verified_by')
+    apps = apps.select_related('borrower', 'loan_officer', 'processing_fee_verified_by', 'group')
+
+    # Apply filters
+    if search_query:
+        apps = apps.filter(
+            Q(application_number__icontains=search_query) |
+            Q(borrower__first_name__icontains=search_query) |
+            Q(borrower__last_name__icontains=search_query) |
+            Q(borrower__email__icontains=search_query)
+        )
+    
+    if officer_filter:
+        apps = apps.filter(loan_officer_id=officer_filter)
+    
+    if group_filter:
+        apps = apps.filter(group_id=group_filter)
+    
+    if date_from:
+        apps = apps.filter(created_at__date__gte=date_from)
+    
+    if date_to:
+        apps = apps.filter(created_at__date__lte=date_to)
+
+    # Get officers for filter dropdown
+    from accounts.models import User as _User
+    if branch:
+        officers = _User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch__iexact=branch.name,
+            is_active=True
+        ).order_by('first_name', 'last_name')
+    else:
+        officers = _User.objects.filter(
+            role='loan_officer',
+            is_active=True
+        ).order_by('first_name', 'last_name')
+
+    # Get groups for filter dropdown
+    if officer_filter:
+        groups = BorrowerGroup.objects.filter(
+            assigned_officer_id=officer_filter,
+            is_active=True
+        ).order_by('name')
+    elif branch:
+        groups = BorrowerGroup.objects.filter(
+            assigned_officer__officer_assignment__branch__iexact=branch.name,
+            is_active=True
+        ).order_by('name')
+    else:
+        groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
 
     total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
     verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
@@ -5879,11 +5936,10 @@ def manager_processing_fees(request):
     ).aggregate(t=Sum('processing_fee'))['t'] or 0
 
     officer_fees = []
-    from accounts.models import User as _User
-    officers = _User.objects.filter(
+    officers_with_apps = _User.objects.filter(
         submitted_loan_applications__in=apps
     ).distinct()
-    for officer in officers:
+    for officer in officers_with_apps:
         oa = apps.filter(loan_officer=officer)
         officer_fees.append({
             'officer': officer,
@@ -5902,6 +5958,15 @@ def manager_processing_fees(request):
         'pending_fees': pending_fees,
         'this_month': this_month,
         'officer_fees': officer_fees,
+        'officers': officers,
+        'groups': groups,
+        'filters': {
+            'search': search_query,
+            'officer': officer_filter,
+            'group': group_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+        },
     })
 
 

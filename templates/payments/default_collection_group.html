@@ -37,18 +37,18 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
               {% for loan in loans %}
-              <tr class="hover:bg-slate-50" data-balance="{{ loan.balance_remaining }}">
+              <tr class="hover:bg-slate-50" data-balance="{{ loan.overdue_amount }}">
                 <td class="px-4 py-3 font-mono font-semibold text-slate-700 text-xs">
                   <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline">{{ loan.application_number }}</a>
                 </td>
                 <td class="px-4 py-3 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
-                <td class="px-4 py-3 font-bold text-red-700">K{{ loan.balance_remaining|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 font-bold text-red-700">K{{ loan.overdue_amount|floatformat:2|intcomma }}</td>
                 <td class="px-4 py-3">
                   <input type="number" name="amount_{{ loan.pk }}"
                     step="0.01" min="0"
-                    placeholder="{{ loan.balance_remaining|floatformat:2 }}"
+                    placeholder="{{ loan.overdue_amount|floatformat:2 }}"
                     class="dc-amount w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    data-balance="{{ loan.balance_remaining }}"
+                    data-balance="{{ loan.overdue_amount }}"
                     oninput="updateDCRow(this)">
                 </td>
                 <td class="px-4 py-3">
@@ -58,7 +58,7 @@
                     <option value="bank_transfer">Bank Transfer</option>
                   </select>
                 </td>
-                <td class="px-4 py-3 font-semibold remaining-cell text-slate-700">K{{ loan.balance_remaining|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 font-semibold remaining-cell text-slate-700">K{{ loan.overdue_amount|floatformat:2|intcomma }}</td>
                 <td class="px-4 py-3">
                   <span class="dc-status px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Defaulted</span>
                 </td>
