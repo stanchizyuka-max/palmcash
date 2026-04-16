@@ -204,6 +204,7 @@ def payments_hierarchical(request):
             'member_count': 0,
             'capacity': 0,
             'total_payments': 0,
+            'pending_payments': 0,
             'total_amount': 0,
         })
         
@@ -226,16 +227,22 @@ def payments_hierarchical(request):
             
             group_data[group_key]['total_payments'] += 1
             group_data[group_key]['total_amount'] += payment.amount or 0
+            
+            # Count pending payments
+            if payment.status == 'pending':
+                group_data[group_key]['pending_payments'] += 1
         
         data_list = sorted(group_data.values(), key=lambda x: x['group_name'])
         grand_total_payments = sum(g['total_payments'] for g in data_list)
         grand_total_amount = sum(g['total_amount'] for g in data_list)
+        grand_total_pending = sum(g['pending_payments'] for g in data_list)
         
         return render(request, 'payments/hierarchical.html', {
             'view_level': 'group',
             'data_list': data_list,
             'grand_total_payments': grand_total_payments,
             'grand_total_amount': grand_total_amount,
+            'grand_total_pending': grand_total_pending,
             'breadcrumbs': breadcrumbs,
             'officer_id': officer_id,
         })

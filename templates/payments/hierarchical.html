@@ -41,7 +41,7 @@
         {% endif %}
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
                 <div class="flex items-center justify-between">
                     <div>
@@ -65,6 +65,23 @@
                     </div>
                 </div>
             </div>
+
+            {% if view_level == 'group' and grand_total_pending %}
+            <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow-lg border-2 border-amber-400 p-5 animate-pulse">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-amber-100 font-medium">Pending Approvals</p>
+                        <p class="text-2xl font-bold text-white mt-1">{{ grand_total_pending }}</p>
+                        <a href="{% url 'payments:list_legacy' %}?status=pending" class="text-xs text-amber-100 hover:text-white underline mt-1 inline-block">
+                            <i class="fas fa-arrow-right mr-1"></i>Review Now
+                        </a>
+                    </div>
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-white text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Data Table -->
@@ -86,6 +103,9 @@
                                 <th class="px-6 py-4 text-center text-xs font-semibold text-white uppercase">Members</th>
                                 <th class="px-6 py-4 text-center text-xs font-semibold text-white uppercase">Capacity</th>
                                 <th class="px-6 py-4 text-right text-xs font-semibold text-white uppercase">Total Payments</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-white uppercase bg-amber-600">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Pending Payments
+                                </th>
                                 <th class="px-6 py-4 text-right text-xs font-semibold text-white uppercase">Total Amount</th>
                             {% elif view_level == 'client' %}
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-white uppercase">Client Name</th>
@@ -200,9 +220,21 @@
                                         <span class="text-xs text-slate-400">No limit</span>
                                     {% endif %}
                                 </td>
-                                {% endif %}
+                                <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-slate-900">{{ item.total_payments }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right font-bold {% if item.pending_payments > 0 %}bg-amber-50 text-amber-700{% else %}text-slate-500{% endif %}">
+                                    {% if item.pending_payments > 0 %}
+                                        <span class="inline-flex items-center px-2 py-1 bg-amber-500 text-white rounded-full text-xs font-bold">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>{{ item.pending_payments }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-slate-400">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-600">K{{ item.total_amount|floatformat:0|intcomma }}</td>
+                                {% else %}
                                 <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-slate-900">{{ item.total_payments }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-600">K{{ item.total_amount|floatformat:0|intcomma }}</td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         {% endif %}
@@ -214,6 +246,18 @@
                             <td class="px-6 py-4 text-right font-bold text-slate-900">{{ grand_total_payments }}</td>
                             <td class="px-6 py-4 text-right font-bold text-green-600">K{{ grand_total_amount|floatformat:0|intcomma }}</td>
                             <td class="px-6 py-4"></td>
+                            {% elif view_level == 'group' %}
+                            <td class="px-6 py-4 text-right font-bold text-slate-900">{{ grand_total_payments }}</td>
+                            <td class="px-6 py-4 text-right font-bold bg-amber-50">
+                                {% if grand_total_pending > 0 %}
+                                    <span class="inline-flex items-center px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-bold">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>{{ grand_total_pending }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-slate-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right font-bold text-green-600">K{{ grand_total_amount|floatformat:0|intcomma }}</td>
                             {% else %}
                             <td class="px-6 py-4 text-right font-bold text-slate-900">{{ grand_total_payments }}</td>
                             <td class="px-6 py-4 text-right font-bold text-green-600">K{{ grand_total_amount|floatformat:0|intcomma }}</td>

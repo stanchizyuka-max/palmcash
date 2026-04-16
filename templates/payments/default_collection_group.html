@@ -29,9 +29,9 @@
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Loan</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Client</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Balance Due</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Remaining Balance</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase w-36">Amount Paid</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase w-32">Method</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Remaining</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-red-700 uppercase">Status</th>
               </tr>
             </thead>
@@ -43,6 +43,7 @@
                 </td>
                 <td class="px-4 py-3 font-medium text-slate-900">{{ loan.borrower.get_full_name }}</td>
                 <td class="px-4 py-3 font-bold text-red-700">K{{ loan.overdue_amount|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 font-semibold text-slate-700">K{{ loan.balance_remaining|floatformat:2|intcomma }}</td>
                 <td class="px-4 py-3">
                   <input type="number" name="amount_{{ loan.pk }}"
                     step="0.01" min="0"
@@ -58,7 +59,6 @@
                     <option value="bank_transfer">Bank Transfer</option>
                   </select>
                 </td>
-                <td class="px-4 py-3 font-semibold remaining-cell text-slate-700">K{{ loan.overdue_amount|floatformat:2|intcomma }}</td>
                 <td class="px-4 py-3">
                   <span class="dc-status px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Defaulted</span>
                 </td>
@@ -90,9 +90,6 @@ function updateDCRow(input) {
   const row = input.closest('tr');
   const balance = parseFloat(input.dataset.balance) || 0;
   const paid = parseFloat(input.value) || 0;
-  const remaining = Math.max(0, balance - paid);
-
-  row.querySelector('.remaining-cell').textContent = 'K' + remaining.toFixed(2);
 
   const badge = row.querySelector('.dc-status');
   badge.className = 'dc-status px-2 py-0.5 rounded-full text-xs font-semibold';

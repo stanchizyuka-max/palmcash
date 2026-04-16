@@ -7,6 +7,26 @@
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-slate-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Admin Viewing Banner -->
+        {% if viewing_as_admin %}
+        <div class="mb-6 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 border-2 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-shield text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Admin View Mode</h3>
+                        <p class="text-blue-100 text-sm">You are viewing {{ manager.get_full_name }}'s dashboard for {{ branch.name }}. You can perform all manager operations.</p>
+                    </div>
+                </div>
+                <a href="{% url 'dashboard:admin_manager_view' %}" class="px-4 py-2 bg-white text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-50 transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Branch Selection
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
