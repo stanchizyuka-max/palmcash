@@ -52,6 +52,7 @@ class GroupListView(LoginRequiredMixin, ListView):
         # Apply filters
         branch_filter = self.request.GET.get('branch', '')
         officer_filter = self.request.GET.get('officer', '')
+        group_filter = self.request.GET.get('group', '')
         search_filter = self.request.GET.get('search', '')
         status_filter = self.request.GET.get('status', '')
         
@@ -60,6 +61,9 @@ class GroupListView(LoginRequiredMixin, ListView):
         
         if officer_filter:
             queryset = queryset.filter(assigned_officer_id=officer_filter)
+        
+        if group_filter:
+            queryset = queryset.filter(id=group_filter)
         
         if search_filter:
             queryset = queryset.filter(
@@ -104,6 +108,7 @@ class GroupListView(LoginRequiredMixin, ListView):
         context['current_sort'] = self.request.GET.get('sort', '-capacity_percentage')
         context['branch_filter'] = self.request.GET.get('branch', '')
         context['officer_filter'] = self.request.GET.get('officer', '')
+        context['group_filter'] = self.request.GET.get('group', '')
         
         # Get officers for filter dropdown based on user role
         from accounts.models import User
@@ -129,6 +134,13 @@ class GroupListView(LoginRequiredMixin, ListView):
         
         # Get unique branches for filter dropdown
         context['branches'] = BorrowerGroup.objects.values_list('branch', flat=True).distinct().order_by('branch')
+        
+        # Get groups for filter dropdown (for loan officers)
+        if self.request.user.role == 'loan_officer':
+            context['all_groups'] = BorrowerGroup.objects.filter(
+                assigned_officer=self.request.user,
+                is_active=True
+            ).order_by('name')
         
         return context
 
