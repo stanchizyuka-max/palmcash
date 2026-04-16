@@ -193,7 +193,7 @@
                         <i class="fas fa-bell text-amber-600 text-sm"></i>
                     </div>
                     <div class="flex-1">
-                        <p class="font-semibold text-slate-900 text-sm">{{ notif.subject|default:notif.template.name }}</p>
+                        <p class="font-semibold text-slate-900 text-sm">{{ notif.subject|default:"Notification" }}</p>
                         <p class="text-xs text-slate-600 mt-1">{{ notif.message|truncatewords:15 }}</p>
                         <div class="flex items-center gap-3 mt-1">
                             <span class="text-xs text-slate-400">{{ notif.created_at|timesince }} ago</span>
