@@ -6496,28 +6496,28 @@ def view_officer_dashboard(request, officer_id):
         Q(loan__loan_officer=officer) | 
         Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         transaction_type='return',
-        is_approved=False
+        status='pending'
     ).distinct().count()
     
     pending_sec_adjustments = SecurityTransaction.objects.filter(
         Q(loan__loan_officer=officer) |
         Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         transaction_type='adjustment',
-        is_approved=False
+        status='pending'
     ).distinct().count()
     
     pending_sec_topups = SecurityTransaction.objects.filter(
         Q(loan__loan_officer=officer) |
         Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         transaction_type='top_up',
-        is_approved=False
+        status='pending'
     ).distinct().count()
     
     pending_sec_withdrawals = SecurityTransaction.objects.filter(
         Q(loan__loan_officer=officer) |
         Q(loan__borrower__group_memberships__group__assigned_officer=officer),
         transaction_type='withdrawal',
-        is_approved=False
+        status='pending'
     ).distinct().count()
     
     # Clients expected to pay today
