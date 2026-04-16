@@ -414,6 +414,21 @@ def loan_officer_dashboard(request):
         updated_at__date__gte=month_start,
     ).distinct().count()
 
+    # Get notifications for loan officer
+    from notifications.models import Notification
+    unread_notifications = Notification.objects.filter(
+        recipient=officer,
+        status__in=['pending', 'sent', 'delivered']
+    ).order_by('-created_at')[:10]
+    
+    unread_count = Notification.objects.filter(
+        recipient=officer,
+        status__in=['pending', 'sent', 'delivered']
+    ).count()
+    
+    context['unread_notifications'] = unread_notifications
+    context['unread_notifications_count'] = unread_count
+
     # Get filter parameters for overdue loans
     officer_group_filter = request.GET.get('group', '')
     limit = request.GET.get('limit', '5')  # Default to 5 records
@@ -1475,6 +1490,21 @@ def manager_dashboard(request):
     context['pending_carry_forwards'] = pending_sec_qs.filter(transaction_type='carry_forward').count()
     context['pending_sec_txns_total'] = pending_sec_qs.count()
 
+    # Get notifications for manager
+    from notifications.models import Notification
+    unread_notifications = Notification.objects.filter(
+        recipient=manager,
+        status__in=['pending', 'sent', 'delivered']
+    ).order_by('-created_at')[:10]
+    
+    unread_count = Notification.objects.filter(
+        recipient=manager,
+        status__in=['pending', 'sent', 'delivered']
+    ).count()
+    
+    context['unread_notifications'] = unread_notifications
+    context['unread_notifications_count'] = unread_count
+
     return render(request, 'dashboard/manager_enhanced.html', context)
 
 
@@ -1625,6 +1655,18 @@ def admin_dashboard(request):
         date_joined__gte=date.today().replace(day=1)
     ).count()
 
+    # Get notifications for admin
+    from notifications.models import Notification
+    unread_notifications = Notification.objects.filter(
+        recipient=request.user,
+        status__in=['pending', 'sent', 'delivered']
+    ).order_by('-created_at')[:10]
+    
+    unread_count = Notification.objects.filter(
+        recipient=request.user,
+        status__in=['pending', 'sent', 'delivered']
+    ).count()
+    
     context = {
         'today': date.today(),
         'total_users': User.objects.count(),
@@ -1639,6 +1681,8 @@ def admin_dashboard(request):
         'new_signups': new_signups,
         'recent_users': User.objects.all().order_by('-date_joined')[:5],
         'recent_applications': recent_applications,
+        'unread_notifications': unread_notifications,
+        'unread_notifications_count': unread_count,
     }
     return render(request, 'dashboard/admin_dashboard.html', context)
 

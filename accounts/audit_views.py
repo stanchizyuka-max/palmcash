@@ -223,7 +223,7 @@ def user_activity_detail(request, user_id):
     from clients.models import ApprovalAuditLog, DisbursementAuditLog, CollectionAuditLog
     
     approval_logs = ApprovalAuditLog.objects.filter(
-        Q(approved_by=target_user) | Q(rejected_by=target_user)
+        performed_by=target_user
     ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
     
     disbursement_logs = DisbursementAuditLog.objects.filter(
@@ -236,7 +236,7 @@ def user_activity_detail(request, user_id):
     
     # Count totals
     total_approvals = ApprovalAuditLog.objects.filter(
-        Q(approved_by=target_user) | Q(rejected_by=target_user)
+        performed_by=target_user
     ).count()
     
     total_disbursements = DisbursementAuditLog.objects.filter(

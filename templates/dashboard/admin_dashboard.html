@@ -278,6 +278,51 @@
 
     <!-- Recent Activity -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Notifications -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+        <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
+          <i class="fas fa-bell text-amber-500"></i> Recent Notifications
+          {% if unread_notifications_count > 0 %}
+          <span class="ml-auto bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </h3>
+        {% if unread_notifications %}
+        <div class="space-y-2">
+          {% for notif in unread_notifications %}
+          <div class="py-2 border-b border-slate-100 last:border-0">
+            <p class="text-sm font-medium text-slate-800">{{ notif.subject|default:notif.template.name }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ notif.message|truncatewords:15 }}</p>
+            <div class="flex items-center justify-between mt-1">
+              <span class="text-xs text-slate-400">{{ notif.created_at|timesince }} ago</span>
+              <div class="flex items-center gap-2">
+                {% if notif.loan %}
+                <a href="{% url 'loans:detail' notif.loan.pk %}" class="text-xs text-blue-600 hover:underline">View Loan</a>
+                {% endif %}
+                <form method="post" action="{% url 'notifications:mark_read' notif.pk %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="text-xs text-green-600 hover:underline">
+                    <i class="fas fa-check"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+          <a href="{% url 'notifications:list' %}" class="text-blue-600 hover:underline text-xs font-semibold">View All</a>
+          <form method="post" action="{% url 'notifications:mark_all_read' %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-green-600 hover:underline font-semibold">
+              <i class="fas fa-check-double mr-1"></i>Mark All Read
+            </button>
+          </form>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">No new notifications</p>
+        {% endif %}
+      </div>
+
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
         <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <i class="fas fa-users text-blue-500"></i> Recent Users
@@ -316,7 +361,10 @@
         <p class="text-sm text-slate-400">No recent applications</p>
         {% endfor %}
       </div>
+    </div>
 
+    <!-- Financial Snapshot moved below -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
         <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2 text-sm">
           <i class="fas fa-chart-line text-purple-500"></i> Financial Snapshot
