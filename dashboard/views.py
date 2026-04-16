@@ -6359,3 +6359,153 @@ def manager_collections_hierarchical(request):
             return redirect('dashboard:manager_collections_hierarchical')
     
     return render(request, 'dashboard/manager_collections_hierarchical.html', context)
+
+
+@login_required
+def view_officer_dashboard(request, officer_id):
+    """Allow managers to view a specific officer's dashboard."""
+    if request.user.role not in ['manager', 'admin']:
+        messages.error(request, "Access denied.")
+        return redirect('dashboard:dashboard')
+    
+    from datetime import date
+    
+    # Get the officer
+    officer = get_object_or_404(User, pk=officer_id, role='loan_officer')
+    
+    # Access control for managers
+    if request.user.role == 'manager':
+        try:
+            branch = request.user.managed_branch
+            if officer.officer_assignment.branch != branch.name:
+                messages.error(request, "You can only view officers from your branch.")
+                return redirect('dashboard:manager_dashboard')
+        except Exception:
+            messages.error(request, "Access denied.")
+            return redirect('dashboard:manager_dashboard')
+    
+    today = date.today()
+    
+    # Get officer's groups
+    groups = BorrowerGroup.objects.filter(
+        assigned_officer=officer,
+        is_active=True
+    ).annotate(
+        member_count=Count('members', filter=Q(members__is_active=True))
+    ).order_by('-created_at')[:5]
+    
+    # Get officer's clients
+    clients = User.objects.filter(
+        Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+        Q(assigned_officer=officer),
+        role='borrower'
+    ).distinct()
+    
+    # Get active loans
+    active_loans = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='active'
+    ).distinct()
+    
+    # Today's collections
+    today_collections = PaymentCollection.objects.filter(
+        loan__loan_officer=officer,
+        collection_date=today
+    )
+    today_expected = today_collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+    today_collected = today_collections.filter(status='completed').aggregate(t=Sum('collected_amount'))['t'] or 0
+    
+    # Overdue loans
+    from payments.models import PaymentSchedule
+    overdue_schedules = PaymentSchedule.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        loan__status='active',
+        is_paid=False,
+        due_date__lt=today
+    ).select_related('loan__borrower', 'loan').order_by('due_date').distinct()
+    
+    overdue_clients = {}
+    for sched in overdue_schedules:
+        lid = sched.loan_id
+        if lid not in overdue_clients:
+            overdue_clients[lid] = {
+                'loan': sched.loan,
+                'days_overdue': (today - sched.due_date).days,
+                'overdue_amount': sched.total_amount - sched.amount_paid,
+            }
+    overdue_loans_list = sorted(overdue_clients.values(), key=lambda x: -x['days_overdue'])[:10]
+    
+    # Outstanding balance
+    outstanding_balance = active_loans.aggregate(t=Sum('balance_remaining'))['t'] or 0
+    
+    # Pending security deposits
+    pending_security = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='approved',
+        security_deposit__isnull=False,
+        security_deposit__is_verified=False,
+    ).select_related('borrower', 'security_deposit').distinct()
+    
+    # Ready to disburse
+    ready_to_disburse = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='approved',
+        upfront_payment_verified=True,
+    ).select_related('borrower').distinct()
+    
+    # Default collections summary
+    overdue_schedules_for_default = PaymentSchedule.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        loan__status='active',
+        is_paid=False,
+        due_date__lt=today
+    ).select_related('loan').distinct()
+    
+    defaulted_loan_ids = overdue_schedules_for_default.values_list('loan_id', flat=True).distinct()
+    default_loans = Loan.objects.filter(id__in=defaulted_loan_ids)
+    
+    from payments.models import DefaultCollection
+    default_loans_count = default_loans.count()
+    default_total_outstanding = default_loans.aggregate(t=Sum('balance_remaining'))['t'] or 0
+    default_collected_this_month = DefaultCollection.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        collection_date__gte=today.replace(day=1),
+    ).distinct().aggregate(t=Sum('amount_paid'))['t'] or 0
+    
+    # This month's performance
+    month_start = today.replace(day=1)
+    month_disbursed = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        disbursement_date__date__gte=month_start,
+    ).distinct().count()
+    
+    month_collected = PaymentCollection.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        collection_date__gte=month_start,
+        status='completed'
+    ).distinct().aggregate(t=Sum('collected_amount'))['t'] or 0
+    
+    context = {
+        'officer': officer,
+        'viewing_as_manager': True,
+        'groups_count': groups.count(),
+        'clients_count': clients.count(),
+        'active_loans_count': active_loans.count(),
+        'today_expected': today_expected,
+        'today_collected': today_collected,
+        'today_pending': today_expected - today_collected,
+        'today_defaults': len(overdue_clients),
+        'groups': groups,
+        'pending_security': pending_security,
+        'ready_to_disburse': ready_to_disburse,
+        'outstanding_balance': outstanding_balance,
+        'overdue_clients_list': overdue_loans_list,
+        'default_loans_count': default_loans_count,
+        'default_total_outstanding': default_total_outstanding,
+        'default_collected_this_month': default_collected_this_month,
+        'month_disbursed': month_disbursed,
+        'month_collected': month_collected,
+        'today': today,
+    }
+    
+    return render(request, 'dashboard/view_officer_dashboard.html', context)
