@@ -6390,8 +6390,6 @@ def view_officer_dashboard(request, officer_id):
     groups = BorrowerGroup.objects.filter(
         assigned_officer=officer,
         is_active=True
-    ).annotate(
-        member_count=Count('members', filter=Q(members__is_active=True))
     ).order_by('-created_at')[:5]
     
     # Get officer's clients
