@@ -1039,19 +1039,27 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
             try:
                 from expenses.models import VaultTransaction
                 from clients.models import Branch
+                import uuid
                 
                 # Get officer's branch
                 officer_branch = None
+                branch_name = None
                 if hasattr(request.user, 'officer_assignment'):
                     branch_name = request.user.officer_assignment.branch
                     officer_branch = Branch.objects.filter(name=branch_name).first()
                 
-                if officer_branch:
+                if officer_branch and branch_name:
+                    # Generate unique reference number
+                    reference = f"DC-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+                    
                     VaultTransaction.objects.create(
-                        branch=officer_branch,
+                        branch=branch_name,
                         transaction_type='payment_collection',
+                        direction='in',
                         amount=amount_applied,
                         description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',
+                        reference_number=reference,
+                        loan=loan,
                         recorded_by=request.user,
                         transaction_date=today,
                     )
