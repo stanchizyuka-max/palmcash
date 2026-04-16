@@ -6483,6 +6483,50 @@ def view_officer_dashboard(request, officer_id):
         status='completed'
     ).distinct().aggregate(t=Sum('collected_amount'))['t'] or 0
     
+    # Loans pending upfront payment (approved but no upfront paid yet)
+    pending_upfront = Loan.objects.filter(
+        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        status='approved',
+        upfront_payment_paid=0,
+    ).select_related('borrower').distinct()
+    
+    # Security management counts
+    from loans.models import SecurityTransaction
+    pending_sec_returns = SecurityTransaction.objects.filter(
+        Q(security_deposit__loan__loan_officer=officer) | 
+        Q(security_deposit__loan__borrower__group_memberships__group__assigned_officer=officer),
+        transaction_type='return',
+        is_approved=False
+    ).distinct().count()
+    
+    pending_sec_adjustments = SecurityTransaction.objects.filter(
+        Q(security_deposit__loan__loan_officer=officer) |
+        Q(security_deposit__loan__borrower__group_memberships__group__assigned_officer=officer),
+        transaction_type='adjustment',
+        is_approved=False
+    ).distinct().count()
+    
+    pending_sec_topups = SecurityTransaction.objects.filter(
+        Q(security_deposit__loan__loan_officer=officer) |
+        Q(security_deposit__loan__borrower__group_memberships__group__assigned_officer=officer),
+        transaction_type='top_up',
+        is_approved=False
+    ).distinct().count()
+    
+    pending_sec_withdrawals = SecurityTransaction.objects.filter(
+        Q(security_deposit__loan__loan_officer=officer) |
+        Q(security_deposit__loan__borrower__group_memberships__group__assigned_officer=officer),
+        transaction_type='withdrawal',
+        is_approved=False
+    ).distinct().count()
+    
+    # Clients expected to pay today
+    clients_expected_today = PaymentCollection.objects.filter(
+        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        collection_date=today,
+        status__in=['pending', 'partial']
+    ).select_related('loan__borrower').distinct()[:10]
+    
     context = {
         'officer': officer,
         'viewing_as_manager': True,
@@ -6496,6 +6540,7 @@ def view_officer_dashboard(request, officer_id):
         'groups': groups,
         'pending_security': pending_security,
         'ready_to_disburse': ready_to_disburse,
+        'pending_upfront': pending_upfront,
         'outstanding_balance': outstanding_balance,
         'overdue_clients_list': overdue_loans_list,
         'default_loans_count': default_loans_count,
@@ -6503,6 +6548,11 @@ def view_officer_dashboard(request, officer_id):
         'default_collected_this_month': default_collected_this_month,
         'month_disbursed': month_disbursed,
         'month_collected': month_collected,
+        'pending_sec_returns': pending_sec_returns,
+        'pending_sec_adjustments': pending_sec_adjustments,
+        'pending_sec_topups': pending_sec_topups,
+        'pending_sec_withdrawals': pending_sec_withdrawals,
+        'clients_expected_today': clients_expected_today,
         'today': today,
     }
     
