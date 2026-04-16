@@ -50,9 +50,13 @@ class GroupListView(LoginRequiredMixin, ListView):
                 queryset = BorrowerGroup.objects.none()
         
         # Apply filters
+        branch_filter = self.request.GET.get('branch', '')
         officer_filter = self.request.GET.get('officer', '')
         search_filter = self.request.GET.get('search', '')
         status_filter = self.request.GET.get('status', '')
+        
+        if branch_filter:
+            queryset = queryset.filter(branch__iexact=branch_filter)
         
         if officer_filter:
             queryset = queryset.filter(assigned_officer_id=officer_filter)
@@ -98,6 +102,7 @@ class GroupListView(LoginRequiredMixin, ListView):
         context['total_groups'] = self.get_queryset().count()
         context['active_groups'] = self.get_queryset().filter(is_active=True).count()
         context['current_sort'] = self.request.GET.get('sort', '-capacity_percentage')
+        context['branch_filter'] = self.request.GET.get('branch', '')
         context['officer_filter'] = self.request.GET.get('officer', '')
         
         # Get officers for filter dropdown based on user role

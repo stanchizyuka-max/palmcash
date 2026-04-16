@@ -128,12 +128,27 @@
 
         <!-- Filters -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-{% if user.role == 'admin' %}5{% else %}4{% endif %} gap-4">
                 <!-- Search -->
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                     <input type="text" id="search" name="search" value="{{ search_filter }}" placeholder="Group name or officer..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
+
+                <!-- Branch Filter (Admin only) -->
+                {% if user.role == 'admin' %}
+                <div>
+                    <label for="branch" class="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                    <select id="branch" name="branch" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Branches</option>
+                        {% for branch in branches %}
+                        <option value="{{ branch }}" {% if branch_filter == branch %}selected{% endif %}>
+                            {{ branch }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
 
                 <!-- Officer Filter -->
                 <div>
@@ -178,25 +193,25 @@
                     <thead class="sticky-header">
                         <tr>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                <a href="?sort={% if current_sort == 'name' %}-name{% else %}name{% endif %}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
+                                <a href="?sort={% if current_sort == 'name' %}-name{% else %}name{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Group Name
                                     <i class="fas fa-sort sort-icon {% if current_sort == 'name' or current_sort == '-name' %}sort-active{% endif %}"></i>
                                 </a>
                             </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                <a href="?sort={% if current_sort == 'branch' %}-branch{% else %}branch{% endif %}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
+                                <a href="?sort={% if current_sort == 'branch' %}-branch{% else %}branch{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Branch
                                     <i class="fas fa-sort sort-icon {% if current_sort == 'branch' or current_sort == '-branch' %}sort-active{% endif %}"></i>
                                 </a>
                             </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                <a href="?sort={% if current_sort == 'officer' %}-officer{% else %}officer{% endif %}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
+                                <a href="?sort={% if current_sort == 'officer' %}-officer{% else %}officer{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Assigned Officer
                                     <i class="fas fa-sort sort-icon {% if current_sort == 'officer' or current_sort == '-officer' %}sort-active{% endif %}"></i>
                                 </a>
                             </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                <a href="?sort={% if current_sort == '-capacity_percentage' %}capacity_percentage{% else %}-capacity_percentage{% endif %}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
+                                <a href="?sort={% if current_sort == '-capacity_percentage' %}capacity_percentage{% else %}-capacity_percentage{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Members / Capacity
                                     <i class="fas fa-sort sort-icon {% if current_sort == 'capacity_percentage' or current_sort == '-capacity_percentage' %}sort-active{% endif %}"></i>
                                 </a>
@@ -205,7 +220,7 @@
                                 Payment Day
                             </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                                <a href="?sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
+                                <a href="?sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Status
                                     <i class="fas fa-sort sort-icon {% if current_sort == 'status' or current_sort == '-status' %}sort-active{% endif %}"></i>
                                 </a>
@@ -353,7 +368,7 @@
                     </div>
                     <div class="flex space-x-2">
                         {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                        <a href="?page={{ page_obj.previous_page_number }}&sort={{ current_sort }}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
                             <i class="fas fa-arrow-left mr-2"></i>Previous
                         </a>
                         {% endif %}
@@ -363,7 +378,7 @@
                         </span>
                         
                         {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
+                        <a href="?page={{ page_obj.next_page_number }}&sort={{ current_sort }}&branch={{ branch_filter }}&officer={{ officer_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors">
                             Next<i class="fas fa-arrow-right ml-2"></i>
                         </a>
                         {% endif %}
