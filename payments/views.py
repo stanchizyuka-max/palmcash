@@ -1035,6 +1035,32 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                 collection_date=today,
             )
 
+            # Record vault transaction
+            try:
+                from expenses.models import VaultTransaction
+                from clients.models import Branch
+                
+                # Get officer's branch
+                officer_branch = None
+                if hasattr(request.user, 'officer_assignment'):
+                    branch_name = request.user.officer_assignment.branch
+                    officer_branch = Branch.objects.filter(name=branch_name).first()
+                
+                if officer_branch:
+                    VaultTransaction.objects.create(
+                        branch=officer_branch,
+                        transaction_type='collection',
+                        amount=amount_applied,
+                        description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',
+                        recorded_by=request.user,
+                        transaction_date=today,
+                    )
+            except Exception as e:
+                # Log error but don't fail the collection
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Failed to record vault transaction for default collection: {e}')
+
             # Also distribute to payment schedule
             from payments.services import distribute_payment
             distribute_payment(loan, amount_applied, today)
