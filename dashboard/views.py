@@ -567,6 +567,17 @@ def admin_performance_report(request):
     activities.sort(key=lambda x: x['date'] or date.min, reverse=True)
     total_amount = sum(a['amount'] for a in activities if a['amount'])
 
+    # Group activities by client for expandable dropdown display
+    from collections import OrderedDict
+    client_groups = OrderedDict()
+    for a in activities:
+        key = a['client']
+        if key not in client_groups:
+            client_groups[key] = {'client': key, 'officer': a['officer'], 'branch': a['branch'], 'items': [], 'total': 0}
+        client_groups[key]['items'].append(a)
+        client_groups[key]['total'] += a['amount'] or 0
+    client_groups_list = list(client_groups.values())
+
     all_col = PaymentCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to, collected_amount__gt=0).distinct()
     all_def = DefaultCollection.objects.filter(col_q, collection_date__gte=date_from, collection_date__lte=date_to).distinct()
     all_dis = Loan.objects.filter(loan_q, disbursement_date__date__gte=date_from, disbursement_date__date__lte=date_to).distinct()
@@ -579,6 +590,7 @@ def admin_performance_report(request):
         'branches': branches, 'all_officers': all_officers,
         'activities': activities, 'total_amount': total_amount,
         'activity_count': len(activities),
+        'client_groups': client_groups_list,
         'disbursed_count': all_dis.count(),
         'disbursed_amount': all_dis.aggregate(t=Sum('principal_amount'))['t'] or 0,
         'total_collected': all_col.aggregate(t=Sum('collected_amount'))['t'] or 0,

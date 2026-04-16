@@ -117,64 +117,112 @@
         <table class="w-full text-sm">
           <thead class="bg-slate-50 border-b border-slate-200">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Activity</th>
-              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Reference</th>
+              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase w-8"></th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Client</th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Branch</th>
-              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Amount</th>
-              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
+              <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Total Amount</th>
+              <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Payments</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
-            {% for a in activities %}
-            <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">{{ a.date|date:"d M Y"|default:"—" }}</td>
-              <td class="px-4 py-3">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
-                  {% if a.type_color == 'blue' %}bg-blue-100 text-blue-700
-                  {% elif a.type_color == 'green' %}bg-green-100 text-green-700
-                  {% elif a.type_color == 'red' %}bg-red-100 text-red-700
-                  {% elif a.type_color == 'teal' %}bg-teal-100 text-teal-700
-                  {% elif a.type_color == 'violet' %}bg-violet-100 text-violet-700
-                  {% else %}bg-slate-100 text-slate-600{% endif %}">{{ a.type }}</span>
-              </td>
-              <td class="px-4 py-3 font-mono text-xs"><a href="{{ a.reference_url }}" class="text-blue-600 hover:underline">{{ a.reference }}</a></td>
-              <td class="px-4 py-3 font-medium text-slate-900">{{ a.client }}</td>
-              <td class="px-4 py-3 text-slate-500 text-xs">{{ a.officer }}</td>
-              <td class="px-4 py-3 text-slate-500 text-xs">{{ a.branch }}</td>
-              <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ a.amount|floatformat:2|intcomma }}</td>
-              <td class="px-4 py-3">
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold
-                  {% if a.status_color == 'green' %}bg-green-100 text-green-700
-                  {% elif a.status_color == 'blue' %}bg-blue-100 text-blue-700
-                  {% elif a.status_color == 'teal' %}bg-teal-100 text-teal-700
-                  {% elif a.status_color == 'yellow' %}bg-yellow-100 text-yellow-700
-                  {% elif a.status_color == 'red' %}bg-red-100 text-red-700
-                  {% elif a.status_color == 'amber' %}bg-amber-100 text-amber-700
-                  {% else %}bg-slate-100 text-slate-600{% endif %}">{{ a.status }}</span>
-              </td>
-              <td class="px-4 py-3">
-                <a href="{{ a.reference_url }}" class="px-3 py-1 bg-slate-100 text-slate-700 rounded text-xs font-semibold hover:bg-slate-200">View</a>
-              </td>
-            </tr>
-            {% empty %}
+          <tbody id="activity-tbody">
+            {% if client_groups %}
+              {% for cg in client_groups %}
+              {% with group_id=forloop.counter %}
+              {# Client summary row #}
+              <tr class="hover:bg-slate-50 cursor-pointer border-b border-slate-200"
+                  onclick="toggleClient('cg-{{ group_id }}')">
+                <td class="px-4 py-3 text-center">
+                  <span id="cg-{{ group_id }}-icon" class="text-slate-400 text-xs transition-transform inline-block select-none">▼</span>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-xs font-bold text-purple-700 flex-shrink-0">
+                      {{ cg.client|slice:":1" }}
+                    </div>
+                    <span class="font-semibold text-slate-900">{{ cg.client }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ cg.officer }}</td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ cg.branch }}</td>
+                <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ cg.total|floatformat:2|intcomma }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">{{ cg.items|length }}</span>
+                </td>
+              </tr>
+              {# Expanded detail rows — hidden by default #}
+              <tr id="cg-{{ group_id }}" class="hidden">
+                <td colspan="6" class="p-0">
+                  <table class="w-full text-xs bg-slate-50 border-b-2 border-purple-200">
+                    <thead>
+                      <tr class="bg-purple-50">
+                        <th class="px-8 py-2 text-left font-bold text-slate-500 uppercase">Date</th>
+                        <th class="px-4 py-2 text-left font-bold text-slate-500 uppercase">Activity</th>
+                        <th class="px-4 py-2 text-left font-bold text-slate-500 uppercase">Reference</th>
+                        <th class="px-4 py-2 text-right font-bold text-slate-500 uppercase">Amount</th>
+                        <th class="px-4 py-2 text-left font-bold text-slate-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left font-bold text-slate-500 uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for a in cg.items %}
+                      <tr class="border-t border-slate-200 hover:bg-white">
+                        <td class="px-8 py-2 text-slate-500 whitespace-nowrap">{{ a.date|date:"d M Y"|default:"—" }}</td>
+                        <td class="px-4 py-2">
+                          <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                            {% if a.type_color == 'blue' %}bg-blue-100 text-blue-700
+                            {% elif a.type_color == 'green' %}bg-green-100 text-green-700
+                            {% elif a.type_color == 'red' %}bg-red-100 text-red-700
+                            {% elif a.type_color == 'teal' %}bg-teal-100 text-teal-700
+                            {% elif a.type_color == 'violet' %}bg-violet-100 text-violet-700
+                            {% else %}bg-slate-100 text-slate-600{% endif %}">{{ a.type }}</span>
+                        </td>
+                        <td class="px-4 py-2 font-mono">
+                          <a href="{{ a.reference_url }}" class="text-blue-600 hover:underline">{{ a.reference }}</a>
+                        </td>
+                        <td class="px-4 py-2 text-right font-bold text-slate-800">K{{ a.amount|floatformat:2|intcomma }}</td>
+                        <td class="px-4 py-2">
+                          <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                            {% if a.status_color == 'green' %}bg-green-100 text-green-700
+                            {% elif a.status_color == 'blue' %}bg-blue-100 text-blue-700
+                            {% elif a.status_color == 'teal' %}bg-teal-100 text-teal-700
+                            {% elif a.status_color == 'yellow' %}bg-yellow-100 text-yellow-700
+                            {% elif a.status_color == 'red' %}bg-red-100 text-red-700
+                            {% elif a.status_color == 'amber' %}bg-amber-100 text-amber-700
+                            {% else %}bg-slate-100 text-slate-600{% endif %}">{{ a.status }}</span>
+                        </td>
+                        <td class="px-4 py-2">
+                          <a href="{{ a.reference_url }}" class="px-2 py-1 bg-white border border-slate-200 text-slate-700 rounded text-xs font-semibold hover:bg-slate-100">View</a>
+                        </td>
+                      </tr>
+                      {% endfor %}
+                      {# Sub-total row #}
+                      <tr class="bg-purple-50 border-t border-purple-200">
+                        <td colspan="3" class="px-8 py-2 font-bold text-slate-600">Subtotal — {{ cg.client }}</td>
+                        <td class="px-4 py-2 text-right font-bold text-slate-900">K{{ cg.total|floatformat:2|intcomma }}</td>
+                        <td colspan="2"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              {% endwith %}
+              {% endfor %}
+            {% else %}
             <tr>
-              <td colspan="9" class="px-4 py-16 text-center text-slate-400">
+              <td colspan="6" class="px-4 py-16 text-center text-slate-400">
                 <i class="fas fa-inbox text-4xl mb-3 block"></i>
                 No activities found{% if activity_type or search or branch_filter or officer_filter %} matching your filters{% endif %}
               </td>
             </tr>
-            {% endfor %}
+            {% endif %}
           </tbody>
-          {% if activities %}
+          {% if client_groups %}
           <tfoot class="bg-slate-100 border-t-2 border-slate-300">
             <tr>
-              <td colspan="6" class="px-4 py-3 font-bold text-slate-700 text-sm">Total ({{ activity_count }} records)</td>
+              <td colspan="4" class="px-4 py-3 font-bold text-slate-700 text-sm">Total ({{ activity_count }} records · {{ client_groups|length }} client{{ client_groups|length|pluralize }})</td>
               <td class="px-4 py-3 text-right font-bold text-slate-900">K{{ total_amount|floatformat:2|intcomma }}</td>
-              <td colspan="2"></td>
+              <td></td>
             </tr>
           </tfoot>
           {% endif %}
@@ -184,4 +232,19 @@
 
   </div>
 </div>
+
+{% block extra_js %}
+<script>
+function toggleClient(groupId) {
+  const row = document.getElementById(groupId);
+  const icon = document.getElementById(groupId + '-icon');
+  if (!row) return;
+  const isHidden = row.classList.contains('hidden');
+  row.classList.toggle('hidden', !isHidden);
+  if (icon) {
+    icon.style.transform = isHidden ? 'rotate(180deg)' : '';
+    icon.style.color = isHidden ? '#7c3aed' : '#94a3b8';
+  }
+}
+</script>
 {% endblock %}
