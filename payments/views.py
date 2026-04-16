@@ -1049,7 +1049,7 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                 if officer_branch:
                     VaultTransaction.objects.create(
                         branch=officer_branch,
-                        transaction_type='collection',
+                        transaction_type='payment_collection',
                         amount=amount_applied,
                         description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',
                         recorded_by=request.user,
