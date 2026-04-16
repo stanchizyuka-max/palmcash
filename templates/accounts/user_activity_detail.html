@@ -413,6 +413,194 @@
             </div>
         </div>
 
+        <!-- Audit Logs Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 mb-6">
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm font-semibold mb-1">Loan Approvals</p>
+                        <p class="text-4xl font-bold">{{ total_approvals }}</p>
+                    </div>
+                    <div class="h-16 w-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-orange-100 text-sm font-semibold mb-1">Disbursements</p>
+                        <p class="text-4xl font-bold">{{ total_disbursements }}</p>
+                    </div>
+                    <div class="h-16 w-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-100 text-sm font-semibold mb-1">Collections</p>
+                        <p class="text-4xl font-bold">{{ total_collections }}</p>
+                    </div>
+                    <div class="h-16 w-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-hand-holding-usd text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Audit Logs -->
+        {% if approval_logs %}
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mt-6">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    Recent Loan Approvals
+                </h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Loan</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Borrower</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        {% for log in approval_logs %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ log.timestamp|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                                {{ log.loan.application_number }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                {{ log.loan.borrower.get_full_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if log.approved_by %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                        Approved
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                                        Rejected
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {{ log.notes|default:"—" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Disbursement Audit Logs -->
+        {% if disbursement_logs %}
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mt-6">
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Recent Disbursements
+                </h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Loan</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Borrower</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Method</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        {% for log in disbursement_logs %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ log.timestamp|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                                {{ log.loan.application_number }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                {{ log.loan.borrower.get_full_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600 text-right">
+                                K{{ log.amount|floatformat:2|intcomma }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ log.disbursement_method|default:"—" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Collection Audit Logs -->
+        {% if collection_logs %}
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mt-6">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    Recent Collections
+                </h2>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Loan</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Borrower</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Method</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        {% for log in collection_logs %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ log.timestamp|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                                {{ log.loan.application_number }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                {{ log.loan.borrower.get_full_name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600 text-right">
+                                K{{ log.amount|floatformat:2|intcomma }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {{ log.payment_method|default:"—" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

@@ -219,6 +219,34 @@ def user_activity_detail(request, user_id):
             count=Count('id')
         ).order_by('-count')[:10]
     
+    # Get additional audit logs
+    from clients.models import ApprovalAuditLog, DisbursementAuditLog, CollectionAuditLog
+    
+    approval_logs = ApprovalAuditLog.objects.filter(
+        Q(approved_by=target_user) | Q(rejected_by=target_user)
+    ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
+    
+    disbursement_logs = DisbursementAuditLog.objects.filter(
+        disbursed_by=target_user
+    ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
+    
+    collection_logs = CollectionAuditLog.objects.filter(
+        collected_by=target_user
+    ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
+    
+    # Count totals
+    total_approvals = ApprovalAuditLog.objects.filter(
+        Q(approved_by=target_user) | Q(rejected_by=target_user)
+    ).count()
+    
+    total_disbursements = DisbursementAuditLog.objects.filter(
+        disbursed_by=target_user
+    ).count()
+    
+    total_collections = CollectionAuditLog.objects.filter(
+        collected_by=target_user
+    ).count()
+    
     context = {
         'target_user': target_user,
         'last_session': last_session,
@@ -232,6 +260,12 @@ def user_activity_detail(request, user_id):
         'recent_sessions': recent_sessions,
         'timeline_actions': timeline_actions,
         'action_breakdown': action_breakdown,
+        'approval_logs': approval_logs,
+        'disbursement_logs': disbursement_logs,
+        'collection_logs': collection_logs,
+        'total_approvals': total_approvals,
+        'total_disbursements': total_disbursements,
+        'total_collections': total_collections,
         'date_from': date_from,
         'date_to': date_to,
         'action_filter': action_filter,
