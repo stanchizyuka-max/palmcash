@@ -560,7 +560,7 @@ class SecurityTransaction(models.Model):
     TRANSACTION_TYPES = [
         ('adjustment', 'Balance Adjustment'),
         ('return', 'Security Return'),
-        ('carry_forward', 'Carry Forward to Top-Up'),
+        ('carry_forward', 'Top-Ups'),
         ('withdrawal', 'Security Withdrawal'),
     ]
 
