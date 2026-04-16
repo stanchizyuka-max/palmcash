@@ -227,11 +227,11 @@ def user_activity_detail(request, user_id):
     ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
     
     disbursement_logs = DisbursementAuditLog.objects.filter(
-        disbursed_by=target_user
+        performed_by=target_user
     ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
     
     collection_logs = CollectionAuditLog.objects.filter(
-        collected_by=target_user
+        performed_by=target_user
     ).select_related('loan', 'loan__borrower').order_by('-timestamp')[:20]
     
     # Count totals
@@ -240,11 +240,11 @@ def user_activity_detail(request, user_id):
     ).count()
     
     total_disbursements = DisbursementAuditLog.objects.filter(
-        disbursed_by=target_user
+        performed_by=target_user
     ).count()
     
     total_collections = CollectionAuditLog.objects.filter(
-        collected_by=target_user
+        performed_by=target_user
     ).count()
     
     context = {
