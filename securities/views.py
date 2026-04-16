@@ -71,16 +71,125 @@ def _client_security_stats(client):
 @login_required
 def securities_summary(request):
     """
+    Hierarchical securities view.
+    Admin: starts at branch level (BRANCHES > OFFICERS > GROUPS > CLIENTS)
+    Manager: starts at officer level (OFFICERS > GROUPS > CLIENTS) - only their branch
+    Loan Officer: starts at group level (GROUPS > CLIENTS) - only themselves
+    """
+    user = request.user
+
+    # Admin sees branch-level view
+    if user.role == 'admin' or user.is_superuser:
+        return securities_branches(request)
+    
+    # Manager sees officer-level view for their branch
+    elif user.role == 'manager':
+        return securities_officers(request)
+    
+    # Loan officer sees their own groups
+    elif user.role == 'loan_officer':
+        return officer_groups(request, user.pk)
+    
+    else:
+        return render(request, 'dashboard/access_denied.html')
+
+
+@login_required
+def securities_branches(request):
+    """
+    Branch-level summary for admins.
+    Shows all branches with their security totals.
+    """
+    user = request.user
+    
+    if user.role not in ['admin'] and not user.is_superuser:
+        return render(request, 'dashboard/access_denied.html')
+    
+    from clients.models import Branch
+    
+    # Get all branches
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    rows = []
+    totals = {'officer_count': 0, 'group_count': 0, 'client_count': 0,
+              'upfront': _zero(), 'topups': _zero(), 'adjustments': _zero(),
+              'returned': _zero(), 'balance': _zero()}
+    
+    for branch in branches:
+        # Get officers in this branch
+        officers = User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch__iexact=branch.name,
+            is_active=True
+        ).distinct()
+        
+        officer_count = officers.count()
+        
+        # Get all loans for officers in this branch
+        loans = Loan.objects.filter(
+            Q(loan_officer__in=officers) |
+            Q(borrower__group_memberships__group__assigned_officer__in=officers)
+        ).distinct()
+        
+        stats = _security_stats_for_loans(loans)
+        
+        # Get groups count
+        group_count = BorrowerGroup.objects.filter(
+            assigned_officer__in=officers,
+            is_active=True
+        ).count()
+        
+        # Get clients count
+        client_count = User.objects.filter(
+            Q(group_memberships__group__assigned_officer__in=officers, group_memberships__is_active=True) |
+            Q(assigned_officer__in=officers),
+            role='borrower'
+        ).distinct().count()
+        
+        rows.append({
+            'branch': branch,
+            'officer_count': officer_count,
+            'group_count': group_count,
+            'client_count': client_count,
+            **stats,
+        })
+        
+        totals['officer_count'] += officer_count
+        totals['group_count'] += group_count
+        totals['client_count'] += client_count
+        for k in ('upfront', 'topups', 'adjustments', 'returned', 'balance'):
+            totals[k] += stats[k]
+    
+    return render(request, 'securities/branch_summary.html', {
+        'rows': rows,
+        'totals': totals,
+        'page_title': 'Securities — Branch Summary',
+    })
+
+
+@login_required
+def securities_officers(request, branch_id=None):
+    """
     Officer-level summary.
-    Admin: all officers system-wide.
+    Admin: all officers in selected branch (or all if no branch selected).
     Manager: all officers in their branch.
-    Loan Officer: only themselves.
     """
     user = request.user
 
     if user.role == 'admin' or user.is_superuser:
-        # Admins can see all officers
-        officers = User.objects.filter(role='loan_officer').distinct()
+        if branch_id:
+            from clients.models import Branch
+            branch = get_object_or_404(Branch, pk=branch_id)
+            officers = User.objects.filter(
+                role='loan_officer',
+                officer_assignment__branch__iexact=branch.name,
+                is_active=True
+            ).distinct()
+            page_title = f'Securities — {branch.name} Officers'
+        else:
+            officers = User.objects.filter(role='loan_officer', is_active=True).distinct()
+            branch = None
+            page_title = 'Securities — All Officers'
     
     elif user.role == 'manager':
         try:
@@ -91,18 +200,19 @@ def securities_summary(request):
         if branch:
             officers = User.objects.filter(
                 role='loan_officer',
-                officer_assignment__branch=branch.name
+                officer_assignment__branch__iexact=branch.name,
+                is_active=True
             ).distinct()
+            page_title = f'Securities — {branch.name} Officers'
         else:
             officers = User.objects.none()
+            page_title = 'Securities — Officers'
 
-    elif user.role == 'loan_officer':
-        officers = User.objects.filter(pk=user.pk)
     else:
         return render(request, 'dashboard/access_denied.html')
 
     rows = []
-    totals = {'count': 0, 'upfront': _zero(), 'topups': _zero(),
+    totals = {'group_count': 0, 'client_count': 0, 'upfront': _zero(), 'topups': _zero(),
               'adjustments': _zero(), 'returned': _zero(), 'balance': _zero()}
 
     for officer in officers:
@@ -111,20 +221,36 @@ def securities_summary(request):
             Q(borrower__group_memberships__group__assigned_officer=officer)
         ).distinct()
         stats = _security_stats_for_loans(loans)
-        count = loans.count()
+        
+        # Get groups count
+        group_count = BorrowerGroup.objects.filter(
+            assigned_officer=officer,
+            is_active=True
+        ).count()
+        
+        # Get clients count
+        client_count = User.objects.filter(
+            Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+            Q(assigned_officer=officer),
+            role='borrower'
+        ).distinct().count()
+        
         rows.append({
             'officer': officer,
-            'count': count,
+            'group_count': group_count,
+            'client_count': client_count,
             **stats,
         })
-        totals['count'] += count
+        totals['group_count'] += group_count
+        totals['client_count'] += client_count
         for k in ('upfront', 'topups', 'adjustments', 'returned', 'balance'):
             totals[k] += stats[k]
 
     return render(request, 'securities/officer_summary.html', {
         'rows': rows,
         'totals': totals,
-        'page_title': 'Securities — Officer Summary',
+        'page_title': page_title,
+        'branch': branch,
     })
 
 
