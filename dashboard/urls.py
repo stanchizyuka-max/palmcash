@@ -17,6 +17,7 @@ urlpatterns = [
     path('manager/performance/', views.manager_performance_report, name='manager_performance_report'),
     path('admin/performance/', views.admin_performance_report, name='admin_performance_report'),
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager/collections/', views.manager_collections_hierarchical, name='manager_collections_hierarchical'),
     path('manager/document-verification/', views.manager_document_verification, name='manager_document_verification'),
     path('loan-officer/document-verification/', views.loan_officer_document_verification, name='loan_officer_document_verification'),
     path('overdue-loans/', views.overdue_loans_full, name='overdue_loans_full'),

@@ -6177,3 +6177,185 @@ def officer_processing_fees(request):
     }
     
     return render(request, 'dashboard/officer_processing_fees.html', context)
+
+
+@login_required
+def manager_collections_hierarchical(request):
+    """Hierarchical collections view for managers: Officers > Groups > Clients"""
+    if request.user.role not in ['manager', 'admin']:
+        messages.error(request, "Access denied.")
+        return redirect('dashboard:dashboard')
+    
+    from collections import defaultdict
+    from django.db.models import Sum, Count, Q
+    from datetime import date
+    
+    today = date.today()
+    user = request.user
+    
+    # Get level and filters from URL
+    level = request.GET.get('level', 'officer')  # officer, group, or client
+    selected_officer = request.GET.get('officer_id', '')
+    selected_group = request.GET.get('group_id', '')
+    
+    # Determine branch scope
+    if user.role == 'manager':
+        try:
+            branch = user.managed_branch
+            if not branch:
+                messages.error(request, "No branch assigned.")
+                return redirect('dashboard:dashboard')
+        except Exception:
+            messages.error(request, "No branch assigned.")
+            return redirect('dashboard:dashboard')
+        
+        # Get officers in this branch
+        officers = User.objects.filter(
+            role='loan_officer',
+            officer_assignment__branch__iexact=branch.name,
+            is_active=True
+        ).order_by('first_name', 'last_name')
+    else:  # admin
+        officers = User.objects.filter(
+            role='loan_officer',
+            is_active=True
+        ).order_by('first_name', 'last_name')
+        branch = None
+    
+    context = {
+        'level': level,
+        'selected_officer': selected_officer,
+        'selected_group': selected_group,
+        'branch': branch,
+    }
+    
+    # LEVEL 1: Officer View
+    if level == 'officer':
+        officer_data = []
+        for officer in officers:
+            # Get collections for this officer
+            collections = PaymentCollection.objects.filter(
+                loan__loan_officer=officer
+            )
+            
+            # Get today's collections
+            today_collections = collections.filter(collection_date=today)
+            today_expected = today_collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+            today_collected = today_collections.filter(status='completed').aggregate(t=Sum('collected_amount'))['t'] or 0
+            
+            # Get groups count
+            groups_count = BorrowerGroup.objects.filter(
+                assigned_officer=officer,
+                is_active=True
+            ).count()
+            
+            # Get clients count
+            clients_count = User.objects.filter(
+                Q(group_memberships__group__assigned_officer=officer, group_memberships__is_active=True) |
+                Q(assigned_officer=officer),
+                role='borrower'
+            ).distinct().count()
+            
+            officer_data.append({
+                'officer': officer,
+                'groups_count': groups_count,
+                'clients_count': clients_count,
+                'today_expected': today_expected,
+                'today_collected': today_collected,
+                'today_pending': today_expected - today_collected,
+                'collection_rate': (today_collected / today_expected * 100) if today_expected > 0 else 0,
+            })
+        
+        context['officers'] = officer_data
+    
+    # LEVEL 2: Group View (for selected officer)
+    elif level == 'group' and selected_officer:
+        try:
+            officer = User.objects.get(pk=selected_officer, role='loan_officer')
+            context['officer'] = officer
+            
+            groups = BorrowerGroup.objects.filter(
+                assigned_officer=officer,
+                is_active=True
+            ).order_by('name')
+            
+            group_data = []
+            for group in groups:
+                # Get members
+                members = group.members.filter(is_active=True)
+                members_count = members.count()
+                
+                # Get collections for this group
+                borrower_ids = [m.borrower_id for m in members]
+                collections = PaymentCollection.objects.filter(
+                    loan__borrower_id__in=borrower_ids
+                )
+                
+                # Today's collections
+                today_collections = collections.filter(collection_date=today)
+                today_expected = today_collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+                today_collected = today_collections.filter(status='completed').aggregate(t=Sum('collected_amount'))['t'] or 0
+                
+                group_data.append({
+                    'group': group,
+                    'members_count': members_count,
+                    'today_expected': today_expected,
+                    'today_collected': today_collected,
+                    'today_pending': today_expected - today_collected,
+                    'collection_rate': (today_collected / today_expected * 100) if today_expected > 0 else 0,
+                })
+            
+            context['groups'] = group_data
+        except User.DoesNotExist:
+            messages.error(request, "Officer not found.")
+            return redirect('dashboard:manager_collections_hierarchical')
+    
+    # LEVEL 3: Client View (for selected group)
+    elif level == 'client' and selected_group:
+        try:
+            group = BorrowerGroup.objects.get(pk=selected_group)
+            context['group'] = group
+            context['officer'] = group.assigned_officer
+            
+            # Get members
+            members = group.members.filter(is_active=True).select_related('borrower')
+            
+            client_data = []
+            for membership in members:
+                client = membership.borrower
+                
+                # Get collections for this client
+                collections = PaymentCollection.objects.filter(
+                    loan__borrower=client
+                )
+                
+                # Today's collections
+                today_collections = collections.filter(collection_date=today)
+                today_expected = today_collections.aggregate(t=Sum('expected_amount'))['t'] or 0
+                today_collected = today_collections.filter(status='completed').aggregate(t=Sum('collected_amount'))['t'] or 0
+                
+                # Get active loans
+                active_loans = Loan.objects.filter(
+                    borrower=client,
+                    status='active'
+                ).count()
+                
+                # Get all collections with details
+                all_collections = today_collections.select_related('loan').order_by('-collection_date')
+                
+                client_data.append({
+                    'client': client,
+                    'active_loans': active_loans,
+                    'today_expected': today_expected,
+                    'today_collected': today_collected,
+                    'today_pending': today_expected - today_collected,
+                    'collection_rate': (today_collected / today_expected * 100) if today_expected > 0 else 0,
+                    'collections': all_collections,
+                })
+            
+            context['clients'] = client_data
+        except BorrowerGroup.DoesNotExist:
+            messages.error(request, "Group not found.")
+            return redirect('dashboard:manager_collections_hierarchical')
+    
+    return render(request, 'dashboard/manager_collections_hierarchical.html', context)
