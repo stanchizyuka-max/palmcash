@@ -1483,16 +1483,29 @@ def overdue_loans_full(request):
     """Full page view of all overdue loans with pagination and advanced filters"""
     user = request.user
     
-    # Check if user is manager or admin
-    if user.role not in ['manager', 'admin']:
+    # Check if user has access
+    if user.role not in ['manager', 'admin', 'loan_officer']:
         return render(request, 'dashboard/access_denied.html')
     
     from payments.models import PaymentSchedule as PS
     from django.core.paginator import Paginator
     from clients.models import BorrowerGroup
     
-    # Get branch context for managers
-    if user.role == 'manager':
+    # Get context based on role
+    if user.role == 'loan_officer':
+        # Loan officers see only their loans
+        officers = User.objects.none()
+        loans = Loan.objects.filter(
+            Q(loan_officer=user) | Q(borrower__group_memberships__group__assigned_officer=user),
+            status='active'
+        ).distinct().select_related('borrower', 'loan_officer')
+        
+        groups = BorrowerGroup.objects.filter(
+            assigned_officer=user,
+            is_active=True
+        ).order_by('name')
+        
+    elif user.role == 'manager':
         try:
             branch = user.managed_branch
             officers = User.objects.filter(
@@ -1525,11 +1538,13 @@ def overdue_loans_full(request):
     group_filter = request.GET.get('group', '')
     search = request.GET.get('search', '').strip()
     
-    # Apply filters
-    if officer_filter:
-        loans = loans.filter(loan_officer_id=officer_filter)
-        # Filter groups by selected officer
-        groups = groups.filter(assigned_officer_id=officer_filter)
+    # Apply filters (only for managers and admins)
+    if user.role != 'loan_officer':
+        if officer_filter:
+            loans = loans.filter(loan_officer_id=officer_filter)
+            # Filter groups by selected officer
+            groups = groups.filter(assigned_officer_id=officer_filter)
+    
     if group_filter:
         loans = loans.filter(
             borrower__group_memberships__group_id=group_filter,
