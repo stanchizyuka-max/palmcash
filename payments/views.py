@@ -1039,6 +1039,7 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
             try:
                 from expenses.models import VaultTransaction
                 from clients.models import Branch
+                from loans.models import BranchVault
                 import uuid
                 
                 # Get officer's branch
@@ -1049,6 +1050,14 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                     officer_branch = Branch.objects.filter(name=branch_name).first()
                 
                 if officer_branch and branch_name:
+                    # Get or create vault
+                    vault, _ = BranchVault.objects.get_or_create(branch=officer_branch)
+                    
+                    # Update vault balance
+                    vault.balance += amount_applied
+                    new_balance = vault.balance
+                    vault.save()
+                    
                     # Generate unique reference number
                     reference = f"DC-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
                     
@@ -1057,6 +1066,7 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                         transaction_type='payment_collection',
                         direction='in',
                         amount=amount_applied,
+                        balance_after=new_balance,
                         description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',
                         reference_number=reference,
                         loan=loan,
