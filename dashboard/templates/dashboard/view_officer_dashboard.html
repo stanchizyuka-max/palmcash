@@ -54,7 +54,7 @@
             <h2 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
                 <i class="fas fa-calendar-check text-blue-600 mr-2"></i>Today's Collections
             </h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <p class="text-blue-700 text-xs font-semibold uppercase mb-1">Expected</p>
                     <p class="text-2xl font-bold text-blue-900">{{ today_expected|zmw_currency }}</p>
@@ -76,6 +76,55 @@
                     <p class="text-red-600 text-xs mt-1">Loans with overdue payments</p>
                 </div>
             </div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'payments:list' %}" class="inline-flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm">
+                    <i class="fas fa-plus mr-2"></i>Record Payment
+                </a>
+                <a href="{% url 'dashboard:collection_details' %}" class="inline-flex items-center px-5 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-semibold text-sm">
+                    View Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200 mb-8">
+            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                <i class="fas fa-bolt text-blue-600 mr-2"></i>Quick Actions
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <a href="{% url 'clients:register_borrower' %}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-400 transition hover:shadow-md">
+                    <i class="fas fa-user-plus text-green-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-green-900 text-sm text-center">Register Borrower</span>
+                </a>
+                <a href="{% url 'clients:group_create' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
+                    <i class="fas fa-layer-group text-blue-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-sm text-center">Create Group</span>
+                </a>
+                <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-md">
+                    <i class="fas fa-credit-card text-orange-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-orange-900 text-sm text-center">Record Payment</span>
+                </a>
+                <a href="{% url 'payments:bulk_collection' %}" class="flex flex-col items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 transition hover:shadow-md">
+                    <i class="fas fa-list-check text-emerald-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-emerald-900 text-sm text-center">Bulk Collection</span>
+                </a>
+                <a href="{% url 'payments:default_collection' %}" class="flex flex-col items-center p-4 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-400 transition hover:shadow-md">
+                    <i class="fas fa-exclamation-circle text-red-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-red-900 text-sm text-center">Default Collection</span>
+                </a>
+                <a href="{% url 'payments:history' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 transition hover:shadow-md">
+                    <i class="fas fa-history text-indigo-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-indigo-900 text-sm text-center">History</span>
+                </a>
+                <a href="{% url 'dashboard:report_security_transactions' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg border-2 border-teal-200 hover:border-teal-400 transition hover:shadow-md">
+                    <i class="fas fa-chart-bar text-teal-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-teal-900 text-sm text-center">Reports</span>
+                </a>
+                <a href="{% url 'clients:group_list' %}" class="flex flex-col items-center p-4 bg-purple-50 rounded-lg border-2 border-purple-200 hover:border-purple-400 transition hover:shadow-md">
+                    <i class="fas fa-layer-group text-purple-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-purple-900 text-sm text-center">View All Groups</span>
+                </a>
+            </div>
         </div>
 
         <!-- Groups -->
@@ -84,6 +133,9 @@
                 <h3 class="text-xl font-bold text-white flex items-center">
                     <i class="fas fa-layer-group mr-2"></i>Groups
                 </h3>
+                <a href="{% url 'clients:group_create' %}" class="px-3 py-1.5 bg-white text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-50">
+                    + New Group
+                </a>
             </div>
             {% if groups %}
             <table class="w-full">
@@ -106,10 +158,74 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200">
+                <a href="{% url 'clients:group_list' %}" class="text-blue-600 text-sm font-semibold hover:underline">View All Groups →</a>
+            </div>
             {% else %}
             <div class="p-10 text-center">
                 <i class="fas fa-inbox text-slate-300 text-3xl mb-3"></i>
-                <p class="text-slate-500">No groups yet.</p>
+                <p class="text-slate-500 mb-3">No groups yet.</p>
+                <a href="{% url 'clients:group_create' %}" class="text-blue-600 font-semibold text-sm hover:underline">Create first group →</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pending Security & Ready to Disburse -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Pending Security -->
+            {% if pending_security %}
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 px-6 py-4">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-hand-holding-usd mr-2"></i>Pending Security
+                        <span class="ml-2 bg-white text-yellow-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ pending_security.count }}</span>
+                    </h3>
+                </div>
+                <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                    {% for loan in pending_security %}
+                    <div class="px-4 py-3 hover:bg-yellow-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-slate-900 text-sm">{{ loan.borrower.get_full_name }}</p>
+                                <p class="text-xs text-slate-500">{{ loan.application_number }}</p>
+                            </div>
+                            <a href="{% url 'loans:detail' loan.pk %}" class="px-3 py-1.5 bg-yellow-500 text-white rounded-lg text-xs font-semibold hover:bg-yellow-600">
+                                <i class="fas fa-eye mr-1"></i>Review
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Ready to Disburse -->
+            {% if ready_to_disburse %}
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+                <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-paper-plane mr-2"></i>Ready to Disburse
+                        <span class="ml-2 bg-white text-green-600 text-xs font-bold px-2 py-0.5 rounded-full">{{ ready_to_disburse.count }}</span>
+                    </h3>
+                </div>
+                <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                    {% for loan in ready_to_disburse %}
+                    <div class="px-4 py-3 hover:bg-green-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold text-slate-900 text-sm">{{ loan.borrower.get_full_name }}</p>
+                                <p class="text-xs text-slate-500">{{ loan.application_number }} • {{ loan.principal_amount|zmw_currency }}</p>
+                            </div>
+                            <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Disburse loan {{ loan.application_number }}?')" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700">
+                                    <i class="fas fa-paper-plane mr-1"></i>Disburse
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
         </div>
@@ -121,7 +237,7 @@
                 <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
                     <i class="fas fa-exclamation-circle text-red-600 mr-2"></i>Default Collections
                 </h3>
-                <div class="space-y-3">
+                <div class="space-y-3 mb-4">
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-slate-600">Defaulted Loans</span>
                         <span class="text-lg font-bold text-red-700">{{ default_loans_count }}</span>
@@ -135,6 +251,9 @@
                         <span class="text-lg font-bold text-green-700">{{ default_collected_this_month|zmw_currency }}</span>
                     </div>
                 </div>
+                <a href="{% url 'payments:default_collection' %}" class="block w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-sm text-center">
+                    <i class="fas fa-plus mr-2"></i>Record Default Collection
+                </a>
             </div>
 
             <!-- This Month Performance -->
