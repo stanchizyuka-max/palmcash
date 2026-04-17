@@ -122,6 +122,12 @@ def approve_security_transaction(txn, approved_by):
             loan.balance_remaining = (loan.balance_remaining or Decimal('0')) - txn.amount
             loan.amount_paid += txn.amount
             loan.save(update_fields=['balance_remaining', 'amount_paid', 'updated_at'])
+            # Record vault IN — security used to repay loan balance
+            try:
+                from .vault_services import record_payment_collection
+                record_payment_collection(txn.loan, txn.amount, approved_by)
+            except Exception:
+                pass
 
         elif txn.transaction_type == 'return':
             if txn.amount > deposit.available_security:
