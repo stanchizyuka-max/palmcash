@@ -1999,6 +1999,12 @@ def security_topup_action(request, pk):
                 )
             except Exception:
                 pass
+            # Record vault IN for the top-up amount
+            try:
+                from loans.vault_services import record_security_deposit
+                record_security_deposit(req.loan, req.requested_amount, request.user)
+            except Exception:
+                pass
             messages.success(request, f'Top-up of K{req.requested_amount} approved.')
         elif decision == 'reject' and req.status == 'pending':
             req.status = 'rejected'

@@ -283,6 +283,50 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                         approval_date=timezone.now(),
                     )
                     loan.save()
+
+                    # Carry forward existing security from borrower's previous completed loan
+                    try:
+                        from loans.models import SecurityDeposit
+                        from loans.security_services import apply_carry_forward
+                        from loans.vault_services import record_security_deposit
+
+                        # Find the most recent completed loan with verified security for this borrower
+                        previous_loan = Loan.objects.filter(
+                            borrower=loan_app.borrower,
+                            status='completed',
+                            security_deposit__is_verified=True,
+                        ).order_by('-updated_at').first()
+
+                        if previous_loan:
+                            # Create a security deposit record for the new loan first
+                            from decimal import Decimal
+                            required = loan.principal_amount * Decimal('0.10')
+                            new_deposit, _ = SecurityDeposit.objects.get_or_create(
+                                loan=loan,
+                                defaults={
+                                    'required_amount': required,
+                                    'paid_amount': Decimal('0'),
+                                    'is_verified': False,
+                                }
+                            )
+                            # Carry forward security from old loan
+                            txn, err = apply_carry_forward(previous_loan, loan, loan_app.loan_officer)
+                            if txn:
+                                # If carry forward covers full required amount, mark as verified
+                                new_deposit.refresh_from_db()
+                                if new_deposit.paid_amount >= required:
+                                    new_deposit.is_verified = True
+                                    new_deposit.verification_date = timezone.now()
+                                    new_deposit.save(update_fields=['is_verified', 'verification_date'])
+                                # Record vault IN for the carried-forward amount
+                                try:
+                                    record_security_deposit(loan, txn.amount, self.request.user)
+                                except Exception:
+                                    pass
+                    except Exception as e:
+                        # Non-fatal — loan is still created
+                        print(f"Carry forward error: {e}")
+
                     messages.success(
                         self.request,
                         f'Application {loan_app.application_number} approved. '
