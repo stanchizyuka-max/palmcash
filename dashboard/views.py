@@ -240,7 +240,17 @@ def loan_officer_dashboard(request):
         verified_verifications = []
         pending_verification_count = 0
         verified_client_count = 0
-    
+
+    # Top-up count: SecurityTransaction carry_forwards + approved SecurityTopUpRequests (for legacy records)
+    from loans.models import SecurityTopUpRequest
+    sec_topups_count = SecurityTransaction.objects.filter(
+        loan__loan_officer=officer, transaction_type='carry_forward'
+    ).count()
+    if sec_topups_count == 0:
+        sec_topups_count = SecurityTopUpRequest.objects.filter(
+            loan__loan_officer=officer, status='approved'
+        ).count()
+
     context = {
         'groups_count': groups.count(),
         'clients_count': clients.count(),
@@ -305,9 +315,7 @@ def loan_officer_dashboard(request):
         'sec_deposits_count': SecurityTransaction.objects.filter(
             loan__loan_officer=officer, transaction_type='adjustment', status='approved'
         ).count(),
-        'sec_topups_count': SecurityTransaction.objects.filter(
-            loan__loan_officer=officer, transaction_type='carry_forward'
-        ).count(),
+        'sec_topups_count': sec_topups_count,
         'sec_returns_count': SecurityTransaction.objects.filter(
             loan__loan_officer=officer, transaction_type='return', status='approved'
         ).count(),
