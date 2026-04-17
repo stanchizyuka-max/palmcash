@@ -101,6 +101,27 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
             except User.DoesNotExist:
                 pass
         return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Restrict group dropdown to only this officer's groups
+        if 'group' in form.fields:
+            from clients.models import BorrowerGroup
+            user = self.request.user
+            if user.role == 'loan_officer':
+                form.fields['group'].queryset = BorrowerGroup.objects.filter(
+                    assigned_officer=user, is_active=True
+                )
+            elif user.role == 'manager':
+                try:
+                    branch = user.managed_branch
+                    form.fields['group'].queryset = BorrowerGroup.objects.filter(
+                        assigned_officer__officer_assignment__branch=branch.name,
+                        is_active=True
+                    )
+                except Exception:
+                    pass
+        return form
     
     def form_valid(self, form):
         loan_app = form.save(commit=False)
