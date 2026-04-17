@@ -121,7 +121,13 @@ def approve_security_transaction(txn, approved_by):
             loan = txn.loan
             loan.balance_remaining = (loan.balance_remaining or Decimal('0')) - txn.amount
             loan.amount_paid += txn.amount
-            loan.save(update_fields=['balance_remaining', 'amount_paid', 'updated_at'])
+            # Check if loan is now fully paid — mark as completed
+            if loan.balance_remaining <= Decimal('0'):
+                loan.balance_remaining = Decimal('0')
+                loan.status = 'completed'
+                from django.utils import timezone as _tz
+                loan.completion_date = _tz.now().date() if hasattr(loan, 'completion_date') else None
+            loan.save(update_fields=['balance_remaining', 'amount_paid', 'status', 'updated_at'])
             # No vault entry — security is already in the vault from the original deposit
             # Adjustment just reclassifies it from "held security" to "loan repayment"
 
