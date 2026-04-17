@@ -134,6 +134,10 @@
                     <i class="fas fa-user-plus text-green-600 text-2xl mb-2"></i>
                     <span class="font-semibold text-green-900 text-sm text-center">Register Borrower</span>
                 </a>
+                <a href="{% url 'loans:submit_application' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
+                    <i class="fas fa-file-invoice-dollar text-blue-600 text-2xl mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-sm text-center">New Loan Application</span>
+                </a>
                 <a href="{% url 'clients:group_create' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
                     <i class="fas fa-layer-group text-blue-600 text-2xl mb-2"></i>
                     <span class="font-semibold text-blue-900 text-sm text-center">Create Group</span>
