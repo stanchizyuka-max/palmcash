@@ -146,12 +146,15 @@ class GroupListView(LoginRequiredMixin, ListView):
         from loans.models import Loan
         from django.db.models import Sum
         groups_qs = context['groups']
+        total_outstanding = 0
         for group in groups_qs:
             member_ids = group.members.filter(is_active=True).values_list('borrower_id', flat=True)
             group.outstanding_balance = Loan.objects.filter(
                 borrower_id__in=member_ids,
                 status='active'
             ).aggregate(t=Sum('balance_remaining'))['t'] or 0
+            total_outstanding += group.outstanding_balance
+        context['total_outstanding_balance'] = total_outstanding
         
         return context
 

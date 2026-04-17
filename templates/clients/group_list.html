@@ -385,6 +385,17 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot class="bg-gray-100 border-t-2 border-gray-300">
+                        <tr>
+                            <td colspan="5" class="px-6 py-3 text-sm font-bold text-gray-700">
+                                Total Outstanding ({{ groups|length }} group{{ groups|length|pluralize }})
+                            </td>
+                            <td class="px-6 py-3 text-right font-bold text-red-700 text-sm">
+                                K{{ total_outstanding_balance|floatformat:2 }}
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
