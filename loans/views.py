@@ -1356,16 +1356,30 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
             except Exception as e:
                 print(f"SecurityDeposit sync error: {e}")
 
-            # Record vault inflow only if this is fresh cash (not a carry-forward)
+            # Record vault inflow only for fresh security deposits (not carry-forwards)
+            # A carry-forward means the money is already in the vault from the previous loan
             try:
-                if loan.upfront_payment_paid and loan.upfront_payment_paid > 0:
-                    # Only record if there's no existing security deposit vault entry
-                    from .vault_services import record_security_deposit
-                    from expenses.models import VaultTransaction
+                from expenses.models import VaultTransaction
+                from loans.models import SecurityTransaction as ST
+                # Check if this loan's security came from a carry-forward
+                is_carry_forward = ST.objects.filter(
+                    loan=loan,
+                    transaction_type='carry_forward',
+                    status='approved'
+                ).exists()
+                # Also check if security came from previous loan carry-forward (recorded on old loan)
+                has_carry_forward_source = ST.objects.filter(
+                    notes__icontains=loan.application_number,
+                    transaction_type='carry_forward',
+                    status='approved'
+                ).exists()
+
+                if not is_carry_forward and not has_carry_forward_source:
                     already_recorded = VaultTransaction.objects.filter(
                         loan=loan, transaction_type='security_deposit'
                     ).exists()
-                    if not already_recorded:
+                    if not already_recorded and loan.upfront_payment_paid and loan.upfront_payment_paid > 0:
+                        from .vault_services import record_security_deposit
                         record_security_deposit(loan, loan.upfront_payment_paid, request.user)
             except Exception as e:
                 print(f"Vault upfront record error: {e}")
