@@ -121,6 +121,8 @@ def loan_officer_dashboard(request):
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
     today_collected = sum(c.collected_amount for c in today_collections) or 0
+    # Never show negative pending — a full payoff means nothing is pending
+    today_pending = max(0, today_expected - today_collected)
 
     # Overdue: unpaid installments past their due date
     from payments.models import PaymentSchedule as PS
@@ -245,7 +247,7 @@ def loan_officer_dashboard(request):
         'active_loans_count': active_loans.count(),
         'today_expected': today_expected,
         'today_collected': today_collected,
-        'today_pending': today_expected - today_collected,
+        'today_pending': today_pending,
         'today_defaults': today_defaults,
         'groups': groups[:5],
         'pending_security': pending_security,
@@ -1081,6 +1083,7 @@ def manager_dashboard(request):
     today_expected = sum(c.expected_amount for c in today_collections) or 0
     today_collected = sum(c.collected_amount for c in today_collections) or 0
     collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
+    today_pending = max(0, today_expected - today_collected)
     
     # Pending approvals
     pending_security = 0
@@ -1343,6 +1346,7 @@ def manager_dashboard(request):
         'clients_count': clients_count,
         'today_expected': today_expected,
         'today_collected': today_collected,
+        'today_pending': today_pending,
         'collection_rate': round(collection_rate, 1),
         'pending_security': pending_security,
         'pending_topups': pending_topups,
