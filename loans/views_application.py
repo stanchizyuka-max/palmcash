@@ -312,12 +312,17 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                             # Carry forward security from old loan
                             txn, err = apply_carry_forward(previous_loan, loan, loan_app.loan_officer)
                             if txn:
-                                # If carry forward covers full required amount, mark as verified
+                                # If carry forward covers full required amount, mark deposit and loan as verified
                                 new_deposit.refresh_from_db()
                                 if new_deposit.paid_amount >= required:
                                     new_deposit.is_verified = True
                                     new_deposit.verification_date = timezone.now()
                                     new_deposit.save(update_fields=['is_verified', 'verification_date'])
+                                    # Also mark the loan's upfront payment as verified
+                                    # so it goes straight to Ready to Disburse
+                                    loan.upfront_payment_paid = new_deposit.paid_amount
+                                    loan.upfront_payment_verified = True
+                                    loan.save(update_fields=['upfront_payment_paid', 'upfront_payment_verified'])
                                 # No vault entry here — money is already in the vault from the original deposit
                                 # Vault only changes when NEW cash comes in (top-up) or goes out (return)
                     except Exception as e:
@@ -326,6 +331,9 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
 
                     messages.success(
                         self.request,
+                        f'Application {loan_app.application_number} approved. '
+                        f'Loan {loan.application_number} created — security carried forward, ready to disburse.'
+                        if loan.upfront_payment_verified else
                         f'Application {loan_app.application_number} approved. '
                         f'Loan {loan.application_number} created — officer can now initiate 10% upfront payment.'
                     )
