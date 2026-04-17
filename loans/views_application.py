@@ -318,11 +318,8 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                                     new_deposit.is_verified = True
                                     new_deposit.verification_date = timezone.now()
                                     new_deposit.save(update_fields=['is_verified', 'verification_date'])
-                                # Record vault IN for the carried-forward amount
-                                try:
-                                    record_security_deposit(loan, txn.amount, self.request.user)
-                                except Exception:
-                                    pass
+                                # No vault entry here — money is already in the vault from the original deposit
+                                # Vault only changes when NEW cash comes in (top-up) or goes out (return)
                     except Exception as e:
                         # Non-fatal — loan is still created
                         print(f"Carry forward error: {e}")
