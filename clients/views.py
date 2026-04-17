@@ -251,6 +251,19 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
             borrower_payments[key]['payments'].append(p)
 
         context['group_members_payments'] = list(borrower_payments.values())
+
+        # Outstanding balance for this group
+        from django.db.models import Sum
+        member_ids = [m.borrower_id for m in context['members']]
+        context['outstanding_balance'] = Loan.objects.filter(
+            borrower_id__in=member_ids,
+            status='active'
+        ).aggregate(t=Sum('balance_remaining'))['t'] or 0
+
+        context['total_disbursed'] = Loan.objects.filter(
+            borrower__in=member_borrowers,
+            status__in=['active', 'completed', 'disbursed']
+        ).aggregate(t=Sum('principal_amount'))['t'] or 0
         
         return context
 

@@ -81,8 +81,23 @@
                     </div>
                 </div>
 
-                <!-- Officer -->
+                <!-- Outstanding Balance -->
                 <div class="bg-white rounded-lg shadow p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Outstanding Balance</p>
+                            <p class="text-lg font-semibold {% if outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                K{{ outstanding_balance|floatformat:2|intcomma }}
+                            </p>
+                        </div>
+                        <div class="text-2xl {% if outstanding_balance > 0 %}text-red-400{% else %}text-green-400{% endif %}">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Officer -->
+                <div class="bg-white rounded-lg shadow p-4 md:col-span-2">
                     <div>
                         <p class="text-gray-600 text-sm font-medium">Loan Officer</p>
                         {% if group.assigned_officer %}
@@ -91,6 +106,19 @@
                         {% else %}
                         <p class="text-lg font-semibold text-gray-400">Unassigned</p>
                         {% endif %}
+                    </div>
+                </div>
+
+                <!-- Total Disbursed -->
+                <div class="bg-white rounded-lg shadow p-4 md:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Total Disbursed</p>
+                            <p class="text-lg font-semibold text-orange-600">K{{ total_disbursed|floatformat:2|intcomma }}</p>
+                        </div>
+                        <div class="text-2xl text-orange-400">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -266,7 +294,7 @@
                                             <div class="font-medium text-gray-900">{{ loan.borrower.get_full_name }}</div>
                                             <div class="text-xs text-gray-500">{{ loan.application_number }}</div>
                                         </td>
-                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ loan.amount|intcomma }}</td>
+                                        <td class="px-4 py-3 font-medium text-gray-900">K{{ loan.principal_amount|floatformat:2|intcomma }}</td>
                                         <td class="px-4 py-3">
                                             {% if loan.status == 'active' %}
                                                 <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
@@ -402,6 +430,16 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600">Active Loans</span>
                             <span class="font-bold text-lg text-purple-600">{{ active_loans }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t">
+                            <span class="text-gray-600">Total Disbursed</span>
+                            <span class="font-bold text-lg text-orange-600">K{{ total_disbursed|floatformat:2|intcomma }}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t">
+                            <span class="text-gray-600">Outstanding Balance</span>
+                            <span class="font-bold text-lg {% if outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                K{{ outstanding_balance|floatformat:2|intcomma }}
+                            </span>
                         </div>
                     </div>
                 </div>
