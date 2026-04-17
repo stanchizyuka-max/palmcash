@@ -14,7 +14,7 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
     template_name = 'loans/select_borrower.html'
     
     def dispatch(self, request, *args, **kwargs):
-        return redirect('clients:register_borrower')
+        return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
