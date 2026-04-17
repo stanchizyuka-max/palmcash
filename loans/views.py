@@ -1330,6 +1330,12 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
         
         if action == 'verify':
             loan.upfront_payment_verified = True
+            # For carry-forward loans, set upfront_payment_paid from security deposit
+            if not loan.upfront_payment_paid or loan.upfront_payment_paid == 0:
+                try:
+                    loan.upfront_payment_paid = loan.security_deposit.paid_amount
+                except Exception:
+                    loan.upfront_payment_paid = loan.upfront_payment_required or 0
             loan.save()
 
             # Sync SecurityDeposit.is_verified
@@ -1350,10 +1356,17 @@ class VerifyUpfrontPaymentView(LoginRequiredMixin, View):
             except Exception as e:
                 print(f"SecurityDeposit sync error: {e}")
 
-            # Record vault inflow for the upfront payment
+            # Record vault inflow only if this is fresh cash (not a carry-forward)
             try:
-                from .vault_services import record_security_deposit
-                record_security_deposit(loan, loan.upfront_payment_paid, request.user)
+                if loan.upfront_payment_paid and loan.upfront_payment_paid > 0:
+                    # Only record if there's no existing security deposit vault entry
+                    from .vault_services import record_security_deposit
+                    from expenses.models import VaultTransaction
+                    already_recorded = VaultTransaction.objects.filter(
+                        loan=loan, transaction_type='security_deposit'
+                    ).exists()
+                    if not already_recorded:
+                        record_security_deposit(loan, loan.upfront_payment_paid, request.user)
             except Exception as e:
                 print(f"Vault upfront record error: {e}")
             

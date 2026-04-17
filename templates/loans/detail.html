@@ -244,7 +244,20 @@
               </button>
 
             {% elif loan.status == 'approved' %}
-              {% if not loan.upfront_payment_paid or loan.upfront_payment_paid == 0 %}
+              {% if loan.upfront_payment_verified %}
+                <div class="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                  <i class="fas fa-check-circle mr-1"></i>Security verified — ready to disburse
+                </div>
+              {% elif loan.security_deposit.is_verified and user.role in 'manager,admin' %}
+                {# Security carried forward — manager can verify directly #}
+                <form method="post" action="{% url 'loans:verify_upfront' loan.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="verify">
+                  <button type="submit" class="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">
+                    <i class="fas fa-check mr-2"></i>Verify Security (Carried Forward)
+                  </button>
+                </form>
+              {% elif not loan.upfront_payment_paid or loan.upfront_payment_paid == 0 %}
                 {% if user.role == 'loan_officer' %}
                 <a href="{% url 'loans:upfront_payment' loan.pk %}" class="w-full py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 flex items-center justify-center">
                   <i class="fas fa-hand-holding-usd mr-2"></i>Pay Upfront (10%)
