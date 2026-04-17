@@ -1984,6 +1984,21 @@ def security_topup_action(request, pk):
                 dep.save(update_fields=['paid_amount', 'updated_at'])
             except Exception:
                 pass
+            # Create SecurityTransaction record so it shows in dashboard counts
+            try:
+                from loans.models import SecurityTransaction
+                SecurityTransaction.objects.create(
+                    loan=req.loan,
+                    transaction_type='carry_forward',
+                    amount=req.requested_amount,
+                    notes=f'Top-up approved by {request.user.get_full_name()}. {req.reason}',
+                    initiated_by=req.requested_by,
+                    approved_by=request.user,
+                    approved_at=tz.now(),
+                    status='approved',
+                )
+            except Exception:
+                pass
             messages.success(request, f'Top-up of K{req.requested_amount} approved.')
         elif decision == 'reject' and req.status == 'pending':
             req.status = 'rejected'
