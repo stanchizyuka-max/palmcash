@@ -236,6 +236,9 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                 Payment Day
                             </th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-white uppercase tracking-wider">
+                                Outstanding Balance
+                            </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                 <a href="?sort={% if current_sort == 'status' %}-status{% else %}status{% endif %}&branch={{ branch_filter }}&officer={{ officer_filter }}&group={{ group_filter }}&search={{ search_filter }}&status={{ status_filter }}" class="flex items-center hover:text-yellow-300">
                                     Status
@@ -340,6 +343,15 @@
                                     <i class="fas fa-calendar-day text-gray-400 mr-2"></i>
                                     {{ group.payment_day|default:"Not set" }}
                                 </div>
+                            </td>
+
+                            <!-- Outstanding Balance -->
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                {% if group.outstanding_balance > 0 %}
+                                <span class="font-bold text-red-600">K{{ group.outstanding_balance|floatformat:2 }}</span>
+                                {% else %}
+                                <span class="font-semibold text-green-600">K0.00</span>
+                                {% endif %}
                             </td>
 
                             <!-- Status -->
