@@ -29,8 +29,8 @@ def security_action(request, loan_id, action):
             elif action == 'return':
                 txn, err = initiate_security_return(loan, amount, notes, request.user)
             elif action == 'withdrawal':
-                new_loan_amount = request.POST.get('new_loan_amount', '0')
-                txn, err = initiate_security_withdrawal(loan, new_loan_amount, notes, request.user)
+                # Officer enters the withdrawal amount directly
+                txn, err = initiate_security_withdrawal(loan, amount, notes, request.user)
             else:
                 err = 'Invalid action.'
                 txn = None

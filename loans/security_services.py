@@ -68,7 +68,7 @@ def initiate_security_return(loan, amount, notes, initiated_by):
     return txn, None
 
 
-def initiate_security_withdrawal(loan, new_loan_amount, notes, initiated_by):
+def initiate_security_withdrawal(loan, amount, notes, initiated_by):
     from .models import SecurityTransaction
     if loan.status != 'active':
         return None, 'Security withdrawal can only be done on an active loan.'
@@ -77,23 +77,27 @@ def initiate_security_withdrawal(loan, new_loan_amount, notes, initiated_by):
     except Exception:
         return None, 'No security deposit found for this loan.'
 
-    new_loan_amount = Decimal(str(new_loan_amount))
-    if new_loan_amount <= 0:
-        return None, 'New loan amount must be greater than zero.'
+    amount = Decimal(str(amount))
+    if amount <= 0:
+        return None, 'Withdrawal amount must be greater than zero.'
+    if amount > deposit.available_security:
+        return None, f'Withdrawal amount exceeds available security (K{deposit.available_security}).'
 
-    required_security = new_loan_amount * Decimal('0.10')
-    available = deposit.available_security
-
-    if available <= required_security:
-        return None, f'Available security (K{available}) is already at or below 10% of the new loan amount (K{required_security}).'
-
-    withdrawal_amount = available - required_security
+    # Ensure enough security remains to cover 10% of current loan balance
+    remaining_after = deposit.available_security - amount
+    required_minimum = (loan.balance_remaining or Decimal('0')) * Decimal('0.10')
+    if remaining_after < required_minimum:
+        return None, (
+            f'Cannot withdraw K{amount} — must keep at least K{required_minimum:.2f} '
+            f'(10% of remaining balance K{loan.balance_remaining:.2f}). '
+            f'Maximum withdrawal: K{deposit.available_security - required_minimum:.2f}.'
+        )
 
     txn = SecurityTransaction.objects.create(
         loan=loan,
         transaction_type='withdrawal',
-        amount=withdrawal_amount,
-        notes=notes or f'Withdrawal to match 10% of new loan amount K{new_loan_amount}',
+        amount=amount,
+        notes=notes or f'Security withdrawal of K{amount}',
         initiated_by=initiated_by,
         status='pending',
     )
