@@ -1511,9 +1511,16 @@ def manager_dashboard(request):
 
     # Recent default collections for this branch
     from payments.models import DefaultCollection
-    context['recent_default_collections'] = DefaultCollection.objects.filter(
+    raw_defaults = DefaultCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name
     ).select_related('loan__borrower', 'recorded_by').order_by('-collection_date', '-id')[:15]
+    
+    # Attach group name to each record
+    for dc in raw_defaults:
+        membership = dc.loan.borrower.group_memberships.filter(is_active=True).select_related('group').first()
+        dc.group_name = membership.group.name if membership else '—'
+    
+    context['recent_default_collections'] = raw_defaults
     context['default_collected_this_month'] = DefaultCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name,
         collection_date__gte=date.today().replace(day=1),
