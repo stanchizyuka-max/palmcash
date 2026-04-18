@@ -251,6 +251,15 @@ def loan_officer_dashboard(request):
             loan__loan_officer=officer, status='approved'
         ).count()
 
+    # Attach pending payment count to each group
+    from payments.models import Payment as Pmt
+    for g in groups[:5]:
+        g.pending_payments_count = Pmt.objects.filter(
+            loan__borrower__group_memberships__group=g,
+            loan__borrower__group_memberships__is_active=True,
+            status='pending'
+        ).distinct().count()
+
     context = {
         'groups_count': groups.count(),
         'clients_count': clients.count(),

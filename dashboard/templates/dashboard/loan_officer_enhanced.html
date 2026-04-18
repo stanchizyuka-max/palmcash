@@ -96,6 +96,7 @@
                         <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Group Name</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Members</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Active Loans</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Pending Payments</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Action</th>
                     </tr>
                 </thead>
@@ -105,6 +106,15 @@
                         <td class="px-6 py-4 font-semibold text-slate-900 text-sm">{{ group.name }}</td>
                         <td class="px-6 py-4 text-sm">{{ group.member_count }}</td>
                         <td class="px-6 py-4 text-sm">{{ group.get_active_loans_count }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if group.pending_payments_count > 0 %}
+                            <a href="{% url 'payments:list' %}?group={{ group.id }}" class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold hover:bg-amber-200">
+                                <i class="fas fa-exclamation-circle"></i> {{ group.pending_payments_count }} pending
+                            </a>
+                            {% else %}
+                            <span class="text-slate-400 text-xs">None</span>
+                            {% endif %}
+                        </td>
                         <td class="px-6 py-4">
                             <a href="{% url 'clients:group_detail' group.id %}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200">View</a>
                         </td>
