@@ -15,6 +15,25 @@ def _get_manager_branch(user):
         return None
 
 
+def _vault_qs(branch_name):
+    """Return an optimised VaultTransaction queryset for a branch."""
+    return (
+        VaultTransaction.objects
+        .filter(branch=branch_name)
+        .select_related('loan', 'recorded_by', 'approved_by')
+        .defer(
+            'recorded_by__password', 'recorded_by__address', 'recorded_by__national_id',
+            'recorded_by__date_of_birth', 'recorded_by__profile_picture',
+            'recorded_by__employment_status', 'recorded_by__employer_name',
+            'recorded_by__monthly_income', 'recorded_by__province', 'recorded_by__district',
+            'approved_by__password', 'approved_by__address', 'approved_by__national_id',
+            'approved_by__date_of_birth', 'approved_by__profile_picture',
+            'approved_by__employment_status', 'approved_by__employer_name',
+            'approved_by__monthly_income', 'approved_by__province', 'approved_by__district',
+        )
+    )
+
+
 @login_required
 def vault_dashboard(request):
     if request.user.role not in ['manager', 'admin']:
@@ -28,7 +47,7 @@ def vault_dashboard(request):
         if not branch:
             return render(request, 'dashboard/vault.html', {'no_branch': True})
         vault, _ = BranchVault.objects.get_or_create(branch=branch)
-        qs = VaultTransaction.objects.filter(branch=branch.name).select_related('loan__borrower', 'recorded_by', 'approved_by')
+        qs = _vault_qs(branch.name)
     else:
         # Admin — scope to a selected branch to avoid loading all transactions
         selected_branch_name = request.GET.get('branch', '')
@@ -39,7 +58,7 @@ def vault_dashboard(request):
 
         if branch:
             vault, _ = BranchVault.objects.get_or_create(branch=branch)
-            qs = VaultTransaction.objects.filter(branch=branch.name).select_related('loan__borrower', 'recorded_by', 'approved_by')
+            qs = _vault_qs(branch.name)
         else:
             vault = None
             qs = VaultTransaction.objects.none()
