@@ -67,6 +67,13 @@
     <!-- Filters -->
     <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {% if user.role == 'admin' and all_branches %}
+        <select name="branch" class="border border-slate-300 rounded-lg px-3 py-2 text-sm col-span-2 md:col-span-1">
+          {% for b in all_branches %}
+          <option value="{{ b.name }}" {% if selected_branch and selected_branch.name == b.name %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
         <input type="date" name="date_from" value="{{ filters.date_from }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="From">
         <input type="date" name="date_to" value="{{ filters.date_to }}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="To">
         <select name="type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">

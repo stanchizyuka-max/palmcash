@@ -20,6 +20,9 @@ def vault_dashboard(request):
     if request.user.role not in ['manager', 'admin']:
         return redirect('dashboard:dashboard')
 
+    from clients.models import Branch
+    all_branches = Branch.objects.filter(is_active=True).order_by('name')
+
     if request.user.role == 'manager':
         branch = _get_manager_branch(request.user)
         if not branch:
@@ -27,8 +30,19 @@ def vault_dashboard(request):
         vault, _ = BranchVault.objects.get_or_create(branch=branch)
         qs = VaultTransaction.objects.filter(branch=branch.name).select_related('loan__borrower', 'recorded_by', 'approved_by')
     else:
-        vault = None
-        qs = VaultTransaction.objects.select_related('loan__borrower', 'recorded_by', 'approved_by')
+        # Admin — scope to a selected branch to avoid loading all transactions
+        selected_branch_name = request.GET.get('branch', '')
+        if selected_branch_name:
+            branch = all_branches.filter(name=selected_branch_name).first()
+        else:
+            branch = all_branches.first()
+
+        if branch:
+            vault, _ = BranchVault.objects.get_or_create(branch=branch)
+            qs = VaultTransaction.objects.filter(branch=branch.name).select_related('loan__borrower', 'recorded_by', 'approved_by')
+        else:
+            vault = None
+            qs = VaultTransaction.objects.none()
 
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
@@ -97,6 +111,8 @@ def vault_dashboard(request):
         'total_out': total_out,
         'tx_types': tx_types,
         'filters': request.GET,
+        'all_branches': all_branches,
+        'selected_branch': branch,
     })
 
 
