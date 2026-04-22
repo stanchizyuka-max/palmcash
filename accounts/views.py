@@ -261,13 +261,24 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
             messages.error(request, 'You do not have permission to view user details.')
             return redirect('dashboard:dashboard')
         
-        # Loan officers can only view clients assigned to them
+        # Loan officers can only view clients in their groups or assigned to them
         if request.user.role == 'loan_officer':
             user_id = kwargs.get('pk')
-            user_to_view = User.objects.get(pk=user_id)
-            if user_to_view.assigned_officer != request.user:
-                messages.error(request, 'You can only view clients assigned to you.')
-                return redirect('dashboard:dashboard')
+            try:
+                user_to_view = User.objects.get(pk=user_id)
+                from django.db.models import Q
+                is_accessible = (
+                    user_to_view.assigned_officer == request.user or
+                    user_to_view.group_memberships.filter(
+                        group__assigned_officer=request.user,
+                        is_active=True
+                    ).exists()
+                )
+                if not is_accessible:
+                    messages.error(request, 'You can only view clients assigned to you or in your groups.')
+                    return redirect('dashboard:dashboard')
+            except User.DoesNotExist:
+                pass
         
         return super().dispatch(request, *args, **kwargs)
     
