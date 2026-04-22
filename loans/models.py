@@ -966,3 +966,15 @@ class BranchVault(models.Model):
 
     def __str__(self):
         return f"Vault — {self.branch.name} (K{self.balance})"
+
+
+class BranchSavings(models.Model):
+    """Savings account per branch — money parked from vault for safekeeping."""
+    branch = models.OneToOneField(
+        'clients.Branch', on_delete=models.CASCADE, related_name='savings'
+    )
+    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Savings — {self.branch.name} (K{self.balance})"

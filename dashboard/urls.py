@@ -123,4 +123,6 @@ urlpatterns = [
     path('vault/bank-deposit/', vault_views.bank_deposit_out, name='vault_bank_deposit'),
     path('vault/collection/', vault_views.vault_collection, name='vault_collection'),
     path('vault/month-close/', vault_views.vault_month_close, name='vault_month_close'),
+    path('vault/savings/deposit/', vault_views.vault_savings_deposit, name='vault_savings_deposit'),
+    path('vault/savings/withdraw/', vault_views.vault_savings_withdrawal, name='vault_savings_withdrawal'),
 ]

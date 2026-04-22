@@ -134,6 +134,7 @@ def vault_dashboard(request):
         'filters': request.GET,
         'all_branches': all_branches,
         'selected_branch': branch,
+        'savings': __import__('loans.models', fromlist=['BranchSavings']).BranchSavings.objects.filter(branch=branch).first() if branch else None,
     })
 
 
@@ -444,4 +445,102 @@ def vault_month_close(request):
         'vault': vault,
         'branch': branch,
         'current_month': current_month,
+    })
+
+
+@login_required
+def vault_savings_deposit(request):
+    """Move money from vault to savings."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.user.role == 'admin':
+        from clients.models import Branch
+        branch_name = request.GET.get('branch') or request.POST.get('branch')
+        if branch_name:
+            branch = Branch.objects.filter(name=branch_name).first()
+        if not branch:
+            branch = Branch.objects.filter(is_active=True).first()
+
+    vault = None
+    savings = None
+    if branch:
+        vault, _ = BranchVault.objects.get_or_create(branch=branch)
+        from loans.models import BranchSavings
+        savings, _ = BranchSavings.objects.get_or_create(branch=branch)
+
+    if request.method == 'POST':
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            amount = Decimal(request.POST.get('amount', '0'))
+            notes = request.POST.get('notes', '')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            from loans.vault_services import record_savings_deposit
+            record_savings_deposit(branch, amount, notes, request.user)
+            messages.success(request, f'K{amount:,.2f} moved from vault to savings.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_savings_deposit.html', {
+        'branch': branch,
+        'branches': branches,
+        'vault': vault,
+        'savings': savings,
+    })
+
+
+@login_required
+def vault_savings_withdrawal(request):
+    """Move money from savings back to vault."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.user.role == 'admin':
+        from clients.models import Branch
+        branch_name = request.GET.get('branch') or request.POST.get('branch')
+        if branch_name:
+            branch = Branch.objects.filter(name=branch_name).first()
+        if not branch:
+            branch = Branch.objects.filter(is_active=True).first()
+
+    vault = None
+    savings = None
+    if branch:
+        vault, _ = BranchVault.objects.get_or_create(branch=branch)
+        from loans.models import BranchSavings
+        savings, _ = BranchSavings.objects.get_or_create(branch=branch)
+
+    if request.method == 'POST':
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            amount = Decimal(request.POST.get('amount', '0'))
+            notes = request.POST.get('notes', '')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            from loans.vault_services import record_savings_withdrawal
+            record_savings_withdrawal(branch, amount, notes, request.user)
+            messages.success(request, f'K{amount:,.2f} withdrawn from savings to vault.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_savings_withdrawal.html', {
+        'branch': branch,
+        'branches': branches,
+        'vault': vault,
+        'savings': savings,
     })

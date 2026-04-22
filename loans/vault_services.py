@@ -288,3 +288,57 @@ def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by):
             ))
 
         return txns
+
+
+def record_savings_deposit(branch, amount, notes, recorded_by):
+    """Move money from vault to savings (vault OUT, savings IN)."""
+    amount = Decimal(str(amount))
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        if vault.balance < amount:
+            raise ValueError(f'Insufficient vault balance. Available: K{vault.balance:,.2f}')
+        from loans.models import BranchSavings
+        savings, _ = BranchSavings.objects.get_or_create(branch=branch)
+        vault.balance -= amount
+        vault.save(update_fields=['balance', 'updated_at'])
+        savings.balance += amount
+        savings.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='savings_deposit',
+            direction='out',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=notes or f'Savings deposit — K{amount:,.2f}',
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
+
+
+def record_savings_withdrawal(branch, amount, notes, recorded_by):
+    """Move money from savings back to vault (savings OUT, vault IN)."""
+    amount = Decimal(str(amount))
+    with db_transaction.atomic():
+        from loans.models import BranchSavings
+        savings, _ = BranchSavings.objects.get_or_create(branch=branch)
+        if savings.balance < amount:
+            raise ValueError(f'Insufficient savings balance. Available: K{savings.balance:,.2f}')
+        vault = _get_or_create_vault(branch)
+        savings.balance -= amount
+        savings.save(update_fields=['balance', 'updated_at'])
+        vault.balance += amount
+        vault.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='savings_withdrawal',
+            direction='in',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=notes or f'Savings withdrawal — K{amount:,.2f}',
+            reference_number=_ref(),
+            recorded_by=recorded_by,
+            transaction_date=timezone.now(),
+        )
