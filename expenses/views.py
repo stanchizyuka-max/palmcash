@@ -77,8 +77,36 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         form.instance.recorded_by = self.request.user
-        messages.success(self.request, 'Expense created successfully.')
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        # Deduct expense from vault
+        expense = self.object
+        try:
+            from clients.models import Branch
+            from loans.models import BranchVault
+            from expenses.models import VaultTransaction
+            import uuid
+            from django.utils import timezone
+
+            branch = Branch.objects.filter(name__iexact=expense.branch).first()
+            if branch:
+                vault, _ = BranchVault.objects.get_or_create(branch=branch)
+                vault.balance -= expense.amount
+                vault.save(update_fields=['balance', 'updated_at'])
+                VaultTransaction.objects.create(
+                    branch=branch.name,
+                    transaction_type='expense',
+                    direction='out',
+                    amount=expense.amount,
+                    balance_after=vault.balance,
+                    description=f'Expense: {expense.title}',
+                    reference_number=f'EXP-{uuid.uuid4().hex[:8].upper()}',
+                    recorded_by=self.request.user,
+                    transaction_date=timezone.now(),
+                )
+        except Exception as e:
+            print(f'Vault expense deduction error: {e}')
+        messages.success(self.request, 'Expense created and deducted from vault.')
+        return response
 
 
 class ExpenseUpdateView(LoginRequiredMixin, UpdateView):

@@ -123,6 +123,7 @@ def vault_dashboard(request):
         ('branch_transfer_out', 'Branch Transfer (Out)'),
         ('month_close', 'Month Closing'),
         ('month_open', 'Month Opening'),
+        ('expense', 'Expense'),
     ]
 
     return render(request, 'dashboard/vault.html', {
