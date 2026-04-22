@@ -108,10 +108,12 @@ def vault_dashboard(request):
     page = paginator.get_page(request.GET.get('page'))
 
     tx_types = [
+        ('deposit', 'Cash Deposit'),
+        ('withdrawal', 'Cash Withdrawal'),
+        ('payment_collection', 'Payment Collection'),
         ('security_deposit', 'Security Deposit'),
         ('loan_disbursement', 'Loan Disbursement'),
         ('security_return', 'Security Return'),
-        ('payment_collection', 'Loan Repayment'),
         ('capital_injection', 'Capital Injection'),
         ('bank_withdrawal', 'Bank Withdrawal'),
         ('bank_charges', 'Bank Charges'),
@@ -119,8 +121,8 @@ def vault_dashboard(request):
         ('fund_deposit', 'Fund Received'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
         ('branch_transfer_out', 'Branch Transfer (Out)'),
-        ('deposit', 'Cash Deposit'),
-        ('withdrawal', 'Cash Withdrawal'),
+        ('month_close', 'Month Closing'),
+        ('month_open', 'Month Opening'),
     ]
 
     return render(request, 'dashboard/vault.html', {
@@ -320,22 +322,29 @@ def vault_collection(request):
             amount = Decimal(request.POST.get('amount', '0'))
             source = request.POST.get('source', '').strip()
             notes = request.POST.get('notes', '')
+            collection_date_str = request.POST.get('collection_date', '')
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             if not source:
                 raise ValueError('Source/description is required.')
-            
-            # Record as payment collection
-            from loans.vault_services import record_payment_collection
-            # Create a dummy loan context or use None
+
+            # Parse date
+            from datetime import datetime as dt
+            if collection_date_str:
+                collection_dt = dt.strptime(collection_date_str, '%Y-%m-%d')
+                from django.utils import timezone as tz
+                collection_dt = tz.make_aware(collection_dt)
+            else:
+                collection_dt = timezone.now()
+
             from expenses.models import VaultTransaction
             from loans.models import BranchVault
             import uuid
-            
+
             vault, _ = BranchVault.objects.get_or_create(branch=branch)
             vault.balance += amount
             vault.save()
-            
+
             VaultTransaction.objects.create(
                 branch=branch.name,
                 transaction_type='payment_collection',
@@ -345,7 +354,7 @@ def vault_collection(request):
                 description=f'Manual collection — {source}. {notes}'.strip(),
                 reference_number=f'COL-{uuid.uuid4().hex[:8].upper()}',
                 recorded_by=request.user,
-                transaction_date=timezone.now(),
+                transaction_date=collection_dt,
             )
             
             messages.success(request, f'K{amount:,.2f} collection recorded into {branch.name} vault.')
@@ -356,3 +365,83 @@ def vault_collection(request):
     from clients.models import Branch
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
     return render(request, 'dashboard/vault_collection.html', {'branch': branch, 'branches': branches})
+
+
+@login_required
+def vault_month_close(request):
+    """Close the current month — record closing balance and reset vault to zero."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.user.role == 'admin':
+        from clients.models import Branch
+        branch_name = request.GET.get('branch') or request.POST.get('branch')
+        if branch_name:
+            branch = Branch.objects.filter(name=branch_name).first()
+        if not branch:
+            branch = Branch.objects.filter(is_active=True).first()
+
+    vault = None
+    if branch:
+        vault, _ = BranchVault.objects.get_or_create(branch=branch)
+
+    from datetime import date
+    current_month = date.today().strftime('%Y-%m')
+
+    if request.method == 'POST':
+        from django.contrib import messages
+        from expenses.models import VaultTransaction
+        import uuid
+
+        try:
+            closing_month = request.POST.get('closing_month', current_month)
+            notes = request.POST.get('notes', '')
+            closing_balance = vault.balance
+
+            # 1. Record closing balance entry (OUT — removes balance from running total)
+            VaultTransaction.objects.create(
+                branch=branch.name,
+                transaction_type='month_close',
+                direction='out',
+                amount=closing_balance,
+                balance_after=0,
+                description=f'Month closing — {closing_month}. Balance carried forward: K{closing_balance:,.2f}. {notes}'.strip(),
+                reference_number=f'CLOSE-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                recorded_by=request.user,
+                transaction_date=timezone.now(),
+            )
+
+            # 2. Reset vault balance to zero
+            vault.balance = 0
+            vault.save()
+
+            # 3. Record opening balance for new month (IN — restores balance)
+            VaultTransaction.objects.create(
+                branch=branch.name,
+                transaction_type='month_open',
+                direction='in',
+                amount=closing_balance,
+                balance_after=closing_balance,
+                description=f'Opening balance — carried forward from {closing_month}.',
+                reference_number=f'OPEN-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                recorded_by=request.user,
+                transaction_date=timezone.now(),
+            )
+
+            # 4. Restore vault balance to closing balance (it's the opening of new month)
+            vault.balance = closing_balance
+            vault.save()
+
+            messages.success(request, f'Month {closing_month} closed. Vault reset with opening balance of K{closing_balance:,.2f}.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, f'Error: {e}')
+
+    return render(request, 'dashboard/vault_month_close.html', {
+        'vault': vault,
+        'branch': branch,
+        'current_month': current_month,
+    })

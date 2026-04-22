@@ -51,6 +51,13 @@
         </div>
 
         <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Collection Date <span class="text-red-500">*</span></label>
+          <input type="date" name="collection_date" required
+            value="{% now 'Y-m-d' %}"
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Source / Description <span class="text-red-500">*</span></label>
           <input type="text" name="source" required
             class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"

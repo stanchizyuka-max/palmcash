@@ -184,6 +184,8 @@ class VaultTransaction(models.Model):
         ('branch_transfer_out', 'Branch Transfer (Out)'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
         ('bank_deposit_out', 'Bank Deposit (to Bank)'),
+        ('month_close', 'Month Closing'),
+        ('month_open', 'Month Opening'),
     ]
 
     DIRECTION_CHOICES = [
