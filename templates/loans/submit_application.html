@@ -79,18 +79,25 @@
 </div>
 
 <script>
+const DEFAULTS = {
+    weekly: { rate: '45%', days: 147, hint: '21 weeks (147 days) — auto-filled' },
+    daily:  { rate: '40%', days: 56,  hint: '56 days — auto-filled' },
+};
+
 function updateInterestRate(val) {
-    const display = document.getElementById('rate-display');
-    const hint = document.getElementById('duration-hint');
-    if (val === 'weekly') {
-        display.textContent = '45%';
-        hint.textContent = 'e.g. 4 weeks = 28 days for weekly';
-    } else {
-        display.textContent = '40%';
-        hint.textContent = 'e.g. 30 days for daily';
-    }
+    const cfg = DEFAULTS[val] || DEFAULTS.daily;
+    document.getElementById('rate-display').textContent = cfg.rate;
+    document.getElementById('duration-hint').textContent = cfg.hint;
+    // Auto-fill duration
+    const durationField = document.querySelector('[name="duration_days"]');
+    if (durationField) durationField.value = cfg.days;
 }
+
 // Set on load
-updateInterestRate(document.querySelector('[name="repayment_frequency"]').value);
+const freqField = document.querySelector('[name="repayment_frequency"]');
+if (freqField) {
+    updateInterestRate(freqField.value);
+    freqField.addEventListener('change', function() { updateInterestRate(this.value); });
+}
 </script>
 {% endblock %}
