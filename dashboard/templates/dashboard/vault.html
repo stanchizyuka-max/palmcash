@@ -19,35 +19,17 @@
       </div>
       <div class="flex gap-3">
         {% if user.role == 'admin' %}
-        <a href="{% url 'dashboard:capital_injection' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">
-          <i class="fas fa-plus-circle mr-1"></i>Inject Capital
-        </a>
+        <a href="{% url 'dashboard:capital_injection' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Inject Capital</a>
         {% endif %}
         {% if user.role in 'manager,admin' %}
-        <a href="{% url 'dashboard:vault_bank_withdrawal' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">
-          <i class="fas fa-university mr-1"></i>Bank Withdrawal
-        </a>
-        <a href="{% url 'dashboard:vault_bank_deposit' %}" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">
-          <i class="fas fa-arrow-up mr-1"></i>Bank Deposit
-        </a>
-        <a href="{% url 'dashboard:vault_fund_deposit' %}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">
-          <i class="fas fa-arrow-down mr-1"></i>Fund Received
-        </a>
-        <a href="{% url 'dashboard:vault_branch_transfer' %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700">
-          <i class="fas fa-exchange-alt mr-1"></i>Transfer
-        </a>
-        <a href="{% url 'dashboard:vault_collection' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">
-          <i class="fas fa-hand-holding-usd mr-1"></i>Collection
-        </a>
-        <a href="{% url 'dashboard:vault_month_close' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
-          <i class="fas fa-calendar-check mr-1"></i>Close Month
-        </a>
-        <a href="{% url 'dashboard:vault_savings_deposit' %}" class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700">
-          <i class="fas fa-piggy-bank mr-1"></i>Save to Savings
-        </a>
-        <a href="{% url 'dashboard:vault_savings_withdrawal' %}" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">
-          <i class="fas fa-piggy-bank mr-1"></i>From Savings
-        </a>
+        <a href="{% url 'dashboard:vault_bank_withdrawal' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">Bank Withdrawal</a>
+        <a href="{% url 'dashboard:vault_bank_deposit' %}" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700">Bank Deposit</a>
+        <a href="{% url 'dashboard:vault_fund_deposit' %}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">Fund Received</a>
+        <a href="{% url 'dashboard:vault_branch_transfer' %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700">Transfer</a>
+        <a href="{% url 'dashboard:vault_collection' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Collection</a>
+        <a href="{% url 'dashboard:vault_month_close' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">Close Month</a>
+        <a href="{% url 'dashboard:vault_savings_deposit' %}" class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700">Save to Savings</a>
+        <a href="{% url 'dashboard:vault_savings_withdrawal' %}" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600">From Savings</a>
         {% endif %}
         <a href="{% url 'dashboard:dashboard' %}" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50">
           ← Back to Dashboard
