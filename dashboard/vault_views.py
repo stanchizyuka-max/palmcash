@@ -300,3 +300,59 @@ def bank_deposit_out(request):
     from clients.models import Branch
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
     return render(request, 'dashboard/vault_bank_deposit_out.html', {'branch': branch, 'branches': branches})
+
+
+@login_required
+def vault_collection(request):
+    """Record a manual cash collection into the vault."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.method == 'POST':
+        from clients.models import Branch
+        from decimal import Decimal
+        from django.contrib import messages
+        try:
+            if request.user.role == 'admin':
+                branch = Branch.objects.get(pk=request.POST.get('branch'))
+            amount = Decimal(request.POST.get('amount', '0'))
+            source = request.POST.get('source', '').strip()
+            notes = request.POST.get('notes', '')
+            if amount <= 0:
+                raise ValueError('Amount must be greater than zero.')
+            if not source:
+                raise ValueError('Source/description is required.')
+            
+            # Record as payment collection
+            from loans.vault_services import record_payment_collection
+            # Create a dummy loan context or use None
+            from expenses.models import VaultTransaction
+            from loans.models import BranchVault
+            import uuid
+            
+            vault, _ = BranchVault.objects.get_or_create(branch=branch)
+            vault.balance += amount
+            vault.save()
+            
+            VaultTransaction.objects.create(
+                branch=branch.name,
+                transaction_type='payment_collection',
+                direction='in',
+                amount=amount,
+                balance_after=vault.balance,
+                description=f'Manual collection — {source}. {notes}'.strip(),
+                reference_number=f'COL-{uuid.uuid4().hex[:8].upper()}',
+                recorded_by=request.user,
+                transaction_date=timezone.now(),
+            )
+            
+            messages.success(request, f'K{amount:,.2f} collection recorded into {branch.name} vault.')
+            return redirect('dashboard:vault')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    from clients.models import Branch
+    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_collection.html', {'branch': branch, 'branches': branches})

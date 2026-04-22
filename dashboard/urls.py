@@ -121,4 +121,5 @@ urlpatterns = [
     path('vault/fund-deposit/', vault_views.fund_deposit, name='vault_fund_deposit'),
     path('vault/branch-transfer/', vault_views.branch_transfer, name='vault_branch_transfer'),
     path('vault/bank-deposit/', vault_views.bank_deposit_out, name='vault_bank_deposit'),
+    path('vault/collection/', vault_views.vault_collection, name='vault_collection'),
 ]
