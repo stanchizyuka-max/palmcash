@@ -21,9 +21,9 @@ def _get_security_balance(branch):
     from django.db.models import Sum, F
     from decimal import Decimal
     
-    # Get all active loans for this branch
+    # Get all active loans where the loan officer belongs to this branch
     active_loans = Loan.objects.filter(
-        branch=branch,
+        loan_officer__managed_branch=branch,
         status__in=['pending', 'approved', 'active']
     )
     
