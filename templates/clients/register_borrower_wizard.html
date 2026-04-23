@@ -191,8 +191,9 @@
           <input type="number" name="duration_days" id="duration_days" min="1" required
             value="{{ post_data.duration_days }}"
             placeholder="e.g. 56"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
-          <p class="text-xs text-gray-500 mt-1" id="duration-hint">Enter duration in days</p>
+            readonly
+            class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600 cursor-not-allowed">
+          <p class="text-xs text-gray-500 mt-1" id="duration-hint">Auto-set based on repayment type</p>
         </div>
 
         <div>

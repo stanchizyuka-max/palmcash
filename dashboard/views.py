@@ -2970,6 +2970,34 @@ def expense_create(request):
                 title=f"{expense_code.name} - {expense_date}"
             )
             
+            # Deduct from vault
+            try:
+                from loans.models import BranchVault
+                from expenses.models import VaultTransaction
+                import uuid
+                from django.utils import timezone
+                from django.db import transaction as db_transaction
+                from decimal import Decimal
+
+                with db_transaction.atomic():
+                    vault, _ = BranchVault.objects.get_or_create(branch=branch)
+                    vault.balance -= Decimal(str(amount))
+                    vault.save(update_fields=['balance', 'updated_at'])
+                    VaultTransaction.objects.create(
+                        branch=branch.name,
+                        transaction_type='expense',
+                        direction='out',
+                        amount=Decimal(str(amount)),
+                        balance_after=vault.balance,
+                        description=f'Expense: {expense.title}',
+                        reference_number=f'EXP-{uuid.uuid4().hex[:8].upper()}',
+                        recorded_by=user,
+                        transaction_date=timezone.now(),
+                    )
+                messages.success(request, f'Expense of K{amount} recorded and deducted from vault.')
+            except Exception as ve:
+                messages.warning(request, f'Expense recorded but vault deduction failed: {str(ve)}')
+            
             # Redirect to expense list
             from django.shortcuts import redirect
             return redirect('dashboard:expense_list')
