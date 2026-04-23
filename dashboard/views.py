@@ -1159,7 +1159,14 @@ def manager_dashboard(request):
     total_expenses = 0
     try:
         from expenses.models import Expense
-        expenses = Expense.objects.filter(branch=branch.name)
+        from datetime import datetime
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        expenses = Expense.objects.filter(
+            branch=branch.name,
+            expense_date__month=current_month,
+            expense_date__year=current_year
+        )
         total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
     except:
         pass
@@ -2905,16 +2912,30 @@ def expense_create(request):
     
     user = request.user
     
-    # Check if user is manager
-    if user.role != 'manager':
+    # Check if user is manager or admin
+    if user.role not in ['manager', 'admin']:
         return render(request, 'dashboard/access_denied.html')
     
-    try:
-        branch = user.managed_branch
-        if not branch:
+    # Get branch - for admin viewing as manager, get from session or query param
+    if user.role == 'admin':
+        # Admin can create expenses for any branch
+        branch_name = request.GET.get('branch') or request.POST.get('branch_name')
+        if branch_name:
+            from clients.models import Branch
+            branch = Branch.objects.filter(name=branch_name).first()
+        else:
+            # If no branch specified, show error
+            return render(request, 'dashboard/access_denied.html', {
+                'message': 'Please select a branch first'
+            })
+    else:
+        # Manager uses their assigned branch
+        try:
+            branch = user.managed_branch
+            if not branch:
+                return render(request, 'dashboard/access_denied.html')
+        except:
             return render(request, 'dashboard/access_denied.html')
-    except:
-        return render(request, 'dashboard/access_denied.html')
     
     if request.method == 'POST':
         try:

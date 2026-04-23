@@ -324,7 +324,7 @@
                     <p class="text-3xl font-bold text-orange-900">K{{ total_expenses|floatformat:0 }}</p>
                 </div>
 
-                <a href="{% url 'dashboard:expense_list' %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-md">
+                <a href="{% url 'dashboard:expense_create' %}?branch={{ branch.name }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-md">
                     <i class="fas fa-plus mr-2"></i>Add Expense
                 </a>
             </div>
