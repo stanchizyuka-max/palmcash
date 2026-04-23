@@ -51,12 +51,20 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-slate-700">{{ app.created_at|date:'M d, Y' }}</td>
                                 <td class="px-6 py-4 text-sm">
-                                    {% if user.role == 'manager' and app.status == 'pending' %}
-                                        <a href="{% url 'loans:approve_application' app.pk %}" class="text-blue-600 hover:text-blue-800 font-medium">
-                                            Review
-                                        </a>
+                                    {% if user.role == 'manager' or user.role == 'admin' %}
+                                        {% if app.status == 'pending' %}
+                                            <a href="{% url 'loans:approve_application' app.pk %}" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-xs">
+                                                <i class="fas fa-check-circle mr-1"></i>Review & Approve
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'loans:application_detail_view' app.pk %}" class="inline-flex items-center px-3 py-1.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 font-medium text-xs">
+                                                <i class="fas fa-eye mr-1"></i>View Details
+                                            </a>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="text-slate-500">-</span>
+                                        <a href="{% url 'loans:application_detail_view' app.pk %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                            View
+                                        </a>
                                     {% endif %}
                                 </td>
                             </tr>
