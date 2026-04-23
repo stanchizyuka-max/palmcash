@@ -77,21 +77,31 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         form.instance.recorded_by = self.request.user
-        response = super().form_valid(form)
-        # Deduct expense from vault
-        expense = self.object
+        expense = form.instance
+        
+        # Deduct expense from vault BEFORE saving
         try:
             from clients.models import Branch
             from loans.models import BranchVault
             from expenses.models import VaultTransaction
             import uuid
             from django.utils import timezone
+            from django.db import transaction
 
-            branch = Branch.objects.filter(name__iexact=expense.branch).first()
-            if branch:
+            with transaction.atomic():
+                # Save the expense first
+                response = super().form_valid(form)
+                
+                # Then deduct from vault
+                branch = Branch.objects.filter(name__iexact=expense.branch).first()
+                if not branch:
+                    messages.warning(self.request, f'Expense created but vault not updated: Branch "{expense.branch}" not found.')
+                    return response
+                
                 vault, _ = BranchVault.objects.get_or_create(branch=branch)
                 vault.balance -= expense.amount
                 vault.save(update_fields=['balance', 'updated_at'])
+                
                 VaultTransaction.objects.create(
                     branch=branch.name,
                     transaction_type='expense',
@@ -103,10 +113,13 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
                     recorded_by=self.request.user,
                     transaction_date=timezone.now(),
                 )
+                
+                messages.success(self.request, f'Expense created and K{expense.amount:,.2f} deducted from vault.')
+                return response
+                
         except Exception as e:
-            print(f'Vault expense deduction error: {e}')
-        messages.success(self.request, 'Expense created and deducted from vault.')
-        return response
+            messages.error(self.request, f'Expense created but vault deduction failed: {str(e)}')
+            return super().form_valid(form)
 
 
 class ExpenseUpdateView(LoginRequiredMixin, UpdateView):
