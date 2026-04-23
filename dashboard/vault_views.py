@@ -15,6 +15,31 @@ def _get_manager_branch(user):
         return None
 
 
+def _get_security_balance(branch):
+    """Calculate total available security deposits for a branch."""
+    from loans.models import SecurityDeposit, Loan
+    from django.db.models import Sum, F
+    from decimal import Decimal
+    
+    # Get all active loans for this branch
+    active_loans = Loan.objects.filter(
+        branch=branch,
+        status__in=['pending', 'approved', 'active']
+    )
+    
+    # Sum up available security from all deposits
+    deposits = SecurityDeposit.objects.filter(
+        loan__in=active_loans,
+        is_verified=True
+    )
+    
+    total_paid = deposits.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+    total_used = deposits.aggregate(total=Sum('security_used'))['total'] or Decimal('0')
+    total_returned = deposits.aggregate(total=Sum('security_returned'))['total'] or Decimal('0')
+    
+    return total_paid - total_used - total_returned
+
+
 def _vault_qs(branch_name):
     """Return an optimised VaultTransaction queryset for a branch."""
     return (
@@ -136,6 +161,7 @@ def vault_dashboard(request):
         'all_branches': all_branches,
         'selected_branch': branch,
         'savings': __import__('loans.models', fromlist=['BranchSavings']).BranchSavings.objects.filter(branch=branch).first() if branch else None,
+        'security_balance': _get_security_balance(branch) if branch else 0,
     })
 
 

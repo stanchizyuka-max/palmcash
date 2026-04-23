@@ -38,7 +38,7 @@
     </div>
 
     <!-- Balance + Totals -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       {% if vault %}
       <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-emerald-500">
         <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Current Balance</p>
@@ -53,6 +53,11 @@
         <p class="text-slate-400 text-xs mt-2">Parked for safekeeping</p>
       </div>
       {% endif %}
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Security Deposits</p>
+        <p class="text-4xl font-bold text-purple-700">K{{ security_balance|floatformat:2|intcomma }}</p>
+        <p class="text-slate-400 text-xs mt-2">Available security held</p>
+      </div>
       <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
         <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Total Inflows (filtered)</p>
         <p class="text-3xl font-bold text-blue-700">K{{ total_in|floatformat:2|intcomma }}</p>
