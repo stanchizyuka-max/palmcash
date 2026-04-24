@@ -24,7 +24,7 @@
       <p class="text-sm text-secondary-500 mt-1">Full security transaction history</p>
     </div>
     <!-- Overall totals card -->
-    <div class="hidden sm:grid grid-cols-5 gap-3 text-center">
+    <div class="hidden sm:grid grid-cols-4 gap-3 text-center">
       <div class="bg-blue-50 rounded-lg px-3 py-2">
         <p class="text-xs text-blue-500 font-medium">Upfront</p>
         <p class="text-sm font-bold text-blue-800">K{{ totals.upfront|floatformat:2|intcomma }}</p>
@@ -40,12 +40,6 @@
       <div class="bg-red-50 rounded-lg px-3 py-2">
         <p class="text-xs text-red-500 font-medium">Returned</p>
         <p class="text-sm font-bold text-red-800">K{{ totals.returned|floatformat:2|intcomma }}</p>
-      </div>
-      <div class="{% if totals.balance >= 0 %}bg-success-50{% else %}bg-danger-50{% endif %} rounded-lg px-3 py-2">
-        <p class="text-xs {% if totals.balance >= 0 %}text-success-600{% else %}text-danger-600{% endif %} font-medium">Balance</p>
-        <p class="text-sm font-bold {% if totals.balance >= 0 %}text-success-800{% else %}text-danger-800{% endif %}">
-          K{{ totals.balance|floatformat:2|intcomma }}
-        </p>
       </div>
     </div>
   </div>
@@ -71,8 +65,9 @@
         <span class="text-purple-700 font-medium">Top-Ups: K{{ lr.topups|floatformat:2|intcomma }}</span>
         <span class="text-yellow-700 font-medium">Adj: K{{ lr.adjustments|floatformat:2|intcomma }}</span>
         <span class="text-red-700 font-medium">Returned: K{{ lr.returned|floatformat:2|intcomma }}</span>
-        <span class="font-bold {% if lr.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
-          Balance: K{{ lr.balance|floatformat:2|intcomma }}
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if lr.balance >= 0 %}bg-success-100 text-success-800{% else %}bg-warning-100 text-warning-800{% endif %}">
+          <i class="fas {% if lr.balance >= 0 %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %} mr-1"></i>
+          {% if lr.balance >= 0 %}Active{% else %}Deficit{% endif %}
         </span>
       </div>
     </div>
