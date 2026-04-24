@@ -1,13 +1,9 @@
 from django.urls import path
 from . import views
-from .hierarchical_views import hierarchical_clients_view
 
 app_name = 'clients'
 
 urlpatterns = [
-    # Hierarchical view
-    path('hierarchical/', hierarchical_clients_view, name='hierarchical'),
-    
     # Group management
     path('groups/', views.GroupListView.as_view(), name='group_list'),
     path('groups/create/', views.GroupCreateView.as_view(), name='group_create'),
