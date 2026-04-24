@@ -308,6 +308,10 @@ class ClientVerification(models.Model):
         self.verified_by = verified_by_user
         self.verification_date = timezone.now()
         self.save()
+        
+        # Also mark the client as verified in the User model
+        self.client.is_verified = True
+        self.client.save(update_fields=['is_verified'])
     
     def reject_all_documents(self, verified_by_user, reason):
         """Reject all documents and mark client as rejected"""

@@ -58,8 +58,16 @@
             <td class="px-4 py-3 text-secondary-700">K{{ row.topups|floatformat:2|intcomma }}</td>
             <td class="px-4 py-3 text-secondary-700">K{{ row.adjustments|floatformat:2|intcomma }}</td>
             <td class="px-4 py-3 text-secondary-700">K{{ row.returned|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3 font-semibold {% if row.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
-              K{{ row.balance|floatformat:2|intcomma }}
+            <td class="px-4 py-3">
+              {% if row.balance >= 0 %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                  <i class="fas fa-check-circle mr-1"></i>Active
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>Deficit
+                </span>
+              {% endif %}
             </td>
             <td class="px-4 py-3">
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
@@ -84,8 +92,16 @@
             <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.topups|floatformat:2|intcomma }}</td>
             <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.adjustments|floatformat:2|intcomma }}</td>
             <td class="px-4 py-3 font-bold text-secondary-900">K{{ totals.returned|floatformat:2|intcomma }}</td>
-            <td class="px-4 py-3 font-bold {% if totals.balance >= 0 %}text-success-700{% else %}text-danger-700{% endif %}">
-              K{{ totals.balance|floatformat:2|intcomma }}
+            <td class="px-4 py-3">
+              {% if totals.balance >= 0 %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                  <i class="fas fa-check-circle mr-1"></i>Overall Active
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+                  <i class="fas fa-exclamation-circle mr-1"></i>Overall Deficit
+                </span>
+              {% endif %}
             </td>
             <td></td>
           </tr>
