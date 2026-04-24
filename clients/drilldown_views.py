@@ -1,7 +1,7 @@
 """
 Hierarchical drill-down views for clients
-- Managers: Officers → Groups → Clients
-- Loan Officers: Groups → Clients
+- Managers: Officers > Groups > Clients
+- Loan Officers: Groups > Clients
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -9,6 +9,24 @@ from django.contrib import messages
 from django.db.models import Count, Q
 from accounts.models import User
 from clients.models import BorrowerGroup, GroupMembership
+
+
+def _annotate_groups(groups):
+    from loans.models import Loan
+    from payments.models import PaymentSchedule
+    for group in groups:
+        borrower_ids = list(
+            group.members.filter(is_active=True).values_list('borrower_id', flat=True)
+        )
+        group.active_loans_count = Loan.objects.filter(
+            borrower_id__in=borrower_ids,
+            status__in=['active', 'disbursed']
+        ).count()
+        group.pending_payments_count = PaymentSchedule.objects.filter(
+            loan__borrower_id__in=borrower_ids,
+            status='pending'
+        ).count()
+    return groups
 
 
 @login_required
@@ -49,9 +67,7 @@ def clients_drilldown_root(request):
             'view_level': 'officers',
             'officers': officers,
             'branch': branch,
-            'breadcrumbs': [
-                {'label': branch.name, 'url': None}
-            ],
+            'breadcrumbs': [{'label': branch.name, 'url': None}],
         }
         return render(request, 'clients/drilldown.html', context)
 
@@ -78,12 +94,14 @@ def clients_drilldown_groups(request, officer_id):
             messages.error(request, 'No branch assigned.')
             return redirect('dashboard:dashboard')
 
-    groups = BorrowerGroup.objects.filter(
+    groups = list(BorrowerGroup.objects.filter(
         assigned_officer=officer,
         is_active=True
     ).annotate(
         member_count_db=Count('members', filter=Q(members__is_active=True))
-    ).order_by('name')
+    ).order_by('name'))
+
+    groups = _annotate_groups(groups)
 
     direct_clients = User.objects.filter(
         role='borrower',
@@ -131,10 +149,24 @@ def clients_drilldown_clients(request, group_id):
             messages.error(request, 'No branch assigned.')
             return redirect('dashboard:dashboard')
 
+    from loans.models import Loan
+    from payments.models import PaymentSchedule
+
     memberships = GroupMembership.objects.filter(
         group=group,
         is_active=True
     ).select_related('borrower').order_by('borrower__first_name', 'borrower__last_name')
+
+    # Annotate each membership with loan stats
+    for m in memberships:
+        m.active_loans_count = Loan.objects.filter(
+            borrower=m.borrower,
+            status__in=['active', 'disbursed']
+        ).count()
+        m.pending_payments_count = PaymentSchedule.objects.filter(
+            loan__borrower=m.borrower,
+            status='pending'
+        ).count()
 
     breadcrumbs = []
     if user.role == 'manager':

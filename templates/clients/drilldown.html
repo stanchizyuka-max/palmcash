@@ -29,171 +29,278 @@
         </nav>
 
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-6">
             {% if view_level == 'officers' %}
-                <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
-                    <i class="fas fa-user-tie mr-3 text-purple-600"></i>Loan Officers
+                <h1 class="text-2xl font-bold text-secondary-900 flex items-center">
+                    <i class="fas fa-user-tie mr-3 text-purple-600"></i>Loan Officers — {{ branch.name }}
                 </h1>
-                <p class="text-secondary-600 mt-1">Click an officer to view their groups</p>
+                <p class="text-secondary-500 mt-1 text-sm">Click View to see an officer's groups</p>
             {% elif view_level == 'groups' %}
-                <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
+                <h1 class="text-2xl font-bold text-secondary-900 flex items-center">
                     <i class="fas fa-layer-group mr-3 text-primary-600"></i>
                     {% if is_own_view %}My Groups{% else %}{{ officer.get_full_name }}'s Groups{% endif %}
                 </h1>
-                <p class="text-secondary-600 mt-1">Click a group to view its clients</p>
+                <p class="text-secondary-500 mt-1 text-sm">Click View to see clients in a group</p>
             {% elif view_level == 'clients' %}
-                <h1 class="text-3xl font-bold text-secondary-900 flex items-center">
-                    <i class="fas fa-users mr-3 text-success-600"></i>{{ group.name }}
+                <h1 class="text-2xl font-bold text-secondary-900 flex items-center">
+                    <i class="fas fa-users mr-3 text-success-600"></i>{{ group.name }} — Clients
                 </h1>
-                <p class="text-secondary-600 mt-1">{{ memberships.count }} member{{ memberships.count|pluralize }}</p>
+                <p class="text-secondary-500 mt-1 text-sm">{{ memberships.count }} member{{ memberships.count|pluralize }}</p>
             {% endif %}
         </div>
 
-        <!-- ── OFFICERS LEVEL ── -->
+        <!-- ── OFFICERS TABLE ── -->
         {% if view_level == 'officers' %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for officer in officers %}
-            <a href="{% url 'clients:drilldown_groups' officer.id %}"
-               class="block bg-white rounded-xl shadow-sm border border-secondary-200 hover:shadow-md hover:border-purple-300 transition-all p-6 group">
-                <div class="flex items-start justify-between">
-                    <div class="flex items-start">
-                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-purple-200 transition-colors">
-                            <i class="fas fa-user-tie text-purple-600 text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-secondary-900 mb-2">{{ officer.get_full_name }}</h3>
-                            <div class="text-sm text-secondary-600 space-y-1">
-                                <div><i class="fas fa-layer-group mr-1 text-primary-500"></i>{{ officer.group_count }} group{{ officer.group_count|pluralize }}</div>
-                                <div><i class="fas fa-users mr-1 text-success-500"></i>{{ officer.client_count }} client{{ officer.client_count|pluralize }}</div>
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold">Loan Officer</th>
+                        <th class="px-6 py-3 text-center font-semibold">Groups</th>
+                        <th class="px-6 py-3 text-center font-semibold">Clients</th>
+                        <th class="px-6 py-3 text-center font-semibold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-secondary-100">
+                    {% for officer in officers %}
+                    <tr class="hover:bg-secondary-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-9 h-9 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-purple-700 font-bold text-sm">{{ officer.get_full_name|slice:":1"|upper }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-secondary-900">{{ officer.get_full_name }}</div>
+                                    <div class="text-xs text-secondary-500">{{ officer.email }}</div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-secondary-400 group-hover:text-purple-500 transition-colors mt-1"></i>
-                </div>
-            </a>
-            {% empty %}
-            <div class="col-span-full bg-white rounded-xl shadow-sm border border-secondary-200 p-12 text-center">
-                <i class="fas fa-user-tie text-4xl text-secondary-300 mb-3"></i>
-                <p class="text-secondary-600">No loan officers found in this branch</p>
-            </div>
-            {% endfor %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                                {{ officer.group_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-100 text-success-700">
+                                {{ officer.client_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a href="{% url 'clients:drilldown_groups' officer.id %}"
+                               class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-semibold">
+                                <i class="fas fa-eye mr-1.5"></i>View Groups
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-10 text-center text-secondary-400">
+                            <i class="fas fa-user-tie text-3xl mb-2"></i>
+                            <p>No loan officers found in this branch</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
         {% endif %}
 
-        <!-- ── GROUPS LEVEL ── -->
+        <!-- ── GROUPS TABLE ── -->
         {% if view_level == 'groups' %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for group in groups %}
-            <a href="{% url 'clients:drilldown_clients' group.id %}"
-               class="block bg-white rounded-xl shadow-sm border border-secondary-200 hover:shadow-md hover:border-primary-300 transition-all p-6 group">
-                <div class="flex items-start justify-between">
-                    <div class="flex items-start">
-                        <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-primary-200 transition-colors">
-                            <i class="fas fa-layer-group text-primary-600 text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-secondary-900 mb-2">{{ group.name }}</h3>
-                            <div class="text-sm text-secondary-600 space-y-1">
-                                <div><i class="fas fa-users mr-1 text-success-500"></i>{{ group.member_count_db }} member{{ group.member_count_db|pluralize }}</div>
-                                {% if group.branch %}<div><i class="fas fa-building mr-1 text-info-500"></i>{{ group.branch }}</div>{% endif %}
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold">Group Name</th>
+                        <th class="px-6 py-3 text-left font-semibold">Branch</th>
+                        <th class="px-6 py-3 text-center font-semibold">Members</th>
+                        <th class="px-6 py-3 text-center font-semibold">Active Loans</th>
+                        <th class="px-6 py-3 text-center font-semibold">Pending Payments</th>
+                        <th class="px-6 py-3 text-center font-semibold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-secondary-100">
+                    {% for group in groups %}
+                    <tr class="hover:bg-secondary-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-layer-group text-primary-600 text-sm"></i>
+                                </div>
+                                <span class="font-medium text-secondary-900">{{ group.name }}</span>
                             </div>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-secondary-400 group-hover:text-primary-500 transition-colors mt-1"></i>
-                </div>
-            </a>
-            {% empty %}
-            <div class="col-span-full bg-white rounded-xl shadow-sm border border-secondary-200 p-12 text-center">
-                <i class="fas fa-layer-group text-4xl text-secondary-300 mb-3"></i>
-                <p class="text-secondary-600">No groups assigned</p>
-            </div>
-            {% endfor %}
+                        </td>
+                        <td class="px-6 py-4 text-secondary-600">{{ group.branch|default:"—" }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary-100 text-secondary-700">
+                                {{ group.member_count_db }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-100 text-success-700">
+                                {{ group.active_loans_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if group.pending_payments_count > 0 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning-100 text-warning-700">
+                                {{ group.pending_payments_count }}
+                            </span>
+                            {% else %}
+                            <span class="text-secondary-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <a href="{% url 'clients:drilldown_clients' group.id %}"
+                               class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-semibold">
+                                <i class="fas fa-eye mr-1.5"></i>View Clients
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-10 text-center text-secondary-400">
+                            <i class="fas fa-layer-group text-3xl mb-2"></i>
+                            <p>No groups assigned</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <!-- Direct Clients -->
+        <!-- Direct Clients Table -->
         {% if direct_clients %}
-        <div class="mt-10">
-            <h2 class="text-xl font-bold text-secondary-900 mb-4 flex items-center">
+        <div class="mt-8">
+            <h2 class="text-lg font-bold text-secondary-900 mb-3 flex items-center">
                 <i class="fas fa-user mr-2 text-info-600"></i>Direct Clients
                 <span class="ml-2 text-sm font-normal text-secondary-500">(not in any group)</span>
             </h2>
             <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
-                <div class="divide-y divide-secondary-100">
-                    {% for client in direct_clients %}
-                    <a href="{% url 'accounts:user_detail' client.pk %}"
-                       class="flex items-center justify-between px-6 py-4 hover:bg-secondary-50 transition-colors">
-                        <div class="flex items-center flex-1">
-                            <div class="w-10 h-10 bg-gradient-to-r from-info-400 to-info-600 rounded-full flex items-center justify-center mr-3">
-                                <span class="text-white font-semibold text-sm">{{ client.get_full_name|slice:":1"|upper }}</span>
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-medium text-secondary-900">{{ client.get_full_name }}</span>
-                                    {% if client.is_verified %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success-100 text-success-800">
-                                        <i class="fas fa-check-circle mr-1"></i>Verified
-                                    </span>
-                                    {% endif %}
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold">Client</th>
+                            <th class="px-6 py-3 text-left font-semibold">Phone</th>
+                            <th class="px-6 py-3 text-center font-semibold">Status</th>
+                            <th class="px-6 py-3 text-center font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-secondary-100">
+                        {% for client in direct_clients %}
+                        <tr class="hover:bg-secondary-50">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-9 h-9 bg-info-100 rounded-full flex items-center justify-center mr-3">
+                                        <span class="text-info-700 font-bold text-sm">{{ client.get_full_name|slice:":1"|upper }}</span>
+                                    </div>
+                                    <span class="font-medium text-secondary-900">{{ client.get_full_name }}</span>
                                 </div>
-                                <div class="text-xs text-secondary-500 mt-0.5">
-                                    <i class="fas fa-phone mr-1"></i>{{ client.phone_number|default:"No phone" }}
-                                </div>
-                            </div>
-                        </div>
-                        <i class="fas fa-chevron-right text-secondary-400"></i>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-        {% endif %}
-
-        <!-- ── CLIENTS LEVEL ── -->
-        {% if view_level == 'clients' %}
-        <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
-            {% if memberships %}
-            <div class="divide-y divide-secondary-100">
-                {% for membership in memberships %}
-                <a href="{% url 'accounts:user_detail' membership.borrower.pk %}"
-                   class="flex items-center justify-between px-6 py-4 hover:bg-secondary-50 transition-colors">
-                    <div class="flex items-center flex-1">
-                        <div class="w-12 h-12 bg-gradient-to-r from-success-400 to-success-600 rounded-full flex items-center justify-center mr-4">
-                            <span class="text-white font-semibold">{{ membership.borrower.get_full_name|slice:":1"|upper }}</span>
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-secondary-900">{{ membership.borrower.get_full_name }}</span>
-                                {% if membership.borrower.is_verified %}
+                            </td>
+                            <td class="px-6 py-4 text-secondary-600">{{ client.phone_number|default:"—" }}</td>
+                            <td class="px-6 py-4 text-center">
+                                {% if client.is_verified %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success-100 text-success-800">
                                     <i class="fas fa-check-circle mr-1"></i>Verified
                                 </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-100 text-warning-800">
+                                    <i class="fas fa-clock mr-1"></i>Pending
+                                </span>
                                 {% endif %}
-                            </div>
-                            <div class="text-sm text-secondary-500 mt-1 space-y-0.5">
-                                <div><i class="fas fa-phone mr-1"></i>{{ membership.borrower.phone_number|default:"No phone" }}</div>
-                                <div><i class="fas fa-envelope mr-1"></i>{{ membership.borrower.email|default:"No email" }}</div>
-                                <div class="text-xs"><i class="fas fa-calendar-alt mr-1"></i>Joined {{ membership.joined_date|date:"M d, Y" }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <span class="inline-flex items-center px-3 py-1.5 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium">
-                        <i class="fas fa-eye mr-1.5"></i>View Profile
-                    </span>
-                </a>
-                {% endfor %}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <a href="{% url 'accounts:user_detail' client.pk %}"
+                                   class="inline-flex items-center px-3 py-1.5 border border-primary-300 text-primary-700 hover:bg-primary-50 rounded-lg text-xs font-semibold">
+                                    <i class="fas fa-eye mr-1.5"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% else %}
-            <div class="p-12 text-center">
-                <i class="fas fa-users text-4xl text-secondary-300 mb-3"></i>
-                <p class="text-secondary-600">No clients in this group</p>
-            </div>
-            {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- ── CLIENTS TABLE ── -->
+        {% if view_level == 'clients' %}
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-200 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold">Client</th>
+                        <th class="px-6 py-3 text-left font-semibold">Phone</th>
+                        <th class="px-6 py-3 text-left font-semibold">Email</th>
+                        <th class="px-6 py-3 text-center font-semibold">Active Loans</th>
+                        <th class="px-6 py-3 text-center font-semibold">Pending Payments</th>
+                        <th class="px-6 py-3 text-center font-semibold">Status</th>
+                        <th class="px-6 py-3 text-center font-semibold">Joined</th>
+                        <th class="px-6 py-3 text-center font-semibold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-secondary-100">
+                    {% for membership in memberships %}
+                    <tr class="hover:bg-secondary-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-9 h-9 bg-success-100 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-success-700 font-bold text-sm">{{ membership.borrower.get_full_name|slice:":1"|upper }}</span>
+                                </div>
+                                <span class="font-medium text-secondary-900">{{ membership.borrower.get_full_name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-secondary-600">{{ membership.borrower.phone_number|default:"—" }}</td>
+                        <td class="px-6 py-4 text-secondary-600">{{ membership.borrower.email|default:"—" }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-100 text-success-700">
+                                {{ membership.active_loans_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if membership.pending_payments_count > 0 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warning-100 text-warning-700">
+                                {{ membership.pending_payments_count }}
+                            </span>
+                            {% else %}
+                            <span class="text-secondary-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if membership.borrower.is_verified %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success-100 text-success-800">
+                                <i class="fas fa-check-circle mr-1"></i>Verified
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-100 text-warning-800">
+                                <i class="fas fa-clock mr-1"></i>Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center text-secondary-500 text-xs">{{ membership.joined_date|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <a href="{% url 'accounts:user_detail' membership.borrower.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-semibold">
+                                <i class="fas fa-eye mr-1.5"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-10 text-center text-secondary-400">
+                            <i class="fas fa-users text-3xl mb-2"></i>
+                            <p>No clients in this group</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4">
             <a href="{% url 'clients:group_detail' group.pk %}"
-               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+               class="inline-flex items-center px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 font-medium text-sm">
                 <i class="fas fa-cog mr-2"></i>Manage Group
             </a>
         </div>
