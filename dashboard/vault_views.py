@@ -143,6 +143,8 @@ def vault_dashboard(request):
         ('fund_deposit', 'Fund Received'),
         ('branch_transfer_in', 'Branch Transfer (In)'),
         ('branch_transfer_out', 'Branch Transfer (Out)'),
+        ('savings_deposit', 'Savings Deposit'),
+        ('savings_withdrawal', 'Savings Withdrawal'),
         ('month_close', 'Month Closing'),
         ('month_open', 'Month Opening'),
         ('expense', 'Expense'),
