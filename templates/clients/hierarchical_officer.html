@@ -111,7 +111,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{% url 'clients:detail' membership.borrower.pk %}" 
+                            <a href="{% url 'accounts:user_detail' membership.borrower.pk %}" 
                                class="px-3 py-1.5 border border-primary-300 text-primary-700 hover:bg-primary-50 rounded-lg text-sm font-medium">
                                 <i class="fas fa-eye mr-1"></i>View
                             </a>
@@ -172,7 +172,7 @@
                                 </div>
                             </div>
                         </div>
-                        <a href="{% url 'clients:detail' client.pk %}" 
+                        <a href="{% url 'accounts:user_detail' client.pk %}" 
                            class="px-3 py-1.5 border border-primary-300 text-primary-700 hover:bg-primary-50 rounded-lg text-sm font-medium">
                             <i class="fas fa-eye mr-1"></i>View
                         </a>
