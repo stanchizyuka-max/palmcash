@@ -16,28 +16,25 @@ def _get_manager_branch(user):
 
 
 def _get_security_balance(branch):
-    """Calculate total available security deposits for a branch."""
-    from loans.models import SecurityDeposit, Loan
-    from django.db.models import Sum, F
+    """Calculate total available security deposits for a branch from vault transactions."""
+    from django.db.models import Sum
     from decimal import Decimal
-    
-    # Get all active loans where the loan officer belongs to this branch
-    active_loans = Loan.objects.filter(
-        loan_officer__managed_branch=branch,
-        status__in=['pending', 'approved', 'active']
-    )
-    
-    # Sum up available security from all deposits
-    deposits = SecurityDeposit.objects.filter(
-        loan__in=active_loans,
-        is_verified=True
-    )
-    
-    total_paid = deposits.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-    total_used = deposits.aggregate(total=Sum('security_used'))['total'] or Decimal('0')
-    total_returned = deposits.aggregate(total=Sum('security_returned'))['total'] or Decimal('0')
-    
-    return total_paid - total_used - total_returned
+
+    branch_name = branch.name
+
+    security_in = VaultTransaction.objects.filter(
+        branch=branch_name,
+        transaction_type='security_deposit',
+        direction='in'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    security_out = VaultTransaction.objects.filter(
+        branch=branch_name,
+        transaction_type__in=['security_return', 'security_used'],
+        direction='out'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    return security_in - security_out
 
 
 def _vault_qs(branch_name):
