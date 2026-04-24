@@ -24,7 +24,7 @@ def _annotate_groups(groups):
         ).count()
         group.pending_payments_count = PaymentSchedule.objects.filter(
             loan__borrower_id__in=borrower_ids,
-            status='pending'
+            is_paid=False
         ).count()
     return groups
 
@@ -165,7 +165,7 @@ def clients_drilldown_clients(request, group_id):
         ).count()
         m.pending_payments_count = PaymentSchedule.objects.filter(
             loan__borrower=m.borrower,
-            status='pending'
+            is_paid=False
         ).count()
 
     breadcrumbs = []
