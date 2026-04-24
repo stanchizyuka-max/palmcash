@@ -24,6 +24,8 @@ urlpatterns = [
     path('user/<int:pk>/edit/', views.UserEditView.as_view(), name='edit_user'),
     path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
     path('user/<int:pk>/promote/', views.PromoteToManagerView.as_view(), name='promote_manager'),
+    path('user/<int:pk>/delete/', views.DeleteUserView.as_view(), name='delete_user'),
+    path('user/<int:pk>/edit-client/', views.EditClientProfileView.as_view(), name='edit_client_profile'),
     
     # Audit and Activity Tracking URLs
     path('audit/', audit_views.user_audit_list, name='user_audit_list'),

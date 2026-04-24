@@ -1,0 +1,79 @@
+{% extends 'base_tailwind.html' %}
+{% block title %}Edit Client — {{ client.get_full_name }}{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-secondary-50 py-8">
+  <div class="max-w-2xl mx-auto px-4">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-secondary-900">Edit Client Profile</h1>
+      <p class="text-secondary-600 mt-1">{{ client.get_full_name }}</p>
+    </div>
+
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-secondary-100 p-8 space-y-6">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">First Name</label>
+          <input type="text" name="first_name" value="{{ client.first_name }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Last Name</label>
+          <input type="text" name="last_name" value="{{ client.last_name }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Phone Number</label>
+          <input type="text" name="phone_number" value="{{ client.phone_number }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Employment Status</label>
+          <select name="employment_status" class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 bg-white">
+            <option value="">— select —</option>
+            <option value="employed" {% if client.employment_status == 'employed' %}selected{% endif %}>Employed</option>
+            <option value="self_employed" {% if client.employment_status == 'self_employed' %}selected{% endif %}>Self Employed</option>
+            <option value="unemployed" {% if client.employment_status == 'unemployed' %}selected{% endif %}>Unemployed</option>
+            <option value="student" {% if client.employment_status == 'student' %}selected{% endif %}>Student</option>
+            <option value="retired" {% if client.employment_status == 'retired' %}selected{% endif %}>Retired</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Employer / Business</label>
+          <input type="text" name="employer_name" value="{{ client.employer_name }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Monthly Income (K)</label>
+          <input type="number" name="monthly_income" value="{{ client.monthly_income }}" step="0.01"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Province</label>
+          <input type="text" name="province" value="{{ client.province }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-secondary-700 mb-1">District</label>
+          <input type="text" name="district" value="{{ client.district }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-secondary-700 mb-1">Address</label>
+          <input type="text" name="address" value="{{ client.address }}"
+            class="w-full border border-secondary-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-4 border-t">
+        <button type="submit" class="flex-1 bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 font-medium">
+          Save Changes
+        </button>
+        <a href="{% url 'accounts:user_detail' client.pk %}" class="px-6 py-2.5 bg-secondary-100 text-secondary-700 rounded-lg text-center hover:bg-secondary-200">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

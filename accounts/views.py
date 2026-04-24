@@ -3,6 +3,7 @@ from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
 from django.views.generic import CreateView, TemplateView, UpdateView
+from django.views import View
 from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import User
@@ -411,3 +412,47 @@ class PromoteToManagerView(CreateView):
         except Exception as e:
             messages.error(request, f'Error: {e}')
         return redirect('dashboard:admin_officers_list')
+
+
+@method_decorator(_login_required, name='dispatch')
+class DeleteUserView(View):
+    """Manager deletes a borrower."""
+
+    def get(self, request, pk):
+        if request.user.role not in ['admin', 'manager']:
+            messages.error(request, 'Permission denied.')
+            return redirect('accounts:manage_users')
+        user = get_object_or_404(User, pk=pk, role='borrower')
+        user.delete()
+        messages.success(request, f'Client deleted successfully.')
+        return redirect('accounts:manage_users')
+
+
+@method_decorator(_login_required, name='dispatch')
+class EditClientProfileView(View):
+    """Loan officer edits a borrower's basic profile info."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Permission denied.')
+            return redirect('accounts:manage_users')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, pk):
+        client = get_object_or_404(User, pk=pk, role='borrower')
+        return render(request, 'accounts/edit_client_profile.html', {'client': client})
+
+    def post(self, request, pk):
+        client = get_object_or_404(User, pk=pk, role='borrower')
+        client.first_name = request.POST.get('first_name', client.first_name)
+        client.last_name = request.POST.get('last_name', client.last_name)
+        client.phone_number = request.POST.get('phone_number', client.phone_number)
+        client.address = request.POST.get('address', client.address)
+        client.province = request.POST.get('province', client.province)
+        client.district = request.POST.get('district', client.district)
+        client.employment_status = request.POST.get('employment_status', client.employment_status)
+        client.employer_name = request.POST.get('employer_name', client.employer_name)
+        client.monthly_income = request.POST.get('monthly_income') or client.monthly_income
+        client.save()
+        messages.success(request, f'Client profile updated successfully.')
+        return redirect('accounts:user_detail', pk=pk)

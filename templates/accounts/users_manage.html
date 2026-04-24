@@ -8,13 +8,19 @@
         <!-- Header -->
         <div class="mb-8 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold text-secondary-900">User Management</h1>
-                <p class="text-secondary-600 mt-2">Manage all system users and their roles</p>
+                <h1 class="text-3xl font-bold text-secondary-900">
+                    {% if request.user.role == 'manager' %}Branch Clients{% elif request.user.role == 'loan_officer' %}My Clients{% else %}User Management{% endif %}
+                </h1>
+                <p class="text-secondary-600 mt-2">
+                    {% if request.user.role == 'manager' %}View and manage clients in your branch{% elif request.user.role == 'loan_officer' %}Clients you have registered{% else %}Manage all system users and their roles{% endif %}
+                </p>
             </div>
+            {% if request.user.role == 'admin' %}
             <a href="/admin/accounts/user/add/" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2">
                 <i class="fas fa-user-plus"></i>
                 Add New User
             </a>
+            {% endif %}
         </div>
 
         <!-- Statistics Cards -->
@@ -83,12 +89,15 @@
         <!-- Filter Tabs -->
         <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-6">
             <div class="flex flex-wrap border-b border-secondary-200">
+                {% if request.user.role == 'admin' %}
                 <a href="?role=all" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     All Users ({{ total_users }})
                 </a>
+                {% endif %}
                 <a href="?role=borrower" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'borrower' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Borrowers ({{ borrowers_count }})
                 </a>
+                {% if request.user.role == 'admin' %}
                 <a href="?role=loan_officer" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'loan_officer' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Loan Officers ({{ officers_count }})
                 </a>
@@ -98,6 +107,7 @@
                 <a href="?role=admin" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'admin' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Admins ({{ admins_count }})
                 </a>
+                {% endif %}
             </div>
         </div>
 
@@ -181,9 +191,12 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
+                                    <!-- Eye icon - all roles -->
                                     <a href="{% url 'accounts:user_detail' user.id %}" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition-colors duration-150" title="View Profile">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    {% if request.user.role == 'admin' %}
+                                    <!-- Admin: edit, settings, deactivate -->
                                     <a href="{% url 'accounts:edit_user' user.id %}" class="text-primary-600 hover:text-primary-800 p-2 hover:bg-primary-50 rounded transition-colors duration-150" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -199,6 +212,21 @@
                                     <button onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|yesno:'true,false' }})" class="text-warning-600 hover:text-warning-800 p-2 hover:bg-warning-50 rounded transition-colors duration-150" title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %}">
                                         <i class="fas fa-{% if user.is_active %}user-slash{% else %}user-check{% endif %}"></i>
                                     </button>
+                                    {% endif %}
+                                    {% elif request.user.role == 'manager' %}
+                                    <!-- Manager: eye + delete only -->
+                                    {% if user.role == 'borrower' %}
+                                    <a href="{% url 'accounts:delete_user' user.id %}" onclick="return confirm('Delete {{ user.get_full_name }}? This cannot be undone.')" class="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors duration-150" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% elif request.user.role == 'loan_officer' %}
+                                    <!-- Loan officer: eye + edit client profile -->
+                                    {% if user.role == 'borrower' %}
+                                    <a href="{% url 'accounts:edit_client_profile' user.id %}" class="text-primary-600 hover:text-primary-800 p-2 hover:bg-primary-50 rounded transition-colors duration-150" title="Edit Client">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
@@ -240,10 +268,19 @@
 
         <!-- Back Button -->
         <div class="mt-8">
+            {% if request.user.role == 'admin' %}
             <a href="{% url 'dashboard:admin_dashboard' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
-                <i class="fas fa-arrow-left"></i>
-                Back to Admin Dashboard
+                <i class="fas fa-arrow-left"></i>Back to Admin Dashboard
             </a>
+            {% elif request.user.role == 'manager' %}
+            <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>Back to Dashboard
+            </a>
+            {% else %}
+            <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center gap-2 text-secondary-600 hover:text-secondary-900 font-medium">
+                <i class="fas fa-arrow-left"></i>Back to Dashboard
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
