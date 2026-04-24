@@ -69,9 +69,9 @@
                             <div>
                                 <h3 class="text-lg font-bold text-secondary-900">{{ officer.get_full_name }}</h3>
                                 <p class="text-sm text-secondary-600">
-                                    <i class="fas fa-layer-group mr-1"></i>{{ officer.group_count }} group{{ officer.group_count|pluralize }}
+                                    <i class="fas fa-layer-group mr-1"></i>{{ officer.active_groups|length }} group{{ officer.active_groups|length|pluralize }}
                                     <span class="mx-2">•</span>
-                                    <i class="fas fa-users mr-1"></i>{{ officer.client_count }} client{{ officer.client_count|pluralize }}
+                                    <i class="fas fa-users mr-1"></i>{{ officer.total_clients }} client{{ officer.total_clients|pluralize }}
                                 </p>
                             </div>
                         </div>
@@ -99,7 +99,7 @@
                                     <div>
                                         <h4 class="text-sm font-bold text-secondary-900">{{ group.name }}</h4>
                                         <p class="text-xs text-secondary-600">
-                                            <i class="fas fa-users mr-1"></i>{{ group.member_count }} member{{ group.member_count|pluralize }}
+                                            <i class="fas fa-users mr-1"></i>{{ group.active_members|length }} member{{ group.active_members|length|pluralize }}
                                         </p>
                                     </div>
                                 </div>

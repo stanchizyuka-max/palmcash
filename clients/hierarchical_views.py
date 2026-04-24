@@ -36,8 +36,6 @@ def hierarchical_clients_view(request):
                 queryset=GroupMembership.objects.filter(is_active=True).select_related('borrower'),
                 to_attr='active_members'
             )
-        ).annotate(
-            member_count=Count('members', filter=Q(members__is_active=True))
         ).order_by('name')
         
         # Get clients directly assigned (not in groups)
@@ -55,7 +53,7 @@ def hierarchical_clients_view(request):
             'groups': groups,
             'direct_clients': direct_clients,
             'total_groups': groups.count(),
-            'total_clients': sum(g.member_count for g in groups) + direct_clients.count(),
+            'total_clients': sum(len(g.active_members) for g in groups) + direct_clients.count(),
         }
         
         return render(request, 'clients/hierarchical_officer.html', context)
@@ -71,13 +69,13 @@ def hierarchical_clients_view(request):
         
         # Get all loan officers in the branch
         from clients.models import OfficerAssignment
-        officers = User.objects.filter(
+        officers_qs = User.objects.filter(
             role='loan_officer',
             is_active=True,
             officer_assignment__branch=branch_name
         ).prefetch_related(
             Prefetch(
-                'assigned_groups',
+                'managed_groups',
                 queryset=BorrowerGroup.objects.filter(
                     is_active=True,
                     branch__iexact=branch_name
@@ -87,24 +85,21 @@ def hierarchical_clients_view(request):
                         queryset=GroupMembership.objects.filter(is_active=True).select_related('borrower'),
                         to_attr='active_members'
                     )
-                ).annotate(
-                    member_count=Count('members', filter=Q(members__is_active=True))
                 ),
                 to_attr='active_groups'
             )
-        ).annotate(
-            group_count=Count('assigned_groups', filter=Q(assigned_groups__is_active=True, assigned_groups__branch__iexact=branch_name)),
-            client_count=Count('assigned_groups__members', filter=Q(
-                assigned_groups__is_active=True,
-                assigned_groups__branch__iexact=branch_name,
-                assigned_groups__members__is_active=True
-            ), distinct=True)
         ).order_by('first_name', 'last_name')
+        
+        # Add client counts to each officer
+        officers = []
+        for officer in officers_qs:
+            officer.total_clients = sum(len(g.active_members) for g in officer.active_groups)
+            officers.append(officer)
         
         # Calculate totals
         total_officers = officers.count()
-        total_groups = sum(o.group_count for o in officers)
-        total_clients = sum(o.client_count for o in officers)
+        total_groups = sum(len(o.active_groups) for o in officers)
+        total_clients = sum(sum(len(g.active_members) for g in o.active_groups) for o in officers)
         
         context = {
             'view_type': 'manager',

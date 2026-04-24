@@ -107,6 +107,11 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
             messages.error(request, 'You do not have permission to manage users.')
             return redirect('dashboard:dashboard')
         
+        # Redirect managers and loan officers to hierarchical view when viewing borrowers
+        role_filter = request.GET.get('role', 'all')
+        if request.user.role in ['manager', 'loan_officer'] and role_filter == 'borrower':
+            return redirect('clients:hierarchical')
+        
         # Store request for use in get_context_data
         self.request = request
         return super().dispatch(request, *args, **kwargs)
