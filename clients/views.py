@@ -580,6 +580,11 @@ class BorrowerListView(LoginRequiredMixin, ListView):
         if request.user.role not in ['admin', 'manager', 'loan_officer']:
             messages.error(request, 'Only staff members can access borrower management.')
             return redirect('dashboard:dashboard')
+        
+        # Redirect managers and loan officers to hierarchical view
+        if request.user.role in ['manager', 'loan_officer']:
+            return redirect('clients:hierarchical')
+        
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
