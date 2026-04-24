@@ -45,10 +45,12 @@
                 <!-- Duration -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Duration (Days) * <span class="text-gray-400 font-normal text-xs" id="duration-hint">e.g. 30 days for daily</span>
+                        <span id="duration-label">Duration *</span>
+                        <span class="text-gray-400 font-normal text-xs ml-1" id="duration-hint">e.g. 56 days</span>
                     </label>
                     {{ form.duration_days }}
                     {% if form.duration_days.errors %}<p class="text-red-600 text-sm mt-1">{{ form.duration_days.errors.0 }}</p>{% endif %}
+                    <p class="text-xs text-gray-500 mt-1" id="duration-note"></p>
                 </div>
                 
                 <!-- Purpose -->
@@ -80,17 +82,21 @@
 
 <script>
 const DEFAULTS = {
-    weekly: { rate: '45%', days: 147, hint: '21 weeks (147 days) — auto-filled' },
-    daily:  { rate: '40%', days: 56,  hint: '56 days — auto-filled' },
+    weekly: { rate: '45%', value: 21, hint: '21 weeks', label: 'Duration (Weeks) *', note: 'Enter number of weeks. 21 weeks = standard weekly loan.' },
+    daily:  { rate: '40%', value: 56, hint: '56 days',  label: 'Duration (Days) *',  note: 'Enter number of days. Sundays are skipped in payment schedule.' },
 };
 
 function updateInterestRate(val) {
     const cfg = DEFAULTS[val] || DEFAULTS.daily;
     document.getElementById('rate-display').textContent = cfg.rate;
     document.getElementById('duration-hint').textContent = cfg.hint;
-    // Auto-fill duration
+    document.getElementById('duration-label').textContent = cfg.label;
+    document.getElementById('duration-note').textContent = cfg.note;
     const durationField = document.querySelector('[name="duration_days"]');
-    if (durationField) durationField.value = cfg.days;
+    if (durationField) {
+        durationField.value = cfg.value;
+        durationField.placeholder = cfg.hint;
+    }
 }
 
 // Set on load

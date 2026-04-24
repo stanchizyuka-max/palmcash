@@ -21,7 +21,7 @@ class LoanApplicationForm(forms.ModelForm):
             }),
             'duration_days': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'placeholder': 'Duration in days',
+                'placeholder': 'Duration (days for daily, weeks for weekly)',
                 'min': '1'
             }),
             'purpose': forms.TextInput(attrs={
