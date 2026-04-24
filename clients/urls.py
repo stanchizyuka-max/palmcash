@@ -1,19 +1,9 @@
 from django.urls import path
 from . import views
-from .drilldown_views import (
-    clients_drilldown_root,
-    clients_drilldown_groups,
-    clients_drilldown_clients
-)
 
 app_name = 'clients'
 
 urlpatterns = [
-    # Drill-down hierarchical view
-    path('drilldown/', clients_drilldown_root, name='drilldown_root'),
-    path('drilldown/officer/<int:officer_id>/groups/', clients_drilldown_groups, name='drilldown_groups'),
-    path('drilldown/group/<int:group_id>/clients/', clients_drilldown_clients, name='drilldown_clients'),
-    
     # Group management
     path('groups/', views.GroupListView.as_view(), name='group_list'),
     path('groups/create/', views.GroupCreateView.as_view(), name='group_create'),
