@@ -79,13 +79,28 @@ class Command(BaseCommand):
             officer = officers.first()
             self.stdout.write(f"Using first match: {officer.first_name} {officer.last_name}")
 
-        # 3. Check client's loans
+        # 3. Check client's loans and their eligibility for top-up
         loans = Loan.objects.filter(borrower=client)
         self.stdout.write(f"\n✓ Client has {loans.count()} loan(s):")
         for loan in loans:
             self.stdout.write(f"  - Loan {loan.application_number}: {loan.status}")
             self.stdout.write(f"    Officer: {loan.loan_officer}")
             self.stdout.write(f"    Branch: {getattr(loan, 'branch', 'No branch')}")
+            
+            # Check if loan has security deposit
+            try:
+                deposit = loan.security_deposit
+                self.stdout.write(f"    Security deposit: K{deposit.paid_amount} (Verified: {deposit.is_verified})")
+            except Exception as e:
+                self.stdout.write(f"    Security deposit: NOT FOUND ({e})")
+            
+            # Check if loan is eligible for top-up
+            is_eligible = (
+                loan.status == 'active' and 
+                hasattr(loan, 'security_deposit') and 
+                loan.security_deposit.is_verified
+            )
+            self.stdout.write(f"    Eligible for top-up: {is_eligible}")
 
         # 4. Check all top-up requests for this client
         topup_requests = SecurityTopUpRequest.objects.filter(
@@ -112,12 +127,41 @@ class Command(BaseCommand):
             self.stdout.write(f"    Requested by: {req.requested_by}")
             self.stdout.write(f"    Date: {req.requested_date}")
 
-        # 6. Check pending requests by both Precious officers
+        # 6.5. Check officer-client assignment relationship
+        self.stdout.write(f"\n✓ Checking officer-client relationships:")
+        
+        # Check direct assignment
+        if client.assigned_officer:
+            self.stdout.write(f"  - Direct assignment: {client.assigned_officer}")
+        else:
+            self.stdout.write(f"  - No direct officer assignment")
+        
+        # Check group membership assignments
+        from clients.models import GroupMembership
+        group_memberships = GroupMembership.objects.filter(
+            client=client,
+            is_active=True
+        ).select_related('group')
+        
+        self.stdout.write(f"  - Active group memberships: {group_memberships.count()}")
+        for membership in group_memberships:
+            self.stdout.write(f"    Group: {membership.group}")
+            self.stdout.write(f"    Group officer: {membership.group.assigned_officer}")
+        
+        # Check if any Precious officer can access this client
         all_precious_officers = User.objects.filter(
             first_name__icontains='precious',
             role='loan_officer'
         )
         
+        for precious_officer in all_precious_officers:
+            can_access = (
+                client.assigned_officer == precious_officer or
+                group_memberships.filter(group__assigned_officer=precious_officer).exists()
+            )
+            self.stdout.write(f"  - {precious_officer.first_name} {precious_officer.last_name} can access client: {can_access}")
+
+        # 7. Check pending requests by both Precious officers
         for precious_officer in all_precious_officers:
             precious_requests = SecurityTopUpRequest.objects.filter(
                 requested_by=precious_officer,
@@ -130,7 +174,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"    Date: {req.requested_date}")
                 self.stdout.write(f"    Loan: {req.loan.application_number}")
 
-        # 7. Check branch managers who should see the request
+        # 8. Check branch managers who should see the request
         managers = User.objects.filter(
             role='manager'
         )
@@ -138,7 +182,7 @@ class Command(BaseCommand):
         for mgr in managers:
             self.stdout.write(f"  - {mgr.first_name} {mgr.last_name}")
 
-        # 8. Check what pending requests managers can see
+        # 9. Check what pending requests managers can see
         if managers.exists():
             manager = managers.first()
             # For managers, they can see all pending requests (no branch filtering in current logic)
