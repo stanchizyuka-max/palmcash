@@ -25,7 +25,7 @@ def _security_stats_for_loans(loans_qs):
         loan__in=loans_qs, status='approved'
     ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
 
-    # Positive adjustments (carry_forward / withdrawal) from SecurityTransaction
+    # Positive adjustments from SecurityTransaction
     adjustments = SecurityTransaction.objects.filter(
         loan__in=loans_qs,
         status='approved',
@@ -45,7 +45,15 @@ def _security_stats_for_loans(loans_qs):
         transaction_type='carry_forward',
     ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-    balance = (upfront + topups + adjustments + carry_forwards) - returned
+    # Withdrawals should decrease the balance
+    withdrawals = SecurityTransaction.objects.filter(
+        loan__in=loans_qs,
+        status='approved',
+        transaction_type='withdrawal',
+    ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+    # Correct balance calculation: increases - decreases
+    balance = (upfront + topups + adjustments + carry_forwards) - (returned + withdrawals)
 
     return {
         'upfront': upfront,
@@ -399,7 +407,13 @@ def client_detail(request, client_id):
             loan=loan, status='approved', transaction_type='carry_forward'
         ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        balance = (upfront + topups + adjustments + carry_fwd) - returned
+        # Withdrawals should decrease the balance
+        withdrawals = SecurityTransaction.objects.filter(
+            loan=loan, status='approved', transaction_type='withdrawal'
+        ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+        # Correct balance calculation: increases - decreases
+        balance = (upfront + topups + adjustments + carry_fwd) - (returned + withdrawals)
 
         # Transactions list for this loan
         transactions = []
