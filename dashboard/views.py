@@ -2028,27 +2028,14 @@ def security_topup_action(request, pk):
             req.approved_by = request.user
             req.approval_date = tz.now()
             req.save(update_fields=['status', 'approved_by', 'approval_date'])
+            # Update security deposit amount
             try:
                 dep = req.loan.security_deposit
                 dep.paid_amount += req.requested_amount
                 dep.save(update_fields=['paid_amount', 'updated_at'])
             except Exception:
                 pass
-            # Create SecurityTransaction record so it shows in dashboard counts
-            try:
-                from loans.models import SecurityTransaction
-                SecurityTransaction.objects.create(
-                    loan=req.loan,
-                    transaction_type='carry_forward',
-                    amount=req.requested_amount,
-                    notes=f'Top-up approved by {request.user.get_full_name()}. {req.reason}',
-                    initiated_by=req.requested_by,
-                    approved_by=request.user,
-                    approved_at=tz.now(),
-                    status='approved',
-                )
-            except Exception:
-                pass
+            
             # Record vault IN for the top-up amount
             try:
                 from loans.vault_services import record_security_deposit
