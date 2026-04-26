@@ -1,8 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from loans.models import SecurityTopUpRequest, Loan
-from clients.models import Client
-from accounts.models import User
 
 User = get_user_model()
 
@@ -12,33 +10,37 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("=== DEBUGGING SHUCCO ZULU TOP-UP REQUEST ===\n")
         
-        # 1. Find Shucco Zulu client
+        # 1. Find Shucco Zulu client (borrower)
         try:
-            client = Client.objects.get(
+            client = User.objects.get(
                 first_name__icontains='shucco',
-                last_name__icontains='zulu'
+                last_name__icontains='zulu',
+                role='borrower'
             )
             self.stdout.write(f"✓ Found client: {client.first_name} {client.last_name}")
             self.stdout.write(f"  - Client ID: {client.id}")
-            self.stdout.write(f"  - Branch: {client.branch}")
-            self.stdout.write(f"  - Status: {client.status}")
-        except Client.DoesNotExist:
+            self.stdout.write(f"  - Role: {client.role}")
+            self.stdout.write(f"  - Status: {client.is_verified}")
+        except User.DoesNotExist:
             self.stdout.write("✗ Client 'Shucco Zulu' not found")
             # Try partial matches
-            clients = Client.objects.filter(
-                first_name__icontains='shucco'
-            ) | Client.objects.filter(
-                last_name__icontains='zulu'
+            clients = User.objects.filter(
+                first_name__icontains='shucco',
+                role='borrower'
+            ) | User.objects.filter(
+                last_name__icontains='zulu',
+                role='borrower'
             )
             if clients.exists():
                 self.stdout.write("Similar clients found:")
                 for c in clients:
                     self.stdout.write(f"  - {c.first_name} {c.last_name} (ID: {c.id})")
             return
-        except Client.MultipleObjectsReturned:
-            clients = Client.objects.filter(
+        except User.MultipleObjectsReturned:
+            clients = User.objects.filter(
                 first_name__icontains='shucco',
-                last_name__icontains='zulu'
+                last_name__icontains='zulu',
+                role='borrower'
             )
             self.stdout.write(f"Multiple clients found ({clients.count()}):")
             for c in clients:
@@ -82,7 +84,7 @@ class Command(BaseCommand):
         for loan in loans:
             self.stdout.write(f"  - Loan {loan.loan_id}: {loan.status}")
             self.stdout.write(f"    Officer: {loan.loan_officer}")
-            self.stdout.write(f"    Branch: {loan.branch}")
+            self.stdout.write(f"    Branch: {getattr(loan, 'branch', 'No branch')}")
 
         # 4. Check all top-up requests for this client
         topup_requests = SecurityTopUpRequest.objects.filter(
@@ -122,22 +124,17 @@ class Command(BaseCommand):
 
         # 7. Check branch managers who should see the request
         managers = User.objects.filter(
-            role='manager',
-            branch=officer.branch
+            role='manager'
         )
-        self.stdout.write(f"\n✓ Branch managers for {officer.branch}: {managers.count()}")
+        self.stdout.write(f"\n✓ All managers: {managers.count()}")
         for mgr in managers:
             self.stdout.write(f"  - {mgr.first_name} {mgr.last_name}")
 
         # 8. Check what pending requests managers can see
         if managers.exists():
             manager = managers.first()
-            branch_loan_ids = Loan.objects.filter(
-                branch=manager.branch
-            ).values_list('id', flat=True)
-            
+            # For managers, they can see all pending requests (no branch filtering in current logic)
             visible_requests = SecurityTopUpRequest.objects.filter(
-                loan_id__in=branch_loan_ids,
                 status='pending'
             )
             self.stdout.write(f"\n✓ Pending requests visible to {manager.first_name}: {visible_requests.count()}")
