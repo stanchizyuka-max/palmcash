@@ -209,8 +209,8 @@ class MakePaymentView(LoginRequiredMixin, View):
 
 class ConfirmPaymentView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        # Check user permissions
-        if request.user.role not in ['admin', 'loan_officer', 'manager']:
+        # Check user permissions - only managers and admins can confirm payments
+        if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'You do not have permission to confirm payments.')
             return redirect('payments:detail', pk=pk)
         
@@ -438,7 +438,8 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
 
 class RejectPaymentView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        if request.user.role not in ['admin', 'loan_officer']:
+        # Check user permissions - only managers and admins can reject payments
+        if request.user.role not in ['admin', 'manager']:
             messages.error(request, 'You do not have permission to reject payments.')
             return redirect('payments:detail', pk=pk)
         
