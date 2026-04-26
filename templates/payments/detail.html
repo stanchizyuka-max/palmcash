@@ -217,10 +217,10 @@
                 </div>
                 
                 <!-- Admin Actions -->
-                {% if user.role != 'borrower' and payment.status == 'pending' %}
+                {% if payment.status == 'pending' and user.role in 'manager,admin' or user.is_superuser %}
                 <div class="bg-white rounded-xl shadow-lg border border-secondary-100 overflow-hidden">
                     <div class="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
-                        <h2 class="text-xl font-semibold text-white">Admin Actions</h2>
+                        <h2 class="text-xl font-semibold text-white">Manager Actions</h2>
                     </div>
                     <div class="p-6 space-y-3">
                         <form method="post" action="{% url 'payments:confirm' payment.pk %}" class="w-full">
