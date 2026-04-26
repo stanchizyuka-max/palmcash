@@ -77,12 +77,13 @@ class Command(BaseCommand):
             for o in officers:
                 self.stdout.write(f"  - {o.first_name} {o.last_name} (ID: {o.id})")
             officer = officers.first()
+            self.stdout.write(f"Using first match: {officer.first_name} {officer.last_name}")
 
         # 3. Check client's loans
         loans = Loan.objects.filter(borrower=client)
         self.stdout.write(f"\n✓ Client has {loans.count()} loan(s):")
         for loan in loans:
-            self.stdout.write(f"  - Loan {loan.loan_id}: {loan.status}")
+            self.stdout.write(f"  - Loan {loan.application_number}: {loan.status}")
             self.stdout.write(f"    Officer: {loan.loan_officer}")
             self.stdout.write(f"    Branch: {getattr(loan, 'branch', 'No branch')}")
 
@@ -97,7 +98,7 @@ class Command(BaseCommand):
             self.stdout.write(f"    Status: {req.status}")
             self.stdout.write(f"    Requested by: {req.requested_by}")
             self.stdout.write(f"    Date: {req.requested_date}")
-            self.stdout.write(f"    Loan: {req.loan.loan_id}")
+            self.stdout.write(f"    Loan: {req.loan.application_number}")
             self.stdout.write(f"    Reason: {req.reason}")
 
         # 5. Check for K200 requests specifically
@@ -111,16 +112,23 @@ class Command(BaseCommand):
             self.stdout.write(f"    Requested by: {req.requested_by}")
             self.stdout.write(f"    Date: {req.requested_date}")
 
-        # 6. Check pending requests by Precious
-        precious_requests = SecurityTopUpRequest.objects.filter(
-            requested_by=officer,
-            status='pending'
+        # 6. Check pending requests by both Precious officers
+        all_precious_officers = User.objects.filter(
+            first_name__icontains='precious',
+            role='loan_officer'
         )
-        self.stdout.write(f"\n✓ Pending requests by {officer.first_name}: {precious_requests.count()}")
-        for req in precious_requests:
-            self.stdout.write(f"  - Client: {req.loan.borrower}")
-            self.stdout.write(f"    Amount: K{req.requested_amount}")
-            self.stdout.write(f"    Date: {req.requested_date}")
+        
+        for precious_officer in all_precious_officers:
+            precious_requests = SecurityTopUpRequest.objects.filter(
+                requested_by=precious_officer,
+                status='pending'
+            )
+            self.stdout.write(f"\n✓ Pending requests by {precious_officer.first_name} {precious_officer.last_name} (ID: {precious_officer.id}): {precious_requests.count()}")
+            for req in precious_requests:
+                self.stdout.write(f"  - Client: {req.loan.borrower}")
+                self.stdout.write(f"    Amount: K{req.requested_amount}")
+                self.stdout.write(f"    Date: {req.requested_date}")
+                self.stdout.write(f"    Loan: {req.loan.application_number}")
 
         # 7. Check branch managers who should see the request
         managers = User.objects.filter(
