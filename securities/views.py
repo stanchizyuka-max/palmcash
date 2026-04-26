@@ -25,12 +25,11 @@ def _security_stats_for_loans(loans_qs):
         loan__in=loans_qs, status='approved'
     ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
 
-    # Positive adjustments from SecurityTransaction
+    # Adjustments - used to apply security toward loan completion (decreases balance)
     adjustments = SecurityTransaction.objects.filter(
         loan__in=loans_qs,
         status='approved',
         transaction_type='adjustment',
-        amount__gt=0,
     ).aggregate(total=Sum('amount'))['total'] or _zero()
 
     returned = SecurityTransaction.objects.filter(
@@ -52,8 +51,10 @@ def _security_stats_for_loans(loans_qs):
         transaction_type='withdrawal',
     ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-    # Correct balance calculation: increases - decreases
-    balance = (upfront + topups + adjustments + carry_forwards) - (returned + withdrawals)
+    # Correct balance calculation: 
+    # INCREASES: upfront + topups + carry_forwards
+    # DECREASES: adjustments + returned + withdrawals
+    balance = (upfront + topups + carry_forwards) - (adjustments + returned + withdrawals)
 
     return {
         'upfront': upfront,
@@ -396,7 +397,7 @@ def client_detail(request, client_id):
         ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
 
         adjustments = SecurityTransaction.objects.filter(
-            loan=loan, status='approved', transaction_type='adjustment', amount__gt=0
+            loan=loan, status='approved', transaction_type='adjustment'
         ).aggregate(total=Sum('amount'))['total'] or _zero()
 
         returned = SecurityTransaction.objects.filter(
@@ -412,8 +413,10 @@ def client_detail(request, client_id):
             loan=loan, status='approved', transaction_type='withdrawal'
         ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        # Correct balance calculation: increases - decreases
-        balance = (upfront + topups + adjustments + carry_fwd) - (returned + withdrawals)
+        # Correct balance calculation:
+        # INCREASES: upfront + topups + carry_forwards  
+        # DECREASES: adjustments + returned + withdrawals
+        balance = (upfront + topups + carry_fwd) - (adjustments + returned + withdrawals)
 
         # Transactions list for this loan
         transactions = []
