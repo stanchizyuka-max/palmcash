@@ -139,7 +139,7 @@ class Command(BaseCommand):
         # Check group membership assignments
         from clients.models import GroupMembership
         group_memberships = GroupMembership.objects.filter(
-            client=client,
+            borrower=client,
             is_active=True
         ).select_related('group')
         
