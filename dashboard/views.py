@@ -1513,8 +1513,16 @@ def manager_dashboard(request):
     context['pending_returns'] = pending_sec_qs.filter(transaction_type='return').count()
     context['pending_adjustments'] = pending_sec_qs.filter(transaction_type='adjustment').count()
     context['pending_withdrawals'] = pending_sec_qs.filter(transaction_type='withdrawal').count()
-    context['pending_carry_forwards'] = pending_sec_qs.filter(transaction_type='carry_forward').count()
-    context['pending_sec_txns_total'] = pending_sec_qs.count()
+    
+    # Top-ups are SecurityTopUpRequest, not SecurityTransaction
+    from loans.models import SecurityTopUpRequest
+    context['pending_topups'] = SecurityTopUpRequest.objects.filter(
+        loan_id__in=loans.values_list('id', flat=True),
+        status='pending',
+    ).count()
+    
+    # Total includes both security transactions and top-up requests
+    context['pending_sec_txns_total'] = pending_sec_qs.count() + context['pending_topups']
 
     # Recent default collections for this branch
     from payments.models import DefaultCollection
