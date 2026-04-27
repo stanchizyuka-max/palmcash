@@ -96,27 +96,64 @@ def loan_officer_dashboard(request):
     """Loan Officer Dashboard"""
     officer = request.user
     
-    # Get metrics
+    # Get filter parameters
+    group_filter = request.GET.get('group', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Set default date range (current month if not specified)
+    if not date_from or not date_to:
+        from datetime import date
+        today = date.today()
+        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
+        date_to = date_to or today.strftime('%Y-%m-%d')
+    
+    # Parse dates
+    try:
+        from datetime import datetime
+        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+    except:
+        from datetime import date
+        today = date.today()
+        date_from_obj = today.replace(day=1)
+        date_to_obj = today
+        date_from = date_from_obj.strftime('%Y-%m-%d')
+        date_to = date_to_obj.strftime('%Y-%m-%d')
+    
+    # Get base querysets
     groups = BorrowerGroup.objects.filter(assigned_officer=officer)
+    
+    # Apply group filter
+    if group_filter:
+        groups = groups.filter(id=group_filter)
     
     # Get clients assigned to this officer - include both directly assigned and group members
     from django.db.models import Q
+    clients_query = Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer)
+    if group_filter:
+        clients_query = Q(group_memberships__group_id=group_filter)
+    
     clients = User.objects.filter(
-        Q(assigned_officer=officer) | Q(group_memberships__group__assigned_officer=officer),
+        clients_query,
         role='borrower',
         is_active=True
     ).distinct()
     
+    # Apply filters to loans
+    loans_query = Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer)
+    if group_filter:
+        loans_query = Q(borrower__group_memberships__group_id=group_filter)
+    
     active_loans = Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        loans_query,
         status='active'
     ).distinct()
     
-    # Today's collections
-    today = date.today()
+    # Today's collections with date filter
     today_collections = PaymentCollection.objects.filter(
-        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
-        collection_date=today
+        loans_query,
+        collection_date__range=[date_from_obj, date_to_obj]
     ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
@@ -127,26 +164,29 @@ def loan_officer_dashboard(request):
     # Overdue: unpaid installments past their due date
     from payments.models import PaymentSchedule as PS
     today_defaults = PS.objects.filter(
-        Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer),
+        loans_query,
         loan__status='active',
         is_paid=False,
-        due_date__lt=today,
+        due_date__lt=date_to_obj,
     ).values('loan').distinct().count()  # count distinct loans with overdue installments
     
     # Pending actions
     # Security deposits awaiting verification - loans with paid deposits but not verified
     pending_security = Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        loans_query,
         security_deposit__paid_amount__gt=0,
         security_deposit__is_verified=False
     ).distinct().count()
     
     # Ready to disburse - approved loans with verified deposits
     ready_to_disburse = Loan.objects.filter(
-        Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
+        loans_query,
         status='approved',
         security_deposit__is_verified=True
     ).distinct().count()
+    
+    # Get all groups for filter dropdown
+    all_groups = BorrowerGroup.objects.filter(assigned_officer=officer).order_by('name')
     
     # Outstanding balance — use balance_remaining if set, else fall back to total_amount - amount_paid
     from django.db.models import F, ExpressionWrapper, DecimalField as DField
@@ -308,6 +348,14 @@ def loan_officer_dashboard(request):
         'pending_security_transactions': SecurityTransaction.objects.filter(
             loan__loan_officer=officer,
             status='pending',
+        ).select_related('loan', 'loan__borrower').order_by('-created_at'),
+        # Filter data
+        'filters': {
+            'group': group_filter,
+            'date_from': date_from,
+            'date_to': date_to,
+        },
+        'all_groups': all_groups,
         ).select_related('loan', 'loan__borrower').order_by('-created_at'),
         'active_loans_with_security': Loan.objects.filter(
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
