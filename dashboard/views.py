@@ -145,6 +145,11 @@ def loan_officer_dashboard(request):
     if group_filter:
         loans_query = Q(borrower__group_memberships__group_id=group_filter)
     
+    # Query for related models (PaymentCollection, PaymentSchedule, etc.) that access through loan
+    related_query = Q(loan__loan_officer=officer) | Q(loan__borrower__group_memberships__group__assigned_officer=officer)
+    if group_filter:
+        related_query = related_query & Q(loan__borrower__group_memberships__group_id=group_filter)
+    
     active_loans = Loan.objects.filter(
         loans_query,
         status='active'
@@ -152,7 +157,7 @@ def loan_officer_dashboard(request):
     
     # Today's collections with date filter
     today_collections = PaymentCollection.objects.filter(
-        loans_query,
+        related_query,
         collection_date__range=[date_from_obj, date_to_obj]
     ).distinct()
     
@@ -164,7 +169,7 @@ def loan_officer_dashboard(request):
     # Overdue: unpaid installments past their due date
     from payments.models import PaymentSchedule as PS
     today_defaults = PS.objects.filter(
-        loans_query,
+        related_query,
         loan__status='active',
         is_paid=False,
         due_date__lt=date_to_obj,
