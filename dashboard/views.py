@@ -356,7 +356,6 @@ def loan_officer_dashboard(request):
             'date_to': date_to,
         },
         'all_groups': all_groups,
-        ).select_related('loan', 'loan__borrower').order_by('-created_at'),
         'active_loans_with_security': Loan.objects.filter(
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
             status__in=['active', 'completed'],
