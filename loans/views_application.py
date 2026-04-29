@@ -147,13 +147,14 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
         loan_app.status = 'pending'
         loan_app.save()
         
+        # Redirect to processing fee form instead of applications list
         messages.success(
             self.request,
             f'Loan application {loan_app.application_number} submitted for {loan_app.borrower.get_full_name()}. '
-            f'Awaiting manager approval.'
+            f'Please record the processing fee.'
         )
         
-        return redirect(self.success_url)
+        return redirect('loans:record_processing_fee', pk=loan_app.pk)
 
 
 class LoanApplicationsListView(LoginRequiredMixin, ListView):
@@ -398,3 +399,86 @@ class VerifyProcessingFeeView(LoginRequiredMixin, View):
 
         messages.success(request, f'Processing fee of K{app.processing_fee:,.2f} verified.')
         return redirect('loans:approve_application', pk=pk)
+
+
+class RecordProcessingFeeView(LoginRequiredMixin, View):
+    """Loan officer records the processing fee for a loan application."""
+    template_name = 'loans/record_processing_fee.html'
+    
+    def get(self, request, pk):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can record processing fees.')
+            return redirect('loans:applications_list')
+        
+        app = get_object_or_404(LoanApplication, pk=pk)
+        
+        # Check if processing fee already recorded
+        if app.processing_fee:
+            messages.info(request, 'Processing fee already recorded for this application.')
+            return redirect('loans:applications_list')
+        
+        return render(request, self.template_name, {
+            'application': app,
+            'borrower': app.borrower,
+        })
+    
+    def post(self, request, pk):
+        if request.user.role not in ['loan_officer', 'manager', 'admin']:
+            messages.error(request, 'Only loan officers can record processing fees.')
+            return redirect('loans:applications_list')
+        
+        app = get_object_or_404(LoanApplication, pk=pk)
+        
+        from decimal import Decimal, InvalidOperation
+        fee_str = request.POST.get('processing_fee', '').strip()
+        
+        try:
+            fee = Decimal(fee_str)
+            if fee <= 0:
+                raise ValueError()
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'Please enter a valid processing fee amount greater than zero.')
+            return render(request, self.template_name, {
+                'application': app,
+                'borrower': app.borrower,
+            })
+        
+        app.processing_fee = fee
+        app.processing_fee_recorded_by = request.user
+        app.processing_fee_verified = False
+        app.save(update_fields=['processing_fee', 'processing_fee_recorded_by', 'processing_fee_verified'])
+        
+        # Record vault inflow for processing fee
+        try:
+            from loans.vault_services import _get_or_create_vault, _ref
+            from expenses.models import VaultTransaction
+            from clients.models import Branch
+            from django.utils import timezone as tz
+            
+            branch_name = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else ''
+            branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
+            
+            if branch:
+                vault = _get_or_create_vault(branch)
+                vault.balance += fee
+                vault.save(update_fields=['balance', 'updated_at'])
+                VaultTransaction.objects.create(
+                    transaction_type='deposit',
+                    direction='in',
+                    branch=branch.name,
+                    amount=fee,
+                    balance_after=vault.balance,
+                    description=f'Processing fee for application {app.application_number} — pending verification',
+                    reference_number=_ref(),
+                    recorded_by=request.user,
+                    transaction_date=tz.now(),
+                )
+        except Exception as e:
+            print(f"Vault fee record error: {e}")
+        
+        messages.success(
+            request,
+            f'Processing fee K{fee:,.2f} recorded for application {app.application_number}. '
+            f'Awaiting manager verification.'
+        )
+        return redirect('loans:applications_list')

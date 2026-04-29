@@ -45,5 +45,6 @@ urlpatterns = [
     path('applications/', views_application.LoanApplicationsListView.as_view(), name='applications_list'),
     path('applications/<int:pk>/detail/', views_application.LoanApplicationDetailView.as_view(), name='application_detail_view'),
     path('applications/<int:pk>/approve/', views_application.ApproveLoanApplicationView.as_view(), name='approve_application'),
+    path('applications/<int:pk>/processing-fee/', views_application.RecordProcessingFeeView.as_view(), name='record_processing_fee'),
     path('applications/<int:pk>/verify-fee/', views_application.VerifyProcessingFeeView.as_view(), name='verify_processing_fee'),
 ]
