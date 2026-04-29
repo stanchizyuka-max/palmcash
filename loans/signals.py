@@ -12,7 +12,12 @@ from .models import Loan, SecurityDeposit
 def create_security_deposit(sender, instance, created, **kwargs):
     """
     Automatically create SecurityDeposit record when a loan is approved
+    NOTE: Daily loans do NOT require security deposits
     """
+    # Skip security deposits for daily loans
+    if instance.repayment_frequency == 'daily':
+        return
+    
     # Only create if loan is approved and doesn't have a security deposit yet
     if instance.status == 'approved':
         # Check if security deposit already exists
@@ -37,6 +42,10 @@ def create_security_deposit(sender, instance, created, **kwargs):
 def calculate_upfront_payment(sender, instance, **kwargs):
     """
     Automatically calculate upfront payment requirement (10% of principal)
+    NOTE: Daily loans do NOT require security deposits
     """
-    if instance.principal_amount and not instance.upfront_payment_required:
+    if instance.repayment_frequency == 'daily':
+        # Daily loans don't require upfront payment
+        instance.upfront_payment_required = Decimal('0')
+    elif instance.principal_amount and not instance.upfront_payment_required:
         instance.upfront_payment_required = instance.principal_amount * Decimal('0.10')

@@ -188,11 +188,14 @@ class Loan(models.Model):
                 new_number = 1
             self.application_number = f"LV-{new_number:06d}"
         
-        # Calculate upfront payment (10% of principal)
-        if self.principal_amount and not self.upfront_payment_required:
+        # Calculate upfront payment (10% of principal) - NOT for daily loans
+        if self.principal_amount and not self.upfront_payment_required and self.repayment_frequency != 'daily':
             from decimal import Decimal
             principal = Decimal(str(self.principal_amount))
             self.upfront_payment_required = principal * Decimal('0.10')
+        elif self.repayment_frequency == 'daily':
+            # Daily loans don't require security deposits
+            self.upfront_payment_required = Decimal('0')
         
         # Calculate payment amount and total based on frequency
         if self.principal_amount and self.interest_rate:

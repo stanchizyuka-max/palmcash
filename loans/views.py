@@ -1212,6 +1212,11 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
     def get(self, request, pk):
         loan = get_object_or_404(Loan, pk=pk)
         
+        # Daily loans don't require upfront payment
+        if loan.repayment_frequency == 'daily':
+            messages.info(request, "Daily loans do not require upfront payment.")
+            return redirect('loans:detail', pk=loan.pk)
+        
         # Check permissions
         if request.user.role == 'borrower' and loan.borrower != request.user:
             messages.error(request, "You don't have permission to access this loan.")
@@ -1239,6 +1244,11 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
     
     def post(self, request, pk):
         loan = get_object_or_404(Loan, pk=pk)
+        
+        # Daily loans don't require upfront payment
+        if loan.repayment_frequency == 'daily':
+            messages.error(request, "Daily loans do not require upfront payment.")
+            return redirect('loans:detail', pk=loan.pk)
         
         # Check permissions
         if request.user.role == 'borrower' and loan.borrower != request.user:
@@ -1465,6 +1475,11 @@ class RecordSecurityDepositView(LoginRequiredMixin, View):
             return redirect('loans:detail', pk=pk)
         
         loan = get_object_or_404(Loan, pk=pk)
+        
+        # Daily loans don't require security deposits
+        if loan.repayment_frequency == 'daily':
+            messages.error(request, 'Daily loans do not require security deposits.')
+            return redirect('loans:detail', pk=pk)
         
         # Get or create security deposit record
         from .models import SecurityDeposit

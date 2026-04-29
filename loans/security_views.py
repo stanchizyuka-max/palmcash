@@ -19,6 +19,11 @@ def security_action(request, loan_id, action):
         return redirect('dashboard:dashboard')
 
     loan = get_object_or_404(Loan, pk=loan_id)
+    
+    # Daily loans don't have security deposits
+    if loan.repayment_frequency == 'daily':
+        messages.error(request, 'Daily loans do not have security deposits.')
+        return redirect('loans:detail', pk=loan_id)
 
     if request.method == 'POST':
         try:
@@ -122,7 +127,7 @@ def security_topup(request, loan_id=None):
     from accounts.models import User
     from django.db.models import Q
 
-    # Build borrower list scoped to this officer
+    # Build borrower list scoped to this officer - exclude daily loans
     borrowers = User.objects.filter(
         Q(assigned_officer=request.user) |
         Q(group_memberships__group__assigned_officer=request.user),
@@ -135,11 +140,12 @@ def security_topup(request, loan_id=None):
 
     loans_for_borrower = []
     if selected_borrower_id:
+        # Exclude daily loans from top-up eligibility
         loans_for_borrower = Loan.objects.filter(
             borrower_id=selected_borrower_id,
             status='active',
             security_deposit__is_verified=True,
-        ).select_related('borrower', 'security_deposit').order_by('-created_at')
+        ).exclude(repayment_frequency='daily').select_related('borrower', 'security_deposit').order_by('-created_at')
 
     loan = None
     deposit = None
@@ -150,6 +156,10 @@ def security_topup(request, loan_id=None):
                 status='active',
                 security_deposit__is_verified=True,
             )
+            # Check if it's a daily loan
+            if loan.repayment_frequency == 'daily':
+                messages.error(request, 'Daily loans do not require security deposits or top-ups.')
+                return redirect('loans:detail', pk=loan.pk)
             deposit = loan.security_deposit
         except Loan.DoesNotExist:
             messages.error(request, 'Loan not found, not active, or has no verified security deposit.')
