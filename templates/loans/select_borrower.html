@@ -40,7 +40,7 @@
                         </button>
                         {% if search_query %}
                         <a 
-                            href="{% url 'loans:select_borrower' %}" 
+                            href="{% url 'loans:submit_application' %}" 
                             class="px-6 py-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium shadow-sm"
                         >
                             <i class="fas fa-times mr-2"></i>Clear
@@ -113,7 +113,7 @@
                 <i class="fas fa-inbox text-slate-300 text-4xl mb-4"></i>
                 {% if search_query %}
                     <p class="text-slate-600 mb-4">No borrowers found matching "{{ search_query }}".</p>
-                    <a href="{% url 'loans:select_borrower' %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                    <a href="{% url 'loans:submit_application' %}" class="text-blue-600 hover:text-blue-800 font-medium">
                         <i class="fas fa-arrow-left mr-1"></i>View all borrowers
                     </a>
                 {% else %}
