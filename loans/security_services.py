@@ -153,8 +153,8 @@ def approve_security_transaction(txn, approved_by):
             deposit.security_returned += txn.amount
             deposit.save(update_fields=['security_returned', 'updated_at'])
             try:
-                from .vault_services import record_security_return
-                record_security_return(txn.loan, txn.amount, approved_by)
+                from .vault_services import record_security_withdrawal
+                record_security_withdrawal(txn.loan, txn.amount, approved_by)
             except Exception:
                 pass
 

@@ -78,6 +78,7 @@ def record_loan_disbursement(loan, approved_by):
 
 
 def record_security_return(loan, amount, approved_by):
+    """Record a full security return to client (all remaining security)"""
     branch = _get_branch_for_loan(loan, fallback_user=approved_by)
     if not branch:
         return None
@@ -93,6 +94,31 @@ def record_security_return(loan, amount, approved_by):
             amount=amount,
             balance_after=vault.balance,
             description=f'Security return for {loan.application_number}',
+            reference_number=_ref(),
+            loan=loan,
+            recorded_by=loan.loan_officer,
+            approved_by=approved_by,
+            transaction_date=timezone.now(),
+        )
+
+
+def record_security_withdrawal(loan, amount, approved_by):
+    """Record a partial security withdrawal (client keeps some for new loan)"""
+    branch = _get_branch_for_loan(loan, fallback_user=approved_by)
+    if not branch:
+        return None
+    with db_transaction.atomic():
+        vault = _get_or_create_vault(branch)
+        vault.balance -= Decimal(str(amount))
+        vault.save(update_fields=['balance', 'updated_at'])
+        from expenses.models import VaultTransaction
+        return VaultTransaction.objects.create(
+            transaction_type='security_withdrawal',
+            direction='out',
+            branch=branch.name,
+            amount=amount,
+            balance_after=vault.balance,
+            description=f'Security withdrawal for {loan.application_number}',
             reference_number=_ref(),
             loan=loan,
             recorded_by=loan.loan_officer,

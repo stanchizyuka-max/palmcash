@@ -177,6 +177,7 @@ class VaultTransaction(models.Model):
         ('payment_collection', 'Payment Collection'),
         ('security_deposit', 'Security Deposit'),
         ('security_return', 'Security Return'),
+        ('security_withdrawal', 'Security Withdrawal'),
         ('capital_injection', 'Capital Injection'),
         ('bank_withdrawal', 'Bank Withdrawal'),
         ('bank_charges', 'Bank Charges'),
