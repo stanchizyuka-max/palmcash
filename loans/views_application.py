@@ -305,59 +305,92 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                     )
                     loan.save()
 
-                    # Carry forward existing security from borrower's previous completed loan
-                    try:
+                    # For DAILY loans: Skip security deposit requirement
+                    # For WEEKLY loans: Carry forward existing security or require new deposit
+                    if freq == 'daily':
+                        # Daily loans don't require security - mark as ready to disburse
                         from loans.models import SecurityDeposit
-                        from loans.security_services import apply_carry_forward
-                        from loans.vault_services import record_security_deposit
+                        SecurityDeposit.objects.create(
+                            loan=loan,
+                            required_amount=Decimal('0'),
+                            paid_amount=Decimal('0'),
+                            is_verified=True,  # Auto-verify for daily loans
+                            verification_date=timezone.now(),
+                        )
+                        loan.upfront_payment_verified = True
+                        loan.save(update_fields=['upfront_payment_verified'])
+                        
+                        messages.success(
+                            self.request,
+                            f'Application {loan_app.application_number} approved. '
+                            f'Loan {loan.application_number} created (Daily loan - no security required). Ready to disburse.'
+                        )
+                    else:
+                        # Weekly loans require security - try carry forward
+                        try:
+                            from loans.models import SecurityDeposit
+                            from loans.security_services import apply_carry_forward
+                            from loans.vault_services import record_security_deposit
 
-                        # Find the most recent completed loan with verified security for this borrower
-                        previous_loan = Loan.objects.filter(
-                            borrower=loan_app.borrower,
-                            status='completed',
-                            security_deposit__is_verified=True,
-                        ).order_by('-updated_at').first()
+                            # Find the most recent completed loan with verified security for this borrower
+                            previous_loan = Loan.objects.filter(
+                                borrower=loan_app.borrower,
+                                status='completed',
+                                security_deposit__is_verified=True,
+                            ).order_by('-updated_at').first()
 
-                        if previous_loan:
-                            # Create a security deposit record for the new loan first
-                            from decimal import Decimal
-                            required = loan.principal_amount * Decimal('0.10')
-                            new_deposit, _ = SecurityDeposit.objects.get_or_create(
-                                loan=loan,
-                                defaults={
-                                    'required_amount': required,
-                                    'paid_amount': Decimal('0'),
-                                    'is_verified': False,
-                                }
-                            )
-                            # Carry forward security from old loan
-                            txn, err = apply_carry_forward(previous_loan, loan, loan_app.loan_officer)
-                            if txn:
-                                # If carry forward covers full required amount, mark deposit and loan as verified
-                                new_deposit.refresh_from_db()
-                                if new_deposit.paid_amount >= required:
-                                    new_deposit.is_verified = True
-                                    new_deposit.verification_date = timezone.now()
-                                    new_deposit.save(update_fields=['is_verified', 'verification_date'])
-                                    # Also mark the loan's upfront payment as verified
-                                    # so it goes straight to Ready to Disburse
-                                    loan.upfront_payment_paid = new_deposit.paid_amount
-                                    loan.upfront_payment_verified = True
-                                    loan.save(update_fields=['upfront_payment_paid', 'upfront_payment_verified'])
-                                # No vault entry here — money is already in the vault from the original deposit
-                                # Vault only changes when NEW cash comes in (top-up) or goes out (return)
-                    except Exception as e:
-                        # Non-fatal — loan is still created
-                        print(f"Carry forward error: {e}")
+                            if previous_loan:
+                                # Create a security deposit record for the new loan first
+                                from decimal import Decimal
+                                required = loan.principal_amount * Decimal('0.10')
+                                new_deposit, _ = SecurityDeposit.objects.get_or_create(
+                                    loan=loan,
+                                    defaults={
+                                        'required_amount': required,
+                                        'paid_amount': Decimal('0'),
+                                        'is_verified': False,
+                                    }
+                                )
+                                # Carry forward security from old loan
+                                txn, err = apply_carry_forward(previous_loan, loan, loan_app.loan_officer)
+                                if txn:
+                                    # If carry forward covers full required amount, mark deposit and loan as verified
+                                    new_deposit.refresh_from_db()
+                                    if new_deposit.paid_amount >= required:
+                                        new_deposit.is_verified = True
+                                        new_deposit.verification_date = timezone.now()
+                                        new_deposit.save(update_fields=['is_verified', 'verification_date'])
+                                        # Also mark the loan's upfront payment as verified
+                                        # so it goes straight to Ready to Disburse
+                                        loan.upfront_payment_paid = new_deposit.paid_amount
+                                        loan.upfront_payment_verified = True
+                                        loan.save(update_fields=['upfront_payment_paid', 'upfront_payment_verified'])
+                                    # No vault entry here — money is already in the vault from the original deposit
+                                    # Vault only changes when NEW cash comes in (top-up) or goes out (return)
+                            else:
+                                # No previous security - create empty deposit record
+                                from decimal import Decimal
+                                required = loan.principal_amount * Decimal('0.10')
+                                SecurityDeposit.objects.get_or_create(
+                                    loan=loan,
+                                    defaults={
+                                        'required_amount': required,
+                                        'paid_amount': Decimal('0'),
+                                        'is_verified': False,
+                                    }
+                                )
+                        except Exception as e:
+                            # Non-fatal — loan is still created
+                            print(f"Carry forward error: {e}")
 
-                    messages.success(
-                        self.request,
-                        f'Application {loan_app.application_number} approved. '
-                        f'Loan {loan.application_number} created — security carried forward, ready to disburse.'
-                        if loan.upfront_payment_verified else
-                        f'Application {loan_app.application_number} approved. '
-                        f'Loan {loan.application_number} created — officer can now initiate 10% upfront payment.'
-                    )
+                        messages.success(
+                            self.request,
+                            f'Application {loan_app.application_number} approved. '
+                            f'Loan {loan.application_number} created — security carried forward, ready to disburse.'
+                            if loan.upfront_payment_verified else
+                            f'Application {loan_app.application_number} approved. '
+                            f'Loan {loan.application_number} created — officer can now initiate 10% upfront payment.'
+                        )
                 else:
                     messages.warning(
                         self.request,

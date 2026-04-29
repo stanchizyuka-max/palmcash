@@ -326,12 +326,13 @@ class Loan(models.Model):
         if self.status != 'approved':
             return False, 'Loan is not in approved status.'
         
-        # Security deposit must be verified
-        try:
-            if not self.security_deposit.is_verified:
-                return False, 'Security deposit must be verified before approval.'
-        except:
-            return False, 'Security deposit not found.'
+        # Security deposit must be verified (skip for daily loans)
+        if self.repayment_frequency != 'daily':
+            try:
+                if not self.security_deposit.is_verified:
+                    return False, 'Security deposit must be verified before approval.'
+            except:
+                return False, 'Security deposit not found.'
         
         return True, 'Loan can be approved.'
     
@@ -341,12 +342,13 @@ class Loan(models.Model):
         if self.status != 'approved':
             return False, 'Loan is not in approved status.'
         
-        # Security deposit must be verified
-        try:
-            if not self.security_deposit.is_verified:
-                return False, 'Security deposit must be verified before disbursement.'
-        except:
-            return False, 'Security deposit not found.'
+        # Security deposit must be verified (skip for daily loans)
+        if self.repayment_frequency != 'daily':
+            try:
+                if not self.security_deposit.is_verified:
+                    return False, 'Security deposit must be verified before disbursement.'
+            except:
+                return False, 'Security deposit not found.'
         
         # High-value loans must have admin approval
         if self.principal_amount >= 6000:

@@ -527,9 +527,9 @@ class DisburseLoanView(LoginRequiredMixin, View):
                 messages.error(request, 'This loan is already completed with a payment schedule. Cannot disburse again.')
                 return redirect('loans:detail', pk=pk)
             
-            # For approved loans, validate upfront payment is verified
+            # For approved loans, validate upfront payment is verified (skip for daily loans)
             if loan.status == 'approved':
-                if not loan.upfront_payment_verified:
+                if loan.repayment_frequency != 'daily' and not loan.upfront_payment_verified:
                     messages.error(request, 'Upfront payment must be verified by the manager before disbursement.')
                     return redirect('loans:detail', pk=pk)
 
