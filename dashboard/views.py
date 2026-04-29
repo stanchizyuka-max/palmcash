@@ -156,17 +156,25 @@ def loan_officer_dashboard(request):
     ).distinct()
     
     # Today's collections - use actual today, not date range filter
-    # Only show collections from ACTIVE loans (exclude completed loans)
     from datetime import date
     today = date.today()
-    today_collections = PaymentCollection.objects.filter(
+    
+    # For EXPECTED: Only count active loans (loans that still need payment)
+    today_collections_active = PaymentCollection.objects.filter(
         related_query,
-        collection_date=today,  # Changed from date range to just today
-        loan__status='active'  # Only show collections from active loans
+        collection_date=today,
+        loan__status='active'
     ).distinct()
     
-    today_expected = sum(c.expected_amount for c in today_collections) or 0
-    today_collected = sum(c.collected_amount for c in today_collections) or 0
+    # For COLLECTED: Count both active loans AND loans completed today
+    # (to show today's collections even if they completed the loan)
+    today_collections_all = PaymentCollection.objects.filter(
+        related_query,
+        collection_date=today
+    ).distinct()
+    
+    today_expected = sum(c.expected_amount for c in today_collections_active) or 0
+    today_collected = sum(c.collected_amount for c in today_collections_all) or 0
     # Never show negative pending — a full payoff means nothing is pending
     today_pending = max(0, today_expected - today_collected)
 
@@ -212,8 +220,8 @@ def loan_officer_dashboard(request):
     total_workload = groups.count() + clients.count()
     workload_percentage = (total_workload / 200 * 100) if total_workload > 0 else 0
     
-    # Clients expected to pay today
-    clients_expected_today = today_collections.select_related('loan__borrower').order_by('-expected_amount')
+    # Clients expected to pay today - only show clients with active loans
+    clients_expected_today = today_collections_active.select_related('loan__borrower').order_by('-expected_amount')
     
     # Recent transactions (from passbook/payment records)
     from payments.models import PaymentCollection as PC
@@ -1148,16 +1156,23 @@ def manager_dashboard(request):
     ).distinct().count()
     
     # Today's collections - only include loans where officer is from this branch
-    # Only show collections from ACTIVE loans (exclude completed loans)
     today = date.today()
-    today_collections = PaymentCollection.objects.filter(
+    
+    # For EXPECTED: Only count active loans (loans that still need payment)
+    today_collections_active = PaymentCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name,
         collection_date=today,
-        loan__status='active'  # Only show collections from active loans
+        loan__status='active'
     ).distinct()
     
-    today_expected = sum(c.expected_amount for c in today_collections) or 0
-    today_collected = sum(c.collected_amount for c in today_collections) or 0
+    # For COLLECTED: Count both active loans AND loans completed today
+    today_collections_all = PaymentCollection.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        collection_date=today
+    ).distinct()
+    
+    today_expected = sum(c.expected_amount for c in today_collections_active) or 0
+    today_collected = sum(c.collected_amount for c in today_collections_all) or 0
     collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
     today_pending = max(0, today_expected - today_collected)
     
