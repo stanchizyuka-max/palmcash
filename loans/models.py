@@ -178,6 +178,8 @@ class Loan(models.Model):
         return f"Loan {self.application_number} - {self.borrower.full_name}"
     
     def save(self, *args, **kwargs):
+        from decimal import Decimal  # Import at the top of the method
+        
         if not self.application_number:
             # Generate unique application number
             last_loan = Loan.objects.order_by('-id').first()
@@ -190,7 +192,6 @@ class Loan(models.Model):
         
         # Calculate upfront payment (10% of principal) - NOT for daily loans
         if self.principal_amount and not self.upfront_payment_required and self.repayment_frequency != 'daily':
-            from decimal import Decimal
             principal = Decimal(str(self.principal_amount))
             self.upfront_payment_required = principal * Decimal('0.10')
         elif self.repayment_frequency == 'daily':
@@ -200,7 +201,6 @@ class Loan(models.Model):
         # Calculate payment amount and total based on frequency
         if self.principal_amount and self.interest_rate:
             # Ensure we're working with Decimals
-            from decimal import Decimal
             principal = Decimal(str(self.principal_amount))
             interest_rate = Decimal(str(self.interest_rate))
             
