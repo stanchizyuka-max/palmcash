@@ -360,7 +360,9 @@ def loan_officer_dashboard(request):
         'ready_to_disburse_loans': Loan.objects.filter(
             Q(loan_officer=officer) | Q(borrower__group_memberships__group__assigned_officer=officer),
             status='approved',
-            upfront_payment_verified=True,
+        ).filter(
+            # Daily loans don't need upfront payment verification, weekly loans do
+            Q(repayment_frequency='daily') | Q(upfront_payment_verified=True)
         ).select_related('borrower').distinct(),
         'pending_security_transactions': SecurityTransaction.objects.filter(
             loan__loan_officer=officer,
@@ -5829,10 +5831,20 @@ def _render_manager_dashboard_for_branch(request, branch, manager):
         'vault_balance': _get_vault_balance(branch),
         'pending_payments_count': 0,
         'pending_upfront_verifications': Loan.objects.filter(
-            id__in=loans.filter(status='approved', upfront_payment_paid__gt=0, upfront_payment_verified=False).values_list('id', flat=True)
+            id__in=loans.filter(
+                status='approved', 
+                repayment_frequency='weekly',  # Only weekly loans need upfront verification
+                upfront_payment_paid__gt=0, 
+                upfront_payment_verified=False
+            ).values_list('id', flat=True)
         ).select_related('borrower', 'loan_officer'),
         'ready_to_disburse': Loan.objects.filter(
-            id__in=loans.filter(status='approved', upfront_payment_verified=True).values_list('id', flat=True)
+            id__in=loans.filter(
+                status='approved'
+            ).filter(
+                # Daily loans don't need upfront payment verification, weekly loans do
+                Q(repayment_frequency='daily') | Q(upfront_payment_verified=True)
+            ).values_list('id', flat=True)
         ).select_related('borrower', 'loan_officer'),
         'recent_applications': [],
         'pending_applications_count': 0,
