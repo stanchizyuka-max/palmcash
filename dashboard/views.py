@@ -1325,7 +1325,7 @@ def manager_dashboard(request):
         # For managers, get all clients in their branch
         branch_client_ids = User.objects.filter(
             Q(assigned_officer__officer_assignment__branch=branch.name) | 
-            Q(group_memberships__group__assigned_officer__branch=branch.name),
+            Q(group_memberships__group__assigned_officer__officer_assignment__branch=branch.name),
             role='borrower'
         ).values_list('id', flat=True).distinct()
         
