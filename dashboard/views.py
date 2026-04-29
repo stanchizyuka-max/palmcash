@@ -156,11 +156,13 @@ def loan_officer_dashboard(request):
     ).distinct()
     
     # Today's collections - use actual today, not date range filter
+    # Only show collections from ACTIVE loans (exclude completed loans)
     from datetime import date
     today = date.today()
     today_collections = PaymentCollection.objects.filter(
         related_query,
-        collection_date=today  # Changed from date range to just today
+        collection_date=today,  # Changed from date range to just today
+        loan__status='active'  # Only show collections from active loans
     ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
@@ -1146,10 +1148,12 @@ def manager_dashboard(request):
     ).distinct().count()
     
     # Today's collections - only include loans where officer is from this branch
+    # Only show collections from ACTIVE loans (exclude completed loans)
     today = date.today()
     today_collections = PaymentCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name,
-        collection_date=today
+        collection_date=today,
+        loan__status='active'  # Only show collections from active loans
     ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
