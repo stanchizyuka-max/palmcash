@@ -18,6 +18,10 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Get search query from GET parameters
+        search_query = self.request.GET.get('search', '').strip()
+        
         if self.request.user.role == 'loan_officer':
             from django.db.models import Q
             borrower_ids = User.objects.filter(
@@ -25,20 +29,33 @@ class SelectBorrowerView(LoginRequiredMixin, TemplateView):
                 Q(group_memberships__group__assigned_officer=self.request.user),
                 role='borrower'
             ).values_list('id', flat=True).distinct()
-            context['borrowers'] = User.objects.filter(id__in=borrower_ids)
+            borrowers = User.objects.filter(id__in=borrower_ids)
         elif self.request.user.role == 'manager':
             try:
                 from django.db.models import Q
                 manager_branch = self.request.user.managed_branch.name
-                context['borrowers'] = User.objects.filter(
+                borrowers = User.objects.filter(
                     Q(assigned_officer__officer_assignment__branch=manager_branch) |
                     Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True),
                     role='borrower'
                 ).distinct()
             except:
-                context['borrowers'] = User.objects.filter(role='borrower')
+                borrowers = User.objects.filter(role='borrower')
         else:
-            context['borrowers'] = User.objects.filter(role='borrower')
+            borrowers = User.objects.filter(role='borrower')
+        
+        # Apply search filter if search query exists
+        if search_query:
+            from django.db.models import Q
+            borrowers = borrowers.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(phone_number__icontains=search_query) |
+                Q(national_id__icontains=search_query)
+            )
+        
+        context['borrowers'] = borrowers.order_by('first_name', 'last_name')
+        context['search_query'] = search_query
         return context
 
 
