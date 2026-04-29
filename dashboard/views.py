@@ -155,10 +155,12 @@ def loan_officer_dashboard(request):
         status='active'
     ).distinct()
     
-    # Today's collections with date filter
+    # Today's collections - use actual today, not date range filter
+    from datetime import date
+    today = date.today()
     today_collections = PaymentCollection.objects.filter(
         related_query,
-        collection_date__range=[date_from_obj, date_to_obj]
+        collection_date=today  # Changed from date range to just today
     ).distinct()
     
     today_expected = sum(c.expected_amount for c in today_collections) or 0
