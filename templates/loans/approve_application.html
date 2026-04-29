@@ -127,7 +127,7 @@
           <div class="p-6 space-y-4">
             <div class="flex justify-between"><span class="text-sm text-slate-500">Application #</span><span class="text-sm font-bold text-slate-900">{{ object.application_number }}</span></div>
             <div class="flex justify-between"><span class="text-sm text-slate-500">Amount</span><span class="text-sm font-bold text-green-700">K{{ object.loan_amount|floatformat:2 }}</span></div>
-            <div class="flex justify-between"><span class="text-sm text-slate-500">Duration</span><span class="text-sm font-semibold text-slate-900">{{ object.duration_days }} days</span></div>
+            <div class="flex justify-between"><span class="text-sm text-slate-500">Duration</span><span class="text-sm font-semibold text-slate-900">{{ object.duration_display }}</span></div>
             <div class="flex justify-between"><span class="text-sm text-slate-500">Purpose</span><span class="text-sm font-semibold text-slate-900">{{ object.purpose }}</span></div>
             {% if object.group %}<div class="flex justify-between"><span class="text-sm text-slate-500">Group</span><span class="text-sm font-semibold text-slate-900">{{ object.group.name }}</span></div>{% endif %}
             <div class="flex justify-between"><span class="text-sm text-slate-500">Submitted</span><span class="text-sm text-slate-900">{{ object.created_at|date:"M d, Y" }}</span></div>

@@ -958,6 +958,15 @@ class LoanApplication(models.Model):
     
     def __str__(self):
         return f"{self.application_number} - {self.borrower.get_full_name()}"
+    
+    @property
+    def duration_display(self):
+        """Display duration in appropriate units based on repayment frequency"""
+        if self.repayment_frequency == 'weekly':
+            weeks = self.duration_days // 7
+            return f"{weeks} week{'s' if weeks != 1 else ''}"
+        else:  # daily
+            return f"{self.duration_days} day{'s' if self.duration_days != 1 else ''}"
 
 
 class BranchVault(models.Model):

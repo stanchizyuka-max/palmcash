@@ -116,11 +116,10 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">
-                                        K{{ application.principal_amount|floatformat:2|intcomma }}
+                                        K{{ application.loan_amount|floatformat:2|intcomma }}
                                     </div>
                                     <div class="text-sm text-gray-500">
-                                        {% if application.term_days %}{{ application.term_days }} days{% endif %}
-                                        {% if application.term_weeks %}{{ application.term_weeks }} weeks{% endif %}
+                                        {{ application.duration_display }}
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         {{ application.purpose|title }}
