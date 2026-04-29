@@ -32,3 +32,16 @@ class LoanApplicationForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
             }),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        repayment_frequency = cleaned_data.get('repayment_frequency')
+        duration_days = cleaned_data.get('duration_days')
+        
+        # Convert weeks to days for weekly loans
+        # User enters weeks, but we store as days internally
+        if repayment_frequency == 'weekly' and duration_days:
+            # User entered weeks, convert to days
+            cleaned_data['duration_days'] = duration_days * 7
+        
+        return cleaned_data

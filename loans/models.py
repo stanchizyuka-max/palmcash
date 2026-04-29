@@ -963,6 +963,7 @@ class LoanApplication(models.Model):
     def duration_display(self):
         """Display duration in appropriate units based on repayment frequency"""
         if self.repayment_frequency == 'weekly':
+            # duration_days stores actual days, convert back to weeks for display
             weeks = self.duration_days // 7
             return f"{weeks} week{'s' if weeks != 1 else ''}"
         else:  # daily

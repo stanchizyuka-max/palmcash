@@ -266,8 +266,11 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                     from decimal import Decimal
                     freq = loan_app.repayment_frequency
                     interest_rate = Decimal('40.00') if freq == 'daily' else Decimal('45.00')
+                    
+                    # duration_days already stores actual days (converted in form for weekly loans)
                     term_days = loan_app.duration_days if freq == 'daily' else None
-                    term_weeks = loan_app.duration_days if freq == 'weekly' else None
+                    term_weeks = (loan_app.duration_days // 7) if freq == 'weekly' else None
+                    
                     loan = Loan(
                         borrower=loan_app.borrower,
                         loan_officer=loan_app.loan_officer,
