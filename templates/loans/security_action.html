@@ -56,11 +56,12 @@
       <form method="post">
         {% csrf_token %}
         {% if action == 'withdrawal' %}
-        <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
           <i class="fas fa-info-circle mr-1"></i>
-          Enter the amount to withdraw. Must leave at least 10% of the remaining loan balance in security.
-          {% if loan.balance_remaining and deposit %}
-          <br><strong>Max withdrawal: K{{ deposit.available_security|floatformat:2 }} − K{{ loan.balance_remaining|floatformat:2 }} × 10%</strong>
+          <strong>Withdrawal for Completed Loan:</strong> Enter the amount you want to withdraw. The remaining security can be used for a new loan (carry forward).
+          {% if deposit %}
+          <br><strong>Available to withdraw: K{{ deposit.available_security|floatformat:2 }}</strong>
+          <br><span class="text-xs">Example: Withdraw K300, keep K{{ deposit.available_security|add:"-300"|floatformat:2 }} for new loan</span>
           {% endif %}
         </div>
         <div class="mb-4">
@@ -73,6 +74,7 @@
           {% if deposit %}
           <p class="text-xs text-slate-500 mt-1">
             Available security: K{{ deposit.available_security|floatformat:2 }}
+            <br>Remaining after withdrawal will be available for new loan
           </p>
           {% endif %}
         </div>
