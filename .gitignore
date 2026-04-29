@@ -55,6 +55,9 @@ Thumbs.db
 *.sqlite
 *.db
 
+# Backups
+backups/
+
 ecosystem.config.js
 server.py
 .venv
