@@ -69,9 +69,16 @@ def initiate_security_return(loan, amount, notes, initiated_by):
 
 
 def initiate_security_withdrawal(loan, amount, notes, initiated_by):
+    """
+    Initiate a security withdrawal after loan completion.
+    Client can withdraw part of their security and use the rest for a new loan.
+    """
     from .models import SecurityTransaction
-    if loan.status != 'active':
-        return None, 'Security withdrawal can only be done on an active loan.'
+    
+    # Withdrawal can only be done on completed loans
+    if loan.status != 'completed':
+        return None, 'Security withdrawal can only be done on a completed loan.'
+    
     try:
         deposit = loan.security_deposit
     except Exception:
@@ -80,24 +87,18 @@ def initiate_security_withdrawal(loan, amount, notes, initiated_by):
     amount = Decimal(str(amount))
     if amount <= 0:
         return None, 'Withdrawal amount must be greater than zero.'
+    
     if amount > deposit.available_security:
         return None, f'Withdrawal amount exceeds available security (K{deposit.available_security}).'
 
-    # Ensure enough security remains to cover 10% of current loan balance
-    remaining_after = deposit.available_security - amount
-    required_minimum = (loan.balance_remaining or Decimal('0')) * Decimal('0.10')
-    if remaining_after < required_minimum:
-        return None, (
-            f'Cannot withdraw K{amount} — must keep at least K{required_minimum:.2f} '
-            f'(10% of remaining balance K{loan.balance_remaining:.2f}). '
-            f'Maximum withdrawal: K{deposit.available_security - required_minimum:.2f}.'
-        )
-
+    # No minimum requirement for completed loans - client can withdraw any amount
+    # The remaining security can be used for a new loan (carry forward)
+    
     txn = SecurityTransaction.objects.create(
         loan=loan,
         transaction_type='withdrawal',
         amount=amount,
-        notes=notes or f'Security withdrawal of K{amount}',
+        notes=notes or f'Security withdrawal of K{amount}. Remaining K{deposit.available_security - amount} available for new loan.',
         initiated_by=initiated_by,
         status='pending',
     )

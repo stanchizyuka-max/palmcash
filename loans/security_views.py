@@ -13,7 +13,7 @@ from .security_services import (
 
 @login_required
 def security_action(request, loan_id, action):
-    """Officer initiates a security adjustment or return."""
+    """Officer initiates a security adjustment, return, or withdrawal."""
     if request.user.role not in ['loan_officer', 'manager', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('dashboard:dashboard')
@@ -23,6 +23,19 @@ def security_action(request, loan_id, action):
     # Daily loans don't have security deposits
     if loan.repayment_frequency == 'daily':
         messages.error(request, 'Daily loans do not have security deposits.')
+        return redirect('loans:detail', pk=loan_id)
+    
+    # Validate action based on loan status
+    if action == 'adjustment' and loan.status != 'active':
+        messages.error(request, 'Balance adjustments can only be done on active loans.')
+        return redirect('loans:detail', pk=loan_id)
+    
+    if action == 'withdrawal' and loan.status != 'completed':
+        messages.error(request, 'Security withdrawals can only be done on completed loans.')
+        return redirect('loans:detail', pk=loan_id)
+    
+    if action == 'return' and loan.status != 'completed':
+        messages.error(request, 'Security returns can only be done on completed loans.')
         return redirect('loans:detail', pk=loan_id)
 
     if request.method == 'POST':
@@ -34,7 +47,7 @@ def security_action(request, loan_id, action):
             elif action == 'return':
                 txn, err = initiate_security_return(loan, amount, notes, request.user)
             elif action == 'withdrawal':
-                # Officer enters the withdrawal amount directly
+                # Officer enters the withdrawal amount - remaining can be used for new loan
                 txn, err = initiate_security_withdrawal(loan, amount, notes, request.user)
             else:
                 err = 'Invalid action.'
@@ -43,7 +56,10 @@ def security_action(request, loan_id, action):
             if err:
                 messages.error(request, err)
             else:
-                messages.success(request, f'Security {action} submitted — awaiting manager approval.')
+                if action == 'withdrawal':
+                    messages.success(request, f'Security withdrawal of K{amount} submitted — awaiting manager approval. Remaining security can be used for a new loan.')
+                else:
+                    messages.success(request, f'Security {action} submitted — awaiting manager approval.')
                 return redirect('loans:detail', pk=loan_id)
         except Exception as e:
             messages.error(request, f'Error: {e}')
