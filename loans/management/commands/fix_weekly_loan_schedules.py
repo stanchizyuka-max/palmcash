@@ -44,17 +44,20 @@ class Command(BaseCommand):
             current_installments = PaymentSchedule.objects.filter(loan=loan).count()
             expected_installments = loan.term_weeks if loan.term_weeks else 0
             
-            # If term_weeks is wrong (e.g., 3 when it should be 21), recalculate from duration_days
-            if loan.loan_application and loan.loan_application.duration_days:
-                correct_weeks = loan.loan_application.duration_days // 7
-                if correct_weeks != loan.term_weeks:
+            # Calculate correct weeks from term_days if available
+            # For weekly loans, term_days should be weeks * 7
+            # If term_weeks doesn't match term_days // 7, it needs fixing
+            if loan.term_days:
+                correct_weeks = loan.term_days // 7
+                if correct_weeks > 0 and correct_weeks != loan.term_weeks:
                     self.stdout.write(
                         self.style.WARNING(
                             f'\nLoan {loan.application_number}:'
                         )
                     )
                     self.stdout.write(f'  Current term_weeks: {loan.term_weeks}')
-                    self.stdout.write(f'  Correct term_weeks: {correct_weeks} (from {loan.loan_application.duration_days} days)')
+                    self.stdout.write(f'  Current term_days: {loan.term_days}')
+                    self.stdout.write(f'  Correct term_weeks: {correct_weeks} (from {loan.term_days} days)')
                     self.stdout.write(f'  Current installments: {current_installments}')
                     self.stdout.write(f'  Expected installments: {correct_weeks}')
                     
@@ -79,6 +82,21 @@ class Command(BaseCommand):
                             )
                         )
                         fixed_count += 1
+            elif loan.term_weeks and current_installments != loan.term_weeks:
+                # If no term_days but term_weeks exists and installments don't match
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'\nLoan {loan.application_number}:'
+                    )
+                )
+                self.stdout.write(f'  term_weeks: {loan.term_weeks}')
+                self.stdout.write(f'  Current installments: {current_installments}')
+                self.stdout.write(f'  Expected installments: {loan.term_weeks}')
+                self.stdout.write(
+                    self.style.ERROR(
+                        f'  ⚠ No term_days available - cannot auto-fix. Please verify manually.'
+                    )
+                )
 
         if fixed_count == 0:
             self.stdout.write(
