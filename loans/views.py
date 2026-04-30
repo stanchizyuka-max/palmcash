@@ -587,7 +587,14 @@ class DisburseLoanView(LoginRequiredMixin, View):
             # Log the disbursement action
             try:
                 from loans.models import ApprovalLog
-                branch_name = request.user.managed_branch.name if request.user.managed_branch else 'Unknown'
+                # Get branch name - officers have 'branch', managers have 'managed_branch'
+                if hasattr(request.user, 'managed_branch') and request.user.managed_branch:
+                    branch_name = request.user.managed_branch.name
+                elif hasattr(request.user, 'branch') and request.user.branch:
+                    branch_name = request.user.branch.name
+                else:
+                    branch_name = 'Unknown'
+                    
                 ApprovalLog.objects.create(
                     approval_type='loan_disbursement',
                     loan=loan,
