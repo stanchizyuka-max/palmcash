@@ -479,22 +479,103 @@ def vault_month_history(request):
 
     # Get all month closing transactions
     from expenses.models import VaultTransaction
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    import re
+    
     closings = VaultTransaction.objects.filter(
         branch=branch.name,
         transaction_type='month_close'
     ).select_related('recorded_by').order_by('-transaction_date')
 
-    # Extract month from description (format: "Month closing — 2026-04. Closing balance: K...")
+    # Extract month from description and calculate financial snapshot
     closing_list = []
     for closing in closings:
         # Extract month from description
-        import re
         month_match = re.search(r'Month closing — ([\d-]+)', closing.description)
         month = month_match.group(1) if month_match else 'Unknown'
         
         # Extract notes (everything after the closing balance part)
         notes_match = re.search(r'K[\d,]+\.\d{2}\.\s*(.+)', closing.description)
         notes = notes_match.group(1).strip() if notes_match else ''
+        
+        # Calculate financial snapshot at time of closing
+        # Get all transactions up to this closing date
+        closing_date = closing.transaction_date
+        
+        # Inflows and Outflows for the month
+        if month != 'Unknown':
+            try:
+                # Parse month (format: 2026-04)
+                year, month_num = map(int, month.split('-'))
+                month_start = datetime(year, month_num, 1)
+                # Get last day of month
+                if month_num == 12:
+                    month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+                else:
+                    month_end = datetime(year, month_num + 1, 1) - timedelta(seconds=1)
+                
+                # Make timezone aware
+                from django.utils import timezone as tz
+                month_start = tz.make_aware(month_start)
+                month_end = tz.make_aware(month_end)
+                
+                # Calculate inflows and outflows for the month
+                month_txns = VaultTransaction.objects.filter(
+                    branch=branch.name,
+                    transaction_date__gte=month_start,
+                    transaction_date__lte=month_end
+                ).exclude(transaction_type__in=['month_close', 'month_open'])
+                
+                inflows = month_txns.filter(direction='in').aggregate(
+                    total=Sum('amount'))['total'] or Decimal('0')
+                outflows = month_txns.filter(direction='out').aggregate(
+                    total=Sum('amount'))['total'] or Decimal('0')
+            except:
+                inflows = Decimal('0')
+                outflows = Decimal('0')
+        else:
+            inflows = Decimal('0')
+            outflows = Decimal('0')
+        
+        # Security balance at time of closing
+        security_in = VaultTransaction.objects.filter(
+            branch=branch.name,
+            transaction_type='security_deposit',
+            direction='in',
+            transaction_date__lte=closing_date
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        security_out = VaultTransaction.objects.filter(
+            branch=branch.name,
+            transaction_type__in=['security_return', 'security_used'],
+            direction='out',
+            transaction_date__lte=closing_date
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        security_balance = security_in - security_out
+        
+        # Savings balance at time of closing (if exists)
+        from loans.models import BranchSavings
+        try:
+            # Get savings transactions up to closing date
+            savings_in = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_type='savings_deposit',
+                direction='out',  # OUT from vault = IN to savings
+                transaction_date__lte=closing_date
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            savings_out = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_type='savings_withdrawal',
+                direction='in',  # IN to vault = OUT from savings
+                transaction_date__lte=closing_date
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            savings_balance = savings_in - savings_out
+        except:
+            savings_balance = Decimal('0')
         
         closing_list.append({
             'transaction_date': closing.transaction_date,
@@ -503,10 +584,13 @@ def vault_month_history(request):
             'recorded_by': closing.recorded_by,
             'notes': notes,
             'reference_number': closing.reference_number,
+            'inflows': inflows,
+            'outflows': outflows,
+            'security_balance': security_balance,
+            'savings_balance': savings_balance,
         })
 
     # Calculate statistics
-    from decimal import Decimal
     if closing_list:
         amounts = [c['amount'] for c in closing_list]
         highest_closing = max(amounts)
