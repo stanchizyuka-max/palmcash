@@ -231,7 +231,35 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
             'status': self.request.GET.get('status', ''),
         }
         
+        # Get counts for status indicators
+        base_queryset = self.get_base_queryset()
+        context['status_counts'] = {
+            'pending': base_queryset.filter(status='pending').count(),
+            'approved': base_queryset.filter(status='approved').count(),
+            'rejected': base_queryset.filter(status='rejected').count(),
+            'total': base_queryset.count(),
+        }
+        
         return context
+    
+    def get_base_queryset(self):
+        """Get base queryset without filters for status counts"""
+        if self.request.user.role == 'loan_officer':
+            return LoanApplication.objects.filter(loan_officer=self.request.user)
+        elif self.request.user.role == 'manager':
+            try:
+                branch = self.request.user.managed_branch
+                if not branch:
+                    return LoanApplication.objects.none()
+                branch_name = branch.name
+                from django.db.models import Q
+                return LoanApplication.objects.filter(
+                    loan_officer__officer_assignment__branch__iexact=branch_name
+                ).distinct()
+            except Exception:
+                return LoanApplication.objects.all()
+        else:
+            return LoanApplication.objects.all()
 
 
 class LoanApplicationDetailView(LoginRequiredMixin, DetailView):

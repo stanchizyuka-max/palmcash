@@ -6,13 +6,88 @@
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 py-8">
     <div class="max-w-6xl mx-auto px-4">
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-slate-900">Loan Applications</h1>
             {% if user.role == 'loan_officer' %}
                 <a href="{% url 'loans:submit_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
                     <i class="fas fa-plus mr-2"></i>New Application
                 </a>
             {% endif %}
+        </div>
+        
+        <!-- Status Indicators -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <!-- Pending -->
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-1">Pending Approval</p>
+                        <p class="text-2xl font-bold text-yellow-600">{{ status_counts.pending }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+                {% if status_counts.pending > 0 %}
+                <a href="?status=pending" class="text-xs text-yellow-600 hover:text-yellow-800 font-medium mt-2 inline-block">
+                    <i class="fas fa-arrow-right mr-1"></i>View Pending
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Approved -->
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-1">Approved</p>
+                        <p class="text-2xl font-bold text-green-600">{{ status_counts.approved }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                {% if status_counts.approved > 0 %}
+                <a href="?status=approved" class="text-xs text-green-600 hover:text-green-800 font-medium mt-2 inline-block">
+                    <i class="fas fa-arrow-right mr-1"></i>View Approved
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Rejected -->
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-red-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-1">Rejected</p>
+                        <p class="text-2xl font-bold text-red-600">{{ status_counts.rejected }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                    </div>
+                </div>
+                {% if status_counts.rejected > 0 %}
+                <a href="?status=rejected" class="text-xs text-red-600 hover:text-red-800 font-medium mt-2 inline-block">
+                    <i class="fas fa-arrow-right mr-1"></i>View Rejected
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Total -->
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-1">Total Applications</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ status_counts.total }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                {% if filters.status or filters.client or filters.officer %}
+                <a href="{% url 'loans:applications_list' %}" class="text-xs text-blue-600 hover:text-blue-800 font-medium mt-2 inline-block">
+                    <i class="fas fa-arrow-right mr-1"></i>View All
+                </a>
+                {% endif %}
+            </div>
         </div>
         
         <!-- Filter Section -->
