@@ -22,13 +22,15 @@ class Command(BaseCommand):
         # Get loans with upfront payments
         loans = Loan.objects.filter(
             Q(upfront_payment_paid__gt=0) | Q(security_deposit__paid_amount__gt=0)
-        ).select_related('borrower', 'loan_officer', 'security_deposit').order_by('-created_at')[:20]
+        ).select_related('borrower', 'loan_officer', 'security_deposit')
 
         if borrower_name:
             loans = loans.filter(
                 Q(borrower__first_name__icontains=borrower_name) |
                 Q(borrower__last_name__icontains=borrower_name)
             )
+        
+        loans = loans.order_by('-created_at')[:20]
 
         if not loans:
             self.stdout.write(
