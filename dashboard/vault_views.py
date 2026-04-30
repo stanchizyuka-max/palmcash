@@ -459,6 +459,78 @@ def vault_month_close(request):
 
 
 @login_required
+def vault_month_history(request):
+    """View history of all month closings for a branch."""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('dashboard:dashboard')
+
+    branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
+
+    if request.user.role == 'admin':
+        from clients.models import Branch
+        branch_name = request.GET.get('branch') or request.POST.get('branch')
+        if branch_name:
+            branch = Branch.objects.filter(name=branch_name).first()
+        if not branch:
+            branch = Branch.objects.filter(is_active=True).first()
+
+    if not branch:
+        return render(request, 'dashboard/vault_month_history.html', {'no_branch': True})
+
+    # Get all month closing transactions
+    from expenses.models import VaultTransaction
+    closings = VaultTransaction.objects.filter(
+        branch=branch.name,
+        transaction_type='month_close'
+    ).select_related('recorded_by').order_by('-transaction_date')
+
+    # Extract month from description (format: "Month closing — 2026-04. Closing balance: K...")
+    closing_list = []
+    for closing in closings:
+        # Extract month from description
+        import re
+        month_match = re.search(r'Month closing — ([\d-]+)', closing.description)
+        month = month_match.group(1) if month_match else 'Unknown'
+        
+        # Extract notes (everything after the closing balance part)
+        notes_match = re.search(r'K[\d,]+\.\d{2}\.\s*(.+)', closing.description)
+        notes = notes_match.group(1).strip() if notes_match else ''
+        
+        closing_list.append({
+            'transaction_date': closing.transaction_date,
+            'month': month,
+            'amount': closing.amount,
+            'recorded_by': closing.recorded_by,
+            'notes': notes,
+            'reference_number': closing.reference_number,
+        })
+
+    # Calculate statistics
+    from decimal import Decimal
+    if closing_list:
+        amounts = [c['amount'] for c in closing_list]
+        highest_closing = max(amounts)
+        average_closing = sum(amounts) / len(amounts)
+        last_closing = closing_list[0]['amount']  # Most recent
+    else:
+        highest_closing = Decimal('0')
+        average_closing = Decimal('0')
+        last_closing = Decimal('0')
+
+    from clients.models import Branch
+    all_branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+
+    return render(request, 'dashboard/vault_month_history.html', {
+        'branch': branch,
+        'closings': closing_list,
+        'highest_closing': highest_closing,
+        'average_closing': average_closing,
+        'last_closing': last_closing,
+        'all_branches': all_branches,
+    })
+
+
+@login_required
 def vault_savings_deposit(request):
     """Move money from vault to savings."""
     if request.user.role not in ['manager', 'admin']:

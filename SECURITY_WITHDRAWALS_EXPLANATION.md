@@ -183,28 +183,201 @@ class SecurityDeposit:
 
 ## Example Scenario
 
-**Initial State** (Loan Completed):
-- Loan amount: K10,000
-- Loan status: **Completed** ✅
-- Security deposit paid: K1,000
-- Security used (adjustments): K0
-- Security returned: K0
-- **Available security**: K1,000
 
-**Client Decision**:
-- Client wants to apply for a new loan
-- Needs K300 cash for personal use
-- Wants to use K700 for new loan security
+Palm Cash
+Dashboard
+Loans
+Clients
+Payments
+Securities
+Reports
+8
 
-**Withdrawal Request**:
-- Officer requests: K300
+Precious Nyawo
+Loan Officer Dashboard
+Welcome back, Precious Nyawo! Here's your performance overview.
 
-**Validation**:
-- Loan completed? ✅ Yes
-- Amount positive? ✅ Yes (K300)
-- Amount <= available? ✅ Yes (K300 <= K1,000)
-- **APPROVED** ✅
+Refreshes in 58s
 
+Groups
+
+3
+
+Clients
+
+3
+
+Active Loans
+
+0
+
+Outstanding
+
+K0
+
+Today's Collections
+Expected
+
+K829
+
+Amount due today
+
+Collected
+
+K8,708
+
+Amount received
+
+Pending
+
+K0
+
+Still to collect
+
+Overdue
+
+0
+
+Loans with overdue payments
+
+Record Payment
+View Details
+My Groups
++ New Group
+Group Name	Members	Active Loans	Pending Payments	Action
+apple	1	0	None	View
+Orange	1	0	None	View
+silver	1	0	None	View
+View All Groups →
+Quick Actions
+View My Clients
+Register Borrower
+New Loan Application
+Create Group
+Record Payment
+My Applications
+Bulk Collection
+Default Collection
+Reports
+History
+My Performance
+Processing Fees
+Initiate Upfront Payment
+Approved loans awaiting 10% upfront payment
+
+No loans pending upfront payment.
+
+Ready to Disburse
+Upfront payment verified — disburse these loans now
+
+No loans ready for disbursement yet.
+
+Security Management
+Overview of all security deposit activities
+
+0
+
+Pending
+
+2
+
+Adjustments
+
+0
+
+Top-Ups
+
+2
+
+Returns
+
+1
+
+Withdrawals
+
+Security Deposit Actions
+Adjustment · Return · Top-Up
+Search client...
+
+ apple 1
+
+ silver 1
+
+ Orange 1
+Clients Expected to Pay Today
+Search client...
+
+ Orange 4
+
+ silver 1
+
+ apple 1
+Processing Fees
+0 pending
+3 verified
+All processing fees verified
+Overdue Loans
+Showing 0 of 0
+0
+Group
+
+All Groups
+Show Rows
+
+5
+View All
+No overdue loans found with the selected filters.
+
+Default Collections
+0
+
+Defaulted Loans
+
+K0
+
+Total Outstanding
+
+K0
+
+Collected This Month
+
+Record Default Collection
+Securities — Amount Summary
+K600
+
+Total Held
+
+K0
+
+Available
+
+K200
+
+Used (Adjustments)
+
+K400
+
+Returned
+
+Full Securities Report
+Palm Cash
+Professional Loan Management
+
+Streamline your lending operations with our comprehensive loan management system. Trusted by financial institutions across the region.
+
+Quick Links
+Dashboard
+Collections
+Approvals
+Support
+Notifications
+Help Center
+Contact Us
+© 2025 Palm Cash. All rights reserved.
+
+Version 1.0 | Last Updated: January 6, 2026
+
+Powered by Palm Cash Team
 **After Approval**:
 - Security withdrawn: K300 (cash to client)
 - Security returned: K300
