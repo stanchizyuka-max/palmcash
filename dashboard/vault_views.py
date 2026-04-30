@@ -477,6 +477,9 @@ def vault_month_history(request):
     if not branch:
         return render(request, 'dashboard/vault_month_history.html', {'no_branch': True})
 
+    # Get filter parameters
+    filter_month = request.GET.get('month', '')
+
     # Get all month closing transactions
     from expenses.models import VaultTransaction
     from datetime import datetime, timedelta
@@ -490,10 +493,20 @@ def vault_month_history(request):
 
     # Extract month from description and calculate financial snapshot
     closing_list = []
+    available_months = set()  # Track unique months for filter dropdown
+    
     for closing in closings:
         # Extract month from description
         month_match = re.search(r'Month closing — ([\d-]+)', closing.description)
         month = month_match.group(1) if month_match else 'Unknown'
+        
+        # Add to available months
+        if month != 'Unknown':
+            available_months.add(month)
+        
+        # Apply month filter
+        if filter_month and month != filter_month:
+            continue
         
         # Extract notes (everything after the closing balance part)
         notes_match = re.search(r'K[\d,]+\.\d{2}\.\s*(.+)', closing.description)
@@ -604,6 +617,9 @@ def vault_month_history(request):
     from clients.models import Branch
     all_branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
 
+    # Sort available months in descending order
+    available_months = sorted(available_months, reverse=True)
+
     return render(request, 'dashboard/vault_month_history.html', {
         'branch': branch,
         'closings': closing_list,
@@ -611,6 +627,8 @@ def vault_month_history(request):
         'average_closing': average_closing,
         'last_closing': last_closing,
         'all_branches': all_branches,
+        'available_months': available_months,
+        'filter_month': filter_month,
     })
 
 
