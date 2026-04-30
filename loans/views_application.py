@@ -164,8 +164,9 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
+        # Get base queryset based on user role
         if self.request.user.role == 'loan_officer':
-            return LoanApplication.objects.filter(loan_officer=self.request.user)
+            queryset = LoanApplication.objects.filter(loan_officer=self.request.user)
         elif self.request.user.role == 'manager':
             try:
                 branch = self.request.user.managed_branch
@@ -174,13 +175,63 @@ class LoanApplicationsListView(LoginRequiredMixin, ListView):
                 branch_name = branch.name
                 from django.db.models import Q
                 # Only show applications where the loan officer is from this branch
-                return LoanApplication.objects.filter(
+                queryset = LoanApplication.objects.filter(
                     loan_officer__officer_assignment__branch__iexact=branch_name
                 ).distinct()
             except Exception:
-                return LoanApplication.objects.all()
+                queryset = LoanApplication.objects.all()
         else:
-            return LoanApplication.objects.all()
+            queryset = LoanApplication.objects.all()
+        
+        # Apply filters
+        client_search = self.request.GET.get('client', '').strip()
+        officer_filter = self.request.GET.get('officer', '').strip()
+        status_filter = self.request.GET.get('status', '').strip()
+        
+        if client_search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(borrower__first_name__icontains=client_search) |
+                Q(borrower__last_name__icontains=client_search)
+            )
+        
+        if officer_filter:
+            queryset = queryset.filter(loan_officer_id=officer_filter)
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        return queryset.select_related('borrower', 'loan_officer').order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get list of officers for filter dropdown
+        if self.request.user.role == 'manager':
+            try:
+                branch = self.request.user.managed_branch
+                if branch:
+                    from accounts.models import User
+                    context['officers'] = User.objects.filter(
+                        role='loan_officer',
+                        officer_assignment__branch__iexact=branch.name
+                    ).order_by('first_name', 'last_name')
+            except:
+                context['officers'] = []
+        elif self.request.user.role == 'admin':
+            from accounts.models import User
+            context['officers'] = User.objects.filter(role='loan_officer').order_by('first_name', 'last_name')
+        else:
+            context['officers'] = []
+        
+        # Pass filter values to template
+        context['filters'] = {
+            'client': self.request.GET.get('client', ''),
+            'officer': self.request.GET.get('officer', ''),
+            'status': self.request.GET.get('status', ''),
+        }
+        
+        return context
 
 
 class LoanApplicationDetailView(LoginRequiredMixin, DetailView):

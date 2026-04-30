@@ -15,6 +15,89 @@
             {% endif %}
         </div>
         
+        <!-- Filter Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 border border-slate-200">
+            <form method="get" action="" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Client Search -->
+                <div>
+                    <label for="client" class="block text-sm font-semibold text-slate-700 mb-2">
+                        <i class="fas fa-user text-blue-600 mr-1"></i>Client Name
+                    </label>
+                    <input 
+                        type="text" 
+                        id="client" 
+                        name="client" 
+                        value="{{ filters.client }}"
+                        placeholder="Search by name..."
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                
+                <!-- Loan Officer Filter -->
+                {% if user.role == 'manager' or user.role == 'admin' %}
+                <div>
+                    <label for="officer" class="block text-sm font-semibold text-slate-700 mb-2">
+                        <i class="fas fa-user-tie text-blue-600 mr-1"></i>Loan Officer
+                    </label>
+                    <select 
+                        id="officer" 
+                        name="officer"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">All Officers</option>
+                        {% for officer in officers %}
+                            <option value="{{ officer.id }}" {% if filters.officer == officer.id|stringformat:"s" %}selected{% endif %}>
+                                {{ officer.get_full_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="block text-sm font-semibold text-slate-700 mb-2">
+                        <i class="fas fa-flag text-blue-600 mr-1"></i>Status
+                    </label>
+                    <select 
+                        id="status" 
+                        name="status"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">All Status</option>
+                        <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if filters.status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if filters.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                
+                <!-- Filter Buttons -->
+                <div class="flex items-end gap-2">
+                    <button 
+                        type="submit" 
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                    >
+                        <i class="fas fa-filter mr-2"></i>Filter
+                    </button>
+                    {% if filters.client or filters.officer or filters.status %}
+                    <a 
+                        href="{% url 'loans:applications_list' %}" 
+                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium"
+                    >
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+            
+            {% if filters.client or filters.officer or filters.status %}
+            <div class="mt-3 text-sm text-slate-600">
+                <i class="fas fa-info-circle text-blue-600 mr-1"></i>
+                Showing filtered results ({{ applications|length }} application{{ applications|length|pluralize }})
+            </div>
+            {% endif %}
+        </div>
+        
         {% if applications %}
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
                 <table class="w-full">
