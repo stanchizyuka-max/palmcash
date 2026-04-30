@@ -428,6 +428,17 @@ def vault_month_close(request):
             notes = request.POST.get('notes', '')
             closing_balance = vault.balance
 
+            # Check if this month has already been closed
+            existing_closing = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_type='month_close',
+                description__contains=f'Month closing — {closing_month}'
+            ).exists()
+
+            if existing_closing:
+                messages.error(request, f'Month {closing_month} has already been closed. You cannot close the same month twice.')
+                return redirect('dashboard:vault_month_close')
+
             # 1. Record closing balance entry (OUT — removes balance from vault)
             VaultTransaction.objects.create(
                 branch=branch.name,
