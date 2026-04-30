@@ -428,41 +428,24 @@ def vault_month_close(request):
             notes = request.POST.get('notes', '')
             closing_balance = vault.balance
 
-            # 1. Record closing balance entry (OUT — removes balance from running total)
+            # 1. Record closing balance entry (OUT — removes balance from vault)
             VaultTransaction.objects.create(
                 branch=branch.name,
                 transaction_type='month_close',
                 direction='out',
                 amount=closing_balance,
                 balance_after=0,
-                description=f'Month closing — {closing_month}. Balance carried forward: K{closing_balance:,.2f}. {notes}'.strip(),
+                description=f'Month closing — {closing_month}. Closing balance: K{closing_balance:,.2f}. {notes}'.strip(),
                 reference_number=f'CLOSE-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
                 recorded_by=request.user,
                 transaction_date=timezone.now(),
             )
 
-            # 2. Reset vault balance to zero
+            # 2. Reset vault balance to zero (new month starts fresh)
             vault.balance = 0
             vault.save()
 
-            # 3. Record opening balance for new month (IN — restores balance)
-            VaultTransaction.objects.create(
-                branch=branch.name,
-                transaction_type='month_open',
-                direction='in',
-                amount=closing_balance,
-                balance_after=closing_balance,
-                description=f'Opening balance — carried forward from {closing_month}.',
-                reference_number=f'OPEN-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
-                recorded_by=request.user,
-                transaction_date=timezone.now(),
-            )
-
-            # 4. Restore vault balance to closing balance (it's the opening of new month)
-            vault.balance = closing_balance
-            vault.save()
-
-            messages.success(request, f'Month {closing_month} closed. Vault reset with opening balance of K{closing_balance:,.2f}.')
+            messages.success(request, f'Month {closing_month} closed. Vault balance reset to K0.00. Previous balance was K{closing_balance:,.2f}.')
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
