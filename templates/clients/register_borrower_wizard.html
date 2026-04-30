@@ -289,10 +289,11 @@ function updateRateAndDuration(val) {
     
     if (val === 'weekly') {
         rateVal.textContent = '45%';
-        durationInput.value = '21';
-        durationInput.placeholder = 'e.g. 21';
-        durationUnit.textContent = 'weeks';
-        durationHint.textContent = 'Enter duration in weeks (default: 21 weeks)';
+        // For weekly loans: 21 weeks = 147 days
+        durationInput.value = '147';  // Store as days (21 weeks × 7)
+        durationInput.placeholder = 'e.g. 147';
+        durationUnit.textContent = 'days (21 weeks)';
+        durationHint.textContent = 'Duration: 21 weeks = 147 days';
     } else {
         rateVal.textContent = '40%';
         durationInput.value = '56';
