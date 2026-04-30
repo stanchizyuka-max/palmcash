@@ -513,23 +513,39 @@ def vault_month_history(request):
         notes = notes_match.group(1).strip() if notes_match else ''
         
         # Calculate financial snapshot at time of closing
-        # Get all transactions up to this closing date
         closing_date = closing.transaction_date
         
-        # Calculate CUMULATIVE inflows and outflows up to closing date
-        # This should match the closing balance
-        all_txns_before_close = VaultTransaction.objects.filter(
+        # Find the PREVIOUS month closing to determine the period start
+        previous_closing = VaultTransaction.objects.filter(
             branch=branch.name,
-            transaction_date__lte=closing_date
-        ).exclude(transaction_type__in=['month_close', 'month_open'])
+            transaction_type='month_close',
+            transaction_date__lt=closing_date
+        ).order_by('-transaction_date').first()
         
-        cumulative_inflows = all_txns_before_close.filter(direction='in').aggregate(
+        # Period starts after previous closing, or from beginning if no previous closing
+        period_start = previous_closing.transaction_date if previous_closing else None
+        
+        # Calculate inflows and outflows for THIS PERIOD ONLY (between closings)
+        if period_start:
+            period_txns = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_date__gt=period_start,
+                transaction_date__lte=closing_date
+            ).exclude(transaction_type__in=['month_close', 'month_open'])
+        else:
+            # First closing - count everything up to this point
+            period_txns = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_date__lte=closing_date
+            ).exclude(transaction_type__in=['month_close', 'month_open'])
+        
+        period_inflows = period_txns.filter(direction='in').aggregate(
             total=Sum('amount'))['total'] or Decimal('0')
-        cumulative_outflows = all_txns_before_close.filter(direction='out').aggregate(
+        period_outflows = period_txns.filter(direction='out').aggregate(
             total=Sum('amount'))['total'] or Decimal('0')
         
         # Calculated balance should match closing balance
-        calculated_balance = cumulative_inflows - cumulative_outflows
+        calculated_balance = period_inflows - period_outflows
         
         # Security balance at time of closing
         security_in = VaultTransaction.objects.filter(
@@ -577,12 +593,13 @@ def vault_month_history(request):
             'recorded_by': closing.recorded_by,
             'notes': notes,
             'reference_number': closing.reference_number,
-            'inflows': cumulative_inflows,
-            'outflows': cumulative_outflows,
+            'inflows': period_inflows,
+            'outflows': period_outflows,
             'calculated_balance': calculated_balance,
             'balance_matches': abs(calculated_balance - closing.amount) < Decimal('0.01'),  # Allow for rounding
             'security_balance': security_balance,
             'savings_balance': savings_balance,
+            'period_start': period_start,
         })
 
     # Calculate statistics
