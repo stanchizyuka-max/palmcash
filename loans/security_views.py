@@ -156,10 +156,10 @@ def security_topup(request, loan_id=None):
 
     loans_for_borrower = []
     if selected_borrower_id:
-        # Exclude daily loans from top-up eligibility
+        # Only allow top-ups on completed loans (exclude daily loans)
         loans_for_borrower = Loan.objects.filter(
             borrower_id=selected_borrower_id,
-            status='active',
+            status='completed',
             security_deposit__is_verified=True,
         ).exclude(repayment_frequency='daily').select_related('borrower', 'security_deposit').order_by('-created_at')
 
@@ -169,7 +169,7 @@ def security_topup(request, loan_id=None):
         try:
             loan = Loan.objects.select_related('borrower', 'security_deposit').get(
                 pk=selected_loan_id,
-                status='active',
+                status='completed',
                 security_deposit__is_verified=True,
             )
             # Check if it's a daily loan
@@ -178,7 +178,7 @@ def security_topup(request, loan_id=None):
                 return redirect('loans:detail', pk=loan.pk)
             deposit = loan.security_deposit
         except Loan.DoesNotExist:
-            messages.error(request, 'Loan not found, not active, or has no verified security deposit.')
+            messages.error(request, 'Loan not found, not completed, or has no verified security deposit. Top-ups are only allowed on completed loans.')
 
     if request.method == 'POST' and loan:
         new_loan_amount = request.POST.get('new_loan_amount', '0')
