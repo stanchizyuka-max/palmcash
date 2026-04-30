@@ -71,9 +71,18 @@
             <tr class="border-b border-slate-200 bg-slate-50">
               <th class="text-left py-3 px-4 font-semibold text-slate-700">Date Closed</th>
               <th class="text-left py-3 px-4 font-semibold text-slate-700">Month</th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-700">Closing Balance</th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-700">Month Inflows</th>
-              <th class="text-right py-3 px-4 font-semibold text-slate-700">Month Outflows</th>
+              <th class="text-right py-3 px-4 font-semibold text-slate-700">
+                Closing Balance
+                <i class="fas fa-info-circle text-slate-400 ml-1 text-xs" title="Vault balance at time of closing"></i>
+              </th>
+              <th class="text-right py-3 px-4 font-semibold text-slate-700">
+                Cumulative Inflows
+                <i class="fas fa-info-circle text-slate-400 ml-1 text-xs" title="Total money received up to closing date"></i>
+              </th>
+              <th class="text-right py-3 px-4 font-semibold text-slate-700">
+                Cumulative Outflows
+                <i class="fas fa-info-circle text-slate-400 ml-1 text-xs" title="Total money paid out up to closing date"></i>
+              </th>
               <th class="text-right py-3 px-4 font-semibold text-slate-700">Security Held</th>
               <th class="text-right py-3 px-4 font-semibold text-slate-700">Savings</th>
               <th class="text-left py-3 px-4 font-semibold text-slate-700">Closed By</th>
@@ -95,6 +104,9 @@
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
                 <span class="font-bold text-slate-900">K{{ closing.amount|floatformat:2|intcomma }}</span>
+                {% if not closing.balance_matches %}
+                <i class="fas fa-exclamation-triangle text-amber-500 ml-1 text-xs" title="Balance mismatch: Expected K{{ closing.calculated_balance|floatformat:2|intcomma }}"></i>
+                {% endif %}
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
                 <span class="text-green-700 font-semibold">+K{{ closing.inflows|floatformat:2|intcomma }}</span>

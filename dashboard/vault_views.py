@@ -516,40 +516,20 @@ def vault_month_history(request):
         # Get all transactions up to this closing date
         closing_date = closing.transaction_date
         
-        # Inflows and Outflows for the month
-        if month != 'Unknown':
-            try:
-                # Parse month (format: 2026-04)
-                year, month_num = map(int, month.split('-'))
-                month_start = datetime(year, month_num, 1)
-                # Get last day of month
-                if month_num == 12:
-                    month_end = datetime(year + 1, 1, 1) - timedelta(seconds=1)
-                else:
-                    month_end = datetime(year, month_num + 1, 1) - timedelta(seconds=1)
-                
-                # Make timezone aware
-                from django.utils import timezone as tz
-                month_start = tz.make_aware(month_start)
-                month_end = tz.make_aware(month_end)
-                
-                # Calculate inflows and outflows for the month
-                month_txns = VaultTransaction.objects.filter(
-                    branch=branch.name,
-                    transaction_date__gte=month_start,
-                    transaction_date__lte=month_end
-                ).exclude(transaction_type__in=['month_close', 'month_open'])
-                
-                inflows = month_txns.filter(direction='in').aggregate(
-                    total=Sum('amount'))['total'] or Decimal('0')
-                outflows = month_txns.filter(direction='out').aggregate(
-                    total=Sum('amount'))['total'] or Decimal('0')
-            except:
-                inflows = Decimal('0')
-                outflows = Decimal('0')
-        else:
-            inflows = Decimal('0')
-            outflows = Decimal('0')
+        # Calculate CUMULATIVE inflows and outflows up to closing date
+        # This should match the closing balance
+        all_txns_before_close = VaultTransaction.objects.filter(
+            branch=branch.name,
+            transaction_date__lte=closing_date
+        ).exclude(transaction_type__in=['month_close', 'month_open'])
+        
+        cumulative_inflows = all_txns_before_close.filter(direction='in').aggregate(
+            total=Sum('amount'))['total'] or Decimal('0')
+        cumulative_outflows = all_txns_before_close.filter(direction='out').aggregate(
+            total=Sum('amount'))['total'] or Decimal('0')
+        
+        # Calculated balance should match closing balance
+        calculated_balance = cumulative_inflows - cumulative_outflows
         
         # Security balance at time of closing
         security_in = VaultTransaction.objects.filter(
@@ -597,8 +577,10 @@ def vault_month_history(request):
             'recorded_by': closing.recorded_by,
             'notes': notes,
             'reference_number': closing.reference_number,
-            'inflows': inflows,
-            'outflows': outflows,
+            'inflows': cumulative_inflows,
+            'outflows': cumulative_outflows,
+            'calculated_balance': calculated_balance,
+            'balance_matches': abs(calculated_balance - closing.amount) < Decimal('0.01'),  # Allow for rounding
             'security_balance': security_balance,
             'savings_balance': savings_balance,
         })
