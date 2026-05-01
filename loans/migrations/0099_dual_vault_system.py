@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('loans', '0098_auto_previous'),  # Update this to your latest migration
+        ('loans', '0019_add_branch_savings'),
         ('clients', '0013_rename_clients_adm_admin_u_idx_clients_adm_admin_u_b673c4_idx_and_more'),
     ]
 

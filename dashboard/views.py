@@ -14,11 +14,28 @@ from accounts.models import User
 
 
 def _get_vault_balance(branch):
+    """Get total vault balance (both daily and weekly vaults combined)"""
     try:
-        from loans.models import BranchVault
-        return BranchVault.objects.get(branch=branch).balance
+        from loans import vault_services
+        return vault_services.get_vault_balance(branch)
     except Exception:
         return 0
+
+
+def _get_vault_balances(branch):
+    """Get both vault balances separately"""
+    try:
+        from loans import vault_services
+        return vault_services.get_vault_balances(branch)
+    except Exception:
+        from decimal import Decimal
+        return {
+            'daily': Decimal('0'),
+            'weekly': Decimal('0'),
+            'total': Decimal('0'),
+            'daily_vault': None,
+            'weekly_vault': None,
+        }
 
 
 def _group_loans_by_group(loans):
@@ -1486,6 +1503,7 @@ def manager_dashboard(request):
         'branch_loans_pending': loans.filter(status='approved').count(),
         'branch_loans_total': loans.count(),
         'vault_balance': _get_vault_balance(branch),
+        'vault_balances': _get_vault_balances(branch),  # NEW: Dual-vault support
     }
 
     # Get filter parameters
