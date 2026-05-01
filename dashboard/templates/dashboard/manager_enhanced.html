@@ -126,16 +126,37 @@
                 </div>
             </div>
 
-            <!-- Vault Balance -->
-            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow">
-                <div class="flex items-center justify-between">
+            <!-- Vault Balances (Dual-Vault) -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-l-4 border-emerald-500 hover:shadow-lg transition-shadow lg:col-span-2">
+                <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-slate-600 text-sm font-semibold mb-1">Vault Balance</p>
-                        <p class="text-3xl font-bold text-emerald-600">K{{ vault_balance|default:"0"|floatformat:0|intcomma }}</p>
+                        <p class="text-slate-600 text-sm font-semibold mb-1">Branch Vaults</p>
+                        <p class="text-3xl font-bold text-emerald-600">K{{ vault_balances.total|default:"0"|floatformat:0|intcomma }}</p>
+                        <p class="text-xs text-slate-500 mt-1">Total Balance</p>
                     </div>
                     <a href="{% url 'dashboard:vault' %}" class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center hover:bg-emerald-200">
                         <i class="fas fa-vault text-emerald-600 text-xl"></i>
                     </a>
+                </div>
+                
+                <!-- Dual Vault Breakdown -->
+                <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-200">
+                    <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-blue-700 text-xs font-semibold uppercase">Daily Vault</p>
+                            <i class="fas fa-calendar-day text-blue-500 text-sm"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-blue-900">K{{ vault_balances.daily|default:"0"|floatformat:0|intcomma }}</p>
+                        <p class="text-xs text-blue-600 mt-1">Daily loan operations</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-purple-700 text-xs font-semibold uppercase">Weekly Vault</p>
+                            <i class="fas fa-calendar-week text-purple-500 text-sm"></i>
+                        </div>
+                        <p class="text-2xl font-bold text-purple-900">K{{ vault_balances.weekly|default:"0"|floatformat:0|intcomma }}</p>
+                        <p class="text-xs text-purple-600 mt-1">Weekly loan operations</p>
+                    </div>
                 </div>
             </div>
         </div>

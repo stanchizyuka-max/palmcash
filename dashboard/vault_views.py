@@ -177,6 +177,7 @@ def capital_injection(request):
     if request.method == 'POST':
         branch_id = request.POST.get('branch')
         amount = request.POST.get('amount')
+        vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
         notes = request.POST.get('notes', '')
 
         try:
@@ -186,9 +187,9 @@ def capital_injection(request):
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_capital_injection
-            record_capital_injection(branch, amount, notes, request.user)
+            record_capital_injection(branch, amount, notes, request.user, vault_type=vault_type)
             from django.contrib import messages
-            messages.success(request, f'K{amount:,.2f} injected into {branch.name} vault.')
+            messages.success(request, f'K{amount:,.2f} injected into {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
@@ -213,12 +214,13 @@ def bank_withdrawal(request):
             if request.user.role == 'admin':
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
             amount = Decimal(request.POST.get('gross_amount', '0'))
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_bank_withdrawal
-            record_bank_withdrawal(branch, amount, notes, request.user)
-            messages.success(request, f'Bank withdrawal of K{amount:,.2f} added to {branch.name} vault.')
+            record_bank_withdrawal(branch, amount, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'Bank withdrawal of K{amount:,.2f} added to {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
@@ -244,6 +246,7 @@ def fund_deposit(request):
             if request.user.role == 'admin':
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
             amount = Decimal(request.POST.get('amount', '0'))
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             source = request.POST.get('source', '').strip()
             notes = request.POST.get('notes', '')
             if amount <= 0:
@@ -251,8 +254,8 @@ def fund_deposit(request):
             if not source:
                 raise ValueError('Source/type is required.')
             from loans.vault_services import record_fund_deposit
-            record_fund_deposit(branch, amount, source, notes, request.user)
-            messages.success(request, f'K{amount:,.2f} deposited into {branch.name} vault.')
+            record_fund_deposit(branch, amount, source, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'K{amount:,.2f} deposited into {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
@@ -280,14 +283,15 @@ def branch_transfer(request):
                 from_branch = Branch.objects.get(pk=request.POST.get('from_branch'))
             to_branch = Branch.objects.get(pk=request.POST.get('to_branch'))
             amount = Decimal(request.POST.get('amount', '0'))
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             if from_branch == to_branch:
                 raise ValueError('Source and destination branches must be different.')
             from loans.vault_services import record_branch_transfer
-            record_branch_transfer(from_branch, to_branch, amount, notes, request.user)
-            messages.success(request, f'K{amount:,.2f} transferred from {from_branch.name} to {to_branch.name}.')
+            record_branch_transfer(from_branch, to_branch, amount, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'K{amount:,.2f} transferred from {from_branch.name} to {to_branch.name} ({vault_type} vault).')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
@@ -317,12 +321,13 @@ def bank_deposit_out(request):
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
             gross = Decimal(request.POST.get('gross_amount', '0'))
             charges = Decimal(request.POST.get('charges', '0') or '0')
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
             if gross <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_bank_deposit
-            record_bank_deposit(branch, gross, charges, notes, request.user)
-            messages.success(request, f'Bank deposit of K{gross:,.2f} recorded. Vault reduced by K{gross + charges:,.2f} (incl. K{charges:,.2f} charges).')
+            record_bank_deposit(branch, gross, charges, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'Bank deposit of K{gross:,.2f} recorded. {vault_type.title()} vault reduced by K{gross + charges:,.2f} (incl. K{charges:,.2f} charges).')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
@@ -670,12 +675,13 @@ def vault_savings_deposit(request):
         from django.contrib import messages
         try:
             amount = Decimal(request.POST.get('amount', '0'))
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_savings_deposit
-            record_savings_deposit(branch, amount, notes, request.user)
-            messages.success(request, f'K{amount:,.2f} moved from vault to savings.')
+            record_savings_deposit(branch, amount, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'K{amount:,.2f} moved from {vault_type} vault to savings.')
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
@@ -719,12 +725,13 @@ def vault_savings_withdrawal(request):
         from django.contrib import messages
         try:
             amount = Decimal(request.POST.get('amount', '0'))
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_savings_withdrawal
-            record_savings_withdrawal(branch, amount, notes, request.user)
-            messages.success(request, f'K{amount:,.2f} withdrawn from savings to vault.')
+            record_savings_withdrawal(branch, amount, notes, request.user, vault_type=vault_type)
+            messages.success(request, f'K{amount:,.2f} withdrawn from savings to {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
