@@ -131,6 +131,13 @@ class User(AbstractUser):
     
     objects = UserManager()
     
+    def save(self, *args, **kwargs):
+        """Override save to ensure timezone-aware datetimes"""
+        # Ensure date_joined is timezone-aware if it's being set
+        if self.date_joined and timezone.is_naive(self.date_joined):
+            self.date_joined = timezone.make_aware(self.date_joined)
+        super().save(*args, **kwargs)
+    
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
     
