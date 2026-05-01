@@ -39,12 +39,44 @@
     </div>
 
     <!-- Balance + Totals -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      {% if vault %}
-      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-emerald-500">
-        <p class="text-slate-500 text-xs font-semibold uppercase mb-1">Current Balance</p>
-        <p class="text-4xl font-bold text-emerald-700">K{{ vault.balance|floatformat:2|intcomma }}</p>
-        <p class="text-slate-400 text-xs mt-2">Last updated {{ vault.updated_at|date:"d M Y H:i" }}</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      {% if vault_balances %}
+      <!-- Dual-Vault Display -->
+      <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-emerald-500 lg:col-span-2">
+        <p class="text-slate-500 text-xs font-semibold uppercase mb-3">Branch Vaults</p>
+        
+        <!-- Daily Vault -->
+        <div class="mb-3 pb-3 border-b border-slate-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-calendar-day text-blue-500"></i>
+              <span class="text-sm font-semibold text-slate-700">Daily Vault</span>
+            </div>
+            <span class="text-2xl font-bold text-blue-700">K{{ vault_balances.daily|floatformat:2|intcomma }}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">For daily loan operations</p>
+        </div>
+        
+        <!-- Weekly Vault -->
+        <div class="mb-3 pb-3 border-b border-slate-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-calendar-week text-purple-500"></i>
+              <span class="text-sm font-semibold text-slate-700">Weekly Vault</span>
+            </div>
+            <span class="text-2xl font-bold text-purple-700">K{{ vault_balances.weekly|floatformat:2|intcomma }}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">For weekly loan operations</p>
+        </div>
+        
+        <!-- Total -->
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-900">Total Balance</span>
+            <span class="text-3xl font-bold text-emerald-700">K{{ vault_balances.total|floatformat:2|intcomma }}</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Combined vault balance</p>
+        </div>
       </div>
       {% endif %}
       {% if savings %}

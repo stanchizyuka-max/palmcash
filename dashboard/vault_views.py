@@ -70,6 +70,11 @@ def vault_dashboard(request):
         if not branch:
             return render(request, 'dashboard/vault.html', {'no_branch': True})
         vault, _ = BranchVault.objects.get_or_create(branch=branch)
+        
+        # NEW: Get dual-vault balances
+        from loans import vault_services
+        vault_balances = vault_services.get_vault_balances(branch)
+        
         qs = _vault_qs(branch.name)
     else:
         # Admin — scope to a selected branch to avoid loading all transactions
@@ -81,9 +86,15 @@ def vault_dashboard(request):
 
         if branch:
             vault, _ = BranchVault.objects.get_or_create(branch=branch)
+            
+            # NEW: Get dual-vault balances
+            from loans import vault_services
+            vault_balances = vault_services.get_vault_balances(branch)
+            
             qs = _vault_qs(branch.name)
         else:
             vault = None
+            vault_balances = {'daily': 0, 'weekly': 0, 'total': 0}
             qs = VaultTransaction.objects.none()
 
     date_from = request.GET.get('date_from')
@@ -153,6 +164,7 @@ def vault_dashboard(request):
 
     return render(request, 'dashboard/vault.html', {
         'vault': vault,
+        'vault_balances': vault_balances,  # NEW: Dual-vault balances
         'page_obj': page,
         'total_in': total_in,
         'total_out': total_out,
