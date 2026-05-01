@@ -973,14 +973,79 @@ class LoanApplication(models.Model):
 
 
 class BranchVault(models.Model):
+    """
+    DEPRECATED: Legacy single vault model - kept for migration only.
+    Use DailyVault and WeeklyVault instead.
+    """
     branch = models.OneToOneField(
-        'clients.Branch', on_delete=models.CASCADE, related_name='vault'
+        'clients.Branch', on_delete=models.CASCADE, related_name='vault_legacy'
     )
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     updated_at = models.DateTimeField(auto_now=True)
+    is_migrated = models.BooleanField(default=False, help_text="Has this vault been migrated to dual-vault system?")
 
     def __str__(self):
-        return f"Vault — {self.branch.name} (K{self.balance})"
+        return f"[LEGACY] Vault — {self.branch.name} (K{self.balance})"
+
+    class Meta:
+        verbose_name = "Legacy Branch Vault"
+        verbose_name_plural = "Legacy Branch Vaults"
+
+
+class DailyVault(models.Model):
+    """Daily loan operations vault - handles ONLY daily loan funds"""
+    branch = models.OneToOneField(
+        'clients.Branch', 
+        on_delete=models.CASCADE, 
+        related_name='daily_vault'
+    )
+    balance = models.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        default=0,
+        help_text="Current balance for daily loan operations"
+    )
+    total_inflows = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_outflows = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    last_transaction_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Daily Vault — {self.branch.name} (K{self.balance})"
+
+    class Meta:
+        verbose_name = "Daily Vault"
+        verbose_name_plural = "Daily Vaults"
+        ordering = ['branch__name']
+
+
+class WeeklyVault(models.Model):
+    """Weekly loan operations vault - handles ONLY weekly loan funds"""
+    branch = models.OneToOneField(
+        'clients.Branch', 
+        on_delete=models.CASCADE, 
+        related_name='weekly_vault'
+    )
+    balance = models.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        default=0,
+        help_text="Current balance for weekly loan operations"
+    )
+    total_inflows = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_outflows = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    last_transaction_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Weekly Vault — {self.branch.name} (K{self.balance})"
+
+    class Meta:
+        verbose_name = "Weekly Vault"
+        verbose_name_plural = "Weekly Vaults"
+        ordering = ['branch__name']
 
 
 class BranchSavings(models.Model):

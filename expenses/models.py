@@ -197,9 +197,23 @@ class VaultTransaction(models.Model):
         ('out', 'Outflow'),
     ]
     
+    VAULT_TYPE_CHOICES = [
+        ('daily', 'Daily Vault'),
+        ('weekly', 'Weekly Vault'),
+    ]
+    
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
     direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES, default='in')
     branch = models.CharField(max_length=100)
+    
+    # NEW: Vault type to enforce separation
+    vault_type = models.CharField(
+        max_length=10, 
+        choices=VAULT_TYPE_CHOICES,
+        help_text="Which vault this transaction belongs to (Daily or Weekly)",
+        db_index=True
+    )
+    
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
