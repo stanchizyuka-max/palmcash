@@ -63,7 +63,7 @@ python manage.py showmigrations expenses
 ### **Step 4: Analyze Current Data**
 ```bash
 # This shows what will be migrated (READ-ONLY)
-python manage.py migrate_to_dual_vault --mode=analyze
+python manage.py migrate_to_dual_vault --analyze
 ```
 
 **Review the output carefully!** It will show:
@@ -75,7 +75,7 @@ python manage.py migrate_to_dual_vault --mode=analyze
 ### **Step 5: Migrate Data**
 ```bash
 # This actually migrates the data
-python manage.py migrate_to_dual_vault --mode=migrate
+python manage.py migrate_to_dual_vault --migrate
 
 # Expected output:
 # ✓ Created Daily Vault for Branch X (Balance: K...)
@@ -86,7 +86,7 @@ python manage.py migrate_to_dual_vault --mode=migrate
 ### **Step 6: Validate Migration**
 ```bash
 # This verifies everything worked correctly
-python manage.py migrate_to_dual_vault --mode=validate
+python manage.py migrate_to_dual_vault --validate
 
 # Expected output:
 # ✓ All branches have dual vaults
