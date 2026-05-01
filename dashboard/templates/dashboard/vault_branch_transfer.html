@@ -31,6 +31,20 @@
             {% for b in to_branches %}<option value="{{ b.pk }}">{{ b.name }}</option>{% endfor %}
           </select>
         </div>
+        
+        <!-- NEW: Vault Type Selection -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Vault Type <span class="text-red-500">*</span></label>
+          <select name="vault_type" required class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="daily">Daily Vault</option>
+            <option value="weekly" selected>Weekly Vault</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">
+            <i class="fas fa-info-circle mr-1"></i>
+            Transfer will occur between the same vault type in both branches (e.g., Daily to Daily, Weekly to Weekly).
+          </p>
+        </div>
+        
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Amount (K) <span class="text-red-500">*</span></label>
           <input type="number" name="amount" step="0.01" min="0.01" required
