@@ -168,6 +168,7 @@ def vault_dashboard(request):
         'page_obj': page,
         'total_in': total_in,
         'total_out': total_out,
+        'total_net': total_in - total_out,  # NEW: Net total
         'tx_types': tx_types,
         'filters': request.GET,
         'all_branches': all_branches,

@@ -194,13 +194,21 @@
           </tbody>
           <tfoot class="bg-slate-50 border-t-2 border-slate-300">
             <tr>
-              <td colspan="4" class="px-4 py-3 font-bold text-slate-700">Totals</td>
+              <td colspan="4" class="px-4 py-3 font-bold text-slate-700">
+                Combined Totals (Both Vaults)
+                <span class="text-xs font-normal text-slate-500 ml-2">All transactions shown above</span>
+              </td>
               <td class="px-4 py-3">
                 <span class="text-green-700 font-bold">+K{{ total_in|floatformat:2|intcomma }}</span>
                 <span class="text-slate-400 mx-1">/</span>
                 <span class="text-red-700 font-bold">-K{{ total_out|floatformat:2|intcomma }}</span>
               </td>
-              <td colspan="4"></td>
+              <td colspan="4" class="px-4 py-3 text-right">
+                <span class="text-xs text-slate-500">Net: </span>
+                <span class="font-bold {% if total_net >= 0 %}text-green-700{% else %}text-red-700{% endif %}">
+                  K{{ total_net|floatformat:2|intcomma }}
+                </span>
+              </td>
             </tr>
           </tfoot>
         </table>
