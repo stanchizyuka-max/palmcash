@@ -1174,24 +1174,46 @@ def manager_dashboard(request):
         role='borrower',
     ).distinct().count()
     
-    # Today's collections - only include loans where officer is from this branch
+    # Today's collections - include ALL payment types
     today = date.today()
     
-    # For EXPECTED: Only count active loans (loans that still need payment)
+    # Method 1: Sum from Payment model (actual payment records)
+    from payments.models import Payment
+    today_payments = Payment.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        payment_date__date=today,
+        status='completed'
+    )
+    payments_total = today_payments.aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Method 2: Sum from PaymentCollection model (scheduled collections)
+    today_collections_all = PaymentCollection.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        collection_date=today
+    ).distinct()
+    collections_total = sum(c.collected_amount for c in today_collections_all) or 0
+    
+    # Method 3: Sum from MultiSchedulePayment model (bulk payments)
+    from payments.models import MultiSchedulePayment
+    today_multi_payments = MultiSchedulePayment.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        payment_date__date=today,
+        status='approved'
+    )
+    multi_payments_total = today_multi_payments.aggregate(total=Sum('total_amount'))['total'] or 0
+    
+    # Combine all payment sources (avoid double counting by using max)
+    # If a payment is in both Payment and PaymentCollection, we want to count it once
+    today_collected = max(payments_total, collections_total) + multi_payments_total
+    
+    # For EXPECTED: Only count active loans from PaymentCollection
     today_collections_active = PaymentCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name,
         collection_date=today,
         loan__status='active'
     ).distinct()
-    
-    # For COLLECTED: Count both active loans AND loans completed today
-    today_collections_all = PaymentCollection.objects.filter(
-        loan__loan_officer__officer_assignment__branch=branch.name,
-        collection_date=today
-    ).distinct()
-    
     today_expected = sum(c.expected_amount for c in today_collections_active) or 0
-    today_collected = sum(c.collected_amount for c in today_collections_all) or 0
+    
     collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
     today_pending = max(0, today_expected - today_collected)
     
