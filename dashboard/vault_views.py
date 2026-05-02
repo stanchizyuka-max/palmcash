@@ -97,6 +97,7 @@ def vault_dashboard(request):
     date_to = request.GET.get('date_to')
     tx_type = request.GET.get('type')
     direction = request.GET.get('direction')
+    vault_type = request.GET.get('vault_type')  # NEW: Vault type filter
 
     if date_from:
         qs = qs.filter(transaction_date__date__gte=date_from)
@@ -106,6 +107,8 @@ def vault_dashboard(request):
         qs = qs.filter(transaction_type=tx_type)
     if direction:
         qs = qs.filter(direction=direction)
+    if vault_type:  # NEW: Filter by vault type
+        qs = qs.filter(vault_type=vault_type)
 
     totals = qs.aggregate(
         total_in=Sum('amount', filter=Q(direction='in')),
@@ -118,11 +121,12 @@ def vault_dashboard(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="vault_transactions.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Date', 'Type', 'Direction', 'Amount', 'Balance After', 'Loan', 'Recorded By', 'Approved By'])
+        writer.writerow(['Date', 'Type', 'Vault', 'Direction', 'Amount', 'Balance After', 'Loan', 'Recorded By', 'Approved By'])
         for tx in qs:
             writer.writerow([
                 tx.transaction_date.date(),
                 tx.get_transaction_type_display(),
+                tx.vault_type.title() if tx.vault_type else 'Unknown',  # NEW: Vault type
                 tx.get_direction_display(),
                 tx.amount,
                 tx.balance_after,

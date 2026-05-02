@@ -121,6 +121,11 @@
             <option value="{{ val }}" {% if filters.type == val %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
+        <select name="vault_type" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="">All Vaults</option>
+          <option value="daily" {% if filters.vault_type == 'daily' %}selected{% endif %}>Daily Vault</option>
+          <option value="weekly" {% if filters.vault_type == 'weekly' %}selected{% endif %}>Weekly Vault</option>
+        </select>
         <select name="direction" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
           <option value="">In & Out</option>
           <option value="in" {% if filters.direction == 'in' %}selected{% endif %}>Inflows only</option>
@@ -141,6 +146,7 @@
             <tr>
               <th class="px-4 py-3 text-left font-semibold">Date</th>
               <th class="px-4 py-3 text-left font-semibold">Type</th>
+              <th class="px-4 py-3 text-left font-semibold">Vault</th>
               <th class="px-4 py-3 text-left font-semibold">Direction</th>
               <th class="px-4 py-3 text-left font-semibold">Amount</th>
               <th class="px-4 py-3 text-left font-semibold">Balance After</th>
@@ -163,6 +169,12 @@
               </td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold
+                  {% if tx.vault_type == 'daily' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+                  {% if tx.vault_type == 'daily' %}📅 Daily{% else %}📆 Weekly{% endif %}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold
                   {% if tx.direction == 'in' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
                   {% if tx.direction == 'in' %}▲ IN{% else %}▼ OUT{% endif %}
                 </span>
@@ -177,12 +189,12 @@
               <td class="px-4 py-3 text-slate-700">{% if tx.loan %}{{ tx.loan.borrower.get_full_name }}{% else %}—{% endif %}</td>
               <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>            </tr>
             {% empty %}
-            <tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
+            <tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
             {% endfor %}
           </tbody>
           <tfoot class="bg-slate-50 border-t-2 border-slate-300">
             <tr>
-              <td colspan="3" class="px-4 py-3 font-bold text-slate-700">Totals</td>
+              <td colspan="4" class="px-4 py-3 font-bold text-slate-700">Totals</td>
               <td class="px-4 py-3">
                 <span class="text-green-700 font-bold">+K{{ total_in|floatformat:2|intcomma }}</span>
                 <span class="text-slate-400 mx-1">/</span>
