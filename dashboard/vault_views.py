@@ -274,8 +274,15 @@ def fund_deposit(request):
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
-    branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
-    return render(request, 'dashboard/vault_fund_deposit.html', {'branch': branch, 'branches': branches})
+    # Pass all branches for the source dropdown (even for managers)
+    all_branches_for_source = Branch.objects.filter(is_active=True).order_by('name')
+    # For admin, also pass branches for the "deposit to" dropdown
+    branches = all_branches_for_source if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_fund_deposit.html', {
+        'branch': branch, 
+        'branches': branches,
+        'all_branches': all_branches_for_source  # For source dropdown
+    })
 
 
 @login_required
