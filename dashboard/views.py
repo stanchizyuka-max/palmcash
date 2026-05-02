@@ -3060,7 +3060,6 @@ def expense_create(request):
             
             # Deduct from vault
             try:
-                from loans.models import BranchVault
                 from expenses.models import VaultTransaction
                 import uuid
                 from django.utils import timezone
@@ -5431,7 +5430,7 @@ def financial_summary(request):
     if request.user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
 
-    from loans.models import BranchVault, SecurityDeposit
+    from loans.models import SecurityDeposit
     from payments.models import DefaultCollection
     from expenses.models import VaultTransaction
     from clients.models import Branch
@@ -5470,9 +5469,13 @@ def financial_summary(request):
     branches = Branch.objects.filter(is_active=True)
     branch_rows = []
     for branch in branches:
+        # FIXED: Use dual vault system - get total from both vaults
         vault_balance = 0
         try:
-            vault_balance = BranchVault.objects.get(branch=branch).balance
+            from loans.models import DailyVault, WeeklyVault
+            daily = DailyVault.objects.filter(branch=branch).first()
+            weekly = WeeklyVault.objects.filter(branch=branch).first()
+            vault_balance = (daily.balance if daily else 0) + (weekly.balance if weekly else 0)
         except Exception:
             pass
 
@@ -5555,7 +5558,7 @@ def branch_comparison(request):
     if request.user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
 
-    from loans.models import BranchVault, SecurityDeposit
+    from loans.models import SecurityDeposit
     from clients.models import Branch, OfficerAssignment
     from payments.models import PaymentSchedule
 
@@ -5599,9 +5602,13 @@ def branch_comparison(request):
         total_expected = all_collections.aggregate(total=Sum('expected_amount'))['total'] or 0
         collection_rate = round((total_repaid / total_expected * 100), 1) if total_expected > 0 else 0
 
+        # FIXED: Use dual vault system - get total from both vaults
         vault_balance = 0
         try:
-            vault_balance = BranchVault.objects.get(branch=branch).balance
+            from loans.models import DailyVault, WeeklyVault
+            daily = DailyVault.objects.filter(branch=branch).first()
+            weekly = WeeklyVault.objects.filter(branch=branch).first()
+            vault_balance = (daily.balance if daily else 0) + (weekly.balance if weekly else 0)
         except Exception:
             pass
 

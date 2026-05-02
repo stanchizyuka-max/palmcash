@@ -5,7 +5,6 @@ from django.http import HttpResponse
 from django.db.models import Sum, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
-from loans.models import BranchVault
 from expenses.models import VaultTransaction
 
 
@@ -69,7 +68,6 @@ def vault_dashboard(request):
         branch = _get_manager_branch(request.user)
         if not branch:
             return render(request, 'dashboard/vault.html', {'no_branch': True})
-        vault, _ = BranchVault.objects.get_or_create(branch=branch)
         
         # NEW: Get dual-vault balances
         from loans import vault_services
@@ -85,15 +83,13 @@ def vault_dashboard(request):
             branch = all_branches.first()
 
         if branch:
-            vault, _ = BranchVault.objects.get_or_create(branch=branch)
-            
             # NEW: Get dual-vault balances
             from loans import vault_services
             vault_balances = vault_services.get_vault_balances(branch)
             
             qs = _vault_qs(branch.name)
         else:
-            vault = None
+            branch = None
             vault_balances = {'daily': 0, 'weekly': 0, 'total': 0}
             qs = VaultTransaction.objects.none()
 
@@ -163,7 +159,7 @@ def vault_dashboard(request):
     ]
 
     return render(request, 'dashboard/vault.html', {
-        'vault': vault,
+        'branch': branch,  # FIXED: Pass branch instead of vault
         'vault_balances': vault_balances,  # NEW: Dual-vault balances
         'page_obj': page,
         'total_in': total_in,
@@ -681,10 +677,8 @@ def vault_savings_deposit(request):
         if not branch:
             branch = Branch.objects.filter(is_active=True).first()
 
-    vault = None
     savings = None
     if branch:
-        vault, _ = BranchVault.objects.get_or_create(branch=branch)
         from loans.models import BranchSavings
         savings, _ = BranchSavings.objects.get_or_create(branch=branch)
 
@@ -707,10 +701,15 @@ def vault_savings_deposit(request):
 
     from clients.models import Branch
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    
+    # Get vault balances for display
+    from loans import vault_services
+    vault_balances = vault_services.get_vault_balances(branch) if branch else {'daily': 0, 'weekly': 0, 'total': 0}
+    
     return render(request, 'dashboard/vault_savings_deposit.html', {
         'branch': branch,
         'branches': branches,
-        'vault': vault,
+        'vault_balances': vault_balances,
         'savings': savings,
     })
 
@@ -731,10 +730,8 @@ def vault_savings_withdrawal(request):
         if not branch:
             branch = Branch.objects.filter(is_active=True).first()
 
-    vault = None
     savings = None
     if branch:
-        vault, _ = BranchVault.objects.get_or_create(branch=branch)
         from loans.models import BranchSavings
         savings, _ = BranchSavings.objects.get_or_create(branch=branch)
 
@@ -757,9 +754,14 @@ def vault_savings_withdrawal(request):
 
     from clients.models import Branch
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    
+    # Get vault balances for display
+    from loans import vault_services
+    vault_balances = vault_services.get_vault_balances(branch) if branch else {'daily': 0, 'weekly': 0, 'total': 0}
+    
     return render(request, 'dashboard/vault_savings_withdrawal.html', {
         'branch': branch,
         'branches': branches,
-        'vault': vault,
+        'vault_balances': vault_balances,
         'savings': savings,
     })

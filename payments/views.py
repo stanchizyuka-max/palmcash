@@ -1040,7 +1040,6 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
             try:
                 from expenses.models import VaultTransaction
                 from clients.models import Branch
-                from loans.models import BranchVault
                 import uuid
                 
                 # Get officer's branch
