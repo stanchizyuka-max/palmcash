@@ -64,8 +64,8 @@ def cleanup_old_branchvault():
             'branch_id': vault.branch.id,
             'branch_name': vault.branch.name,
             'balance': str(vault.balance),
-            'created_at': vault.created_at.isoformat() if vault.created_at else None,
             'updated_at': vault.updated_at.isoformat() if vault.updated_at else None,
+            'is_migrated': vault.is_migrated if hasattr(vault, 'is_migrated') else False,
         })
     
     # Save backup to file
