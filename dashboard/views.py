@@ -3068,13 +3068,18 @@ def expense_create(request):
                 from decimal import Decimal
 
                 with db_transaction.atomic():
-                    vault, _ = BranchVault.objects.get_or_create(branch=branch)
+                    # FIXED: Use dual vault system (WeeklyVault for expenses)
+                    from loans.models import WeeklyVault
+                    vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
                     vault.balance -= Decimal(str(amount))
-                    vault.save(update_fields=['balance', 'updated_at'])
+                    vault.last_transaction_date = timezone.now()
+                    vault.total_outflows += Decimal(str(amount))
+                    vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
                     VaultTransaction.objects.create(
                         branch=branch.name,
                         transaction_type='expense',
                         direction='out',
+                        vault_type='weekly',  # FIXED: Specify vault type
                         amount=Decimal(str(amount)),
                         balance_after=vault.balance,
                         description=f'Expense: {expense.title}',

@@ -82,11 +82,12 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
         # Deduct expense from vault BEFORE saving
         try:
             from clients.models import Branch
-            from loans.models import BranchVault
+            from loans.models import WeeklyVault  # FIXED: Use dual vault system
             from expenses.models import VaultTransaction
             import uuid
             from django.utils import timezone
             from django.db import transaction
+            from decimal import Decimal
 
             with transaction.atomic():
                 # Save the expense first
@@ -98,14 +99,18 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
                     messages.warning(self.request, f'Expense created but vault not updated: Branch "{expense.branch}" not found.')
                     return response
                 
-                vault, _ = BranchVault.objects.get_or_create(branch=branch)
-                vault.balance -= expense.amount
-                vault.save(update_fields=['balance', 'updated_at'])
+                # FIXED: Use WeeklyVault (expenses typically come from weekly vault)
+                vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                vault.balance -= Decimal(str(expense.amount))
+                vault.last_transaction_date = timezone.now()
+                vault.total_outflows += Decimal(str(expense.amount))
+                vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
                 
                 VaultTransaction.objects.create(
                     branch=branch.name,
                     transaction_type='expense',
                     direction='out',
+                    vault_type='weekly',  # FIXED: Specify vault type
                     amount=expense.amount,
                     balance_after=vault.balance,
                     description=f'Expense: {expense.title}',
@@ -114,7 +119,7 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
                     transaction_date=timezone.now(),
                 )
                 
-                messages.success(self.request, f'Expense created and K{expense.amount:,.2f} deducted from vault.')
+                messages.success(self.request, f'Expense created and K{expense.amount:,.2f} deducted from weekly vault.')
                 return response
                 
         except Exception as e:

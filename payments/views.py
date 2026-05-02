@@ -1051,13 +1051,22 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                     officer_branch = Branch.objects.filter(name=branch_name).first()
                 
                 if officer_branch and branch_name:
+                    # FIXED: Use dual vault system - determine vault type from loan
+                    from loans.models import WeeklyVault, DailyVault
+                    
+                    # Determine which vault based on loan type
+                    vault_type = 'weekly' if loan.loan_type == 'weekly' else 'daily'
+                    VaultModel = WeeklyVault if vault_type == 'weekly' else DailyVault
+                    
                     # Get or create vault
-                    vault, _ = BranchVault.objects.get_or_create(branch=officer_branch)
+                    vault, _ = VaultModel.objects.get_or_create(branch=officer_branch)
                     
                     # Update vault balance
                     vault.balance += amount_applied
+                    vault.last_transaction_date = today
+                    vault.total_inflows += amount_applied
                     new_balance = vault.balance
-                    vault.save()
+                    vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
                     
                     # Generate unique reference number
                     reference = f"DC-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
@@ -1066,6 +1075,7 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
                         branch=branch_name,
                         transaction_type='payment_collection',
                         direction='in',
+                        vault_type=vault_type,  # FIXED: Specify vault type
                         amount=amount_applied,
                         balance_after=new_balance,
                         description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',

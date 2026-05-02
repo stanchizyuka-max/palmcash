@@ -368,6 +368,7 @@ def vault_collection(request):
             source = request.POST.get('source', '').strip()
             notes = request.POST.get('notes', '')
             collection_date_str = request.POST.get('collection_date', '')
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Get vault type
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             if not source:
@@ -383,17 +384,22 @@ def vault_collection(request):
                 collection_dt = timezone.now()
 
             from expenses.models import VaultTransaction
-            from loans.models import BranchVault
+            from loans.models import WeeklyVault, DailyVault  # FIXED: Use dual vault system
             import uuid
 
-            vault, _ = BranchVault.objects.get_or_create(branch=branch)
+            # FIXED: Select correct vault based on type
+            VaultModel = WeeklyVault if vault_type == 'weekly' else DailyVault
+            vault, _ = VaultModel.objects.get_or_create(branch=branch)
             vault.balance += amount
-            vault.save()
+            vault.last_transaction_date = collection_dt
+            vault.total_inflows += amount
+            vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
 
             VaultTransaction.objects.create(
                 branch=branch.name,
                 transaction_type='payment_collection',
                 direction='in',
+                vault_type=vault_type,  # FIXED: Specify vault type
                 amount=amount,
                 balance_after=vault.balance,
                 description=f'Manual collection — {source}. {notes}'.strip(),
@@ -402,7 +408,7 @@ def vault_collection(request):
                 transaction_date=collection_dt,
             )
             
-            messages.success(request, f'K{amount:,.2f} collection recorded into {branch.name} vault.')
+            messages.success(request, f'K{amount:,.2f} collection recorded into {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
