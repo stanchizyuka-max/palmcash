@@ -1202,9 +1202,44 @@ def manager_dashboard(request):
     )
     multi_payments_total = today_multi_payments.aggregate(total=Sum('total_amount'))['total'] or 0
     
-    # Combine all payment sources (avoid double counting by using max)
-    # If a payment is in both Payment and PaymentCollection, we want to count it once
-    today_collected = max(payments_total, collections_total) + multi_payments_total
+    # Combine all payment sources (avoid double counting)
+    # Check if Payment and PaymentCollection overlap (same loans)
+    payment_loan_ids = set(today_payments.values_list('loan_id', flat=True))
+    collection_loan_ids = set(today_collections_all.values_list('loan_id', flat=True))
+    overlap_loan_ids = payment_loan_ids & collection_loan_ids
+    
+    if overlap_loan_ids:
+        # For overlapping loans, use the higher amount to avoid double-counting
+        overlap_payment_total = Payment.objects.filter(
+            loan_id__in=overlap_loan_ids,
+            payment_date__date=today,
+            status='completed'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        overlap_collection_total = sum(
+            c.collected_amount for c in today_collections_all.filter(loan_id__in=overlap_loan_ids)
+        ) or 0
+        
+        # Non-overlapping amounts
+        non_overlap_payment = Payment.objects.filter(
+            loan_id__in=payment_loan_ids - overlap_loan_ids,
+            payment_date__date=today,
+            status='completed'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        non_overlap_collection = sum(
+            c.collected_amount for c in today_collections_all.filter(loan_id__in=collection_loan_ids - overlap_loan_ids)
+        ) or 0
+        
+        today_collected = (
+            max(overlap_payment_total, overlap_collection_total) +
+            non_overlap_payment +
+            non_overlap_collection +
+            multi_payments_total
+        )
+    else:
+        # No overlap - simply add all sources
+        today_collected = payments_total + collections_total + multi_payments_total
     
     # For EXPECTED: Only count active loans from PaymentCollection
     today_collections_active = PaymentCollection.objects.filter(
