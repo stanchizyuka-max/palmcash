@@ -71,7 +71,6 @@
                         {% for code in expense_codes %}
                         <option value="{{ code.id }}">{{ code.name }}</option>
                         {% endfor %}
-                        <option value="other">Other</option>
                     </select>
                     <p class="text-xs text-secondary-600 mt-1">Select the expense category</p>
                 </div>
@@ -137,10 +136,9 @@
                     <i class="fas fa-info-circle text-info-600 text-2xl"></i>
                 </div>
                 <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-info-900">Predefined Categories</h3>
+                    <h3 class="text-lg font-semibold text-info-900">Expense Categories</h3>
                     <p class="text-info-800 mt-2">
-                        Expenses must be categorized using predefined expense codes:
-                        Cleaning costs, Stationery, Rentals, Talk time, Transport, Other
+                        All expenses are deducted from the Weekly Vault and must be categorized using predefined expense codes.
                     </p>
                 </div>
             </div>
