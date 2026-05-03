@@ -621,8 +621,15 @@ class DisburseLoanView(LoginRequiredMixin, View):
             try:
                 from .vault_services import record_loan_disbursement
                 record_loan_disbursement(loan, request.user)
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Vault disbursement recording failed for {loan.application_number}: {e}", exc_info=True)
+                messages.warning(
+                    request,
+                    f'Loan disbursed successfully, but vault recording failed: {e}. '
+                    f'Please contact system administrator.'
+                )
             
             # Send disbursement email
             try:

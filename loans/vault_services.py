@@ -48,18 +48,28 @@ def _get_vault_by_type(branch, vault_type):
 
 
 def _get_branch_for_loan(loan, fallback_user=None):
+    """Get the branch for a loan - handles both Branch objects and strings"""
     try:
         from clients.models import Branch
-        branch_name = loan.loan_officer.officer_assignment.branch
-        if branch_name:
-            branch = Branch.objects.filter(name__iexact=branch_name).first()
-            if branch:
-                return branch
+        
+        # Get branch reference from loan officer
+        if loan.loan_officer and hasattr(loan.loan_officer, 'officer_assignment'):
+            branch_ref = loan.loan_officer.officer_assignment.branch
+            
+            # Handle both Branch object and string cases
+            if isinstance(branch_ref, Branch):
+                return branch_ref
+            elif isinstance(branch_ref, str) and branch_ref:
+                branch = Branch.objects.filter(name__iexact=branch_ref).first()
+                if branch:
+                    return branch
     except Exception:
         pass
+    
     # Fallback: use the verifying manager's branch
     if fallback_user and hasattr(fallback_user, 'managed_branch') and fallback_user.managed_branch:
         return fallback_user.managed_branch
+    
     return None
 
 
