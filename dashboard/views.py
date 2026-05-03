@@ -6197,6 +6197,7 @@ def manager_processing_fees(request):
     search_query = request.GET.get('search', '').strip()
     officer_filter = request.GET.get('officer', '')
     group_filter = request.GET.get('group', '')
+    vault_type_filter = request.GET.get('vault_type', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -6229,6 +6230,9 @@ def manager_processing_fees(request):
     
     if group_filter:
         apps = apps.filter(group_id=group_filter)
+    
+    if vault_type_filter:
+        apps = apps.filter(repayment_frequency=vault_type_filter)
     
     if date_from:
         apps = apps.filter(created_at__date__gte=date_from)
@@ -6305,6 +6309,7 @@ def manager_processing_fees(request):
             'search': search_query,
             'officer': officer_filter,
             'group': group_filter,
+            'vault_type': vault_type_filter,
             'date_from': date_from,
             'date_to': date_to,
         },
