@@ -509,7 +509,84 @@ class VerifyProcessingFeeView(LoginRequiredMixin, View):
         app.processing_fee_verified_at = timezone.now()
         app.save(update_fields=['processing_fee_verified', 'processing_fee_verified_by', 'processing_fee_verified_at'])
 
-        messages.success(request, f'Processing fee of K{app.processing_fee:,.2f} verified.')
+        # Record vault inflow for processing fee AFTER manager verification
+        vault_recorded = False
+        vault_error = None
+        try:
+            from loans.models import DailyVault, WeeklyVault
+            from expenses.models import VaultTransaction
+            from clients.models import Branch
+            from django.utils import timezone as tz
+            from django.db import transaction as db_transaction
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            
+            # Get branch from the loan officer who recorded the fee
+            officer = app.processing_fee_recorded_by or app.loan_officer
+            branch = None
+            
+            if officer and hasattr(officer, 'officer_assignment'):
+                branch_ref = officer.officer_assignment.branch
+                
+                # Handle both Branch object and string cases
+                if isinstance(branch_ref, Branch):
+                    branch = branch_ref
+                elif isinstance(branch_ref, str):
+                    branch = Branch.objects.filter(name__iexact=branch_ref).first()
+            
+            if not branch:
+                vault_error = f"No branch found for officer {officer.get_full_name() if officer else 'Unknown'}"
+                logger.error(f"Processing fee vault error: {vault_error}")
+            else:
+                # Determine vault type based on loan repayment frequency
+                vault_type = app.repayment_frequency  # 'daily' or 'weekly'
+                
+                with db_transaction.atomic():
+                    # Use appropriate vault based on loan type
+                    if vault_type == 'daily':
+                        vault, _ = DailyVault.objects.get_or_create(branch=branch)
+                    else:
+                        vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    
+                    vault.balance += app.processing_fee
+                    vault.total_inflows += app.processing_fee
+                    vault.last_transaction_date = tz.now()
+                    vault.save(update_fields=['balance', 'total_inflows', 'last_transaction_date', 'updated_at'])
+                    
+                    VaultTransaction.objects.create(
+                        transaction_type='deposit',
+                        direction='in',
+                        branch=branch.name,
+                        vault_type=vault_type,
+                        amount=app.processing_fee,
+                        balance_after=vault.balance,
+                        description=f'Processing fee for application {app.application_number} ({vault_type} loan) - Verified by {request.user.get_full_name()}',
+                        reference_number=f'PF-{app.application_number}',
+                        recorded_by=officer,
+                        approved_by=request.user,
+                        transaction_date=tz.now(),
+                    )
+                    vault_recorded = True
+                    logger.info(f"Processing fee K{app.processing_fee} recorded in {vault_type} vault for {app.application_number} after manager verification")
+        except Exception as e:
+            vault_error = str(e)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Vault fee record error for {app.application_number}: {e}", exc_info=True)
+
+        if vault_recorded:
+            messages.success(
+                request,
+                f'Processing fee of K{app.processing_fee:,.2f} verified and recorded in vault.'
+            )
+        else:
+            messages.warning(
+                request,
+                f'Processing fee of K{app.processing_fee:,.2f} verified, '
+                f'but vault update failed: {vault_error}. Please contact system administrator.'
+            )
+        
         return redirect('loans:approve_application', pk=pk)
 
 
@@ -560,72 +637,10 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
         app.processing_fee_verified = False
         app.save(update_fields=['processing_fee', 'processing_fee_recorded_by', 'processing_fee_verified'])
         
-        # Record vault inflow for processing fee
-        vault_recorded = False
-        vault_error = None
-        try:
-            from loans.models import DailyVault, WeeklyVault
-            from expenses.models import VaultTransaction
-            from clients.models import Branch
-            from django.utils import timezone as tz
-            from django.db import transaction as db_transaction
-            import logging
-            
-            logger = logging.getLogger(__name__)
-            
-            # Get branch directly from officer assignment
-            branch = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else None
-            
-            if not branch:
-                vault_error = f"No branch found for officer {request.user.get_full_name()}"
-                logger.error(f"Processing fee vault error: {vault_error}")
-            else:
-                # Determine vault type based on loan repayment frequency
-                vault_type = app.repayment_frequency  # 'daily' or 'weekly'
-                
-                with db_transaction.atomic():
-                    # Use appropriate vault based on loan type
-                    if vault_type == 'daily':
-                        vault, _ = DailyVault.objects.get_or_create(branch=branch)
-                    else:
-                        vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
-                    
-                    vault.balance += fee
-                    vault.total_inflows += fee
-                    vault.last_transaction_date = tz.now()
-                    vault.save(update_fields=['balance', 'total_inflows', 'last_transaction_date', 'updated_at'])
-                    
-                    VaultTransaction.objects.create(
-                        transaction_type='deposit',
-                        direction='in',
-                        branch=branch.name,
-                        vault_type=vault_type,  # Use loan's repayment frequency
-                        amount=fee,
-                        balance_after=vault.balance,
-                        description=f'Processing fee for application {app.application_number} ({vault_type} loan)',
-                        reference_number=f'PF-{app.application_number}',
-                        recorded_by=request.user,
-                        transaction_date=tz.now(),
-                    )
-                    vault_recorded = True
-                    logger.info(f"Processing fee K{fee} recorded in {vault_type} vault for {app.application_number}")
-        except Exception as e:
-            vault_error = str(e)
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Vault fee record error for {app.application_number}: {e}", exc_info=True)
-        
-        if vault_recorded:
-            messages.success(
-                request,
-                f'Processing fee K{fee:,.2f} recorded for application {app.application_number}. '
-                f'Awaiting manager verification. Vault updated successfully.'
-            )
-        else:
-            messages.warning(
-                request,
-                f'Processing fee K{fee:,.2f} recorded for application {app.application_number}, '
-                f'but vault update failed: {vault_error}. Please contact system administrator.'
-            )
+        messages.success(
+            request,
+            f'Processing fee K{fee:,.2f} recorded for application {app.application_number}. '
+            f'Awaiting manager verification.'
+        )
         
         return redirect('loans:applications_list')
