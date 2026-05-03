@@ -6298,6 +6298,7 @@ def manager_processing_fees(request):
         'pending_fees': pending_fees,
         'this_month': this_month,
         'officer_fees': officer_fees,
+        'filtered_total': total_fees,  # Total of currently displayed fees
         'officers': officers,
         'groups': groups,
         'filters': {
