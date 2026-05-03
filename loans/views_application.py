@@ -573,8 +573,8 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
             
             logger = logging.getLogger(__name__)
             
-            branch_name = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else ''
-            branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
+            # Get branch directly from officer assignment
+            branch = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else None
             
             if not branch:
                 vault_error = f"No branch found for officer {request.user.get_full_name()}"
