@@ -562,7 +562,7 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
         
         # Record vault inflow for processing fee
         try:
-            from loans.models import WeeklyVault
+            from loans.models import DailyVault, WeeklyVault
             from expenses.models import VaultTransaction
             from clients.models import Branch
             from django.utils import timezone as tz
@@ -572,9 +572,16 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
             branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
             
             if branch:
+                # Determine vault type based on loan repayment frequency
+                vault_type = app.repayment_frequency  # 'daily' or 'weekly'
+                
                 with db_transaction.atomic():
-                    # Use WeeklyVault for processing fees
-                    vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    # Use appropriate vault based on loan type
+                    if vault_type == 'daily':
+                        vault, _ = DailyVault.objects.get_or_create(branch=branch)
+                    else:
+                        vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    
                     vault.balance += fee
                     vault.total_inflows += fee
                     vault.last_transaction_date = tz.now()
@@ -584,10 +591,10 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
                         transaction_type='deposit',
                         direction='in',
                         branch=branch.name,
-                        vault_type='weekly',  # Processing fees go to weekly vault
+                        vault_type=vault_type,  # Use loan's repayment frequency
                         amount=fee,
                         balance_after=vault.balance,
-                        description=f'Processing fee for application {app.application_number} — pending verification',
+                        description=f'Processing fee for application {app.application_number} ({vault_type} loan)',
                         reference_number=f'PF-{app.application_number}',
                         recorded_by=request.user,
                         transaction_date=tz.now(),

@@ -225,9 +225,15 @@
               <td class="px-4 py-3 text-slate-600">{{ app.loan_officer.get_full_name|default:"—" }}</td>
               <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ app.processing_fee|floatformat:2|intcomma }}</td>
               <td class="px-4 py-3 text-center">
+                {% if app.repayment_frequency == 'daily' %}
+                <span class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
+                  📅 Daily
+                </span>
+                {% else %}
                 <span class="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-semibold">
                   📆 Weekly
                 </span>
+                {% endif %}
               </td>
               <td class="px-4 py-3 text-center">
                 {% if app.processing_fee_verified %}

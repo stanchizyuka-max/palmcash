@@ -163,9 +163,15 @@
                                 {{ app.processing_fee|zmw_currency }}
                             </td>
                             <td class="px-6 py-4 text-sm text-center">
+                                {% if app.repayment_frequency == 'daily' %}
+                                <span class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold">
+                                    📅 Daily
+                                </span>
+                                {% else %}
                                 <span class="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-semibold">
                                     📆 Weekly
                                 </span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 {% if app.processing_fee_verified %}
