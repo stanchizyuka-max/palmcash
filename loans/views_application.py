@@ -561,17 +561,25 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
         app.save(update_fields=['processing_fee', 'processing_fee_recorded_by', 'processing_fee_verified'])
         
         # Record vault inflow for processing fee
+        vault_recorded = False
+        vault_error = None
         try:
             from loans.models import DailyVault, WeeklyVault
             from expenses.models import VaultTransaction
             from clients.models import Branch
             from django.utils import timezone as tz
             from django.db import transaction as db_transaction
+            import logging
+            
+            logger = logging.getLogger(__name__)
             
             branch_name = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else ''
             branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
             
-            if branch:
+            if not branch:
+                vault_error = f"No branch found for officer {request.user.get_full_name()}"
+                logger.error(f"Processing fee vault error: {vault_error}")
+            else:
                 # Determine vault type based on loan repayment frequency
                 vault_type = app.repayment_frequency  # 'daily' or 'weekly'
                 
@@ -599,12 +607,25 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
                         recorded_by=request.user,
                         transaction_date=tz.now(),
                     )
+                    vault_recorded = True
+                    logger.info(f"Processing fee K{fee} recorded in {vault_type} vault for {app.application_number}")
         except Exception as e:
-            print(f"Vault fee record error: {e}")
+            vault_error = str(e)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Vault fee record error for {app.application_number}: {e}", exc_info=True)
         
-        messages.success(
-            request,
-            f'Processing fee K{fee:,.2f} recorded for application {app.application_number}. '
-            f'Awaiting manager verification.'
-        )
+        if vault_recorded:
+            messages.success(
+                request,
+                f'Processing fee K{fee:,.2f} recorded for application {app.application_number}. '
+                f'Awaiting manager verification. Vault updated successfully.'
+            )
+        else:
+            messages.warning(
+                request,
+                f'Processing fee K{fee:,.2f} recorded for application {app.application_number}, '
+                f'but vault update failed: {vault_error}. Please contact system administrator.'
+            )
+        
         return redirect('loans:applications_list')
