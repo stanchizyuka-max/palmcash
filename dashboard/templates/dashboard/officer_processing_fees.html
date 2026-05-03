@@ -120,6 +120,7 @@
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Group</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Loan Amount</th>
                             <th class="px-6 py-3 text-right text-xs font-bold text-slate-700 uppercase">Processing Fee</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-slate-700 uppercase">Vault</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Verified By</th>
                             <th class="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase">Date</th>
@@ -150,6 +151,11 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-right font-bold text-violet-700">
                                 {{ app.processing_fee|zmw_currency }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-center">
+                                <span class="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-semibold">
+                                    📆 Weekly
+                                </span>
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 {% if app.processing_fee_verified %}

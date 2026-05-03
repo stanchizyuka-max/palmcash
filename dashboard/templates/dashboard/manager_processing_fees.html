@@ -189,6 +189,7 @@
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Group</th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Officer</th>
               <th class="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase">Fee</th>
+              <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Vault</th>
               <th class="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase">Status</th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Verified By</th>
               <th class="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Action</th>
@@ -214,6 +215,11 @@
               <td class="px-4 py-3 text-slate-600">{{ app.loan_officer.get_full_name|default:"—" }}</td>
               <td class="px-4 py-3 text-right font-bold text-slate-800">K{{ app.processing_fee|floatformat:2|intcomma }}</td>
               <td class="px-4 py-3 text-center">
+                <span class="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-semibold">
+                  📆 Weekly
+                </span>
+              </td>
+              <td class="px-4 py-3 text-center">
                 {% if app.processing_fee_verified %}
                 <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Verified</span>
                 {% else %}
@@ -238,7 +244,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">No processing fees recorded</td></tr>
+            <tr><td colspan="10" class="px-4 py-8 text-center text-slate-400">No processing fees recorded</td></tr>
             {% endfor %}
           </tbody>
         </table>
