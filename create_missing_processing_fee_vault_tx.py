@@ -8,7 +8,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palmcash.settings')
 django.setup()
 
-from loans.models import LoanApplication, WeeklyVault
+from loans.models import LoanApplication, DailyVault, WeeklyVault
 from expenses.models import VaultTransaction
 from clients.models import Branch
 from django.utils import timezone
@@ -22,7 +22,7 @@ print("=" * 80)
 verified_fees = LoanApplication.objects.filter(
     processing_fee__gt=0,
     processing_fee_verified=True
-).select_related('loan_officer', 'borrower').order_by('processing_fee_verified_at')
+).select_related('loan_officer', 'borrower', 'processing_fee_verified_by').order_by('processing_fee_verified_at')
 
 print(f"\nFound {verified_fees.count()} verified processing fees")
 
@@ -56,17 +56,25 @@ else:
             print(f"\n❌ App {app.application_number}: Branch '{branch_name}' not found - skipping")
             continue
         
+        # Determine vault type based on loan repayment frequency
+        vault_type = app.repayment_frequency  # 'daily' or 'weekly'
+        
         print(f"\n📝 App {app.application_number}: Creating vault transaction")
         print(f"   Borrower: {app.borrower.get_full_name()}")
         print(f"   Officer: {app.loan_officer.get_full_name()}")
         print(f"   Branch: {branch.name}")
+        print(f"   Loan Type: {vault_type}")
         print(f"   Amount: K{app.processing_fee:,.2f}")
         print(f"   Verified: {app.processing_fee_verified_at}")
         
         try:
             with db_transaction.atomic():
-                # Use WeeklyVault for processing fees
-                vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                # Use appropriate vault based on loan type
+                if vault_type == 'daily':
+                    vault, _ = DailyVault.objects.get_or_create(branch=branch)
+                else:
+                    vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                
                 vault.balance += app.processing_fee
                 vault.total_inflows += app.processing_fee
                 vault.last_transaction_date = app.processing_fee_verified_at or timezone.now()
@@ -76,17 +84,17 @@ else:
                     transaction_type='deposit',
                     direction='in',
                     branch=branch.name,
-                    vault_type='weekly',
+                    vault_type=vault_type,
                     amount=app.processing_fee,
                     balance_after=vault.balance,
-                    description=f'Processing fee for application {app.application_number} (verified)',
+                    description=f'Processing fee for application {app.application_number} ({vault_type} loan)',
                     reference_number=f'PF-{app.application_number}',
                     recorded_by=app.processing_fee_verified_by or app.loan_officer,
                     transaction_date=app.processing_fee_verified_at or timezone.now(),
                 )
                 
                 print(f"   ✓ Created vault transaction ID {tx.id}")
-                print(f"   ✓ Vault balance: K{vault.balance:,.2f}")
+                print(f"   ✓ {vault_type.title()} vault balance: K{vault.balance:,.2f}")
                 created_count += 1
                 
         except Exception as e:
