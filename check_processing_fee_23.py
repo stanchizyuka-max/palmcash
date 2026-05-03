@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Check the K23 processing fee and why it's not in the vault
+Check the K27 processing fee and why it's not in the vault
 """
 import os
 import django
@@ -13,17 +13,17 @@ from expenses.models import VaultTransaction
 from decimal import Decimal
 
 print("=" * 80)
-print("CHECKING K23 PROCESSING FEE")
+print("CHECKING K27 PROCESSING FEE")
 print("=" * 80)
 
-# Find the K23 processing fee
-fee_23 = LoanApplication.objects.filter(
-    processing_fee=Decimal('23.00')
+# Find the K27 processing fee
+fee_27 = LoanApplication.objects.filter(
+    processing_fee=Decimal('27.00')
 ).order_by('-created_at')
 
-print(f"\nFound {fee_23.count()} application(s) with K23 processing fee:")
+print(f"\nFound {fee_27.count()} application(s) with K27 processing fee:")
 
-for app in fee_23:
+for app in fee_27:
     print(f"\n{'=' * 80}")
     print(f"Application: {app.application_number}")
     print(f"Borrower: {app.borrower.get_full_name()}")
