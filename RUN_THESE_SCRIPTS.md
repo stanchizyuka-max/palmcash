@@ -1,4 +1,80 @@
-# Scripts to Run - Expense Category Fixes
+
+Palm Cash
+Dashboard
+Loans
+Clients
+Payments
+Securities
+Reports
+2
+
+Elizabeth moyo
+Processing Fees
+Kuku
+
+← Dashboard
+This Month
+
+K0.00
+
+Total Verified
+
+K73.00
+
+Pending Verification
+
+K0.00
+
+Total Collected
+
+K73.00
+
+By Officer
+Officer	#	Total	Verified	Pending
+prudence mutale	1	K73.00	K73.00	K0.00
+Pending Verification
+1
+Search & Filter
+Search
+App #, Borrower name...
+Officer
+
+All Officers
+Group
+
+All Groups
+From
+
+dd/mm/yyyy
+To
+
+dd/mm/yyyy
+Search
+Clear
+All Fees
+1 total
+Date	App #	Borrower	Group	Officer	Fee	Status	Verified By	Action
+03 May 2026	LA-578B0083	Grace Bwalya	
+Dove	prudence mutale	K73.00	Verified	Elizabeth moyo
+03 May 2026	—
+Palm Cash
+Professional Loan Management
+
+Streamline your lending operations with our comprehensive loan management system. Trusted by financial institutions across the region.
+
+Quick Links
+Dashboard
+Collections
+Approvals
+Support
+Notifications
+Help Center
+Contact Us
+© 2025 Palm Cash. All rights reserved.
+
+Version 1.0 | Last Updated: January 6, 2026
+
+Powered by Palm Cash Team# Scripts to Run - Expense Category Fixes
 
 ## Issue Summary
 - **Problem 1**: Duplicate "Other" entries in ExpenseCode and ExpenseCategory tables

@@ -562,29 +562,36 @@ class RecordProcessingFeeView(LoginRequiredMixin, View):
         
         # Record vault inflow for processing fee
         try:
-            from loans.vault_services import _get_or_create_vault, _ref
+            from loans.models import WeeklyVault
             from expenses.models import VaultTransaction
             from clients.models import Branch
             from django.utils import timezone as tz
+            from django.db import transaction as db_transaction
             
             branch_name = request.user.officer_assignment.branch if hasattr(request.user, 'officer_assignment') else ''
             branch = Branch.objects.filter(name__iexact=branch_name).first() if branch_name else None
             
             if branch:
-                vault = _get_or_create_vault(branch)
-                vault.balance += fee
-                vault.save(update_fields=['balance', 'updated_at'])
-                VaultTransaction.objects.create(
-                    transaction_type='deposit',
-                    direction='in',
-                    branch=branch.name,
-                    amount=fee,
-                    balance_after=vault.balance,
-                    description=f'Processing fee for application {app.application_number} — pending verification',
-                    reference_number=_ref(),
-                    recorded_by=request.user,
-                    transaction_date=tz.now(),
-                )
+                with db_transaction.atomic():
+                    # Use WeeklyVault for processing fees
+                    vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    vault.balance += fee
+                    vault.total_inflows += fee
+                    vault.last_transaction_date = tz.now()
+                    vault.save(update_fields=['balance', 'total_inflows', 'last_transaction_date', 'updated_at'])
+                    
+                    VaultTransaction.objects.create(
+                        transaction_type='deposit',
+                        direction='in',
+                        branch=branch.name,
+                        vault_type='weekly',  # Processing fees go to weekly vault
+                        amount=fee,
+                        balance_after=vault.balance,
+                        description=f'Processing fee for application {app.application_number} — pending verification',
+                        reference_number=f'PF-{app.application_number}',
+                        recorded_by=request.user,
+                        transaction_date=tz.now(),
+                    )
         except Exception as e:
             print(f"Vault fee record error: {e}")
         
