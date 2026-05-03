@@ -62,7 +62,24 @@ for app in apps_with_fees:
         print(f"✗ {app.application_number}: Officer {officer.get_full_name()} has no branch assignment - SKIPPED")
         continue
     
-    branch = officer.officer_assignment.branch
+    # Get branch object - handle both Branch object and string cases
+    from clients.models import Branch
+    branch_ref = officer.officer_assignment.branch
+    
+    if isinstance(branch_ref, Branch):
+        branch = branch_ref
+    elif isinstance(branch_ref, str):
+        # If it's a string, look up the branch
+        branch = Branch.objects.filter(name__iexact=branch_ref).first()
+        if not branch:
+            error_count += 1
+            print(f"✗ {app.application_number}: Branch '{branch_ref}' not found - SKIPPED")
+            continue
+    else:
+        error_count += 1
+        print(f"✗ {app.application_number}: Invalid branch reference type: {type(branch_ref)} - SKIPPED")
+        continue
+    
     vault_type = app.repayment_frequency  # 'daily' or 'weekly'
     
     try:
