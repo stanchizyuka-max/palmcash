@@ -194,12 +194,18 @@
               {% if user.role in 'manager,admin' %}
               <td class="px-4 py-3 text-center">
                 <div class="flex items-center justify-center gap-2">
+                  {% if 'REVERSAL:' not in tx.description %}
                   <button 
                     onclick="reverseTransaction({{ tx.id }}, '{{ tx.get_transaction_type_display }}', {{ tx.amount }})"
                     class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold hover:bg-red-200"
                     title="Reverse this transaction">
                     <i class="fas fa-undo mr-1"></i>Reverse
                   </button>
+                  {% else %}
+                  <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-semibold" title="This is a reversal transaction">
+                    <i class="fas fa-ban mr-1"></i>Reversed
+                  </span>
+                  {% endif %}
                 </div>
               </td>
               {% endif %}
