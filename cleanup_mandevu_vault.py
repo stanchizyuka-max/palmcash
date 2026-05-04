@@ -38,8 +38,10 @@ if all_txs.count() == 0:
 
 # Show summary
 from decimal import Decimal
-total_in = all_txs.filter(direction='in').aggregate(total=sum('amount'))['total'] or Decimal('0')
-total_out = all_txs.filter(direction='out').aggregate(total=sum('amount'))['total'] or Decimal('0')
+from django.db.models import Sum
+
+total_in = all_txs.filter(direction='in').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+total_out = all_txs.filter(direction='out').aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
 print(f"\nCurrent state:")
 print(f"  Total IN:  K{total_in:,.2f}")

@@ -98,6 +98,7 @@ def vault_dashboard(request):
     tx_type = request.GET.get('type')
     direction = request.GET.get('direction')
     vault_type = request.GET.get('vault_type')  # NEW: Vault type filter
+    show_reversals = request.GET.get('show_reversals', 'all')  # NEW: Reversal filter
 
     if date_from:
         qs = qs.filter(transaction_date__date__gte=date_from)
@@ -109,6 +110,12 @@ def vault_dashboard(request):
         qs = qs.filter(direction=direction)
     if vault_type:  # NEW: Filter by vault type
         qs = qs.filter(vault_type=vault_type)
+    
+    # NEW: Filter by reversal status
+    if show_reversals == 'hide':
+        qs = qs.exclude(description__icontains='REVERSAL:')
+    elif show_reversals == 'only':
+        qs = qs.filter(description__icontains='REVERSAL:')
 
     totals = qs.aggregate(
         total_in=Sum('amount', filter=Q(direction='in')),

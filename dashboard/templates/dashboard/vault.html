@@ -131,6 +131,11 @@
           <option value="in" {% if filters.direction == 'in' %}selected{% endif %}>Inflows only</option>
           <option value="out" {% if filters.direction == 'out' %}selected{% endif %}>Outflows only</option>
         </select>
+        <select name="show_reversals" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="all" {% if filters.show_reversals == 'all' %}selected{% endif %}>All Transactions</option>
+          <option value="hide" {% if filters.show_reversals == 'hide' %}selected{% endif %}>Hide Reversals</option>
+          <option value="only" {% if filters.show_reversals == 'only' %}selected{% endif %}>Reversals Only</option>
+        </select>
         <div class="flex gap-2">
           <button type="submit" class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Filter</button>
           <a href="{% url 'dashboard:vault' %}" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Clear</a>
