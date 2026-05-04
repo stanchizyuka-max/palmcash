@@ -781,10 +781,10 @@ def vault_savings_withdrawal(request):
 
 @login_required
 def reverse_vault_transaction(request, tx_id):
-    """Reverse a vault transaction (admin only) - creates opposite transaction."""
-    if request.user.role != 'admin':
+    """Reverse a vault transaction (manager/admin only) - creates opposite transaction."""
+    if request.user.role not in ['manager', 'admin']:
         from django.contrib import messages
-        messages.error(request, 'Only administrators can reverse vault transactions.')
+        messages.error(request, 'Only managers and administrators can reverse vault transactions.')
         return redirect('dashboard:vault')
     
     if request.method != 'POST':

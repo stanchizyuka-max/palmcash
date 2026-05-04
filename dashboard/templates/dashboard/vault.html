@@ -153,7 +153,7 @@
               <th class="px-4 py-3 text-left font-semibold">Loan</th>
               <th class="px-4 py-3 text-left font-semibold">Client</th>
               <th class="px-4 py-3 text-left font-semibold">Approved By</th>
-              {% if user.role == 'admin' %}
+              {% if user.role in 'manager,admin' %}
               <th class="px-4 py-3 text-center font-semibold">Actions</th>
               {% endif %}
             </tr>
@@ -191,7 +191,7 @@
               </td>
               <td class="px-4 py-3 text-slate-700">{% if tx.loan %}{{ tx.loan.borrower.get_full_name }}{% else %}—{% endif %}</td>
               <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>
-              {% if user.role == 'admin' %}
+              {% if user.role in 'manager,admin' %}
               <td class="px-4 py-3 text-center">
                 <div class="flex items-center justify-center gap-2">
                   <button 
@@ -205,7 +205,7 @@
               {% endif %}
             </tr>
             {% empty %}
-            <tr><td colspan="{% if user.role == 'admin' %}10{% else %}9{% endif %}" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
+            <tr><td colspan="{% if user.role in 'manager,admin' %}10{% else %}9{% endif %}" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
             {% endfor %}
           </tbody>
           <tfoot class="bg-slate-50 border-t-2 border-slate-300">
