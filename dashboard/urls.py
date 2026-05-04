@@ -126,4 +126,5 @@ urlpatterns = [
     path('vault/month-history/', vault_views.vault_month_history, name='vault_month_history'),
     path('vault/savings/deposit/', vault_views.vault_savings_deposit, name='vault_savings_deposit'),
     path('vault/savings/withdraw/', vault_views.vault_savings_withdrawal, name='vault_savings_withdrawal'),
+    path('vault/transaction/<int:tx_id>/reverse/', vault_views.reverse_vault_transaction, name='reverse_vault_transaction'),
 ]

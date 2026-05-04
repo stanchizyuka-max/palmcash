@@ -153,6 +153,9 @@
               <th class="px-4 py-3 text-left font-semibold">Loan</th>
               <th class="px-4 py-3 text-left font-semibold">Client</th>
               <th class="px-4 py-3 text-left font-semibold">Approved By</th>
+              {% if user.role == 'admin' %}
+              <th class="px-4 py-3 text-center font-semibold">Actions</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -187,9 +190,22 @@
                 {% if tx.loan %}<a href="{% url 'loans:detail' tx.loan.pk %}" class="text-blue-600 hover:underline">{{ tx.loan.application_number }}</a>{% else %}—{% endif %}
               </td>
               <td class="px-4 py-3 text-slate-700">{% if tx.loan %}{{ tx.loan.borrower.get_full_name }}{% else %}—{% endif %}</td>
-              <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>            </tr>
+              <td class="px-4 py-3 text-slate-500 text-xs">{% if tx.approved_by %}{{ tx.approved_by.get_full_name }}{% else %}—{% endif %}</td>
+              {% if user.role == 'admin' %}
+              <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button 
+                    onclick="reverseTransaction({{ tx.id }}, '{{ tx.get_transaction_type_display }}', {{ tx.amount }})"
+                    class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold hover:bg-red-200"
+                    title="Reverse this transaction">
+                    <i class="fas fa-undo mr-1"></i>Reverse
+                  </button>
+                </div>
+              </td>
+              {% endif %}
+            </tr>
             {% empty %}
-            <tr><td colspan="9" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
+            <tr><td colspan="{% if user.role == 'admin' %}10{% else %}9{% endif %}" class="px-4 py-8 text-center text-slate-400">No vault transactions yet.</td></tr>
             {% endfor %}
           </tbody>
           <tfoot class="bg-slate-50 border-t-2 border-slate-300">
@@ -232,4 +248,56 @@
     {% endif %}
   </div>
 </div>
+
+<!-- Reversal Confirmation Modal -->
+<div id="reversalModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+    <div class="bg-red-600 text-white px-6 py-4 rounded-t-xl">
+      <h3 class="text-lg font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Reverse Transaction</h3>
+    </div>
+    <form id="reversalForm" method="post" action="">
+      {% csrf_token %}
+      <div class="p-6">
+        <p class="text-slate-700 mb-4">
+          Are you sure you want to reverse this transaction? This will create an opposite transaction to cancel the original.
+        </p>
+        <div class="bg-slate-50 rounded-lg p-4 mb-4">
+          <p class="text-sm text-slate-600 mb-1"><strong>Type:</strong> <span id="modalTxType"></span></p>
+          <p class="text-sm text-slate-600"><strong>Amount:</strong> K<span id="modalTxAmount"></span></p>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Reason for Reversal *</label>
+          <textarea 
+            name="reversal_reason" 
+            required
+            rows="3"
+            placeholder="Explain why this transaction is being reversed..."
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700">
+            <i class="fas fa-undo mr-2"></i>Reverse Transaction
+          </button>
+          <button type="button" onclick="closeReversalModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function reverseTransaction(txId, txType, txAmount) {
+  document.getElementById('modalTxType').textContent = txType;
+  document.getElementById('modalTxAmount').textContent = txAmount.toFixed(2);
+  document.getElementById('reversalForm').action = '{% url "dashboard:reverse_vault_transaction" 0 %}'.replace('0', txId);
+  document.getElementById('reversalModal').classList.remove('hidden');
+}
+
+function closeReversalModal() {
+  document.getElementById('reversalModal').classList.add('hidden');
+}
+</script>
+
 {% endblock %}

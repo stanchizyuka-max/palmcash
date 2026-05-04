@@ -777,3 +777,93 @@ def vault_savings_withdrawal(request):
         'vault_balances': vault_balances,
         'savings': savings,
     })
+
+
+@login_required
+def reverse_vault_transaction(request, tx_id):
+    """Reverse a vault transaction (admin only) - creates opposite transaction."""
+    if request.user.role != 'admin':
+        from django.contrib import messages
+        messages.error(request, 'Only administrators can reverse vault transactions.')
+        return redirect('dashboard:vault')
+    
+    if request.method != 'POST':
+        from django.contrib import messages
+        messages.error(request, 'Invalid request method.')
+        return redirect('dashboard:vault')
+    
+    from expenses.models import VaultTransaction
+    from loans.models import DailyVault, WeeklyVault
+    from clients.models import Branch
+    from decimal import Decimal
+    from django.contrib import messages
+    from django.db import transaction as db_transaction
+    import uuid
+    
+    try:
+        # Get the original transaction
+        original_tx = VaultTransaction.objects.get(pk=tx_id)
+        
+        # Get reversal reason
+        reversal_reason = request.POST.get('reversal_reason', '').strip()
+        if not reversal_reason:
+            messages.error(request, 'Reversal reason is required.')
+            return redirect('dashboard:vault')
+        
+        # Get the branch
+        branch = Branch.objects.filter(name__iexact=original_tx.branch).first()
+        if not branch:
+            messages.error(request, f'Branch "{original_tx.branch}" not found.')
+            return redirect('dashboard:vault')
+        
+        with db_transaction.atomic():
+            # Get the appropriate vault
+            if original_tx.vault_type == 'daily':
+                vault = DailyVault.objects.get(branch=branch)
+            else:
+                vault = WeeklyVault.objects.get(branch=branch)
+            
+            # Create opposite transaction
+            opposite_direction = 'out' if original_tx.direction == 'in' else 'in'
+            
+            # Update vault balance (reverse the original transaction)
+            if opposite_direction == 'in':
+                vault.balance += original_tx.amount
+                vault.total_inflows += original_tx.amount
+            else:
+                vault.balance -= original_tx.amount
+                vault.total_outflows += original_tx.amount
+            
+            vault.last_transaction_date = timezone.now()
+            vault.save(update_fields=['balance', 'total_inflows', 'total_outflows', 'last_transaction_date', 'updated_at'])
+            
+            # Create reversal transaction
+            reversal_tx = VaultTransaction.objects.create(
+                transaction_type=original_tx.transaction_type,
+                direction=opposite_direction,
+                branch=original_tx.branch,
+                vault_type=original_tx.vault_type,
+                amount=original_tx.amount,
+                balance_after=vault.balance,
+                description=f'REVERSAL: {original_tx.description} | Reason: {reversal_reason}',
+                reference_number=f'REV-{uuid.uuid4().hex[:8].upper()}',
+                loan=original_tx.loan,
+                recorded_by=request.user,
+                approved_by=request.user,
+                transaction_date=timezone.now(),
+            )
+            
+            messages.success(
+                request,
+                f'Transaction reversed successfully. Reversal transaction created: {reversal_tx.reference_number}'
+            )
+            
+    except VaultTransaction.DoesNotExist:
+        messages.error(request, 'Transaction not found.')
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error reversing transaction {tx_id}: {e}", exc_info=True)
+        messages.error(request, f'Error reversing transaction: {e}')
+    
+    return redirect('dashboard:vault')
