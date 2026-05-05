@@ -32,6 +32,10 @@ urlpatterns = [
     path('clients/<int:client_id>/assign-officer/', views.AssignClientToOfficerView.as_view(), name='assign_client'),
     path('clients/<int:client_id>/unassign-officer/', views.UnassignClientFromOfficerView.as_view(), name='unassign_client'),
     
+    # Client management
+    path('clients/<int:pk>/', views.ClientDetailView.as_view(), name='detail'),
+    path('clients/<int:pk>/delete/', views.DeleteClientView.as_view(), name='delete_client'),
+    
     # Officer clients
     path('officers/<int:officer_id>/clients/', views.OfficerClientsListView.as_view(), name='officer_clients'),
     

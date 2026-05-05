@@ -1,0 +1,186 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}{{ client.get_full_name }} - Client Details{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-user mr-3 text-blue-600"></i>
+                    {{ client.get_full_name }}
+                </h1>
+                <p class="text-gray-600 mt-1">Client ID: {{ client.id }}</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'clients:group_list' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Groups
+                </a>
+                {% if user.role == 'manager' or user.role == 'admin' %}
+                <button type="button" 
+                        onclick="confirmDeleteClient({{ client.pk }}, '{{ client.get_full_name|escapejs }}')"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    <i class="fas fa-trash mr-2"></i>Delete Client
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Client Info -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm font-semibold text-gray-600 mb-2">Contact Information</h3>
+                <div class="space-y-2">
+                    <p class="text-sm"><i class="fas fa-envelope text-gray-400 mr-2"></i>{{ client.email|default:"Not provided" }}</p>
+                    <p class="text-sm"><i class="fas fa-phone text-gray-400 mr-2"></i>{{ client.phone_number|default:"Not provided" }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm font-semibold text-gray-600 mb-2">Status</h3>
+                <div class="space-y-2">
+                    <p class="text-sm">
+                        {% if client.is_verified %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Verified
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-clock mr-1"></i>Pending
+                        </span>
+                        {% endif %}
+                    </p>
+                    <p class="text-sm"><i class="fas fa-calendar text-gray-400 mr-2"></i>Joined: {{ client.date_joined|date:"M d, Y" }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm font-semibold text-gray-600 mb-2">Assigned Officer</h3>
+                {% if client.assigned_officer %}
+                <p class="text-sm"><i class="fas fa-user-tie text-blue-500 mr-2"></i>{{ client.assigned_officer.get_full_name }}</p>
+                {% else %}
+                <p class="text-sm text-gray-400">Not assigned</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Groups -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Groups</h2>
+            {% if groups %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for membership in groups %}
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900">{{ membership.group.name }}</h3>
+                    <p class="text-sm text-gray-600">Joined: {{ membership.joined_at|date:"M d, Y" }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">Not a member of any groups</p>
+            {% endif %}
+        </div>
+
+        <!-- Loans -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Loans</h2>
+            {% if loans %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Application #</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Amount</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        {% for loan in loans %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">{{ loan.application_number }}</td>
+                            <td class="px-4 py-3">K{{ loan.principal_amount|floatformat:2|intcomma }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium
+                                    {% if loan.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif loan.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% elif loan.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ loan.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">{{ loan.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No loans found</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Client Confirmation Modal -->
+<div id="deleteClientModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Client</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to permanently delete <strong id="deleteClientName"></strong>?
+                    </p>
+                    <p class="text-sm text-red-600 mt-2">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        This action cannot be undone.
+                    </p>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Note: Clients with active loans cannot be deleted.
+                    </p>
+                </div>
+                <form id="deleteClientForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="items-center px-4 py-3">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700">
+                            <i class="fas fa-trash mr-2"></i>Yes, Delete Client
+                        </button>
+                        <button type="button" 
+                                onclick="closeDeleteModal()"
+                                class="mt-3 px-4 py-2 bg-gray-100 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-200">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDeleteClient(clientId, clientName) {
+    document.getElementById('deleteClientName').textContent = clientName;
+    document.getElementById('deleteClientForm').action = '/clients/' + clientId + '/delete/';
+    document.getElementById('deleteClientModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteClientModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteClientModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

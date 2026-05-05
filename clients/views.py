@@ -1526,3 +1526,104 @@ class TransferMemberView(LoginRequiredMixin, View):
 
         messages.success(request, f'{borrower.get_full_name()} transferred from {group.name} to {dest_group.name}.')
         return redirect('clients:group_detail', pk=dest_group.pk)
+
+
+class ClientDetailView(LoginRequiredMixin, DetailView):
+    """View client details - accessible to managers and admins"""
+    model = User
+    template_name = 'clients/client_detail.html'
+    context_object_name = 'client'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if request.user.role not in ['manager', 'admin']:
+            messages.error(request, 'Only managers and admins can view client details.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        return User.objects.filter(role='borrower')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        client = self.object
+        
+        # Get client's loans
+        from loans.models import Loan
+        context['loans'] = Loan.objects.filter(borrower=client).order_by('-created_at')
+        
+        # Get client's groups
+        context['groups'] = client.group_memberships.filter(is_active=True).select_related('group')
+        
+        # Get verification logs
+        from clients.models import ClientVerificationLog
+        context['verification_logs'] = ClientVerificationLog.objects.filter(
+            client=client
+        ).select_related('verified_by').order_by('-verified_at')
+        
+        return context
+
+
+class DeleteClientView(LoginRequiredMixin, View):
+    """Delete a client - accessible to managers and admins only"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if request.user.role not in ['manager', 'admin']:
+            messages.error(request, 'Only managers and admins can delete clients.')
+            return redirect('dashboard:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        from django.db import transaction as db_transaction
+        
+        client = get_object_or_404(User, pk=pk, role='borrower')
+        
+        # Check if client has active loans
+        from loans.models import Loan
+        active_loans = Loan.objects.filter(
+            borrower=client,
+            status__in=['pending', 'approved', 'disbursed', 'active']
+        ).count()
+        
+        if active_loans > 0:
+            messages.error(
+                request,
+                f'Cannot delete {client.get_full_name()}. Client has {active_loans} active loan(s). '
+                'Please close all loans before deleting the client.'
+            )
+            return redirect('clients:list')
+        
+        # Store client name for success message
+        client_name = client.get_full_name() or client.username
+        
+        try:
+            with db_transaction.atomic():
+                # Deactivate group memberships instead of deleting
+                GroupMembership.objects.filter(borrower=client).update(is_active=False)
+                
+                # Log the deletion
+                from clients.models import ClientTransferLog
+                ClientTransferLog.objects.create(
+                    client=client,
+                    action='deleted',
+                    performed_by=request.user,
+                    notes=f'Client deleted by {request.user.get_full_name()}'
+                )
+                
+                # Delete the client
+                client.delete()
+                
+            messages.success(
+                request,
+                f'Client "{client_name}" has been successfully deleted.'
+            )
+        except Exception as e:
+            messages.error(
+                request,
+                f'Error deleting client: {str(e)}'
+            )
+        
+        return redirect('clients:list')
