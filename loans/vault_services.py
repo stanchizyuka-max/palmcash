@@ -233,12 +233,14 @@ def record_payment_collection(loan, amount, recorded_by):
         )
 
 
-def record_capital_injection(branch, amount, notes, recorded_by, vault_type='weekly'):
+def record_capital_injection(branch, amount, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Admin injects capital - must specify vault type"""
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         vault = _get_vault_by_type(branch, vault_type)
         vault.balance += Decimal(str(amount))
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_inflows += Decimal(str(amount))
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
         
@@ -253,7 +255,7 @@ def record_capital_injection(branch, amount, notes, recorded_by, vault_type='wee
             description=notes or f'Capital injection by {recorded_by.get_full_name()} to {vault_type} vault',
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
 
@@ -351,9 +353,11 @@ def record_fund_deposit(branch, amount, source, notes, recorded_by, vault_type='
         )
 
 
-def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, vault_type='weekly'):
+def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Transfer funds between branches - must specify vault type"""
     amount = Decimal(str(amount))
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         from_vault = _get_vault_by_type(from_branch, vault_type)
         if from_vault.balance < amount:
@@ -368,7 +372,7 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, v
 
         # Deduct from sender
         from_vault.balance -= amount
-        from_vault.last_transaction_date = timezone.now()
+        from_vault.last_transaction_date = tx_date
         from_vault.total_outflows += amount
         from_vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
         
@@ -382,12 +386,12 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, v
             description=f'Transfer to {to_branch.name} ({vault_type} vault). {notes}'.strip(),
             reference_number=f'{ref}-OUT',
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
         # Add to receiver
         to_vault.balance += amount
-        to_vault.last_transaction_date = timezone.now()
+        to_vault.last_transaction_date = tx_date
         to_vault.total_inflows += amount
         to_vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
         
@@ -401,7 +405,7 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, v
             description=f'Transfer from {from_branch.name} ({vault_type} vault). {notes}'.strip(),
             reference_number=f'{ref}-IN',
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
         return out_tx, in_tx
@@ -459,9 +463,11 @@ def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault
         return txns
 
 
-def record_savings_deposit(branch, amount, notes, recorded_by, vault_type='weekly'):
+def record_savings_deposit(branch, amount, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Move money from vault to savings - must specify vault type"""
     amount = Decimal(str(amount))
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         vault = _get_vault_by_type(branch, vault_type)
         if vault.balance < amount:
@@ -473,7 +479,7 @@ def record_savings_deposit(branch, amount, notes, recorded_by, vault_type='weekl
         savings, _ = BranchSavings.objects.get_or_create(branch=branch)
         
         vault.balance -= amount
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_outflows += amount
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
         
@@ -491,13 +497,15 @@ def record_savings_deposit(branch, amount, notes, recorded_by, vault_type='weekl
             description=notes or f'Savings deposit — K{amount:,.2f} from {vault_type} vault',
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
 
-def record_savings_withdrawal(branch, amount, notes, recorded_by, vault_type='weekly'):
+def record_savings_withdrawal(branch, amount, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Move money from savings to vault - must specify vault type"""
     amount = Decimal(str(amount))
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         from loans.models import BranchSavings
         savings, _ = BranchSavings.objects.get_or_create(branch=branch)
@@ -510,7 +518,7 @@ def record_savings_withdrawal(branch, amount, notes, recorded_by, vault_type='we
         savings.save(update_fields=['balance', 'updated_at'])
         
         vault.balance += amount
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_inflows += amount
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
         
@@ -525,5 +533,5 @@ def record_savings_withdrawal(branch, amount, notes, recorded_by, vault_type='we
             description=notes or f'Savings withdrawal — K{amount:,.2f} to {vault_type} vault',
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )

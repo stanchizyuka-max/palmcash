@@ -199,15 +199,27 @@ def capital_injection(request):
         amount = request.POST.get('amount')
         vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
         notes = request.POST.get('notes', '')
+        transaction_date_str = request.POST.get('transaction_date', '')
 
         try:
             branch = Branch.objects.get(pk=branch_id)
             from decimal import Decimal
+            from datetime import datetime
+            from django.utils import timezone
+            
             amount = Decimal(str(amount))
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             from loans.vault_services import record_capital_injection
-            record_capital_injection(branch, amount, notes, request.user, vault_type=vault_type)
+            record_capital_injection(branch, amount, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             from django.contrib import messages
             messages.success(request, f'K{amount:,.2f} injected into {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
@@ -215,7 +227,11 @@ def capital_injection(request):
             from django.contrib import messages
             messages.error(request, f'Error: {e}')
 
-    return render(request, 'dashboard/capital_injection.html', {'branches': branches})
+    from datetime import date
+    return render(request, 'dashboard/capital_injection.html', {
+        'branches': branches,
+        'today': date.today().isoformat(),
+    })
 
 
 @login_required
@@ -279,6 +295,9 @@ def fund_deposit(request):
         from clients.models import Branch
         from decimal import Decimal
         from django.contrib import messages
+        from datetime import datetime
+        from django.utils import timezone
+        
         try:
             if request.user.role == 'admin':
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
@@ -286,18 +305,29 @@ def fund_deposit(request):
             vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             source = request.POST.get('source', '').strip()
             notes = request.POST.get('notes', '')
+            transaction_date_str = request.POST.get('transaction_date', '')
+            
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             if not source:
                 raise ValueError('Source/type is required.')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             from loans.vault_services import record_fund_deposit
-            record_fund_deposit(branch, amount, source, notes, request.user, vault_type=vault_type)
+            record_fund_deposit(branch, amount, source, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             messages.success(request, f'K{amount:,.2f} deposited into {branch.name} {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
+    from datetime import date
     # Pass all branches for the source dropdown (even for managers)
     all_branches_for_source = Branch.objects.filter(is_active=True).order_by('name')
     # For admin, also pass branches for the "deposit to" dropdown
@@ -305,7 +335,8 @@ def fund_deposit(request):
     return render(request, 'dashboard/vault_fund_deposit.html', {
         'branch': branch, 
         'branches': branches,
-        'all_branches': all_branches_for_source  # For source dropdown
+        'all_branches': all_branches_for_source,  # For source dropdown
+        'today': date.today().isoformat(),
     })
 
 
@@ -322,6 +353,9 @@ def branch_transfer(request):
     if request.method == 'POST':
         from decimal import Decimal
         from django.contrib import messages
+        from datetime import datetime
+        from django.utils import timezone
+        
         try:
             if request.user.role == 'admin':
                 from_branch = Branch.objects.get(pk=request.POST.get('from_branch'))
@@ -329,22 +363,34 @@ def branch_transfer(request):
             amount = Decimal(request.POST.get('amount', '0'))
             vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
+            transaction_date_str = request.POST.get('transaction_date', '')
+            
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
             if from_branch == to_branch:
                 raise ValueError('Source and destination branches must be different.')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             from loans.vault_services import record_branch_transfer
-            record_branch_transfer(from_branch, to_branch, amount, notes, request.user, vault_type=vault_type)
+            record_branch_transfer(from_branch, to_branch, amount, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             messages.success(request, f'K{amount:,.2f} transferred from {from_branch.name} to {to_branch.name} ({vault_type} vault).')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
+    from datetime import date
     to_branches = all_branches.exclude(pk=from_branch.pk) if from_branch else all_branches
     return render(request, 'dashboard/vault_branch_transfer.html', {
         'from_branch': from_branch,
         'all_branches': all_branches,
         'to_branches': to_branches,
+        'today': date.today().isoformat(),
     })
 
 
@@ -464,8 +510,13 @@ def vault_collection(request):
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
+    from datetime import date
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
-    return render(request, 'dashboard/vault_collection.html', {'branch': branch, 'branches': branches})
+    return render(request, 'dashboard/vault_collection.html', {
+        'branch': branch,
+        'branches': branches,
+        'today': date.today().isoformat(),
+    })
 
 
 @login_required
@@ -739,14 +790,27 @@ def vault_savings_deposit(request):
     if request.method == 'POST':
         from decimal import Decimal
         from django.contrib import messages
+        from datetime import datetime
+        from django.utils import timezone
+        
         try:
             amount = Decimal(request.POST.get('amount', '0'))
             vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
+            transaction_date_str = request.POST.get('transaction_date', '')
+            
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             from loans.vault_services import record_savings_deposit
-            record_savings_deposit(branch, amount, notes, request.user, vault_type=vault_type)
+            record_savings_deposit(branch, amount, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             messages.success(request, f'K{amount:,.2f} moved from {vault_type} vault to savings.')
             return redirect('dashboard:vault')
         except Exception as e:
@@ -754,6 +818,7 @@ def vault_savings_deposit(request):
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
+    from datetime import date
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
     
     # Get vault balances for display
@@ -765,6 +830,7 @@ def vault_savings_deposit(request):
         'branches': branches,
         'vault_balances': vault_balances,
         'savings': savings,
+        'today': date.today().isoformat(),
     })
 
 
@@ -792,14 +858,27 @@ def vault_savings_withdrawal(request):
     if request.method == 'POST':
         from decimal import Decimal
         from django.contrib import messages
+        from datetime import datetime
+        from django.utils import timezone
+        
         try:
             amount = Decimal(request.POST.get('amount', '0'))
             vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
             notes = request.POST.get('notes', '')
+            transaction_date_str = request.POST.get('transaction_date', '')
+            
             if amount <= 0:
                 raise ValueError('Amount must be greater than zero.')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             from loans.vault_services import record_savings_withdrawal
-            record_savings_withdrawal(branch, amount, notes, request.user, vault_type=vault_type)
+            record_savings_withdrawal(branch, amount, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             messages.success(request, f'K{amount:,.2f} withdrawn from savings to {vault_type} vault.')
             return redirect('dashboard:vault')
         except Exception as e:
@@ -807,6 +886,7 @@ def vault_savings_withdrawal(request):
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
+    from datetime import date
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
     
     # Get vault balances for display
@@ -818,6 +898,7 @@ def vault_savings_withdrawal(request):
         'branches': branches,
         'vault_balances': vault_balances,
         'savings': savings,
+        'today': date.today().isoformat(),
     })
 
 
