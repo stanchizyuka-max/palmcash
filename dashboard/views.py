@@ -3095,6 +3095,7 @@ def expense_create(request):
             amount = request.POST.get('amount')
             expense_code_id = request.POST.get('expense_code')
             expense_date = request.POST.get('expense_date')
+            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Get vault type
             description = request.POST.get('description')
             
             # Validate required fields
@@ -3124,28 +3125,39 @@ def expense_create(request):
                 from django.utils import timezone
                 from django.db import transaction as db_transaction
                 from decimal import Decimal
+                from datetime import datetime
+
+                # Parse the expense date
+                expense_dt = datetime.strptime(expense_date, '%Y-%m-%d')
+                expense_dt = timezone.make_aware(expense_dt)
 
                 with db_transaction.atomic():
-                    # FIXED: Use dual vault system (WeeklyVault for expenses)
-                    from loans.models import WeeklyVault
-                    vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    # Use selected vault type (daily or weekly)
+                    from loans.models import DailyVault, WeeklyVault
+                    
+                    if vault_type == 'daily':
+                        vault, _ = DailyVault.objects.get_or_create(branch=branch)
+                    else:
+                        vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
+                    
                     vault.balance -= Decimal(str(amount))
-                    vault.last_transaction_date = timezone.now()
+                    vault.last_transaction_date = expense_dt
                     vault.total_outflows += Decimal(str(amount))
                     vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
+                    
                     VaultTransaction.objects.create(
                         branch=branch.name,
                         transaction_type='expense',
                         direction='out',
-                        vault_type='weekly',  # FIXED: Specify vault type
+                        vault_type=vault_type,
                         amount=Decimal(str(amount)),
                         balance_after=vault.balance,
                         description=f'Expense: {expense.title}',
                         reference_number=f'EXP-{uuid.uuid4().hex[:8].upper()}',
                         recorded_by=user,
-                        transaction_date=timezone.now(),
+                        transaction_date=expense_dt,  # Use expense date, not current time
                     )
-                messages.success(request, f'Expense of K{amount} recorded and deducted from vault.')
+                messages.success(request, f'Expense of K{amount} recorded and deducted from {vault_type} vault.')
             except Exception as ve:
                 messages.warning(request, f'Expense recorded but vault deduction failed: {str(ve)}')
             
@@ -3160,9 +3172,11 @@ def expense_create(request):
                 'branch': branch,
             })
     
+    from datetime import date
     context = {
         'expense_codes': ExpenseCode.objects.filter(is_active=True),
         'branch': branch,
+        'today': date.today().isoformat(),  # Default to today's date
     }
     
     return render(request, 'dashboard/expense_form.html', context)

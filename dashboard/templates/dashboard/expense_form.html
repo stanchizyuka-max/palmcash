@@ -84,10 +84,28 @@
                         type="date" 
                         id="expense_date" 
                         name="expense_date" 
+                        value="{{ today }}"
                         required
                         class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
-                    <p class="text-xs text-secondary-600 mt-1">Date when the expense occurred</p>
+                    <p class="text-xs text-secondary-600 mt-1">Date when the expense occurred (can be backdated)</p>
+                </div>
+
+                <!-- Vault Type -->
+                <div>
+                    <label for="vault_type" class="block text-sm font-semibold text-secondary-900 mb-2">
+                        Vault Type <span class="text-danger-600">*</span>
+                    </label>
+                    <select 
+                        id="vault_type" 
+                        name="vault_type"
+                        required
+                        class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                        <option value="weekly">📆 Weekly Vault</option>
+                        <option value="daily">📅 Daily Vault</option>
+                    </select>
+                    <p class="text-xs text-secondary-600 mt-1">Select which vault to deduct from</p>
                 </div>
 
                 <!-- Description -->
@@ -129,16 +147,18 @@
             </form>
         </div>
 
-        <!-- Info Box -->
+                <!-- Info Box -->
         <div class="mt-8 bg-info-50 border-l-4 border-info-600 p-6 rounded">
             <div class="flex">
                 <div class="flex-shrink-0">
                     <i class="fas fa-info-circle text-info-600 text-2xl"></i>
                 </div>
                 <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-info-900">Expense Categories</h3>
+                    <h3 class="text-lg font-semibold text-info-900">Expense Recording</h3>
                     <p class="text-info-800 mt-2">
-                        All expenses are deducted from the Weekly Vault and must be categorized using predefined expense codes.
+                        • Expenses are deducted from the selected vault (Daily or Weekly)<br>
+                        • You can backdate expenses to record past transactions<br>
+                        • All expenses must be categorized using predefined expense codes
                     </p>
                 </div>
             </div>
