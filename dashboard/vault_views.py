@@ -360,24 +360,42 @@ def bank_deposit_out(request):
         from clients.models import Branch
         from decimal import Decimal
         from django.contrib import messages
+        from datetime import datetime
+        from django.utils import timezone
+        
         try:
             if request.user.role == 'admin':
                 branch = Branch.objects.get(pk=request.POST.get('branch'))
             gross = Decimal(request.POST.get('gross_amount', '0'))
             charges = Decimal(request.POST.get('charges', '0') or '0')
-            vault_type = request.POST.get('vault_type', 'weekly')  # NEW: Vault selection
+            vault_type = request.POST.get('vault_type', 'weekly')
             notes = request.POST.get('notes', '')
+            transaction_date_str = request.POST.get('transaction_date', '')
+            
+            # Parse transaction date
+            if transaction_date_str:
+                transaction_dt = datetime.strptime(transaction_date_str, '%Y-%m-%d')
+                transaction_dt = timezone.make_aware(transaction_dt)
+            else:
+                transaction_dt = None
+            
             if gross <= 0:
                 raise ValueError('Amount must be greater than zero.')
             from loans.vault_services import record_bank_deposit
-            record_bank_deposit(branch, gross, charges, notes, request.user, vault_type=vault_type)
+            record_bank_deposit(branch, gross, charges, notes, request.user, vault_type=vault_type, transaction_date=transaction_dt)
             messages.success(request, f'Bank deposit of K{gross:,.2f} recorded. {vault_type.title()} vault reduced by K{gross + charges:,.2f} (incl. K{charges:,.2f} charges).')
             return redirect('dashboard:vault')
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
     from clients.models import Branch
+    from datetime import date
     branches = Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None
+    return render(request, 'dashboard/vault_bank_deposit_out.html', {
+        'branch': branch,
+        'branches': branches,
+        'today': date.today().isoformat(),
+    })
     return render(request, 'dashboard/vault_bank_deposit_out.html', {'branch': branch, 'branches': branches})
 
 

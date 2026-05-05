@@ -407,10 +407,11 @@ def record_branch_transfer(from_branch, to_branch, amount, notes, recorded_by, v
         return out_tx, in_tx
 
 
-def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault_type='weekly'):
+def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Record bank deposit - must specify vault type"""
     gross_amount = Decimal(str(gross_amount))
     charges = Decimal(str(charges or 0))
+    tx_date = transaction_date or timezone.now()
 
     with db_transaction.atomic():
         vault = _get_vault_by_type(branch, vault_type)
@@ -419,7 +420,7 @@ def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault
 
         # Gross outflow
         vault.balance -= gross_amount
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_outflows += gross_amount
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
         
@@ -433,7 +434,7 @@ def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault
             description=notes or f'Bank deposit — K{gross_amount:,.2f} sent to bank from {vault_type} vault',
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         ))
 
         # Charges outflow
@@ -452,7 +453,7 @@ def record_bank_deposit(branch, gross_amount, charges, notes, recorded_by, vault
                 description=f'Mobile money / bank deposit charges ({vault_type} vault)',
                 reference_number=_ref(),
                 recorded_by=recorded_by,
-                transaction_date=timezone.now(),
+                transaction_date=tx_date,
             ))
 
         return txns
