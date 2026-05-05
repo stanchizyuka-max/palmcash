@@ -44,6 +44,15 @@
             class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. 10000.00">
           <p class="text-xs text-slate-400 mt-1">Full amount will be added to vault — no charges deducted.</p>
         </div>
+        
+        <!-- NEW: Transaction Date -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">Transaction Date <span class="text-red-500">*</span></label>
+          <input type="date" name="transaction_date" value="{{ today }}" required
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-slate-400 mt-1">Date when the withdrawal occurred (can be backdated)</p>
+        </div>
+        
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1">Notes</label>
           <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Optional notes..."></textarea>

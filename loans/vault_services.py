@@ -297,13 +297,15 @@ def get_vault_balances(branch):
     }
 
 
-def record_bank_withdrawal(branch, amount, notes, recorded_by, vault_type='weekly'):
+def record_bank_withdrawal(branch, amount, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Record bank withdrawal - must specify vault type"""
     amount = Decimal(str(amount))
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         vault = _get_vault_by_type(branch, vault_type)
         vault.balance += amount
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_inflows += amount
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
         
@@ -318,17 +320,19 @@ def record_bank_withdrawal(branch, amount, notes, recorded_by, vault_type='weekl
             description=notes or f'Bank withdrawal — K{amount:,.2f} to {vault_type} vault',
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
 
-def record_fund_deposit(branch, amount, source, notes, recorded_by, vault_type='weekly'):
+def record_fund_deposit(branch, amount, source, notes, recorded_by, vault_type='weekly', transaction_date=None):
     """Record fund deposit - must specify vault type"""
     amount = Decimal(str(amount))
+    tx_date = transaction_date or timezone.now()
+    
     with db_transaction.atomic():
         vault = _get_vault_by_type(branch, vault_type)
         vault.balance += amount
-        vault.last_transaction_date = timezone.now()
+        vault.last_transaction_date = tx_date
         vault.total_inflows += amount
         vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
         
@@ -343,7 +347,7 @@ def record_fund_deposit(branch, amount, source, notes, recorded_by, vault_type='
             description=f'Fund deposit — {source}. {notes} ({vault_type} vault)'.strip(),
             reference_number=_ref(),
             recorded_by=recorded_by,
-            transaction_date=timezone.now(),
+            transaction_date=tx_date,
         )
 
 
