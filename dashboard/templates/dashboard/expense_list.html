@@ -48,7 +48,15 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-secondary-600 font-semibold">Branch</p>
-                        <p class="text-2xl font-bold text-secondary-900">{{ branch.name }}</p>
+                        <p class="text-2xl font-bold text-secondary-900">
+                            {% if branch %}
+                                {{ branch.name }}
+                            {% elif branch_filter %}
+                                {{ branch_filter }}
+                            {% else %}
+                                All Branches
+                            {% endif %}
+                        </p>
                     </div>
                     <div class="bg-success-100 rounded-full p-4">
                         <i class="fas fa-building text-success-600 text-2xl"></i>
@@ -69,6 +77,25 @@
             </div>
 
             <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {% if all_branches %}
+                <!-- Branch filter for admins -->
+                <div>
+                    <label for="branch" class="block text-sm font-semibold text-secondary-900 mb-2">Branch</label>
+                    <select 
+                        id="branch" 
+                        name="branch"
+                        class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                        <option value="">All Branches</option>
+                        {% for b in all_branches %}
+                        <option value="{{ b.name }}" {% if branch_filter == b.name %}selected{% endif %}>
+                            {{ b.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
                 <div>
                     <label for="start_date" class="block text-sm font-semibold text-secondary-900 mb-2">Start Date</label>
                     <input 
@@ -107,7 +134,7 @@
                     </select>
                 </div>
 
-                <div class="flex items-end">
+                <div class="flex items-end {% if not all_branches %}md:col-start-4{% endif %}">
                     <button 
                         type="submit" 
                         class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
@@ -125,6 +152,9 @@
                     <thead class="bg-secondary-100 border-b border-secondary-300">
                         <tr>
                             <th class="px-6 py-3 text-left text-sm font-bold text-secondary-900">Date</th>
+                            {% if all_branches %}
+                            <th class="px-6 py-3 text-left text-sm font-bold text-secondary-900">Branch</th>
+                            {% endif %}
                             <th class="px-6 py-3 text-left text-sm font-bold text-secondary-900">Category</th>
                             <th class="px-6 py-3 text-left text-sm font-bold text-secondary-900">Description</th>
                             <th class="px-6 py-3 text-right text-sm font-bold text-secondary-900">Amount</th>
@@ -136,6 +166,13 @@
                         {% for expense in expenses %}
                         <tr class="hover:bg-secondary-50 transition-colors duration-200">
                             <td class="px-6 py-4 text-sm text-secondary-900">{{ expense.expense_date|date:"M d, Y" }}</td>
+                            {% if all_branches %}
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-3 py-1 bg-info-100 text-info-700 rounded-full text-xs font-bold">
+                                    {{ expense.branch }}
+                                </span>
+                            </td>
+                            {% endif %}
                             <td class="px-6 py-4 text-sm">
                                 {% if expense.expense_code %}
                                 <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-bold">
@@ -160,7 +197,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-secondary-600">
+                            <td colspan="{% if all_branches %}7{% else %}6{% endif %}" class="px-6 py-8 text-center text-secondary-600">
                                 <i class="fas fa-inbox text-4xl text-secondary-300 mb-4"></i>
                                 <p class="text-lg">No expenses found</p>
                             </td>

@@ -3004,6 +3004,7 @@ def manager_loan_reject(request, loan_id):
 def expense_list(request):
     """View and filter expenses — manager sees their branch, admin sees all"""
     from expenses.models import Expense, ExpenseCode
+    from clients.models import Branch
 
     user = request.user
 
@@ -3014,6 +3015,7 @@ def expense_list(request):
         else:
             expenses = Expense.objects.all().order_by('-expense_date')
         branch = None
+        all_branches = Branch.objects.filter(is_active=True).order_by('name')
     elif user.role == 'manager':
         try:
             branch = user.managed_branch
@@ -3022,6 +3024,7 @@ def expense_list(request):
         except Exception:
             return render(request, 'dashboard/access_denied.html')
         expenses = Expense.objects.filter(branch=branch.name).order_by('-expense_date')
+        all_branches = None
     else:
         return render(request, 'dashboard/access_denied.html')
     
@@ -3053,6 +3056,8 @@ def expense_list(request):
         'total_expenses': total_expenses,
         'expense_codes': ExpenseCode.objects.filter(is_active=True),
         'branch': branch,
+        'all_branches': all_branches,
+        'branch_filter': branch_filter if user.role == 'admin' or user.is_superuser else None,
     }
     
     return render(request, 'dashboard/expense_list.html', context)
