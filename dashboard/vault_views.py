@@ -53,6 +53,7 @@ def _vault_qs(branch_name):
             'approved_by__employment_status', 'approved_by__employer_name',
             'approved_by__monthly_income', 'approved_by__province', 'approved_by__district',
         )
+        .order_by('-transaction_date')  # FIXED: Add ordering by transaction date (newest first)
     )
 
 
