@@ -46,20 +46,22 @@ def main():
     print("CHECKING GROUPS")
     print("-" * 80)
     
-    # Find groups linked to old branch
+    # Find groups linked to old branch - branch is CharField
     if old_branch:
-        old_groups = BorrowerGroup.objects.filter(branch=old_branch)
+        old_groups = BorrowerGroup.objects.filter(branch=OLD_NAME)
         print(f"\nGroups linked to OLD branch '{OLD_NAME}': {old_groups.count()}")
         for group in old_groups:
             print(f"  - {group.name} (ID: {group.id})")
             print(f"    Officer: {group.assigned_officer.get_full_name() if group.assigned_officer else 'None'}")
             print(f"    Members: {group.members.filter(is_active=True).count()}")
     else:
-        old_groups = BorrowerGroup.objects.none()
-        print(f"\nNo old branch found, checking by name in display...")
+        old_groups = BorrowerGroup.objects.filter(branch=OLD_NAME)
+        print(f"\nGroups with branch name '{OLD_NAME}': {old_groups.count()}")
+        for group in old_groups:
+            print(f"  - {group.name} (ID: {group.id})")
     
-    # Find groups linked to new branch
-    new_groups = BorrowerGroup.objects.filter(branch=new_branch)
+    # Find groups linked to new branch - branch is CharField
+    new_groups = BorrowerGroup.objects.filter(branch=NEW_NAME)
     print(f"\nGroups linked to NEW branch '{NEW_NAME}': {new_groups.count()}")
     for group in new_groups:
         print(f"  - {group.name} (ID: {group.id})")
@@ -115,14 +117,14 @@ def main():
         return
     
     with transaction.atomic():
-        # Update groups
+        # Update groups - branch is CharField, update string value
         if old_groups.exists():
-            count = old_groups.update(branch=new_branch)
+            count = old_groups.update(branch=NEW_NAME)
             print(f"\n✓ Updated {count} groups to new branch")
         
         # Update loans if they have branch field
         if hasattr(Loan, 'branch'):
-            old_loans = Loan.objects.filter(branch=old_branch)
+            old_loans = Loan.objects.filter(branch=old_branch) if old_branch else Loan.objects.none()
             if old_loans.exists():
                 count = old_loans.update(branch=new_branch)
                 print(f"✓ Updated {count} loans to new branch")
@@ -132,8 +134,8 @@ def main():
     print("=" * 80)
     
     # Verify
-    new_groups = BorrowerGroup.objects.filter(branch=new_branch)
-    old_groups = BorrowerGroup.objects.filter(branch=old_branch) if old_branch else BorrowerGroup.objects.none()
+    new_groups = BorrowerGroup.objects.filter(branch=NEW_NAME)
+    old_groups = BorrowerGroup.objects.filter(branch=OLD_NAME)
     
     print(f"\nAfter migration:")
     print(f"  - Groups in NEW branch '{NEW_NAME}': {new_groups.count()}")
