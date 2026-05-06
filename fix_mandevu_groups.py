@@ -96,12 +96,20 @@ def main():
         print(f"Loans via groups in NEW branch: {new_loans_via_group.count()}")
     
     if not old_branch or old_groups.count() == 0:
-        print("\n" + "=" * 80)
-        print("✓ NO MIGRATION NEEDED")
-        print("=" * 80)
-        print("\nAll groups are already linked to the correct branch.")
-        print(f"MANDEVU BRANCH has {new_groups.count()} groups.")
-        return
+        if old_groups.count() > 0:
+            # Old branch object deleted, but groups still have old name
+            print("\n" + "=" * 80)
+            print("⚠ OLD BRANCH DELETED BUT GROUPS STILL REFERENCE OLD NAME")
+            print("=" * 80)
+            print(f"\nFound {old_groups.count()} groups still using old branch name '{OLD_NAME}'")
+            print("These groups need to be migrated to the new branch.")
+        else:
+            print("\n" + "=" * 80)
+            print("✓ NO MIGRATION NEEDED")
+            print("=" * 80)
+            print("\nAll groups are already linked to the correct branch.")
+            print(f"MANDEVU BRANCH has {new_groups.count()} groups.")
+            return
     
     print("\n" + "=" * 80)
     print("STARTING MIGRATION")
@@ -109,7 +117,9 @@ def main():
     
     # Ask for confirmation
     print(f"\nThis will migrate {old_groups.count()} groups from '{OLD_NAME}' to '{NEW_NAME}'")
-    print("Press Enter to continue, or Ctrl+C to cancel...")
+    for group in old_groups:
+        print(f"  - {group.name}")
+    print("\nPress Enter to continue, or Ctrl+C to cancel...")
     try:
         input()
     except KeyboardInterrupt:
