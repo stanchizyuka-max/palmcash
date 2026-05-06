@@ -166,7 +166,7 @@
           <tbody class="divide-y divide-slate-100">
             {% for tx in page_obj %}
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 text-slate-600">{{ tx.created_at|date:"d M Y" }}</td>
+              <td class="px-4 py-3 text-slate-600">{{ tx.transaction_date|date:"d M Y" }}</td>
               <td class="px-4 py-3">
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold
                   {% if tx.transaction_type == 'security_deposit' %}bg-blue-100 text-blue-700
