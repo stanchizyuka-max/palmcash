@@ -3003,7 +3003,7 @@ def manager_loan_reject(request, loan_id):
 @login_required
 def expense_list(request):
     """View and filter expenses — manager sees their branch, admin sees all"""
-    from expenses.models import Expense, ExpenseCode
+    from expenses.models import Expense, ExpenseCode, VaultTransaction
     from clients.models import Branch
 
     user = request.user
@@ -3047,12 +3047,27 @@ def expense_list(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
+    # Add vault type information to each expense
+    expenses_with_vault = []
+    for expense in page_obj.object_list:
+        # Find the related vault transaction
+        vault_tx = VaultTransaction.objects.filter(
+            branch=expense.branch,
+            transaction_type='expense',
+            description__icontains=expense.title,
+            amount=expense.amount,
+            direction='out'
+        ).order_by('-transaction_date').first()
+        
+        expense.vault_type = vault_tx.vault_type if vault_tx else None
+        expenses_with_vault.append(expense)
+    
     # Calculate totals
     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
     
     context = {
         'page_obj': page_obj,
-        'expenses': page_obj.object_list,
+        'expenses': expenses_with_vault,
         'total_expenses': total_expenses,
         'expense_codes': ExpenseCode.objects.filter(is_active=True),
         'branch': branch,
