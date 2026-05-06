@@ -33,8 +33,8 @@ def main():
         print(f"  Code: {branch.code}")
         print(f"  Active: {branch.is_active}")
         
-        # Count groups
-        groups = BorrowerGroup.objects.filter(branch=branch)
+        # Count groups - branch is CharField, so filter by string
+        groups = BorrowerGroup.objects.filter(branch=branch.name)
         print(f"  Groups: {groups.count()}")
         if groups.exists():
             for group in groups:
@@ -49,16 +49,14 @@ def main():
     print(f"\nGroups matching 'Gray': {gray.count()}")
     for g in gray:
         print(f"  - {g.name} (ID: {g.id})")
-        print(f"    Branch: {g.branch.name if g.branch else 'None'} (ID: {g.branch.id if g.branch else 'N/A'})")
-        print(f"    Branch Active: {g.branch.is_active if g.branch else 'N/A'}")
+        print(f"    Branch: {g.branch if g.branch else 'None'}")  # branch is a string
         print(f"    Officer: {g.assigned_officer.get_full_name() if g.assigned_officer else 'None'}")
     
     liverpool = BorrowerGroup.objects.filter(name__icontains='Liverpool')
     print(f"\nGroups matching 'Liverpool': {liverpool.count()}")
     for g in liverpool:
         print(f"  - {g.name} (ID: {g.id})")
-        print(f"    Branch: {g.branch.name if g.branch else 'None'} (ID: {g.branch.id if g.branch else 'N/A'})")
-        print(f"    Branch Active: {g.branch.is_active if g.branch else 'N/A'}")
+        print(f"    Branch: {g.branch if g.branch else 'None'}")  # branch is a string
         print(f"    Officer: {g.assigned_officer.get_full_name() if g.assigned_officer else 'None'}")
     
     # Check for inactive branches
@@ -71,7 +69,8 @@ def main():
         print(f"\nBranch: {branch.name}")
         print(f"  ID: {branch.id}")
         print(f"  Code: {branch.code}")
-        groups = BorrowerGroup.objects.filter(branch=branch)
+        # Groups have branch as CharField, so filter by string
+        groups = BorrowerGroup.objects.filter(branch=branch.name)
         print(f"  Groups: {groups.count()}")
         if groups.exists():
             for group in groups:
@@ -88,7 +87,8 @@ def main():
         print(f"  ID: {branch.id}")
         print(f"  Code: {branch.code}")
         print(f"  Active: {branch.is_active}")
-        groups = BorrowerGroup.objects.filter(branch=branch)
+        # Groups have branch as CharField, so filter by string
+        groups = BorrowerGroup.objects.filter(branch=branch.name)
         print(f"  Groups: {groups.count()}")
         if groups.exists():
             for group in groups:
