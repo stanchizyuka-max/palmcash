@@ -3183,6 +3183,104 @@ def expense_create(request):
 
 
 @login_required
+def delete_expense(request, expense_id):
+    """Delete an expense and reverse its vault transaction (manager/admin only)."""
+    if request.user.role not in ['manager', 'admin']:
+        from django.contrib import messages
+        messages.error(request, 'Only managers and administrators can delete expenses.')
+        return redirect('dashboard:expense_list')
+    
+    if request.method != 'POST':
+        from django.contrib import messages
+        messages.error(request, 'Invalid request method.')
+        return redirect('dashboard:expense_list')
+    
+    from expenses.models import Expense, VaultTransaction
+    from loans.models import DailyVault, WeeklyVault
+    from clients.models import Branch
+    from decimal import Decimal
+    from django.contrib import messages
+    from django.db import transaction as db_transaction
+    import uuid
+    
+    try:
+        # Get the expense
+        expense = Expense.objects.get(pk=expense_id)
+        
+        # Get deletion reason
+        deletion_reason = request.POST.get('deletion_reason', '').strip()
+        if not deletion_reason:
+            messages.error(request, 'Deletion reason is required.')
+            return redirect('dashboard:expense_list')
+        
+        # Get the branch
+        branch = Branch.objects.filter(name__iexact=expense.branch).first()
+        if not branch:
+            messages.error(request, f'Branch "{expense.branch}" not found.')
+            return redirect('dashboard:expense_list')
+        
+        # Find the related vault transaction
+        vault_tx = VaultTransaction.objects.filter(
+            branch=expense.branch,
+            transaction_type='expense',
+            description__icontains=expense.title,
+            amount=expense.amount,
+            direction='out'
+        ).order_by('-transaction_date').first()
+        
+        if not vault_tx:
+            messages.warning(request, 'Could not find related vault transaction. Expense deleted but vault not adjusted.')
+            expense.delete()
+            return redirect('dashboard:expense_list')
+        
+        with db_transaction.atomic():
+            # Get the appropriate vault
+            if vault_tx.vault_type == 'daily':
+                vault = DailyVault.objects.get(branch=branch)
+            else:
+                vault = WeeklyVault.objects.get(branch=branch)
+            
+            # Create reversal transaction (opposite direction = IN, to add money back)
+            vault.balance += expense.amount
+            vault.total_inflows += expense.amount
+            vault.last_transaction_date = timezone.now()
+            vault.save(update_fields=['balance', 'total_inflows', 'last_transaction_date', 'updated_at'])
+            
+            # Create reversal transaction
+            reversal_tx = VaultTransaction.objects.create(
+                transaction_type='expense',
+                direction='in',  # Opposite of original OUT
+                branch=expense.branch,
+                vault_type=vault_tx.vault_type,
+                amount=expense.amount,
+                balance_after=vault.balance,
+                description=f'REVERSAL: {vault_tx.description} | Reason: {deletion_reason}',
+                reference_number=f'REV-{uuid.uuid4().hex[:8].upper()}',
+                recorded_by=request.user,
+                approved_by=request.user,
+                transaction_date=timezone.now(),
+            )
+            
+            # Delete the expense
+            expense.delete()
+            
+            messages.success(
+                request,
+                f'Expense deleted and K{expense.amount:,.2f} returned to {vault_tx.vault_type} vault. Reversal: {reversal_tx.reference_number}'
+            )
+            
+    except Expense.DoesNotExist:
+        messages.error(request, 'Expense not found.')
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error deleting expense {expense_id}: {e}", exc_info=True)
+        messages.error(request, f'Error deleting expense: {e}')
+    
+    return redirect('dashboard:expense_list')
+
+
+@login_required
 def expense_report(request):
     """Generate expense report by category and date"""
     from expenses.models import Expense, ExpenseCode
