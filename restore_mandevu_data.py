@@ -62,22 +62,28 @@ def main():
     
     # Check for old name references
     old_vault_txs = VaultTransaction.objects.filter(branch=OLD_NAME)
-    old_groups = BorrowerGroup.objects.filter(branch__name=OLD_NAME)
-    old_officer_assignments = OfficerAssignment.objects.filter(branch__name=OLD_NAME)
+    old_groups = BorrowerGroup.objects.filter(branch=branch, name__icontains='OLD')  # Groups are already linked to branch object
+    old_officer_assignments = OfficerAssignment.objects.filter(branch=branch)  # Already linked to branch object
     
     print(f"\n" + "-" * 80)
     print("CHECKING FOR OLD NAME REFERENCES")
     print("-" * 80)
     print(f"\nVault Transactions with old name: {old_vault_txs.count()}")
-    print(f"Groups with old name: {old_groups.count()}")
-    print(f"Officer Assignments with old name: {old_officer_assignments.count()}")
+    print(f"Groups for this branch: {old_groups.count()}")
+    print(f"Officer Assignments for this branch: {old_officer_assignments.count()}")
     
-    if old_vault_txs.count() == 0 and old_groups.count() == 0 and old_officer_assignments.count() == 0:
-        print("\n✓ No old references found. Data already migrated.")
-        print("\nIf officers still show 0, the issue might be:")
-        print("  1. Officers were never assigned to this branch")
-        print("  2. Officer assignments were deleted")
-        print("  3. Branch field in OfficerAssignment uses a different reference")
+    if old_vault_txs.count() == 0:
+        print("\n✓ No old vault transaction references found. Data already migrated.")
+        print("\nThe issue is that MANDEVU BRANCH has:")
+        print(f"  - 0 Officer Assignments")
+        print(f"  - 0 Borrower Groups")
+        print(f"  - 0 Loans")
+        print(f"  - {vault_txs.count()} Vault Transactions")
+        
+        print("\nThis means:")
+        print("  1. Officers were never assigned to this branch, OR")
+        print("  2. Groups were never created for this branch, OR")
+        print("  3. Data was deleted/lost during the rename")
         
         # Check all officer assignments
         print(f"\n" + "-" * 80)
@@ -87,6 +93,15 @@ def main():
         print(f"\nTotal: {all_assignments.count()}")
         for oa in all_assignments:
             print(f"  - {oa.officer.get_full_name()} → {oa.branch.name if oa.branch else 'No Branch'}")
+        
+        # Check all groups
+        print(f"\n" + "-" * 80)
+        print("ALL BORROWER GROUPS IN SYSTEM")
+        print("-" * 80)
+        all_groups = BorrowerGroup.objects.all()
+        print(f"\nTotal: {all_groups.count()}")
+        for group in all_groups[:20]:
+            print(f"  - {group.name} → {group.branch.name if group.branch else 'No Branch'}")
         
         return
     
@@ -100,17 +115,7 @@ def main():
             count = old_vault_txs.update(branch=NEW_NAME)
             print(f"\n✓ Updated {count} vault transactions")
         
-        # 2. Update BorrowerGroup
-        if old_groups.exists():
-            count = old_groups.update(branch=branch)
-            print(f"✓ Updated {count} borrower groups")
-        
-        # 3. Update OfficerAssignment
-        if old_officer_assignments.exists():
-            count = old_officer_assignments.update(branch=branch)
-            print(f"✓ Updated {count} officer assignments")
-        
-        # 4. Update User managed_branch
+        # 2. Update User managed_branch
         managers = User.objects.filter(role='manager', managed_branch__name=OLD_NAME)
         if managers.exists():
             for manager in managers:
@@ -118,14 +123,14 @@ def main():
                 manager.save(update_fields=['managed_branch'])
             print(f"✓ Updated {managers.count()} manager assignments")
         
-        # 5. Update Loans if they have branch field
+        # 3. Update Loans if they have branch field
         if hasattr(Loan, 'branch'):
             old_loans = Loan.objects.filter(branch__name=OLD_NAME)
             if old_loans.exists():
                 count = old_loans.update(branch=branch)
                 print(f"✓ Updated {count} loans")
         
-        # 6. Update Vaults
+        # 4. Update Vaults
         old_daily = DailyVault.objects.filter(branch__name=OLD_NAME)
         if old_daily.exists():
             count = old_daily.update(branch=branch)
@@ -136,7 +141,7 @@ def main():
             count = old_weekly.update(branch=branch)
             print(f"✓ Updated {count} weekly vaults")
         
-        # 7. Update Savings
+        # 5. Update Savings
         old_savings = BranchSavings.objects.filter(branch__name=OLD_NAME)
         if old_savings.exists():
             count = old_savings.update(branch=branch)
