@@ -23,13 +23,13 @@ def _get_security_balance(branch):
     branch_name = branch.name
 
     security_in = VaultTransaction.objects.filter(
-        branch=branch_name,
+        branch__iexact=branch_name,  # FIXED: Case-insensitive
         transaction_type='security_deposit',
         direction='in'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
     security_out = VaultTransaction.objects.filter(
-        branch=branch_name,
+        branch__iexact=branch_name,  # FIXED: Case-insensitive
         transaction_type__in=['security_return', 'security_used'],
         direction='out'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
@@ -41,7 +41,7 @@ def _vault_qs(branch_name):
     """Return an optimised VaultTransaction queryset for a branch."""
     return (
         VaultTransaction.objects
-        .filter(branch=branch_name)
+        .filter(branch__iexact=branch_name)  # FIXED: Use case-insensitive match
         .select_related('loan', 'recorded_by', 'approved_by')
         .defer(
             'recorded_by__password', 'recorded_by__address', 'recorded_by__national_id',
