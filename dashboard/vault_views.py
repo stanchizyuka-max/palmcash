@@ -101,22 +101,35 @@ def vault_dashboard(request):
     vault_type = request.GET.get('vault_type', '').strip()  # NEW: Vault type filter
     show_reversals = request.GET.get('show_reversals', 'all')  # NEW: Reversal filter
 
+    # DEBUG: Log filter parameters
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Vault filters - date_from: '{date_from}', date_to: '{date_to}', tx_type: '{tx_type}', direction: '{direction}', vault_type: '{vault_type}', show_reversals: '{show_reversals}'")
+    logger.info(f"Initial queryset count: {qs.count()}")
+
     if date_from:
         qs = qs.filter(transaction_date__date__gte=date_from)
+        logger.info(f"After date_from filter: {qs.count()}")
     if date_to:
         qs = qs.filter(transaction_date__date__lte=date_to)
+        logger.info(f"After date_to filter: {qs.count()}")
     if tx_type:
         qs = qs.filter(transaction_type=tx_type)
+        logger.info(f"After tx_type filter: {qs.count()}")
     if direction:
         qs = qs.filter(direction=direction)
+        logger.info(f"After direction filter: {qs.count()}")
     if vault_type:  # NEW: Filter by vault type
         qs = qs.filter(vault_type=vault_type)
+        logger.info(f"After vault_type filter: {qs.count()}")
     
     # NEW: Filter by reversal status
     if show_reversals == 'hide':
         qs = qs.exclude(description__icontains='REVERSAL:')
+        logger.info(f"After hide reversals filter: {qs.count()}")
     elif show_reversals == 'only':
         qs = qs.filter(description__icontains='REVERSAL:')
+        logger.info(f"After only reversals filter: {qs.count()}")
 
     totals = qs.aggregate(
         total_in=Sum('amount', filter=Q(direction='in')),
