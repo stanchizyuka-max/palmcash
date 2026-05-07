@@ -94,11 +94,11 @@ def vault_dashboard(request):
             vault_balances = {'daily': 0, 'weekly': 0, 'total': 0}
             qs = VaultTransaction.objects.none()
 
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    tx_type = request.GET.get('type')
-    direction = request.GET.get('direction')
-    vault_type = request.GET.get('vault_type')  # NEW: Vault type filter
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    tx_type = request.GET.get('type', '').strip()
+    direction = request.GET.get('direction', '').strip()
+    vault_type = request.GET.get('vault_type', '').strip()  # NEW: Vault type filter
     show_reversals = request.GET.get('show_reversals', 'all')  # NEW: Reversal filter
 
     if date_from:
