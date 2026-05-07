@@ -3041,6 +3041,31 @@ def expense_list(request):
     if expense_code:
         expenses = expenses.filter(expense_code_id=expense_code)
     
+    # Filter by vault type
+    vault_type_filter = request.GET.get('vault_type', '')
+    if vault_type_filter:
+        # Filter expenses by vault type through VaultTransaction
+        from expenses.models import VaultTransaction
+        vault_tx_ids = VaultTransaction.objects.filter(
+            transaction_type='expense',
+            vault_type=vault_type_filter,
+            direction='out'
+        ).values_list('id', flat=True)
+        # Get expense IDs that match
+        expense_ids = []
+        for expense in expenses:
+            vault_tx = VaultTransaction.objects.filter(
+                branch=expense.branch,
+                transaction_type='expense',
+                description__icontains=expense.title,
+                amount=expense.amount,
+                direction='out',
+                vault_type=vault_type_filter
+            ).first()
+            if vault_tx:
+                expense_ids.append(expense.id)
+        expenses = expenses.filter(id__in=expense_ids)
+    
     # Pagination
     from django.core.paginator import Paginator
     paginator = Paginator(expenses, 50)
@@ -3073,6 +3098,7 @@ def expense_list(request):
         'branch': branch,
         'all_branches': all_branches,
         'branch_filter': branch_filter if user.role == 'admin' or user.is_superuser else None,
+        'vault_type_filter': vault_type_filter,
     }
     
     return render(request, 'dashboard/expense_list.html', context)

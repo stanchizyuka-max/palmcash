@@ -76,7 +76,7 @@
                 </a>
             </div>
 
-            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 {% if all_branches %}
                 <!-- Branch filter for admins -->
                 <div>
@@ -131,6 +131,19 @@
                             {{ code.name }}
                         </option>
                         {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="vault_type" class="block text-sm font-semibold text-secondary-900 mb-2">Vault Type</label>
+                    <select 
+                        id="vault_type" 
+                        name="vault_type"
+                        class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                        <option value="">All Vaults</option>
+                        <option value="daily" {% if vault_type_filter == 'daily' %}selected{% endif %}>📅 Daily</option>
+                        <option value="weekly" {% if vault_type_filter == 'weekly' %}selected{% endif %}>📆 Weekly</option>
                     </select>
                 </div>
 
