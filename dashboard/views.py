@@ -6488,6 +6488,7 @@ def processing_fees_summary(request):
     officer_filter = request.GET.get('officer', '')
     group_filter = request.GET.get('group', '')
     status_filter = request.GET.get('status', '')
+    vault_type_filter = request.GET.get('vault_type', '')
     
     apps = LoanApplication.objects.filter(
         processing_fee__isnull=False, processing_fee__gt=0
@@ -6510,6 +6511,9 @@ def processing_fees_summary(request):
         apps = apps.filter(processing_fee_verified=True)
     elif status_filter == 'pending':
         apps = apps.filter(processing_fee_verified=False)
+    
+    if vault_type_filter:
+        apps = apps.filter(repayment_frequency=vault_type_filter)
 
     total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
     verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
@@ -6554,6 +6558,7 @@ def processing_fees_summary(request):
         'officer_filter': officer_filter,
         'group_filter': group_filter,
         'status_filter': status_filter,
+        'vault_type_filter': vault_type_filter,
     })
 
 
