@@ -107,12 +107,25 @@ def vault_dashboard(request):
     logger.info(f"Vault filters - date_from: '{date_from}', date_to: '{date_to}', tx_type: '{tx_type}', direction: '{direction}', vault_type: '{vault_type}', show_reversals: '{show_reversals}'")
     logger.info(f"Initial queryset count: {qs.count()}")
 
+    # FIXED: Use timezone-aware date filtering
     if date_from:
-        qs = qs.filter(transaction_date__date__gte=date_from)
+        from datetime import datetime
+        from django.utils import timezone as tz
+        # Convert date string to timezone-aware datetime at start of day
+        dt_from = datetime.strptime(date_from, '%Y-%m-%d')
+        dt_from = tz.make_aware(dt_from.replace(hour=0, minute=0, second=0, microsecond=0))
+        qs = qs.filter(transaction_date__gte=dt_from)
         logger.info(f"After date_from filter: {qs.count()}")
+    
     if date_to:
-        qs = qs.filter(transaction_date__date__lte=date_to)
+        from datetime import datetime
+        from django.utils import timezone as tz
+        # Convert date string to timezone-aware datetime at end of day
+        dt_to = datetime.strptime(date_to, '%Y-%m-%d')
+        dt_to = tz.make_aware(dt_to.replace(hour=23, minute=59, second=59, microsecond=999999))
+        qs = qs.filter(transaction_date__lte=dt_to)
         logger.info(f"After date_to filter: {qs.count()}")
+    
     if tx_type:
         qs = qs.filter(transaction_type=tx_type)
         logger.info(f"After tx_type filter: {qs.count()}")

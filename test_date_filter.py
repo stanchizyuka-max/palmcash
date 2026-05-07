@@ -87,21 +87,30 @@ else:
 
 print(f"   Final queryset: {qs.count()} transactions")
 
-# Test 7: Test with actual date strings (like from form)
-print(f"\n\n🧪 TEST 7: Simulate form submission with dates")
+# Test 7: Test with actual date strings (like from form) - TIMEZONE AWARE
+print(f"\n\n🧪 TEST 7: Simulate form submission with dates (TIMEZONE AWARE)")
 date_from_form = '2026-05-01'
 date_to_form = '2026-05-07'
+
+from datetime import datetime
+from django.utils import timezone as tz
 
 qs2 = VaultTransaction.objects.all()
 print(f"   Initial queryset: {qs2.count()} transactions")
 
 if date_from_form.strip():
-    qs2 = qs2.filter(transaction_date__date__gte=date_from_form)
+    dt_from = datetime.strptime(date_from_form, '%Y-%m-%d')
+    dt_from = tz.make_aware(dt_from.replace(hour=0, minute=0, second=0, microsecond=0))
+    qs2 = qs2.filter(transaction_date__gte=dt_from)
     print(f"   After date_from filter ({date_from_form}): {qs2.count()}")
+    print(f"   Using datetime: {dt_from}")
 
 if date_to_form.strip():
-    qs2 = qs2.filter(transaction_date__date__lte=date_to_form)
+    dt_to = datetime.strptime(date_to_form, '%Y-%m-%d')
+    dt_to = tz.make_aware(dt_to.replace(hour=23, minute=59, second=59, microsecond=999999))
+    qs2 = qs2.filter(transaction_date__lte=dt_to)
     print(f"   After date_to filter ({date_to_form}): {qs2.count()}")
+    print(f"   Using datetime: {dt_to}")
 
 print(f"   Final queryset: {qs2.count()} transactions")
 
