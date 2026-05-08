@@ -146,14 +146,13 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
         loan_app.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
         loan_app.status = 'pending'
         
-        # Handle backdating: Set created_at to application_date if provided
-        application_date = form.cleaned_data.get('application_date')
-        if application_date:
-            from datetime import datetime
-            from django.utils import timezone
-            # Convert date to timezone-aware datetime at start of day
-            dt = datetime.combine(application_date, datetime.min.time())
-            loan_app.created_at = timezone.make_aware(dt)
+        # Set created_at to application_date (required field)
+        application_date = form.cleaned_data['application_date']
+        from datetime import datetime
+        from django.utils import timezone
+        # Convert date to timezone-aware datetime at start of day
+        dt = datetime.combine(application_date, datetime.min.time())
+        loan_app.created_at = timezone.make_aware(dt)
         
         loan_app.save()
         

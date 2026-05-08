@@ -28,14 +28,13 @@
                 <!-- Application Date (Backdating) -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Application Date
-                        <span class="text-gray-400 font-normal text-xs ml-1">(defaults to today)</span>
+                        Application Date *
                     </label>
                     {{ form.application_date }}
                     {% if form.application_date.errors %}<p class="text-red-600 text-sm mt-1">{{ form.application_date.errors.0 }}</p>{% endif %}
                     <p class="text-xs text-gray-500 mt-1">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Select a past date if this application was made on a previous day. Cannot be in the future.
+                        Select the date when this application was actually made. Defaults to today. Cannot be in the future.
                     </p>
                 </div>
                 
