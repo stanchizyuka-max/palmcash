@@ -1211,9 +1211,11 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
 
     def _base_context(self, step, pk=None):
         from accounts.forms import BorrowerRegistrationForm, BorrowerDetailsForm
+        from datetime import date
         ctx = {
             'step': step,
             'steps_meta': self.STEPS_META,
+            'today': date.today().isoformat(),
         }
         if step == 1:
             ctx['reg_form'] = BorrowerRegistrationForm()
@@ -1319,6 +1321,8 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         from django.db.models import Q
         from loans.models import LoanApplication
         from clients.models import BorrowerGroup
+        from django.utils import timezone
+        from datetime import datetime, date
 
         borrower = get_object_or_404(User, pk=pk)
 
@@ -1327,6 +1331,7 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
         purpose = request.POST.get('purpose', '').strip()
         group_id = request.POST.get('group') or None
         repayment_frequency = request.POST.get('repayment_frequency', 'daily')
+        application_date_str = request.POST.get('application_date', '').strip()
 
         errors = []
         if not loan_amount:
@@ -1335,6 +1340,25 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
             errors.append('Duration is required.')
         if not purpose:
             errors.append('Purpose is required.')
+        if not application_date_str:
+            errors.append('Application date is required.')
+
+        # Validate application date
+        application_datetime = None
+        if application_date_str:
+            try:
+                application_date = datetime.strptime(application_date_str, '%Y-%m-%d').date()
+                
+                # Check if date is in the future
+                if application_date > date.today():
+                    errors.append('Application date cannot be in the future.')
+                else:
+                    # Convert to timezone-aware datetime at start of day
+                    application_datetime = timezone.make_aware(
+                        datetime.combine(application_date, datetime.min.time())
+                    )
+            except ValueError:
+                errors.append('Invalid application date format.')
 
         group = None
         if group_id:
@@ -1355,6 +1379,11 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 application_number=f"LA-{uuid.uuid4().hex[:8].upper()}",
                 status='pending',
             )
+            
+            # Set the application date (created_at)
+            if application_datetime:
+                app.created_at = application_datetime
+            
             app.save()
 
             # Add borrower to the selected group

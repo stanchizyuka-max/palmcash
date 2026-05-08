@@ -169,6 +169,18 @@
         <input type="hidden" name="step" value="3">
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Application Date <span class="text-red-500">*</span></label>
+          <input type="date" name="application_date" required
+            value="{{ post_data.application_date|default:today }}"
+            max="{{ today }}"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-500 mt-1">
+            <i class="fas fa-info-circle mr-1"></i>
+            Select the date when this application was actually made. Defaults to today. Cannot be in the future.
+          </p>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Loan Amount (K) <span class="text-red-500">*</span></label>
           <input type="number" name="loan_amount" step="0.01" min="1" required
             value="{{ post_data.loan_amount }}"
