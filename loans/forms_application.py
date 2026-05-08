@@ -1,8 +1,21 @@
 from django import forms
 from .models import LoanApplication
+from datetime import date
 
 
 class LoanApplicationForm(forms.ModelForm):
+    # Add application_date field for backdating
+    application_date = forms.DateField(
+        required=False,
+        initial=date.today,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+            'max': date.today().isoformat(),  # Prevent future dates
+        }),
+        help_text='Date when the application was actually made (defaults to today)'
+    )
+    
     class Meta:
         model = LoanApplication
         fields = ['borrower', 'loan_amount', 'repayment_frequency', 'duration_days', 'purpose', 'group']
@@ -32,6 +45,19 @@ class LoanApplicationForm(forms.ModelForm):
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
             }),
         }
+    
+    def clean_application_date(self):
+        application_date = self.cleaned_data.get('application_date')
+        
+        # If not provided, default to today
+        if not application_date:
+            application_date = date.today()
+        
+        # Prevent future dates
+        if application_date > date.today():
+            raise forms.ValidationError('Application date cannot be in the future.')
+        
+        return application_date
     
     def clean(self):
         cleaned_data = super().clean()
