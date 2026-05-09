@@ -87,11 +87,18 @@ vault_type = 'weekly' if loan.repayment_frequency == 'weekly' else 'daily'
 print(f"Vault type: {vault_type}")
 
 # Get current vault balance
-from dashboard.vault_views import _get_vault_balance
+from loans import vault_services
 
 try:
-    current_balance = _get_vault_balance(branch_name, vault_type)
-    print(f"\nCurrent vault balance: K{current_balance}")
+    # Get branch object
+    branch_obj = Branch.objects.filter(name__iexact=branch_name).first()
+    if branch_obj:
+        vault_balances = vault_services.get_vault_balances(branch_obj)
+        current_balance = vault_balances.get(vault_type, Decimal('0.00'))
+        print(f"\nCurrent {vault_type} vault balance: K{current_balance}")
+    else:
+        print(f"\n⚠️  Branch '{branch_name}' not found in database")
+        current_balance = Decimal('0.00')
 except Exception as e:
     print(f"\n⚠️  Could not get current vault balance: {e}")
     current_balance = Decimal('0.00')
