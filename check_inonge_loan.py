@@ -69,9 +69,13 @@ for borrower in borrowers:
         print(f"{'-'*70}")
         print(f"Application Number: {loan.application_number}")
         print(f"Status:             {loan.status}")
-        print(f"Amount:             K{loan.loan_amount}")
+        print(f"Principal Amount:   K{loan.principal_amount}")
+        print(f"Total Amount:       K{loan.total_amount}")
+        print(f"Amount Paid:        K{loan.amount_paid}")
+        print(f"Balance Remaining:  K{loan.balance_remaining}")
         print(f"Disbursement Date:  {loan.disbursement_date}")
         print(f"Loan Type:          {loan.loan_type.name if loan.loan_type else 'Unknown'}")
+        print(f"Repayment Freq:     {loan.get_repayment_frequency_display()}")
         
         # Get branch info
         branch_name = "Unknown"
@@ -97,7 +101,7 @@ for borrower in borrowers:
                 loan=loan,
                 transaction_type='loan_disbursement',
                 direction='out',
-                amount=loan.loan_amount
+                amount=loan.principal_amount
             )
             
             if vault_txs.exists():
@@ -116,7 +120,7 @@ for borrower in borrowers:
                 print(f"\n❌ NO VAULT TRANSACTION FOUND!")
                 print(f"\n⚠️  PROBLEM DETECTED:")
                 print(f"   Loan {loan.application_number} is ACTIVE")
-                print(f"   Amount: K{loan.loan_amount}")
+                print(f"   Principal Amount: K{loan.principal_amount}")
                 print(f"   Disbursed: {loan.disbursement_date}")
                 print(f"   But NO vault transaction recorded!")
                 print(f"\n   This means the vault was NOT debited for this disbursement.")
