@@ -67,11 +67,11 @@ for borrower in borrowers:
         print(f"\n{'-'*70}")
         print(f"LOAN #{i}")
         print(f"{'-'*70}")
-        print(f"Loan Number:        {loan.loan_number}")
+        print(f"Application Number: {loan.application_number}")
         print(f"Status:             {loan.status}")
         print(f"Amount:             K{loan.loan_amount}")
         print(f"Disbursement Date:  {loan.disbursement_date}")
-        print(f"Repayment Type:     {loan.get_repayment_frequency_display()}")
+        print(f"Loan Type:          {loan.loan_type.name if loan.loan_type else 'Unknown'}")
         
         # Get branch info
         branch_name = "Unknown"
@@ -115,7 +115,7 @@ for borrower in borrowers:
             else:
                 print(f"\n❌ NO VAULT TRANSACTION FOUND!")
                 print(f"\n⚠️  PROBLEM DETECTED:")
-                print(f"   Loan {loan.loan_number} is ACTIVE")
+                print(f"   Loan {loan.application_number} is ACTIVE")
                 print(f"   Amount: K{loan.loan_amount}")
                 print(f"   Disbursed: {loan.disbursement_date}")
                 print(f"   But NO vault transaction recorded!")
