@@ -63,12 +63,28 @@ def _get_branch_for_loan(loan, fallback_user=None):
                 branch = Branch.objects.filter(name__iexact=branch_ref).first()
                 if branch:
                     return branch
-    except Exception:
-        pass
+                else:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Branch '{branch_ref}' not found in database for loan {loan.application_number}"
+                    )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error getting branch for loan {loan.application_number}: {e}", exc_info=True)
     
     # Fallback: use the verifying manager's branch
     if fallback_user and hasattr(fallback_user, 'managed_branch') and fallback_user.managed_branch:
         return fallback_user.managed_branch
+    
+    # Log if we couldn't find a branch
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(
+        f"Could not determine branch for loan {loan.application_number}. "
+        f"Loan officer: {loan.loan_officer}, Fallback user: {fallback_user}"
+    )
     
     return None
 
@@ -108,40 +124,68 @@ def record_security_deposit(loan, amount, initiated_by):
 
 def record_loan_disbursement(loan, approved_by):
     """Record loan disbursement - routes to correct vault based on loan type"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     branch = _get_branch_for_loan(loan, fallback_user=approved_by)
     if not branch:
+        logger.error(
+            f"Cannot record disbursement for loan {loan.application_number}: "
+            f"Branch could not be determined. Loan officer: {loan.loan_officer}, "
+            f"Approved by: {approved_by}"
+        )
         return None
     
-    with db_transaction.atomic():
-        vault, vault_type = _get_vault_for_loan(loan, branch)
-        
-        # Check sufficient balance
-        if vault.balance < Decimal(str(loan.principal_amount)):
-            raise ValueError(
-                f'Insufficient balance in {vault_type} vault. '
-                f'Available: K{vault.balance:,.2f}, Required: K{loan.principal_amount:,.2f}'
+    try:
+        with db_transaction.atomic():
+            vault, vault_type = _get_vault_for_loan(loan, branch)
+            
+            # Check sufficient balance
+            if vault.balance < Decimal(str(loan.principal_amount)):
+                error_msg = (
+                    f'Insufficient balance in {vault_type} vault for {branch.name}. '
+                    f'Available: K{vault.balance:,.2f}, Required: K{loan.principal_amount:,.2f}'
+                )
+                logger.error(f"Disbursement failed for {loan.application_number}: {error_msg}")
+                raise ValueError(error_msg)
+            
+            # Update vault balance
+            vault.balance -= Decimal(str(loan.principal_amount))
+            vault.last_transaction_date = timezone.now()
+            vault.total_outflows += Decimal(str(loan.principal_amount))
+            vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
+            
+            # Create vault transaction record
+            from expenses.models import VaultTransaction
+            vault_tx = VaultTransaction.objects.create(
+                transaction_type='loan_disbursement',
+                direction='out',
+                branch=branch.name,
+                vault_type=vault_type,
+                amount=loan.principal_amount,
+                balance_after=vault.balance,
+                description=f'Disbursement for {loan.application_number} ({vault_type} vault)',
+                reference_number=_ref(),
+                loan=loan,
+                recorded_by=loan.loan_officer,
+                approved_by=approved_by,
+                transaction_date=timezone.now(),
             )
-        
-        vault.balance -= Decimal(str(loan.principal_amount))
-        vault.last_transaction_date = timezone.now()
-        vault.total_outflows += Decimal(str(loan.principal_amount))
-        vault.save(update_fields=['balance', 'last_transaction_date', 'total_outflows', 'updated_at'])
-        
-        from expenses.models import VaultTransaction
-        return VaultTransaction.objects.create(
-            transaction_type='loan_disbursement',
-            direction='out',
-            branch=branch.name,
-            vault_type=vault_type,
-            amount=loan.principal_amount,
-            balance_after=vault.balance,
-            description=f'Disbursement for {loan.application_number} ({vault_type} vault)',
-            reference_number=_ref(),
-            loan=loan,
-            recorded_by=loan.loan_officer,
-            approved_by=approved_by,
-            transaction_date=timezone.now(),
+            
+            logger.info(
+                f"Successfully recorded disbursement for {loan.application_number}: "
+                f"K{loan.principal_amount} from {vault_type} vault in {branch.name}. "
+                f"New balance: K{vault.balance}"
+            )
+            
+            return vault_tx
+            
+    except Exception as e:
+        logger.error(
+            f"Error recording disbursement for {loan.application_number}: {e}",
+            exc_info=True
         )
+        raise
 
 
 def record_security_return(loan, amount, approved_by):

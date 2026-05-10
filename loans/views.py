@@ -606,6 +606,39 @@ class DisburseLoanView(LoginRequiredMixin, View):
             except Exception as e:
                 print(f"Error logging disbursement: {e}")
             
+            # Record vault outflow for disbursement BEFORE marking as active
+            # This is critical - if vault recording fails, disbursement should not proceed
+            try:
+                from .vault_services import record_loan_disbursement
+                vault_tx = record_loan_disbursement(loan, request.user)
+                
+                if not vault_tx:
+                    # Vault recording returned None - this means it failed
+                    raise ValueError(
+                        "Vault recording failed: Could not determine branch or vault. "
+                        "Please ensure the loan officer has a branch assignment."
+                    )
+                
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"CRITICAL: Vault disbursement recording failed for {loan.application_number}: {e}", 
+                    exc_info=True
+                )
+                
+                # Rollback: Keep loan in approved status, don't mark as active
+                loan.status = 'approved'
+                loan.save()
+                
+                messages.error(
+                    request,
+                    f'Disbursement FAILED: Could not record vault transaction. '
+                    f'Error: {e}. '
+                    f'The loan remains in "Approved" status. Please contact system administrator.'
+                )
+                return redirect('loans:detail', pk=pk)
+            
             # Generate payment schedule
             try:
                 from .utils import generate_payment_schedule
@@ -613,23 +646,9 @@ class DisburseLoanView(LoginRequiredMixin, View):
             except Exception as e:
                 print(f"Warning: Payment schedule generation: {str(e)}")
             
-            # Update loan status to active after payment schedule is created
+            # Update loan status to active ONLY after vault recording succeeds
             loan.status = 'active'
             loan.save()
-
-            # Record vault outflow for disbursement
-            try:
-                from .vault_services import record_loan_disbursement
-                record_loan_disbursement(loan, request.user)
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Vault disbursement recording failed for {loan.application_number}: {e}", exc_info=True)
-                messages.warning(
-                    request,
-                    f'Loan disbursed successfully, but vault recording failed: {e}. '
-                    f'Please contact system administrator.'
-                )
             
             # Send disbursement email
             try:
