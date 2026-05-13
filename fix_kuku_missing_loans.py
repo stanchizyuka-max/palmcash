@@ -4,18 +4,24 @@ Find and fix missing vault transactions for Carol and Kaluba's loans in KUKU bra
 """
 
 import os
+import sys
 import django
 
+# Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palmcash.settings')
 django.setup()
 
+# Django imports (must come after django.setup())
+from django.db.models import Q
+from django.utils import timezone
+from django.db import transaction
+from decimal import Decimal
+
+# App imports
 from loans.models import Loan
 from expenses.models import VaultTransaction
 from accounts.models import User
 from clients.models import Branch
-from django.utils import timezone
-from django.db import transaction
-from decimal import Decimal
 
 print("\n" + "="*70)
 print("FIX MISSING VAULT TRANSACTIONS - KUKU BRANCH")
@@ -31,7 +37,6 @@ carol_users = User.objects.filter(
 
 # Search for Kaluba
 print("🔍 Searching for borrower 'Kaluba'...")
-from django.db.models import Q
 kaluba_users = User.objects.filter(
     role='borrower'
 ).filter(
