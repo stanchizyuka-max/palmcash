@@ -1,15 +1,53 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm, SetPasswordForm
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+import re
 
 User = get_user_model()
+
+
+def validate_zambian_phone(value):
+    """
+    Validate Zambian phone numbers.
+    Accepts formats:
+    - 0955123456 (10 digits starting with 05, 07, or 09)
+    - 955123456 (9 digits starting with 5, 7, or 9)
+    - +260955123456 (with country code)
+    - 260955123456 (with country code, no +)
+    """
+    # Remove spaces, dashes, and parentheses
+    cleaned = re.sub(r'[\s\-\(\)]', '', str(value))
+    
+    # Check various formats
+    patterns = [
+        r'^0[579]\d{8}$',  # 0955123456 (10 digits starting with 05, 07, 09)
+        r'^[579]\d{8}$',   # 955123456 (9 digits starting with 5, 7, 9)
+        r'^\+260[579]\d{8}$',  # +260955123456
+        r'^260[579]\d{8}$',    # 260955123456
+    ]
+    
+    for pattern in patterns:
+        if re.match(pattern, cleaned):
+            return cleaned
+    
+    raise ValidationError(
+        'Invalid phone number. Please enter a valid Zambian number starting with 05, 07, or 09. '
+        'Examples: 0955123456, 0977123456, 0965123456'
+    )
 
 
 class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
-    phone_number = forms.CharField(max_length=20, required=True, label="Primary Phone Number")
+    phone_number = forms.CharField(
+        max_length=20, 
+        required=True, 
+        label="Primary Phone Number",
+        validators=[validate_zambian_phone],
+        help_text="Enter phone number starting with 05, 07, or 09"
+    )
     date_of_birth = forms.DateField(required=True, widget=forms.DateInput(attrs={'type': 'date'}))
     national_id = forms.CharField(max_length=50, required=True, label="National ID Number")
     
@@ -25,6 +63,17 @@ class UserRegistrationForm(UserCreationForm):
 
 class BorrowerRegistrationForm(forms.ModelForm):
     """Step 1: Basic info for borrower registration"""
+    
+    phone_number = forms.CharField(
+        max_length=20,
+        required=True,
+        validators=[validate_zambian_phone],
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g. 0955123456, 0977123456', 
+            'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'
+        }),
+        help_text="Enter phone number starting with 05, 07, or 09"
+    )
 
     class Meta:
         model = User
@@ -35,7 +84,6 @@ class BorrowerRegistrationForm(forms.ModelForm):
         widgets = {
             'first_name': forms.TextInput(attrs={'placeholder': 'First Name', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
             'last_name': forms.TextInput(attrs={'placeholder': 'Last Name', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
-            'phone_number': forms.TextInput(attrs={'placeholder': 'Phone Number', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'}),
             'gender': forms.Select(attrs={'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white'}),
             'marital_status': forms.Select(attrs={'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 bg-white'}),
@@ -170,7 +218,16 @@ class UserProfileForm(forms.ModelForm):
 class LoanOfficerRegistrationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'placeholder': 'First Name', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
     last_name = forms.CharField(max_length=30, required=True, widget=forms.TextInput(attrs={'placeholder': 'Last Name', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
-    phone_number = forms.CharField(max_length=20, required=True, widget=forms.TextInput(attrs={'placeholder': 'Phone Number', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
+    phone_number = forms.CharField(
+        max_length=20, 
+        required=True, 
+        validators=[validate_zambian_phone],
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g. 0955123456, 0977123456', 
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        }),
+        help_text="Enter phone number starting with 05, 07, or 09"
+    )
     national_id = forms.CharField(max_length=50, required=True, label='NRC Number', widget=forms.TextInput(attrs={'placeholder': 'e.g. 123456/78/9', 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'}))
 
     class Meta:
