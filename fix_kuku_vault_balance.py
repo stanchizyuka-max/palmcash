@@ -34,7 +34,7 @@ if not branch:
 print(f"\n✅ Found branch: {branch.name}")
 
 # Get current vault balance
-weekly_vault = WeeklyVault.objects.filter(branch=branch.name).first()
+weekly_vault = WeeklyVault.objects.filter(branch=branch).first()
 if not weekly_vault:
     print("\n❌ Weekly vault record not found for KUKU!")
     exit()
