@@ -1,78 +1,88 @@
 # KUKU Branch Vault Fix Summary
 
 ## Problem Discovered
-
-Two loans in KUKU branch were disbursed but vault transactions were not recorded:
-
-1. **Carol Bwalya** - Loan LV-000032 - K2,000 (Weekly)
-2. **Kaluba Bwalya** - Loan LV-000031 - K2,000 (Weekly)
-
-**Total missing deductions: K4,000**
+Two loans in KUKU branch (Carol Bwalya and Kaluba Bwalya) were disbursed on May 8th but vault transactions were never recorded.
 
 ## Root Cause
+**Same issue as Inonge's loan in KAMWALA SOUTH**: The branch detection logic failed during disbursement, causing vault recording to fail silently. The loans were marked as active even though the vault wasn't updated.
 
-Same issue as the Inonge case in KAMWALA SOUTH:
-- When loans were disbursed on May 8th, 2026, the vault recording failed silently
-- The branch detection logic had issues (treating Branch object as string)
-- Error was caught but operation continued, marking loans as "active" without recording vault transactions
-- This was **before** we implemented the mandatory vault recording fix
+This happened because:
+1. The code had a try-except block that caught vault recording errors
+2. But it allowed the loan to be marked as active anyway
+3. This was fixed in commit from previous session (moved vault recording before status change)
 
-## What Was Fixed
+## Affected Loans
+1. **Carol Bwalya** - LV-000032
+   - Amount: K2,000
+   - Disbursed: May 8, 2026
+   - Type: Weekly
 
-### 1. Created Missing Vault Transactions
-- Created VaultTransaction ID 664 for Carol Bwalya (K2,000)
-- Created VaultTransaction ID 665 for Kaluba Bwalya (K2,000)
-- Both marked as retroactive entries with reference numbers starting with "RETRO-DISB"
+2. **Kaluba Bwalya** - LV-000031
+   - Amount: K2,000
+   - Disbursed: May 8, 2026
+   - Type: Weekly
 
-### 2. Vault Balance Issue Detected
-⚠️ **IMPORTANT**: The script created both transactions using the same starting balance (K19,470), which means:
-- First transaction: K19,470 - K2,000 = K17,470 ✅
-- Second transaction: K19,470 - K2,000 = K17,470 ❌ (should be K15,470)
+**Total missing from vault: K4,000**
 
-**Current vault balance is INCORRECT** - it shows K17,470 but should be K15,470
+## Fix Applied
+
+### Step 1: Create Missing Vault Transaction Records ✅
+**Script**: `fix_kuku_missing_loans.py`
+
+Created two VaultTransaction records:
+- ID 664: Carol Bwalya - K2,000 OUT
+- ID 665: Kaluba Bwalya - K2,000 OUT
+
+### Step 2: Update Vault Balance ⏳
+**Script**: `fix_kuku_vault_balance.py`
+
+The vault transaction records were created, but the WeeklyVault balance wasn't updated.
+
+**Current situation**:
+- Vault dashboard shows: K13,550 (INCORRECT)
+- Should show: K13,550 - K4,000 = K9,550 (after deducting the two loans)
+
+**OR** the script calculated from existing transactions and got K17,470, which means:
+- The script read the balance BEFORE the fix as K19,470
+- After deducting K4,000, it should be K15,470
+- But the dashboard shows K13,550
+
+This suggests there may be other transactions that happened between the script run and now.
 
 ## Next Steps
 
-Run the verification and fix script:
-
+### On the Server:
 ```bash
+# Pull the latest code
 git pull origin main
-python verify_and_fix_kuku_vault.py
+
+# Run the vault balance fix
+python fix_kuku_vault_balance.py
 ```
 
-This script will:
-1. Calculate the correct vault balance from all transactions
-2. Show the discrepancy
-3. Offer to fix the vault balance
-4. Update the WeeklyVault record to the correct amount
+The script will:
+1. Calculate the correct balance from ALL vault transactions
+2. Show you the current stored balance vs calculated balance
+3. Ask for confirmation
+4. Update the WeeklyVault balance to match the calculated amount
 
-## Expected Result
-
-After running the fix script:
-- **Weekly Vault Balance**: K15,470.00 (K19,470 - K2,000 - K2,000)
-- All transactions will be properly recorded
-- Vault dashboard will show correct balances
+### After Running:
+1. Refresh the KUKU vault dashboard
+2. Verify the weekly vault balance is correct
+3. Verify Carol and Kaluba's loans show in the transaction history
 
 ## Prevention
+This issue has been prevented by the fix from the previous session:
+- Vault recording now happens BEFORE marking loan as active
+- If vault recording fails, the loan stays in "approved" status
+- Better error logging to catch issues early
 
-This issue is now prevented by:
-1. **Mandatory vault recording** - loans cannot be marked "active" if vault recording fails
-2. **Improved error handling** - vault recording errors are logged and shown to users
-3. **Branch detection fix** - properly handles Branch objects vs strings
+## Related Issues Fixed
+1. **Inonge's loan (KAMWALA SOUTH)** - Same issue, fixed in previous session
+2. **Vault recording improvements** - Made vault recording mandatory before loan activation
 
-See: `VAULT_RECORDING_IMPROVEMENTS.md` for details on the prevention measures.
-
-## Files Involved
-
-- `fix_kuku_missing_loans.py` - Script that created the retroactive transactions
-- `verify_and_fix_kuku_vault.py` - Script to verify and correct vault balance
-- `loans/views.py` - Contains improved vault recording logic
-- `loans/vault_services.py` - Contains improved error handling
-
-## Timeline
-
-- **May 8, 2026**: Loans disbursed, vault recording failed silently
-- **May 13, 2026**: Issue discovered and fixed
-  - Created missing vault transactions
-  - Identified vault balance discrepancy
-  - Created fix script to correct balance
+## Files Modified
+- `fix_kuku_missing_loans.py` - Find and fix missing vault transactions
+- `fix_kuku_vault_balance.py` - Update vault balance to match transactions
+- `loans/views.py` - Improved vault recording (previous session)
+- `loans/vault_services.py` - Better error handling (previous session)
