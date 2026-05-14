@@ -17,7 +17,8 @@ from django.db import transaction
 from decimal import Decimal
 
 # App imports
-from expenses.models import VaultTransaction, WeeklyVault
+from loans.models import WeeklyVault
+from expenses.models import VaultTransaction
 from clients.models import Branch
 
 print("\n" + "="*70)
