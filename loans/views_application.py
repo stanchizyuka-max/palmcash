@@ -563,6 +563,9 @@ class VerifyProcessingFeeView(LoginRequiredMixin, View):
                     vault.last_transaction_date = tz.now()
                     vault.save(update_fields=['balance', 'total_inflows', 'last_transaction_date', 'updated_at'])
                     
+                    # Use the backdated application date for the vault transaction
+                    transaction_date = app.created_at if app.created_at else tz.now()
+                    
                     VaultTransaction.objects.create(
                         transaction_type='deposit',
                         direction='in',
@@ -574,7 +577,7 @@ class VerifyProcessingFeeView(LoginRequiredMixin, View):
                         reference_number=f'PF-{app.application_number}',
                         recorded_by=officer,
                         approved_by=request.user,
-                        transaction_date=tz.now(),
+                        transaction_date=transaction_date,
                     )
                     vault_recorded = True
                     logger.info(f"Processing fee K{app.processing_fee} recorded in {vault_type} vault for {app.application_number} after manager verification")

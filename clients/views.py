@@ -1481,6 +1481,10 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                 vault = _get_or_create_vault(branch)
                 vault.balance += fee
                 vault.save(update_fields=['balance', 'updated_at'])
+                
+                # Use the backdated application date for the vault transaction
+                transaction_date = app.created_at if app.created_at else tz.now()
+                
                 VaultTransaction.objects.create(
                     transaction_type='deposit',
                     direction='in',
@@ -1490,7 +1494,7 @@ class RegisterBorrowerWizardView(LoginRequiredMixin, View):
                     description=f'Processing fee for application {app.application_number} — pending verification',
                     reference_number=_ref(),
                     recorded_by=request.user,
-                    transaction_date=tz.now(),
+                    transaction_date=transaction_date,
                 )
         except Exception as e:
             print(f"Vault fee record error: {e}")
