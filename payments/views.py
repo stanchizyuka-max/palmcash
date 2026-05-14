@@ -6,6 +6,43 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import Payment, PaymentSchedule, PaymentCollection
 
+
+def get_branch_staff_users(loan, exclude_user=None):
+    """
+    Get staff users (managers and officers) for the same branch as the loan.
+    Admins always get notified regardless of branch.
+    
+    Args:
+        loan: The loan object to determine the branch
+        exclude_user: Optional user to exclude from the list
+        
+    Returns:
+        QuerySet of User objects
+    """
+    from accounts.models import User
+    from django.db.models import Q
+    
+    # Always include admins
+    staff_query = Q(role='admin')
+    
+    # Get the loan's branch
+    if loan.loan_officer and hasattr(loan.loan_officer, 'officer_assignment'):
+        branch_name = loan.loan_officer.officer_assignment.branch
+        
+        # Add managers for this branch
+        staff_query |= Q(role='manager', managed_branch__name__iexact=branch_name)
+        
+        # Add loan officers for this branch
+        staff_query |= Q(role='loan_officer', officer_assignment__branch__iexact=branch_name)
+    
+    staff_users = User.objects.filter(staff_query).distinct()
+    
+    if exclude_user:
+        staff_users = staff_users.exclude(id=exclude_user.id)
+    
+    return staff_users
+
+
 class PaymentListView(LoginRequiredMixin, ListView):
     model = Payment
     template_name = 'payments/list.html'
@@ -414,10 +451,9 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         """Notify staff that payment has been confirmed"""
         try:
             from notifications.models import Notification
-            from accounts.models import User
             
-            # Get staff users (admins, loan officers, managers)
-            staff_users = User.objects.filter(role__in=['admin', 'loan_officer', 'manager']).exclude(id=self.request.user.id)
+            # Get staff users for the same branch as the loan
+            staff_users = get_branch_staff_users(payment.loan, exclude_user=self.request.user)
             
             # Create notifications for each staff member
             for staff_user in staff_users:
@@ -613,10 +649,9 @@ class UpfrontPaymentView(LoginRequiredMixin, View):
         """Notify admins about upfront payment submission"""
         try:
             from notifications.models import Notification, NotificationTemplate
-            from accounts.models import User
             
-            # Get staff users
-            staff_users = User.objects.filter(role__in=['admin', 'loan_officer', 'manager'])
+            # Get staff users for the same branch as the loan
+            staff_users = get_branch_staff_users(payment.loan)
             
             # Try to get notification template
             try:

@@ -10,6 +10,42 @@ from .models import Loan, LoanType, LoanDocument
 from .forms import LoanApplicationForm, LoanDocumentForm, DocumentVerificationForm
 from .forms_enhanced import EnhancedLoanApplicationForm
 
+
+def get_branch_staff_users(loan, exclude_user=None):
+    """
+    Get staff users (managers and officers) for the same branch as the loan.
+    Admins always get notified regardless of branch.
+    
+    Args:
+        loan: The loan object to determine the branch
+        exclude_user: Optional user to exclude from the list
+        
+    Returns:
+        QuerySet of User objects
+    """
+    from accounts.models import User
+    
+    # Always include admins
+    staff_query = Q(role='admin')
+    
+    # Get the loan's branch
+    if loan.loan_officer and hasattr(loan.loan_officer, 'officer_assignment'):
+        branch_name = loan.loan_officer.officer_assignment.branch
+        
+        # Add managers for this branch
+        staff_query |= Q(role='manager', managed_branch__name__iexact=branch_name)
+        
+        # Add loan officers for this branch
+        staff_query |= Q(role='loan_officer', officer_assignment__branch__iexact=branch_name)
+    
+    staff_users = User.objects.filter(staff_query).distinct()
+    
+    if exclude_user:
+        staff_users = staff_users.exclude(id=exclude_user.id)
+    
+    return staff_users
+
+
 class LoanListView(LoginRequiredMixin, ListView):
     model = Loan
     template_name = 'loans/list.html'
@@ -263,10 +299,10 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
             except NotificationTemplate.DoesNotExist:
                 return
             
-            # Get all administrators, managers, and loan officers
-            admins = User.objects.filter(role__in=['admin', 'manager', 'loan_officer'])
+            # Get staff users for the same branch as the loan
+            staff_users = get_branch_staff_users(loan)
             
-            for admin in admins:
+            for staff_user in staff_users:
                 # Format the message using the template
                 message = template.message_template.format(
                     borrower_name=loan.borrower.full_name,
@@ -275,12 +311,12 @@ class LoanApplicationView(LoginRequiredMixin, CreateView):
                 )
                 
                 Notification.objects.create(
-                    recipient=admin,
+                    recipient=staff_user,
                     template=template,
                     subject=template.subject,
                     message=message,
                     channel=template.channel,
-                    recipient_address=admin.email or '',
+                    recipient_address=staff_user.email or '',
                     scheduled_at=timezone.now(),
                     loan=loan,
                     status='sent'
@@ -803,10 +839,10 @@ class LoanDocumentUploadView(LoginRequiredMixin, CreateView):
                 # If no template exists, skip notification
                 return
             
-            # Get all administrators and loan officers
-            admins = User.objects.filter(role__in=['admin', 'loan_officer'])
+            # Get staff users for the same branch as the loan
+            staff_users = get_branch_staff_users(document.loan)
             
-            for admin in admins:
+            for staff_user in staff_users:
                 # Format the message using the template
                 message = template.message_template.format(
                     document_type=document.get_document_type_display(),
@@ -815,12 +851,12 @@ class LoanDocumentUploadView(LoginRequiredMixin, CreateView):
                 )
                 
                 Notification.objects.create(
-                    recipient=admin,
+                    recipient=staff_user,
                     template=template,
                     subject=template.subject,
                     message=message,
                     channel=template.channel,
-                    recipient_address=admin.email or '',
+                    recipient_address=staff_user.email or '',
                     scheduled_at=timezone.now(),
                     loan=document.loan
                 )
