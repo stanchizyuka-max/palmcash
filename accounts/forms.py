@@ -10,21 +10,22 @@ User = get_user_model()
 def validate_zambian_phone(value):
     """
     Validate Zambian phone numbers.
-    Accepts formats:
-    - 0955123456 (10 digits starting with 05, 07, or 09)
-    - 955123456 (9 digits starting with 5, 7, or 9)
-    - +260955123456 (with country code)
-    - 260955123456 (with country code, no +)
+    Accepts Zambian mobile formats:
+    - 096XXXXXXX, 097XXXXXXX, 095XXXXXXX (MTN, Airtel, Zamtel)
+    - 076XXXXXXX, 077XXXXXXX (Zamtel, MTN)
+    Also accepts with country code: +260 or 260
     """
     # Remove spaces, dashes, and parentheses
     cleaned = re.sub(r'[\s\-\(\)]', '', str(value))
     
-    # Check various formats
+    # Zambian mobile prefixes: 095, 096, 097, 076, 077
+    # Pattern explanation:
+    # ^0(95|96|97|76|77)\d{7}$ - starts with 0, then 95/96/97/76/77, then 7 more digits
     patterns = [
-        r'^0[579]\d{8}$',  # 0955123456 (10 digits starting with 05, 07, 09)
-        r'^[579]\d{8}$',   # 955123456 (9 digits starting with 5, 7, 9)
-        r'^\+260[579]\d{8}$',  # +260955123456
-        r'^260[579]\d{8}$',    # 260955123456
+        r'^0(95|96|97|76|77)\d{7}$',        # 0955123456, 0965123456, 0975123456, 0765123456, 0775123456
+        r'^(95|96|97|76|77)\d{7}$',         # 955123456 (without leading 0)
+        r'^\+260(95|96|97|76|77)\d{7}$',    # +260955123456
+        r'^260(95|96|97|76|77)\d{7}$',      # 260955123456
     ]
     
     for pattern in patterns:
@@ -32,8 +33,8 @@ def validate_zambian_phone(value):
             return cleaned
     
     raise ValidationError(
-        'Invalid phone number. Please enter a valid Zambian number starting with 05, 07, or 09. '
-        'Examples: 0955123456, 0977123456, 0965123456'
+        'Invalid phone number. Please enter a valid Zambian mobile number. '
+        'Examples: 0955123456, 0965123456, 0975123456, 0765123456, 0775123456'
     )
 
 
