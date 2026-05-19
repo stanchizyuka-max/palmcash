@@ -504,6 +504,23 @@ class RejectPaymentView(LoginRequiredMixin, View):
         
         payment.save()
         
+        # Revert payment schedule if it was marked as paid
+        if payment.payment_schedule and payment.payment_schedule.is_paid:
+            schedule = payment.payment_schedule
+            schedule.is_paid = False
+            schedule.paid_date = None
+            # Reduce amount_paid by this payment amount
+            from decimal import Decimal
+            schedule.amount_paid = max(Decimal('0'), schedule.amount_paid - payment.amount)
+            schedule.save()
+            
+            # Also revert loan balance
+            loan = payment.loan
+            if loan.amount_paid >= payment.amount:
+                loan.amount_paid -= payment.amount
+                loan.balance_remaining += payment.amount
+                loan.save()
+        
         # Create notification for borrower
         self._create_payment_notification(payment, 'rejected')
         
