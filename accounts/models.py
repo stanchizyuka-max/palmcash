@@ -227,6 +227,42 @@ class User(AbstractUser):
         except ImportError:
             return 0
     
+    def get_branch(self):
+        """Get the branch this user belongs to"""
+        try:
+            if self.role == 'loan_officer':
+                # Get branch from officer assignment
+                from loans.models import OfficerAssignment
+                assignment = OfficerAssignment.objects.filter(officer=self).first()
+                return assignment.branch if assignment else 'Unassigned'
+            
+            elif self.role == 'manager':
+                # Get branch from managed_branch
+                if hasattr(self, 'managed_branch') and self.managed_branch:
+                    return self.managed_branch.name
+                return 'Unassigned'
+            
+            elif self.role == 'borrower':
+                # Get branch from assigned officer
+                if self.assigned_officer:
+                    return self.assigned_officer.get_branch()
+                # Or from group
+                from clients.models import GroupMembership
+                membership = GroupMembership.objects.filter(
+                    member=self,
+                    is_active=True
+                ).select_related('group').first()
+                if membership and membership.group:
+                    return membership.group.branch
+                return 'Unassigned'
+            
+            elif self.role == 'admin':
+                return 'All Branches'
+            
+            return 'N/A'
+        except Exception:
+            return 'N/A'
+    
     class Meta:
         db_table = 'auth_user'
 
