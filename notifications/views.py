@@ -72,10 +72,13 @@ class NotificationListView(LoginRequiredMixin, ListView):
         # Get unique branches for filter dropdown (admin only)
         if self.request.user.role == 'admin':
             try:
-                from loans.models import OfficerAssignment
+                from clients.models import OfficerAssignment
                 context['branches'] = OfficerAssignment.objects.values_list('branch', flat=True).distinct().order_by('branch')
-            except Exception:
+            except Exception as e:
                 # Fallback if OfficerAssignment doesn't exist or import fails
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error loading branches for notifications: {str(e)}")
                 context['branches'] = []
         
         return context

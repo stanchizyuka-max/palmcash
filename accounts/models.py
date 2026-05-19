@@ -232,7 +232,7 @@ class User(AbstractUser):
         try:
             if self.role == 'loan_officer':
                 # Get branch from officer assignment
-                from loans.models import OfficerAssignment
+                from clients.models import OfficerAssignment
                 assignment = OfficerAssignment.objects.filter(officer=self).first()
                 return assignment.branch if assignment else 'Unassigned'
             
@@ -260,7 +260,11 @@ class User(AbstractUser):
                 return 'All Branches'
             
             return 'N/A'
-        except Exception:
+        except Exception as e:
+            # Log the exception for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting branch for user {self.username}: {str(e)}")
             return 'N/A'
     
     class Meta:
