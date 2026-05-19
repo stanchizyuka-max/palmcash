@@ -118,6 +118,11 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
         
         user = self.request.user
         role_filter = self.request.GET.get('role', 'all')
+        
+        # Get search filters
+        search_query = self.request.GET.get('search', '').strip()
+        branch_filter = self.request.GET.get('branch', '').strip()
+        status_filter = self.request.GET.get('status', '')
 
         if user.role == 'manager':
             try:
@@ -146,8 +151,35 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
             users = User.objects.all().order_by('-date_joined')
             all_users = User.objects.all()
 
+        # Apply role filter
         if role_filter and role_filter != 'all':
             users = users.filter(role=role_filter)
+        
+        # Apply search filter
+        if search_query:
+            users = users.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(username__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(phone_number__icontains=search_query) |
+                Q(national_id__icontains=search_query)
+            )
+        
+        # Apply branch filter (for admins)
+        if branch_filter and user.role == 'admin':
+            users = users.filter(
+                Q(officer_assignment__branch__iexact=branch_filter) |
+                Q(managed_branch__name__iexact=branch_filter) |
+                Q(assigned_officer__officer_assignment__branch__iexact=branch_filter) |
+                Q(group_memberships__group__branch__iexact=branch_filter, group_memberships__is_active=True)
+            ).distinct()
+        
+        # Apply status filter
+        if status_filter == 'active':
+            users = users.filter(is_active=True)
+        elif status_filter == 'inactive':
+            users = users.filter(is_active=False)
 
         context['total_users'] = all_users.count()
         context['borrowers_count'] = all_users.filter(role='borrower').count()
@@ -156,6 +188,13 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
         context['admins_count'] = all_users.filter(role='admin').count()
         context['active_users'] = all_users.filter(is_active=True).count()
         context['current_filter'] = role_filter
+        context['search_query'] = search_query
+        context['branch_filter'] = branch_filter
+        context['status_filter'] = status_filter
+        
+        # Get unique branches for filter dropdown
+        from loans.models import OfficerAssignment
+        context['branches'] = OfficerAssignment.objects.values_list('branch', flat=True).distinct().order_by('branch')
 
         paginator = Paginator(users, 20)
         page_obj = paginator.get_page(self.request.GET.get('page'))

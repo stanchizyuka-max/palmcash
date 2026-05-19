@@ -12,29 +12,67 @@ class NotificationListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        return Notification.objects.filter(
+        from django.db.models import Q
+        
+        queryset = Notification.objects.filter(
             recipient=self.request.user
-        ).order_by('-created_at')
+        )
+        
+        # Get filter parameters
+        branch_filter = self.request.GET.get('branch', '').strip()
+        status_filter = self.request.GET.get('status_filter', '')
+        
+        # Apply branch filter (for admins only)
+        if branch_filter and self.request.user.role == 'admin':
+            # Filter notifications by branch through loan or payment relationships
+            queryset = queryset.filter(
+                Q(loan__borrower__assigned_officer__officer_assignment__branch__iexact=branch_filter) |
+                Q(loan__borrower__group_memberships__group__branch__iexact=branch_filter, loan__borrower__group_memberships__is_active=True) |
+                Q(payment__loan__borrower__assigned_officer__officer_assignment__branch__iexact=branch_filter) |
+                Q(payment__loan__borrower__group_memberships__group__branch__iexact=branch_filter, payment__loan__borrower__group_memberships__is_active=True)
+            ).distinct()
+        
+        # Apply status filter
+        if status_filter == 'unread':
+            queryset = queryset.filter(status__in=['pending', 'sent', 'delivered'])
+        elif status_filter == 'read':
+            queryset = queryset.filter(status='read')
+        
+        return queryset.order_by('-created_at')
     
     def get_context_data(self, **kwargs):
+        from django.db.models import Q
         context = super().get_context_data(**kwargs)
         
+        # Get filter parameters
+        branch_filter = self.request.GET.get('branch', '').strip()
+        status_filter = self.request.GET.get('status_filter', '')
+        
+        # Base queryset for counts (without filters)
+        base_queryset = Notification.objects.filter(recipient=self.request.user)
+        
         # Get unread count
-        context['unread_count'] = Notification.objects.filter(
-            recipient=self.request.user,
+        context['unread_count'] = base_queryset.filter(
             status__in=['pending', 'sent', 'delivered']
         ).count()
         
-        # Get notifications by status
-        context['unread_notifications'] = Notification.objects.filter(
-            recipient=self.request.user,
+        # Get notifications by status (limited for display)
+        context['unread_notifications'] = base_queryset.filter(
             status__in=['pending', 'sent', 'delivered']
         ).order_by('-created_at')[:10]
         
-        context['read_notifications'] = Notification.objects.filter(
-            recipient=self.request.user,
+        context['read_notifications'] = base_queryset.filter(
             status='read'
         ).order_by('-created_at')[:10]
+        
+        # Add filter context
+        context['branch_filter'] = branch_filter
+        context['status_filter'] = status_filter
+        
+        # Get unique branches for filter dropdown (admin only)
+        if self.request.user.role == 'admin':
+            from loans.models import OfficerAssignment
+            context['branches'] = OfficerAssignment.objects.values_list('branch', flat=True).distinct().order_by('branch')
         
         return context
 

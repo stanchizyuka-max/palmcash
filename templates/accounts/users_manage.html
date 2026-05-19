@@ -86,25 +86,82 @@
             </div>
         </div>
 
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-6 p-6">
+            <form method="get" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Search Input -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-search mr-1"></i>Search Users
+                        </label>
+                        <input type="text" name="search" value="{{ search_query }}" 
+                            placeholder="Name, username, email, phone, or NRC..." 
+                            class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    
+                    <!-- Branch Filter (Admin only) -->
+                    {% if request.user.role == 'admin' %}
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-building mr-1"></i>Branch
+                        </label>
+                        <select name="branch" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                            <option value="">All Branches</option>
+                            {% for branch in branches %}
+                            <option value="{{ branch }}" {% if branch_filter == branch %}selected{% endif %}>{{ branch }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-secondary-700 mb-2">
+                            <i class="fas fa-toggle-on mr-1"></i>Status
+                        </label>
+                        <select name="status" class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                            <option value="">All Status</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Hidden role filter to preserve tab selection -->
+                <input type="hidden" name="role" value="{{ current_filter }}">
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors duration-200">
+                        <i class="fas fa-filter mr-2"></i>Apply Filters
+                    </button>
+                    <a href="?role={{ current_filter }}" class="px-6 py-2 bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 font-medium transition-colors duration-200">
+                        <i class="fas fa-times mr-2"></i>Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+
         <!-- Filter Tabs -->
         <div class="bg-white rounded-xl shadow-sm border border-secondary-100 mb-6">
             <div class="flex flex-wrap border-b border-secondary-200">
                 {% if request.user.role == 'admin' %}
-                <a href="?role=all" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                <a href="?role=all{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'all' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     All Users ({{ total_users }})
                 </a>
                 {% endif %}
-                <a href="?role=borrower" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'borrower' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                <a href="?role=borrower{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'borrower' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Borrowers ({{ borrowers_count }})
                 </a>
                 {% if request.user.role == 'admin' %}
-                <a href="?role=loan_officer" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'loan_officer' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                <a href="?role=loan_officer{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'loan_officer' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Loan Officers ({{ officers_count }})
                 </a>
-                <a href="?role=manager" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'manager' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                <a href="?role=manager{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'manager' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Managers ({{ managers_count }})
                 </a>
-                <a href="?role=admin" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'admin' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
+                <a href="?role=admin{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="filter-tab px-6 py-4 font-medium text-sm border-b-2 {% if current_filter == 'admin' %}border-primary-600 text-primary-600{% else %}border-transparent text-secondary-600 hover:text-secondary-900{% endif %}">
                     Admins ({{ admins_count }})
                 </a>
                 {% endif %}
@@ -251,15 +308,15 @@
                 </div>
                 <div class="flex gap-2">
                     {% if page_obj.has_previous %}
-                    <a href="?page=1{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">First</a>
-                    <a href="?page={{ page_obj.previous_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Previous</a>
+                    <a href="?page=1{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Previous</a>
                     {% endif %}
                     
                     <span class="px-3 py-2 bg-primary-600 text-white rounded-lg">{{ page_obj.number }}</span>
                     
                     {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Next</a>
-                    <a href="?page={{ paginator.num_pages }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Last</a>
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Next</a>
+                    <a href="?page={{ paginator.num_pages }}{% if current_filter != 'all' %}&role={{ current_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if branch_filter %}&branch={{ branch_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-2 border border-secondary-300 rounded-lg text-secondary-700 hover:bg-secondary-50">Last</a>
                     {% endif %}
                 </div>
             </div>
