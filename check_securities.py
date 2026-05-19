@@ -11,8 +11,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palmcash.settings')
 django.setup()
 
-from securities.models import SecurityDeposit, SecurityTopUpRequest, SecurityTransaction
-from loans.models import Loan
+from loans.models import Loan, SecurityDeposit, SecurityTopUpRequest, SecurityTransaction
 from django.db.models import Sum, Count
 
 print("=" * 70)
