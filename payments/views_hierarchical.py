@@ -208,6 +208,7 @@ def payments_hierarchical(request):
             'total_amount': 0,
         })
         
+        # First, collect payment data
         for payment in payment_qs:
             if not payment.loan or not payment.loan.borrower:
                 continue
@@ -227,10 +228,27 @@ def payments_hierarchical(request):
             
             group_data[group_key]['total_payments'] += 1
             group_data[group_key]['total_amount'] += payment.amount or 0
-            
-            # Count pending payments
-            if payment.status == 'pending':
-                group_data[group_key]['pending_payments'] += 1
+        
+        # Now count pending payment schedules for each group
+        from payments.models import PaymentSchedule
+        from datetime import date
+        from django.db.models import Q
+        
+        for group_key, data in group_data.items():
+            if data['group']:
+                # Get all loans for borrowers in this group
+                group_member_ids = data['group'].group_memberships.filter(
+                    is_active=True
+                ).values_list('borrower_id', flat=True)
+                
+                # Count unpaid schedules that are due (due date <= today)
+                pending_count = PaymentSchedule.objects.filter(
+                    loan__borrower_id__in=group_member_ids,
+                    is_paid=False,
+                    due_date__lte=date.today()
+                ).count()
+                
+                data['pending_payments'] = pending_count
         
         data_list = sorted(group_data.values(), key=lambda x: x['group_name'])
         grand_total_payments = sum(g['total_payments'] for g in data_list)
@@ -293,6 +311,7 @@ def payments_hierarchical(request):
         client_data = defaultdict(lambda: {
             'client': None,
             'total_payments': 0,
+            'pending_payments': 0,
             'total_amount': 0,
             'payments': [],
         })
@@ -309,6 +328,21 @@ def payments_hierarchical(request):
             client_data[client_key]['total_payments'] += 1
             client_data[client_key]['total_amount'] += payment.amount or 0
             client_data[client_key]['payments'].append(payment)
+        
+        # Count pending payment schedules for each client
+        from payments.models import PaymentSchedule
+        from datetime import date
+        
+        for client_key, data in client_data.items():
+            if data['client']:
+                # Count unpaid schedules that are due (due date <= today)
+                pending_count = PaymentSchedule.objects.filter(
+                    loan__borrower=data['client'],
+                    is_paid=False,
+                    due_date__lte=date.today()
+                ).count()
+                
+                data['pending_payments'] = pending_count
         
         clients_with_payments = sorted(client_data.values(), key=lambda x: x['client'].get_full_name() if x['client'] else '')
         
