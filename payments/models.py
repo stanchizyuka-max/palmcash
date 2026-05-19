@@ -71,10 +71,22 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def clean(self):
+        """Validate payment data"""
+        super().clean()
+        # Prevent payments on Sundays
+        if self.payment_date and self.payment_date.weekday() == 6:  # 6 = Sunday
+            from django.core.exceptions import ValidationError
+            raise ValidationError({'payment_date': 'Payments cannot be recorded on Sundays. Please select a different date.'})
+    
     def __str__(self):
         return f"Payment {self.payment_number} - {self.amount}"
     
     def save(self, *args, **kwargs):
+        # Run validation
+        if not kwargs.pop('skip_validation', False):
+            self.full_clean()
+            
         if not self.payment_number:
             # Generate unique payment number
             last_payment = Payment.objects.order_by('-id').first()
@@ -386,6 +398,19 @@ class MultiSchedulePayment(models.Model):
     # Tracking
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def clean(self):
+        """Validate payment data"""
+        super().clean()
+        # Prevent payments on Sundays
+        if self.payment_date and self.payment_date.weekday() == 6:  # 6 = Sunday
+            from django.core.exceptions import ValidationError
+            raise ValidationError({'payment_date': 'Payments cannot be recorded on Sundays. Please select a different date.'})
+    
+    def save(self, *args, **kwargs):
+        """Override save to run validation"""
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"Multi Payment K{self.total_amount} for {self.loan.application_number}"

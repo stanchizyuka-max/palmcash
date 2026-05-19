@@ -70,3 +70,10 @@ class RecordPaymentForm(forms.Form):
         if method in ('mtn', 'airtel', 'bank_transfer') and not ref:
             self.add_error('reference_number', 'Reference number is required for mobile money and bank transfers.')
         return cleaned
+    
+    def clean_payment_date(self):
+        """Validate that payment date is not a Sunday"""
+        payment_date = self.cleaned_data.get('payment_date')
+        if payment_date and payment_date.weekday() == 6:  # 6 = Sunday
+            raise forms.ValidationError('Payments cannot be recorded on Sundays. Please select a different date.')
+        return payment_date
