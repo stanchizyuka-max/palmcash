@@ -239,7 +239,7 @@ def payments_hierarchical(request):
         for group_key, data in group_data.items():
             if data['group']:
                 # Get all loans for borrowers in this group
-                group_member_ids = data['group'].group_memberships.filter(
+                group_member_ids = data['group'].members.filter(
                     is_active=True
                 ).values_list('borrower_id', flat=True)
                 
