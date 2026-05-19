@@ -83,10 +83,7 @@ class Payment(models.Model):
         return f"Payment {self.payment_number} - {self.amount}"
     
     def save(self, *args, **kwargs):
-        # Run validation
-        if not kwargs.pop('skip_validation', False):
-            self.full_clean()
-            
+        # Generate payment number first if it doesn't exist
         if not self.payment_number:
             # Generate unique payment number
             last_payment = Payment.objects.order_by('-id').first()
@@ -96,6 +93,10 @@ class Payment(models.Model):
             else:
                 new_number = 1
             self.payment_number = f"PAY-{new_number:06d}"
+        
+        # Run validation after payment_number is set
+        if not kwargs.pop('skip_validation', False):
+            self.full_clean()
         
         super().save(*args, **kwargs)
     
