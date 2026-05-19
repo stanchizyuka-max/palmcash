@@ -223,7 +223,9 @@ def payments_hierarchical(request):
                 group_data[group_key]['group_id'] = group_key
                 group_data[group_key]['group_name'] = group_name
                 if group:
-                    group_data[group_key]['member_count'] = group.active_member_count
+                    # Count active members
+                    active_members = group.members.filter(is_active=True).count()
+                    group_data[group_key]['member_count'] = active_members
                     group_data[group_key]['capacity'] = group.max_members or 0
             
             group_data[group_key]['total_payments'] += 1
