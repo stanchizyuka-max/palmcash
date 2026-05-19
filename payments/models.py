@@ -407,29 +407,32 @@ class MultiSchedulePayment(models.Model):
             id__in=schedule_ids,
             loan=self.loan,
             is_paid=False  # Only apply to unpaid schedules
-        )
+        ).order_by('installment_number')
         
-        total_assigned = Decimal('0')
+        remaining_amount = self.total_amount
         assignments_created = []
         
         for schedule in schedules:
-            # Create assignment
+            if remaining_amount <= 0:
+                break
+                
+            # Calculate how much can be applied to this schedule
+            outstanding = schedule.total_amount - schedule.amount_paid
+            amount_to_apply = min(remaining_amount, outstanding)
+            
+            # Create assignment with the amount that will be applied
             assignment = MultiSchedulePaymentAssignment.objects.create(
                 multi_payment=self,
                 payment_schedule=schedule,
-                amount_applied=schedule.total_amount
+                amount_applied=amount_to_apply
             )
             assignments_created.append(assignment)
-            total_assigned += schedule.total_amount
-        
-        # Check if the payment amount covers the schedules
-        if total_assigned > self.total_amount:
-            raise ValueError(f"Payment amount K{self.total_amount} is insufficient to cover K{total_assigned} in selected schedules")
+            remaining_amount -= amount_to_apply
         
         return assignments_created
     
     def approve_payment(self, processed_by):
-        """Approve the payment and mark schedules as paid"""
+        """Approve the payment and mark schedules as paid (or partially paid)"""
         if self.status != 'pending':
             raise ValueError("Only pending payments can be approved")
         
@@ -438,12 +441,31 @@ class MultiSchedulePayment(models.Model):
         self.processed_at = timezone.now()
         self.save()
         
-        # Mark all assigned schedules as paid
-        for assignment in self.schedule_assignments.all():
+        # Distribute payment amount across assigned schedules
+        remaining_amount = self.total_amount
+        
+        for assignment in self.schedule_assignments.all().order_by('payment_schedule__installment_number'):
+            if remaining_amount <= 0:
+                break
+                
             schedule = assignment.payment_schedule
-            schedule.is_paid = True
-            schedule.paid_date = self.payment_date.date()
+            outstanding = schedule.total_amount - schedule.amount_paid
+            
+            # Apply as much as possible to this schedule
+            amount_to_apply = min(remaining_amount, outstanding)
+            schedule.amount_paid += amount_to_apply
+            remaining_amount -= amount_to_apply
+            
+            # Mark as paid if fully covered
+            if schedule.amount_paid >= schedule.total_amount:
+                schedule.is_paid = True
+                schedule.paid_date = self.payment_date.date()
+            
             schedule.save()
+            
+            # Update assignment with actual amount applied
+            assignment.amount_applied = amount_to_apply
+            assignment.save()
         
         # Update loan balance
         self._update_loan_balance()
