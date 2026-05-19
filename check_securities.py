@@ -70,7 +70,7 @@ print()
 
 # Check loans with securities
 print("4. Loans with Securities:")
-loans_with_deposits = Loan.objects.filter(securitydeposit__isnull=False).distinct().count()
+loans_with_deposits = Loan.objects.filter(security_deposit__isnull=False).distinct().count()
 total_loans = Loan.objects.count()
 
 print(f"   Total loans: {total_loans}")
