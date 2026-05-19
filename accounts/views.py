@@ -193,8 +193,12 @@ class UsersManageView(LoginRequiredMixin, TemplateView):
         context['status_filter'] = status_filter
         
         # Get unique branches for filter dropdown
-        from loans.models import OfficerAssignment
-        context['branches'] = OfficerAssignment.objects.values_list('branch', flat=True).distinct().order_by('branch')
+        try:
+            from loans.models import OfficerAssignment
+            context['branches'] = OfficerAssignment.objects.values_list('branch', flat=True).distinct().order_by('branch')
+        except Exception:
+            # Fallback if OfficerAssignment doesn't exist or import fails
+            context['branches'] = []
 
         paginator = Paginator(users, 20)
         page_obj = paginator.get_page(self.request.GET.get('page'))
