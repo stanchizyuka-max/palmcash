@@ -17,6 +17,7 @@ def _security_stats_for_loans(loans_qs, date_from=None, date_to=None):
     Given a queryset of Loans, compute the 4 security columns + balance.
     Returns a dict with upfront, topups, adjustments, returned, balance.
     Optionally filter transactions by date range (date objects).
+    If date_from and date_to are None, show all-time data.
     """
     deposit_qs = SecurityDeposit.objects.filter(loan__in=loans_qs, is_verified=True)
     if date_from and date_to:
@@ -130,25 +131,18 @@ def securities_branches(request):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
-    # Set default date range (current month if not specified)
-    if not date_from or not date_to:
-        from datetime import date
-        today = date.today()
-        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
-        date_to = date_to or today.strftime('%Y-%m-%d')
+    # Parse dates (no default - show all time if not specified)
+    date_from_obj = None
+    date_to_obj = None
     
-    # Parse dates
-    try:
-        from datetime import datetime
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-    except:
-        from datetime import date
-        today = date.today()
-        date_from_obj = today.replace(day=1)
-        date_to_obj = today
-        date_from = date_from_obj.strftime('%Y-%m-%d')
-        date_to = date_to_obj.strftime('%Y-%m-%d')
+    if date_from and date_to:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            date_from = ''
+            date_to = ''
     
     # Get all branches for filter
     all_branches = Branch.objects.filter(is_active=True).order_by('name')
@@ -262,25 +256,18 @@ def securities_officers(request, branch_id=None):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
-    # Set default date range (current month if not specified)
-    if not date_from or not date_to:
-        from datetime import date
-        today = date.today()
-        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
-        date_to = date_to or today.strftime('%Y-%m-%d')
+    # Parse dates (no default - show all time if not specified)
+    date_from_obj = None
+    date_to_obj = None
     
-    # Parse dates
-    try:
-        from datetime import datetime
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-    except:
-        from datetime import date
-        today = date.today()
-        date_from_obj = today.replace(day=1)
-        date_to_obj = today
-        date_from = date_from_obj.strftime('%Y-%m-%d')
-        date_to = date_to_obj.strftime('%Y-%m-%d')
+    if date_from and date_to:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            date_from = ''
+            date_to = ''
 
     if user.role == 'admin' or user.is_superuser:
         if branch_id:
@@ -423,25 +410,18 @@ def officer_groups(request, officer_id):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
-    # Set default date range (current month if not specified)
-    if not date_from or not date_to:
-        from datetime import date
-        today = date.today()
-        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
-        date_to = date_to or today.strftime('%Y-%m-%d')
+    # Parse dates (no default - show all time if not specified)
+    date_from_obj = None
+    date_to_obj = None
     
-    # Parse dates
-    try:
-        from datetime import datetime
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-    except:
-        from datetime import date
-        today = date.today()
-        date_from_obj = today.replace(day=1)
-        date_to_obj = today
-        date_from = date_from_obj.strftime('%Y-%m-%d')
-        date_to = date_to_obj.strftime('%Y-%m-%d')
+    if date_from and date_to:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            date_from = ''
+            date_to = ''
 
     # Get groups for this officer
     groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
@@ -514,25 +494,18 @@ def group_clients(request, group_id):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
-    # Set default date range (current month if not specified)
-    if not date_from or not date_to:
-        from datetime import date
-        today = date.today()
-        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
-        date_to = date_to or today.strftime('%Y-%m-%d')
+    # Parse dates (no default - show all time if not specified)
+    date_from_obj = None
+    date_to_obj = None
     
-    # Parse dates
-    try:
-        from datetime import datetime
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-    except:
-        from datetime import date
-        today = date.today()
-        date_from_obj = today.replace(day=1)
-        date_to_obj = today
-        date_from = date_from_obj.strftime('%Y-%m-%d')
-        date_to = date_to_obj.strftime('%Y-%m-%d')
+    if date_from and date_to:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            date_from = ''
+            date_to = ''
 
     memberships = GroupMembership.objects.filter(
         group=group, is_active=True
@@ -600,25 +573,18 @@ def client_detail(request, client_id):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
     
-    # Set default date range (current month if not specified)
-    if not date_from or not date_to:
-        from datetime import date
-        today = date.today()
-        date_from = date_from or today.replace(day=1).strftime('%Y-%m-%d')
-        date_to = date_to or today.strftime('%Y-%m-%d')
+    # Parse dates (no default - show all time if not specified)
+    date_from_obj = None
+    date_to_obj = None
     
-    # Parse dates
-    try:
-        from datetime import datetime
-        date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-        date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-    except:
-        from datetime import date
-        today = date.today()
-        date_from_obj = today.replace(day=1)
-        date_to_obj = today
-        date_from = date_from_obj.strftime('%Y-%m-%d')
-        date_to = date_to_obj.strftime('%Y-%m-%d')
+    if date_from and date_to:
+        try:
+            from datetime import datetime
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            date_from = ''
+            date_to = ''
 
     loans = Loan.objects.filter(borrower=client).order_by('-application_date')
 
@@ -632,40 +598,62 @@ def client_detail(request, client_id):
             # Check if deposit is within date range
             if deposit.is_verified:
                 dep_date = deposit.payment_date or deposit.created_at
-                if dep_date and dep_date.date() >= date_from_obj and dep_date.date() <= date_to_obj:
-                    upfront = deposit.paid_amount
-                else:
+                if date_from_obj and date_to_obj and dep_date and (dep_date.date() < date_from_obj or dep_date.date() > date_to_obj):
                     upfront = _zero()
+                else:
+                    upfront = deposit.paid_amount
             else:
                 upfront = _zero()
         except Exception:
             upfront = _zero()
 
-        # Apply date filter to all security transactions
-        topups = SecurityTopUpRequest.objects.filter(
-            loan=loan, status='approved',
-            requested_date__date__range=[date_from_obj, date_to_obj]
-        ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
+        # Apply date filter to all security transactions (only if dates are specified)
+        if date_from_obj and date_to_obj:
+            topups = SecurityTopUpRequest.objects.filter(
+                loan=loan, status='approved',
+                requested_date__date__range=[date_from_obj, date_to_obj]
+            ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
 
-        adjustments = SecurityTransaction.objects.filter(
-            loan=loan, status='approved', transaction_type='adjustment',
-            created_at__date__range=[date_from_obj, date_to_obj]
-        ).aggregate(total=Sum('amount'))['total'] or _zero()
+            adjustments = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='adjustment',
+                created_at__date__range=[date_from_obj, date_to_obj]
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        returned = SecurityTransaction.objects.filter(
-            loan=loan, status='approved', transaction_type='return',
-            created_at__date__range=[date_from_obj, date_to_obj]
-        ).aggregate(total=Sum('amount'))['total'] or _zero()
+            returned = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='return',
+                created_at__date__range=[date_from_obj, date_to_obj]
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        carry_fwd = SecurityTransaction.objects.filter(
-            loan=loan, status='approved', transaction_type='carry_forward',
-            created_at__date__range=[date_from_obj, date_to_obj]
-        ).aggregate(total=Sum('amount'))['total'] or _zero()
+            carry_fwd = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='carry_forward',
+                created_at__date__range=[date_from_obj, date_to_obj]
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
 
-        withdrawals = SecurityTransaction.objects.filter(
-            loan=loan, status='approved', transaction_type='withdrawal',
-            created_at__date__range=[date_from_obj, date_to_obj]
-        ).aggregate(total=Sum('amount'))['total'] or _zero()
+            withdrawals = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='withdrawal',
+                created_at__date__range=[date_from_obj, date_to_obj]
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
+        else:
+            # No date filter - show all time
+            topups = SecurityTopUpRequest.objects.filter(
+                loan=loan, status='approved'
+            ).aggregate(total=Sum('requested_amount'))['total'] or _zero()
+
+            adjustments = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='adjustment'
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+            returned = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='return'
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+            carry_fwd = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='carry_forward'
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
+
+            withdrawals = SecurityTransaction.objects.filter(
+                loan=loan, status='approved', transaction_type='withdrawal'
+            ).aggregate(total=Sum('amount'))['total'] or _zero()
 
         # Correct balance calculation:
         # INCREASES: upfront + topups + carry_forwards  
@@ -680,7 +668,7 @@ def client_detail(request, client_id):
             if dep.paid_amount > 0:
                 # Check if deposit falls within date range
                 dep_date = dep.payment_date or dep.created_at
-                if not dep_date or (dep_date.date() >= date_from_obj and dep_date.date() <= date_to_obj):
+                if not date_from_obj or not date_to_obj or (dep_date and dep_date.date() >= date_from_obj and dep_date.date() <= date_to_obj):
                     transactions.append({
                         'date': dep_date,
                         'type': '10% Upfront',
@@ -692,8 +680,8 @@ def client_detail(request, client_id):
             pass
 
         for tu in SecurityTopUpRequest.objects.filter(loan=loan).order_by('-requested_date'):
-            # Apply date filter
-            if tu.requested_date and (tu.requested_date.date() >= date_from_obj and tu.requested_date.date() <= date_to_obj):
+            # Apply date filter (only if dates are specified)
+            if not date_from_obj or not date_to_obj or (tu.requested_date and tu.requested_date.date() >= date_from_obj and tu.requested_date.date() <= date_to_obj):
                 transactions.append({
                     'date': tu.requested_date,
                     'type': 'Top-Up',
@@ -703,8 +691,8 @@ def client_detail(request, client_id):
                 })
 
         for adj in SecurityTransaction.objects.filter(loan=loan).order_by('-created_at'):
-            # Apply date filter
-            if adj.created_at and (adj.created_at.date() >= date_from_obj and adj.created_at.date() <= date_to_obj):
+            # Apply date filter (only if dates are specified)
+            if not date_from_obj or not date_to_obj or (adj.created_at and adj.created_at.date() >= date_from_obj and adj.created_at.date() <= date_to_obj):
                 transactions.append({
                     'date': adj.created_at,
                     'type': adj.get_transaction_type_display(),
