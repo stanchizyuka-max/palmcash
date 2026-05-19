@@ -794,12 +794,30 @@ class BulkCollectionView(LoginRequiredMixin, View):
             due_count = 0
             total_expected = Decimal('0')
             for loan in loans:
+                # Get the first unpaid schedule
                 sched = PaymentSchedule.objects.filter(
                     loan=loan, is_paid=False
                 ).order_by('due_date').first()
-                if sched and (sched.due_date <= today or sched.amount_paid > 0):
-                    due_count += 1
-                    total_expected += sched.total_amount - sched.amount_paid
+                
+                # Include if:
+                # 1. Schedule is due or overdue (due_date <= today), OR
+                # 2. Schedule has partial payment (amount_paid > 0), OR  
+                # 3. It's the next schedule and previous ones are paid (allow advance payment)
+                if sched:
+                    is_due_or_overdue = sched.due_date <= today
+                    has_partial_payment = sched.amount_paid > 0
+                    
+                    # Check if this is the next schedule (all previous are paid)
+                    previous_unpaid = PaymentSchedule.objects.filter(
+                        loan=loan,
+                        is_paid=False,
+                        due_date__lt=sched.due_date
+                    ).exists()
+                    is_next_schedule = not previous_unpaid
+                    
+                    if is_due_or_overdue or has_partial_payment or is_next_schedule:
+                        due_count += 1
+                        total_expected += sched.total_amount - sched.amount_paid
 
             if due_count > 0:
                 group_rows.append({
