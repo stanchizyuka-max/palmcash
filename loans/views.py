@@ -401,6 +401,22 @@ class ApproveLoanView(LoginRequiredMixin, View):
             pass
         
         loan = get_object_or_404(Loan, pk=pk)
+        
+        # Check if borrower already has an active loan
+        existing_active_loans = Loan.objects.filter(
+            borrower=loan.borrower,
+            status__in=['active', 'disbursed', 'approved']
+        ).exclude(pk=loan.pk)
+        
+        if existing_active_loans.exists():
+            active_loan = existing_active_loans.first()
+            messages.error(
+                request,
+                f'Cannot approve — {loan.borrower.get_full_name()} already has an active/approved loan '
+                f'({active_loan.application_number}). Borrowers can only have one active loan at a time.'
+            )
+            return redirect('loans:detail', pk=pk)
+        
         loan.status = 'approved'
         loan.loan_officer = request.user
         loan.approval_notes = request.POST.get('approval_notes', '')
@@ -557,6 +573,22 @@ class DisburseLoanView(LoginRequiredMixin, View):
             if loan.status not in ['approved', 'completed']:
                 messages.error(request, f'Only approved or completed loans can be disbursed. Current status: {loan.status}')
                 return redirect('loans:detail', pk=pk)
+            
+            # Check if borrower already has an active loan
+            if loan.status == 'approved':
+                existing_active_loans = Loan.objects.filter(
+                    borrower=loan.borrower,
+                    status__in=['active', 'disbursed']
+                ).exclude(pk=loan.pk)
+                
+                if existing_active_loans.exists():
+                    active_loan = existing_active_loans.first()
+                    messages.error(
+                        request,
+                        f'Cannot disburse — {loan.borrower.get_full_name()} already has an active loan '
+                        f'({active_loan.application_number}). Borrowers can only have one active loan at a time.'
+                    )
+                    return redirect('loans:detail', pk=pk)
             
             # If loan is completed but has a payment schedule, don't allow re-disbursement
             if loan.status == 'completed' and loan.payment_schedule.all().exists():
