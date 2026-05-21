@@ -56,8 +56,18 @@ class LoanListView(LoginRequiredMixin, ListView):
         user = self.request.user
         qs = Loan.objects.select_related('borrower', 'loan_officer', 'loan_officer__officer_assignment')
         
-        # Base filtering by role
-        if user.role == 'borrower':
+        # Check if acting as an officer
+        acting_as_officer = getattr(self.request, 'acting_as_officer', None)
+        
+        # Base filtering by role or acting mode
+        if acting_as_officer:
+            # When acting as officer, show only that officer's loans
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(loan_officer=acting_as_officer) |
+                Q(borrower__group_memberships__group__assigned_officer=acting_as_officer)
+            ).distinct()
+        elif user.role == 'borrower':
             qs = qs.filter(borrower=user)
         elif user.role == 'loan_officer':
             from django.db.models import Q
@@ -634,6 +644,14 @@ class DisburseLoanView(LoginRequiredMixin, View):
                 loan.maturity_date = (loan.disbursement_date + timedelta(days=7 * loan.term_weeks)).date()
             elif loan.term_months and loan.term_months > 0:
                 loan.maturity_date = (loan.disbursement_date + timedelta(days=30 * loan.term_months)).date()
+            
+            # Add audit trail if acting as officer
+            acting_as_officer = getattr(request, 'acting_as_officer', None)
+            if acting_as_officer:
+                if loan.notes:
+                    loan.notes += f"\n\nDisbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
+                else:
+                    loan.notes = f"Disbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
             
             loan.save()
             

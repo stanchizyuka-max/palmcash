@@ -176,8 +176,18 @@ class MakePaymentView(LoginRequiredMixin, View):
     def _get_form(self, request, data=None):
         from .forms import RecordPaymentForm
         loan_id = self.kwargs.get('loan_id')
-        if request.user.role == 'loan_officer':
-            return RecordPaymentForm(data, officer=request.user, loan_id=loan_id)
+        
+        # Determine which officer's data to use
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        if acting_as_officer:
+            officer = acting_as_officer
+        elif request.user.role == 'loan_officer':
+            officer = request.user
+        else:
+            officer = None
+        
+        if officer:
+            return RecordPaymentForm(data, officer=officer, loan_id=loan_id)
         return RecordPaymentForm(data, loan_id=loan_id)
 
     def get(self, request, *args, **kwargs):
@@ -202,13 +212,19 @@ class MakePaymentView(LoginRequiredMixin, View):
 
             amount = form.cleaned_data['amount']
             payment_date = form.cleaned_data['payment_date']
+            
+            # Determine who is recording the payment
+            acting_as_officer = getattr(request, 'acting_as_officer', None)
+            notes_prefix = f"[{method.upper()}]"
+            if acting_as_officer:
+                notes_prefix += f" [Recorded by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}]"
 
             payment = Payment.objects.create(
                 loan=loan,
                 amount=amount,
                 payment_method=payment_method,
                 reference_number=form.cleaned_data.get('reference_number', ''),
-                notes=f"[{method.upper()}] " + form.cleaned_data.get('notes', ''),
+                notes=notes_prefix + " " + form.cleaned_data.get('notes', ''),
                 payment_date=datetime.combine(payment_date, datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
                 processed_by=request.user,
                 status='pending',
