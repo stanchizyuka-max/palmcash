@@ -444,8 +444,32 @@
         </div>
     </nav>
 
+    <!-- Acting As Officer Banner (Global) -->
+    {% if acting_as_officer %}
+    <div class="fixed top-16 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-shield text-blue-600 text-sm"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-sm">Acting As: {{ acting_as_officer.get_full_name }}</p>
+                        <p class="text-blue-100 text-xs">All actions will be recorded on their behalf</p>
+                    </div>
+                </div>
+                <a href="{% url 'common:stop_acting_as_officer' %}" 
+                   class="px-4 py-2 bg-white text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-times"></i>
+                    <span>Stop Acting</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Main Content -->
-    <main class="pt-16 min-h-screen">
+    <main class="{% if acting_as_officer %}pt-32{% else %}pt-16{% endif %} min-h-screen">
         {% block content %}{% endblock %}
     </main>
 

@@ -1,19 +1,63 @@
 """
-Common views for Palm Cash application
+Common views for acting as officer functionality
 """
-from django.shortcuts import render
-from django.views.decorators.csrf import requires_csrf_token
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from accounts.models import User
+from clients.models import OfficeAssignment
 
 
-@requires_csrf_token
-def csrf_failure(request, reason=""):
+@login_required
+def start_acting_as_officer(request, officer_id):
     """
-    Custom CSRF failure view with debugging information
+    Start acting as a specific officer.
+    Only managers and admins can do this.
     """
-    context = {
-        'reason': reason,
-        'referer': request.META.get('HTTP_REFERER', 'Unknown'),
-        'origin': request.META.get('HTTP_ORIGIN', 'Unknown'),
-        'host': request.META.get('HTTP_HOST', 'Unknown'),
-    }
-    return render(request, 'common/csrf_error.html', context, status=403)
+    if request.user.role not in ['manager', 'admin']:
+        messages.error(request, "You don't have permission to act as an officer.")
+        return redirect('dashboard:dashboard')
+    
+    officer = get_object_or_404(User, id=officer_id, role='loan_officer', is_active=True)
+    
+    # Verify same branch for managers
+    if request.user.role == 'manager':
+        manager_branch = OfficeAssignment.objects.filter(officer=request.user).first()
+        officer_branch = OfficeAssignment.objects.filter(officer=officer).first()
+        
+        if not manager_branch or not officer_branch:
+            messages.error(request, "Branch assignment not found.")
+            return redirect('dashboard:dashboard')
+        
+        if manager_branch.branch != officer_branch.branch:
+            messages.error(request, f"You can only act as officers in your branch ({manager_branch.branch}).")
+            return redirect('dashboard:dashboard')
+    
+    # Set session
+    request.session['acting_as_officer_id'] = officer.id
+    request.session['acting_as_officer_name'] = officer.get_full_name()
+    
+    messages.success(
+        request, 
+        f"You are now acting as {officer.get_full_name()}. All actions will be recorded on their behalf."
+    )
+    
+    # Redirect to officer's dashboard or a specific page
+    next_url = request.GET.get('next', 'dashboard:dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def stop_acting_as_officer(request):
+    """
+    Stop acting as an officer and return to normal mode.
+    """
+    if 'acting_as_officer_id' in request.session:
+        officer_name = request.session.get('acting_as_officer_name', 'officer')
+        del request.session['acting_as_officer_id']
+        if 'acting_as_officer_name' in request.session:
+            del request.session['acting_as_officer_name']
+        
+        messages.info(request, f"You are no longer acting as {officer_name}.")
+    
+    return redirect('dashboard:dashboard')

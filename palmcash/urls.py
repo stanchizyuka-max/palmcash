@@ -51,6 +51,7 @@ urlpatterns = [
     path('expenses/', include('expenses.urls')),
     path('securities/', include('securities.urls')),
     path('payroll/', include('payroll.urls')),
+    path('common/', include('common.urls')),
 ]
 
 # Serve media files during development

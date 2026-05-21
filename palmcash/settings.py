@@ -125,6 +125,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "palmcash.admin_auth.AdminAccessMiddleware",
+    "common.middleware.ActAsOfficerMiddleware",
 ]
 
 ROOT_URLCONF = "palmcash.urls"
@@ -141,6 +142,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.unread_notifications",
+                "common.context_processors.acting_as_officer",
             ],
         },
     },
