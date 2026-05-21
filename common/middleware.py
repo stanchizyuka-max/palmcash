@@ -29,11 +29,11 @@ class ActAsOfficerMiddleware(MiddlewareMixin):
                     if request.user.role in ['manager', 'admin']:
                         # For managers, check same branch
                         if request.user.role == 'manager':
-                            from clients.models import OfficeAssignment
-                            manager_branch = OfficeAssignment.objects.filter(
+                            from clients.models import OfficerAssignment
+                            manager_branch = OfficerAssignment.objects.filter(
                                 officer=request.user
                             ).first()
-                            officer_branch = OfficeAssignment.objects.filter(
+                            officer_branch = OfficerAssignment.objects.filter(
                                 officer=acting_as_officer
                             ).first()
                             

@@ -5,7 +5,7 @@ from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from accounts.models import User
-from clients.models import OfficeAssignment
+from clients.models import OfficerAssignment
 
 
 @login_required
@@ -22,8 +22,8 @@ def start_acting_as_officer(request, officer_id):
     
     # Verify same branch for managers
     if request.user.role == 'manager':
-        manager_branch = OfficeAssignment.objects.filter(officer=request.user).first()
-        officer_branch = OfficeAssignment.objects.filter(officer=officer).first()
+        manager_branch = OfficerAssignment.objects.filter(officer=request.user).first()
+        officer_branch = OfficerAssignment.objects.filter(officer=officer).first()
         
         if not manager_branch or not officer_branch:
             messages.error(request, "Branch assignment not found.")
