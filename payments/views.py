@@ -939,7 +939,9 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
 
     def get(self, request, group_id):
         from clients.models import BorrowerGroup
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        officer = acting_as_officer if acting_as_officer else request.user
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
         rows = self._get_rows(group)
         return render(request, self.template_name, {'group': group, 'rows': rows})
 
@@ -949,7 +951,9 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
         from decimal import Decimal, InvalidOperation
         from datetime import date, datetime as dt
 
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        officer = acting_as_officer if acting_as_officer else request.user
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
         today = date.today()
         recorded = 0
         skipped = 0
@@ -980,6 +984,11 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
             except Loan.DoesNotExist:
                 continue
 
+            # Add audit trail if manager is acting as officer
+            notes = f'[BULK COLLECTION — {group.name}]'
+            if acting_as_officer:
+                notes += f' | Action by {request.user.get_full_name()} on behalf of {officer.get_full_name()}'
+            
             payment = Payment.objects.create(
                 loan=loan,
                 amount=amount,
@@ -987,7 +996,7 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
                 payment_date=dt.combine(today, dt.min.time()).replace(tzinfo=timezone.get_current_timezone()),
                 processed_by=request.user,
                 status='pending',
-                notes=f'[BULK COLLECTION — {group.name}]',
+                notes=notes,
             )
 
             oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
@@ -1031,7 +1040,8 @@ class DefaultCollectionView(LoginRequiredMixin, View):
         from clients.models import BorrowerGroup
         from decimal import Decimal
 
-        officer = request.user
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        officer = acting_as_officer if acting_as_officer else request.user
         groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
 
         group_rows = []
@@ -1097,7 +1107,9 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
 
     def get(self, request, group_id):
         from clients.models import BorrowerGroup
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        officer = acting_as_officer if acting_as_officer else request.user
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
         loans = self._get_defaulted_loans(group)
         return render(request, self.template_name, {'group': group, 'loans': loans})
 
@@ -1108,7 +1120,9 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
         from .models import DefaultCollection
         import datetime
 
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        acting_as_officer = getattr(request, 'acting_as_officer', None)
+        officer = acting_as_officer if acting_as_officer else request.user
+        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
         today = datetime.date.today()
         recorded = 0
         skipped = 0
@@ -1303,8 +1317,10 @@ class DefaultCollectionHistoryView(LoginRequiredMixin, View):
         elif request.user.role == 'admin':
             groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
         else:
+            acting_as_officer = getattr(request, 'acting_as_officer', None)
+            officer = acting_as_officer if acting_as_officer else request.user
             groups = BorrowerGroup.objects.filter(
-                assigned_officer=request.user,
+                assigned_officer=officer,
                 is_active=True
             ).order_by('name')
 
