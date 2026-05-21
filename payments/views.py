@@ -231,10 +231,11 @@ class MakePaymentView(LoginRequiredMixin, View):
                     'status': 'scheduled',
                 }
             )
+            # Don't mark collection as completed yet - wait for manager confirmation
             collection.collected_amount = min(amount, collection.expected_amount)
             collection.collected_by = request.user
             collection.actual_collection_date = timezone.now()
-            collection.status = 'completed'
+            # Keep status as 'scheduled' until payment is confirmed by manager
             collection.is_partial = collection.collected_amount < collection.expected_amount
             collection.save()
 
@@ -296,6 +297,16 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         except Exception as e:
             print(f"Vault record error: {e}")
 
+        # Update PaymentCollection for the payment date - mark as completed
+        payment_date = payment.payment_date.date()
+        payment_collection = PaymentCollection.objects.filter(
+            loan=loan,
+            collection_date=payment_date
+        ).first()
+        if payment_collection:
+            payment_collection.status = 'completed'
+            payment_collection.save()
+        
         # Update PaymentCollection — one entry per installment paid (handles overdue + overpayment)
         paid_schedules = PaymentSchedule.objects.filter(
             loan=loan,
@@ -948,10 +959,11 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
                 collection_date=today,
                 defaults={'expected_amount': expected, 'collected_amount': 0, 'status': 'scheduled'}
             )
+            # Don't mark collection as completed yet - wait for manager confirmation
             collection.collected_amount = min(amount, collection.expected_amount)
             collection.collected_by = request.user
             collection.actual_collection_date = timezone.now()
-            collection.status = 'completed'
+            # Keep status as 'scheduled' until payment is confirmed by manager
             collection.is_partial = collection.collected_amount < collection.expected_amount
             collection.save()
 
