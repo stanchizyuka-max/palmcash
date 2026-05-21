@@ -1,0 +1,44 @@
+# PROCESSING FEE DEPLOYMENT COMMANDS
+# Copy and paste these commands one by one on your server
+
+# ========================================
+# STEP 1: Navigate to project directory
+# ========================================
+cd ~/www/palmcashloans.site
+
+# ========================================
+# STEP 2: Pull latest code
+# ========================================
+git pull origin main
+
+# ========================================
+# STEP 3: Clear Python cache
+# ========================================
+find . -name "*.pyc" -delete
+
+# ========================================
+# STEP 4: Restart server
+# ========================================
+sudo systemctl restart gunicorn
+
+# ========================================
+# STEP 5: Check server status
+# ========================================
+sudo systemctl status gunicorn
+
+# ========================================
+# WHAT'S NEW
+# ========================================
+# ✓ Added date filter to Processing Fees Summary page
+# ✓ You can now filter by "Date From" and "Date To"
+# ✓ Filter by application creation date
+
+# ========================================
+# VERIFICATION
+# ========================================
+
+# After deployment, verify:
+# 1. Go to: https://palmcashloans.site/dashboard/processing-fees/
+# 2. Look for "Date From" and "Date To" fields in the filter section
+# 3. Try filtering by date range (e.g., May 1, 2026 to May 21, 2026)
+# 4. Check that totals update correctly based on date range
