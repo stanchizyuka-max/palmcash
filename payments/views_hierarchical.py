@@ -13,10 +13,10 @@ from accounts.models import User
 
 
 def _get_base_payment_queryset(user):
-    """Get base payment queryset based on user role - excludes failed/cancelled payments"""
+    """Get base payment queryset based on user role - only includes completed payments"""
     qs = Payment.objects.select_related(
         'loan', 'loan__borrower', 'loan__loan_officer', 'loan__loan_officer__officer_assignment'
-    ).exclude(status__in=['failed', 'cancelled'])
+    ).filter(status='completed')
     
     if user.role == 'loan_officer':
         from django.db.models import Q
