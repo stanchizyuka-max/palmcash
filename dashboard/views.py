@@ -73,6 +73,12 @@ def dashboard(request):
     """Route to appropriate dashboard based on user role"""
     user = request.user
     
+    # Check if acting as an officer
+    acting_as_officer = getattr(request, 'acting_as_officer', None)
+    if acting_as_officer:
+        # Show the officer's dashboard
+        return loan_officer_dashboard(request, officer=acting_as_officer)
+    
     # Debug: Check if user has role
     if not hasattr(user, 'role') or not user.role:
         # If role is missing, try to set default role
@@ -109,9 +115,11 @@ def dashboard(request):
 
 
 @login_required
-def loan_officer_dashboard(request):
+def loan_officer_dashboard(request, officer=None):
     """Loan Officer Dashboard"""
-    officer = request.user
+    # Use provided officer or default to request.user
+    if officer is None:
+        officer = request.user
     
     # Get filter parameters
     group_filter = request.GET.get('group', '')
