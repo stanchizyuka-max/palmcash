@@ -13,10 +13,10 @@ from accounts.models import User
 
 
 def _get_base_payment_queryset(user):
-    """Get base payment queryset based on user role - only includes completed payments"""
+    """Get base payment queryset based on user role - shows all payments except cancelled"""
     qs = Payment.objects.select_related(
         'loan', 'loan__borrower', 'loan__loan_officer', 'loan__loan_officer__officer_assignment'
-    ).filter(status='completed')
+    ).exclude(status='cancelled')
     
     if user.role == 'loan_officer':
         from django.db.models import Q
@@ -97,8 +97,10 @@ def payments_hierarchical(request):
                 branch_data[branch_key]['branch_name'] = branch_name
                 branch_data[branch_key]['branch_id'] = branch_key
             
-            branch_data[branch_key]['total_payments'] += 1
-            branch_data[branch_key]['total_amount'] += payment.amount or 0
+            # Only count completed payments in totals
+            if payment.status == 'completed':
+                branch_data[branch_key]['total_payments'] += 1
+                branch_data[branch_key]['total_amount'] += payment.amount or 0
         
         data_list = sorted(branch_data.values(), key=lambda x: x['branch_name'])
         grand_total_payments = sum(b['total_payments'] for b in data_list)
@@ -150,8 +152,10 @@ def payments_hierarchical(request):
                 officer_data[officer_key]['officer'] = officer
                 officer_data[officer_key]['officer_id'] = officer.id
             
-            officer_data[officer_key]['total_payments'] += 1
-            officer_data[officer_key]['total_amount'] += payment.amount or 0
+            # Only count completed payments in totals
+            if payment.status == 'completed':
+                officer_data[officer_key]['total_payments'] += 1
+                officer_data[officer_key]['total_amount'] += payment.amount or 0
         
         data_list = sorted(officer_data.values(), key=lambda x: x['officer'].get_full_name() if x['officer'] else '')
         grand_total_payments = sum(o['total_payments'] for o in data_list)
@@ -228,8 +232,10 @@ def payments_hierarchical(request):
                     group_data[group_key]['member_count'] = active_members
                     group_data[group_key]['capacity'] = group.max_members or 0
             
-            group_data[group_key]['total_payments'] += 1
-            group_data[group_key]['total_amount'] += payment.amount or 0
+            # Only count completed payments in totals
+            if payment.status == 'completed':
+                group_data[group_key]['total_payments'] += 1
+                group_data[group_key]['total_amount'] += payment.amount or 0
         
         # Now count pending payment schedules for each group
         from payments.models import PaymentSchedule
@@ -327,8 +333,12 @@ def payments_hierarchical(request):
             if client_data[client_key]['client'] is None:
                 client_data[client_key]['client'] = client
             
-            client_data[client_key]['total_payments'] += 1
-            client_data[client_key]['total_amount'] += payment.amount or 0
+            # Only count completed payments in totals
+            if payment.status == 'completed':
+                client_data[client_key]['total_payments'] += 1
+                client_data[client_key]['total_amount'] += payment.amount or 0
+            
+            # Add all payments to the list (completed, pending, failed)
             client_data[client_key]['payments'].append(payment)
         
         # Count pending payment schedules for each client
