@@ -6482,6 +6482,7 @@ def processing_fees_summary(request):
     from loans.models import LoanApplication
     from clients.models import Branch, BorrowerGroup
     from django.db.models import Sum, Count, Q
+    from datetime import datetime, timedelta
     
     # Get filter parameters
     branch_filter = request.GET.get('branch', '')
@@ -6489,6 +6490,8 @@ def processing_fees_summary(request):
     group_filter = request.GET.get('group', '')
     status_filter = request.GET.get('status', '')
     vault_type_filter = request.GET.get('vault_type', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
     
     apps = LoanApplication.objects.filter(
         processing_fee__isnull=False, processing_fee__gt=0
@@ -6514,6 +6517,21 @@ def processing_fees_summary(request):
     
     if vault_type_filter:
         apps = apps.filter(repayment_frequency=vault_type_filter)
+    
+    # Date filters
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+            apps = apps.filter(created_at__date__gte=from_date)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+            apps = apps.filter(created_at__date__lte=to_date)
+        except ValueError:
+            pass
 
     total_fees = apps.aggregate(t=Sum('processing_fee'))['t'] or 0
     verified_fees = apps.filter(processing_fee_verified=True).aggregate(t=Sum('processing_fee'))['t'] or 0
@@ -6559,6 +6577,8 @@ def processing_fees_summary(request):
         'group_filter': group_filter,
         'status_filter': status_filter,
         'vault_type_filter': vault_type_filter,
+        'date_from': date_from,
+        'date_to': date_to,
     })
 
 
