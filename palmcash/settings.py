@@ -36,17 +36,24 @@ print(f"DEBUG: DB_HOST from env = {os.environ.get('DB_HOST', 'NOT SET')}", file=
 SECRET_KEY = "django-insecure-e%=%uz+trm+49+27jn)5q_2l910i1ny2m5$6u$h&cl@2%eh^mw"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-# Security settings - Force HTTPS
-SECURE_SSL_REDIRECT = True
+# Security settings - HTTPS configuration
+# Trust proxy headers for HTTPS detection
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Only force SSL redirect in production (when DEBUG=False)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# Always use secure cookies when HTTPS is available
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
 
 ALLOWED_HOSTS = [
     'localhost',
