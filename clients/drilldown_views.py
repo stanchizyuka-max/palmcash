@@ -32,6 +32,13 @@ def _annotate_groups(groups):
 @login_required
 def clients_drilldown_root(request):
     user = request.user
+    
+    # Check if acting as an officer
+    acting_as_officer = getattr(request, 'acting_as_officer', None)
+    
+    if acting_as_officer:
+        # When acting as officer, go directly to their groups
+        return clients_drilldown_groups(request, officer_id=acting_as_officer.id)
 
     if user.role == 'admin':
         return redirect('accounts:manage_users')

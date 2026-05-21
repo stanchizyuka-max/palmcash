@@ -793,8 +793,8 @@ class BulkCollectionView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if request.user.role not in ['loan_officer', 'admin']:
-            messages.error(request, 'Only loan officers can record bulk collections.')
+        if request.user.role not in ['loan_officer', 'admin', 'manager']:
+            messages.error(request, 'Only loan officers and managers can record bulk collections.')
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 
@@ -805,12 +805,32 @@ class BulkCollectionView(LoginRequiredMixin, View):
         from datetime import date
         from decimal import Decimal
 
-        officer = request.user
+        # Determine which officer's data to show
+        if hasattr(request, 'acting_as_officer') and request.acting_as_officer:
+            # Manager is acting as an officer
+            officer = request.acting_as_officer
+            acting_mode = True
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own data
+            officer = request.user
+            acting_mode = False
+        else:
+            # Manager/admin viewing all data (not acting as anyone)
+            officer = None
+            acting_mode = False
+
         today = date.today()
 
-        groups = BorrowerGroup.objects.filter(
-            assigned_officer=officer, is_active=True
-        ).prefetch_related('members__borrower')
+        # Filter groups based on officer
+        if officer:
+            groups = BorrowerGroup.objects.filter(
+                assigned_officer=officer, is_active=True
+            ).prefetch_related('members__borrower')
+        else:
+            # Show all groups for manager's branch
+            groups = BorrowerGroup.objects.filter(
+                is_active=True
+            ).prefetch_related('members__borrower')
 
         group_rows = []
         for group in groups:
@@ -854,7 +874,13 @@ class BulkCollectionView(LoginRequiredMixin, View):
                     'total_expected': total_expected,
                 })
 
-        return render(request, self.template_name, {'group_rows': group_rows, 'today': today})
+        context = {
+            'group_rows': group_rows,
+            'today': today,
+            'officer': officer,
+            'acting_mode': acting_mode,
+        }
+        return render(request, self.template_name, context)
 
 
 class BulkCollectionGroupView(LoginRequiredMixin, View):
@@ -864,7 +890,7 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if request.user.role not in ['loan_officer', 'admin']:
+        if request.user.role not in ['loan_officer', 'admin', 'manager']:
             return redirect('dashboard:dashboard')
         return super().dispatch(request, *args, **kwargs)
 

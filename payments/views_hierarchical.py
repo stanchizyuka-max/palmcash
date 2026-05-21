@@ -12,13 +12,20 @@ from clients.models import Branch, BorrowerGroup
 from accounts.models import User
 
 
-def _get_base_payment_queryset(user):
+def _get_base_payment_queryset(user, acting_as_officer=None):
     """Get base payment queryset based on user role - shows all payments except cancelled"""
     qs = Payment.objects.select_related(
         'loan', 'loan__borrower', 'loan__loan_officer', 'loan__loan_officer__officer_assignment'
     ).exclude(status='cancelled')
     
-    if user.role == 'loan_officer':
+    # If acting as an officer, filter to that officer's data
+    if acting_as_officer:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(loan__loan_officer=acting_as_officer) |
+            Q(loan__borrower__group_memberships__group__assigned_officer=acting_as_officer)
+        ).distinct()
+    elif user.role == 'loan_officer':
         from django.db.models import Q
         qs = qs.filter(
             Q(loan__loan_officer=user) |
@@ -48,8 +55,14 @@ def payments_hierarchical(request):
     """
     user = request.user
     
-    # Determine starting level based on role
-    if user.role == 'admin':
+    # Check if acting as an officer
+    acting_as_officer = getattr(request, 'acting_as_officer', None)
+    
+    # Determine starting level based on role or acting mode
+    if acting_as_officer:
+        # When acting as officer, start at group level
+        default_level = 'group'
+    elif user.role == 'admin':
         default_level = 'branch'
     elif user.role == 'manager':
         default_level = 'officer'
@@ -65,7 +78,7 @@ def payments_hierarchical(request):
     group_id = request.GET.get('group_id')
     
     # Get base payment queryset
-    payment_qs = _get_base_payment_queryset(user)
+    payment_qs = _get_base_payment_queryset(user, acting_as_officer)
     
     # Build breadcrumb navigation
     breadcrumbs = []
