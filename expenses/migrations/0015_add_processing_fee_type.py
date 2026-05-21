@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('expenses', '0014_vaulttransaction_is_reversal_and_more'),
+        ('expenses', '0008_add_vault_type_to_transactions'),
     ]
 
     operations = [
