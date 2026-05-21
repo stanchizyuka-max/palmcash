@@ -190,6 +190,7 @@ class VaultTransaction(models.Model):
         ('savings_deposit', 'Savings Deposit'),
         ('savings_withdrawal', 'Savings Withdrawal'),
         ('expense', 'Expense'),
+        ('processing_fee', 'Processing Fee'),
     ]
 
     DIRECTION_CHOICES = [

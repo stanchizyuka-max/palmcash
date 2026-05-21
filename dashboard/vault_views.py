@@ -194,6 +194,7 @@ def vault_dashboard(request):
         ('month_close', 'Month Closing'),
         ('month_open', 'Month Opening'),
         ('expense', 'Expense'),
+        ('processing_fee', 'Processing Fee'),
     ]
 
     return render(request, 'dashboard/vault.html', {
