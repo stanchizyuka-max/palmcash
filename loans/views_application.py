@@ -572,7 +572,7 @@ class VerifyProcessingFeeView(LoginRequiredMixin, View):
                     transaction_date = app.created_at if app.created_at else tz.now()
                     
                     VaultTransaction.objects.create(
-                        transaction_type='deposit',
+                        transaction_type='processing_fee',
                         direction='in',
                         branch=branch.name,
                         vault_type=vault_type,
