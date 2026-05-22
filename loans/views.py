@@ -667,10 +667,11 @@ class DisburseLoanView(LoginRequiredMixin, View):
             # Add audit trail if acting as officer
             acting_as_officer = getattr(request, 'acting_as_officer', None)
             if acting_as_officer:
-                if loan.notes:
-                    loan.notes += f"\n\nDisbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
+                audit_message = f"\n\nDisbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
+                if loan.approval_notes:
+                    loan.approval_notes += audit_message
                 else:
-                    loan.notes = f"Disbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
+                    loan.approval_notes = f"Disbursed by {request.user.get_full_name()} on behalf of {acting_as_officer.get_full_name()}"
             
             loan.save()
             
