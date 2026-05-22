@@ -386,8 +386,8 @@
                             Reject Loan
                         </button>
                         
-                        {% elif user.role == 'loan_officer' and loan.status == 'approved' %}
-                        <!-- Loan Officer can disburse approved loans -->
+                        {% elif (user.role == 'loan_officer' or acting_as_officer) and loan.status == 'approved' %}
+                        <!-- Loan Officer (or Manager acting as Officer) can disburse approved loans -->
                         {% if loan.upfront_payment_verified or not loan.upfront_payment_required %}
                         <form method="post" action="{% url 'loans:disburse' loan.pk %}" class="w-full">
                             {% csrf_token %}
