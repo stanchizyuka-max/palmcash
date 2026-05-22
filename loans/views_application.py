@@ -146,15 +146,24 @@ class SubmitLoanApplicationView(LoginRequiredMixin, CreateView):
         loan_app.application_number = f"LA-{uuid.uuid4().hex[:8].upper()}"
         loan_app.status = 'pending'
         
-        # Set created_at to application_date (required field)
+        # Save first to create the record
+        loan_app.save()
+        
+        # Now update created_at to backdated application_date (bypassing auto_now_add)
         application_date = form.cleaned_data['application_date']
         from datetime import datetime
         from django.utils import timezone
         # Convert date to timezone-aware datetime at start of day
         dt = datetime.combine(application_date, datetime.min.time())
-        loan_app.created_at = timezone.make_aware(dt)
+        backdated_datetime = timezone.make_aware(dt)
         
-        loan_app.save()
+        # Use update() to bypass auto_now_add constraint
+        LoanApplication.objects.filter(pk=loan_app.pk).update(
+            created_at=backdated_datetime
+        )
+        
+        # Refresh the object to get updated created_at
+        loan_app.refresh_from_db()
         
         # Redirect to processing fee form instead of applications list
         messages.success(
