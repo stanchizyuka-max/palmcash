@@ -57,19 +57,25 @@ class Command(BaseCommand):
             pending_count = 0
             
             for installment in schedule:
-                status_icon = "✅" if installment.status == 'paid' else "⚠️" if installment.status == 'partial' else "⏳"
-                self.stdout.write(
-                    f"  {status_icon} #{installment.installment_number}: "
-                    f"K{installment.amount_due} - {installment.status.upper()} "
-                    f"(paid: K{installment.amount_paid})"
-                )
-                
-                if installment.status == 'paid':
+                # Determine status based on is_paid and amount_paid
+                if installment.is_paid:
+                    status = 'paid'
+                    status_icon = "✅"
                     paid_count += 1
-                elif installment.status == 'partial':
+                elif installment.amount_paid > 0:
+                    status = 'partial'
+                    status_icon = "⚠️"
                     partial_count += 1
                 else:
+                    status = 'pending'
+                    status_icon = "⏳"
                     pending_count += 1
+                
+                self.stdout.write(
+                    f"  {status_icon} #{installment.installment_number}: "
+                    f"K{installment.total_amount} - {status.upper()} "
+                    f"(paid: K{installment.amount_paid})"
+                )
             
             self.stdout.write(f"\n📈 Summary:")
             self.stdout.write(f"  Paid: {paid_count}")
@@ -81,7 +87,7 @@ class Command(BaseCommand):
             self.stdout.write("🔍 ANALYSIS")
             self.stdout.write("=" * 60)
             
-            # Expected: K140 should cover 1 full payment (K138) + K2 towards next
+            # Expected: K420 should cover how many installments?
             expected_installment_amount = loan.payment_amount
             self.stdout.write(f"\nExpected installment amount: K{expected_installment_amount}")
             self.stdout.write(f"Total paid: K{total_paid}")
@@ -111,22 +117,22 @@ class Command(BaseCommand):
                 
                 remaining_amount = total_paid
                 for i, installment in enumerate(schedule, 1):
-                    if remaining_amount >= installment.amount_due:
+                    if remaining_amount >= installment.total_amount:
                         # Full payment
                         self.stdout.write(
-                            f"  #{i}: K{installment.amount_due} → PAID (K{installment.amount_due})"
+                            f"  #{i}: K{installment.total_amount} → PAID (K{installment.total_amount})"
                         )
-                        remaining_amount -= installment.amount_due
+                        remaining_amount -= installment.total_amount
                     elif remaining_amount > 0:
                         # Partial payment
                         self.stdout.write(
-                            f"  #{i}: K{installment.amount_due} → PARTIAL (K{remaining_amount} paid)"
+                            f"  #{i}: K{installment.total_amount} → PARTIAL (K{remaining_amount} paid)"
                         )
                         remaining_amount = Decimal('0')
                     else:
                         # Pending
                         self.stdout.write(
-                            f"  #{i}: K{installment.amount_due} → PENDING"
+                            f"  #{i}: K{installment.total_amount} → PENDING"
                         )
                 
                 # Apply fix if not dry run
@@ -137,23 +143,23 @@ class Command(BaseCommand):
                     
                     remaining_amount = total_paid
                     for installment in schedule:
-                        if remaining_amount >= installment.amount_due:
+                        if remaining_amount >= installment.total_amount:
                             # Full payment
-                            installment.amount_paid = installment.amount_due
-                            installment.status = 'paid'
-                            installment.payment_date = payments.first().payment_date if payments.exists() else timezone.now()
-                            remaining_amount -= installment.amount_due
+                            installment.amount_paid = installment.total_amount
+                            installment.is_paid = True
+                            installment.paid_date = payments.first().payment_date.date() if payments.exists() else timezone.now().date()
+                            remaining_amount -= installment.total_amount
                         elif remaining_amount > 0:
                             # Partial payment
                             installment.amount_paid = remaining_amount
-                            installment.status = 'partial'
-                            installment.payment_date = payments.first().payment_date if payments.exists() else timezone.now()
+                            installment.is_paid = False
+                            installment.paid_date = payments.first().payment_date.date() if payments.exists() else timezone.now().date()
                             remaining_amount = Decimal('0')
                         else:
                             # Pending
                             installment.amount_paid = Decimal('0')
-                            installment.status = 'pending'
-                            installment.payment_date = None
+                            installment.is_paid = False
+                            installment.paid_date = None
                         
                         installment.save()
                     
@@ -166,10 +172,20 @@ class Command(BaseCommand):
                     
                     schedule = PaymentSchedule.objects.filter(loan=loan).order_by('installment_number')
                     for installment in schedule[:5]:  # Show first 5
-                        status_icon = "✅" if installment.status == 'paid' else "⚠️" if installment.status == 'partial' else "⏳"
+                        # Determine status
+                        if installment.is_paid:
+                            status = 'paid'
+                            status_icon = "✅"
+                        elif installment.amount_paid > 0:
+                            status = 'partial'
+                            status_icon = "⚠️"
+                        else:
+                            status = 'pending'
+                            status_icon = "⏳"
+                        
                         self.stdout.write(
                             f"  {status_icon} #{installment.installment_number}: "
-                            f"K{installment.amount_due} - {installment.status.upper()} "
+                            f"K{installment.total_amount} - {status.upper()} "
                             f"(paid: K{installment.amount_paid})"
                         )
                     
