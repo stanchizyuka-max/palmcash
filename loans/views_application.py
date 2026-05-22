@@ -377,6 +377,7 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                     term_days = loan_app.duration_days if freq == 'daily' else None
                     term_weeks = (loan_app.duration_days // 7) if freq == 'weekly' else None
                     
+                    # Use backdated application date for loan creation
                     loan = Loan(
                         borrower=loan_app.borrower,
                         loan_officer=loan_app.loan_officer,
@@ -389,8 +390,12 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                         term_days=term_days,
                         term_weeks=term_weeks,
                         payment_amount=Decimal('0'),
-                        approval_date=timezone.now(),
+                        approval_date=loan_app.created_at,  # Use backdated application date
+                        approval_recorded_at=timezone.now(),  # System timestamp
                     )
+                    # Temporarily disable auto_now_add to set custom created_at
+                    loan._state.adding = False
+                    loan.created_at = loan_app.created_at  # Use backdated application date
                     loan.save()
 
                     # For DAILY loans: Skip security deposit requirement

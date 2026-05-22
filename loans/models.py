@@ -147,6 +147,18 @@ class Loan(models.Model):
     disbursement_date = models.DateTimeField(null=True, blank=True)
     maturity_date = models.DateField(null=True, blank=True)
     
+    # Audit Trail - System timestamps (when actions were recorded in system)
+    approval_recorded_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="System timestamp: when approval was recorded in the system"
+    )
+    disbursement_recorded_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="System timestamp: when disbursement was recorded in the system"
+    )
+    
     # Purpose and Collateral
     purpose = models.TextField()
     collateral_description = models.TextField(blank=True)

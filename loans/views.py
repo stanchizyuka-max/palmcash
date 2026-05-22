@@ -632,10 +632,27 @@ class DisburseLoanView(LoginRequiredMixin, View):
             
             # Update loan status to disbursed
             from django.utils import timezone
-            from datetime import timedelta
+            from datetime import timedelta, datetime
+            
+            # Get disbursement date from POST data (for backdating) or use current date
+            disbursement_date_str = request.POST.get('disbursement_date')
+            if disbursement_date_str:
+                try:
+                    # Parse the date string and convert to timezone-aware datetime
+                    disbursement_date_obj = datetime.strptime(disbursement_date_str, '%Y-%m-%d').date()
+                    disbursement_datetime = timezone.make_aware(
+                        datetime.combine(disbursement_date_obj, datetime.min.time())
+                    )
+                except (ValueError, TypeError):
+                    # If parsing fails, use current date
+                    disbursement_datetime = timezone.now()
+            else:
+                # No date provided, use current date
+                disbursement_datetime = timezone.now()
             
             loan.status = 'disbursed'
-            loan.disbursement_date = timezone.now()
+            loan.disbursement_date = disbursement_datetime
+            loan.disbursement_recorded_at = timezone.now()  # System timestamp
             
             # Calculate maturity date based on repayment frequency
             if loan.repayment_frequency == 'daily' and loan.term_days and loan.term_days > 0:
