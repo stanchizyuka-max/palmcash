@@ -1,5 +1,20 @@
 # 🚨 RESTART SERVER NOW 🚨
 
+## ⚠️ HOTFIX APPLIED - Pull Latest Code!
+
+**Latest Commit**: `b344c8f` (fixes AttributeError: 'notes')  
+**Previous Commit**: `13cd94f` (manager disbursement feature)
+
+---
+
+## 🐛 Hotfix Applied
+
+**Issue**: `AttributeError: 'Loan' object has no attribute 'notes'`  
+**Fix**: Changed `loan.notes` to `loan.approval_notes`  
+**Status**: ✅ Fixed and pushed to GitHub
+
+---
+
 ## All Fixes Are Complete - Server Restart Required!
 
 ---
@@ -29,18 +44,35 @@
 ```bash
 ssh iwnd349@ipanel2
 cd ~/www/palmcashloans.site
+
+# IMPORTANT: Pull latest code first (includes hotfix)
+git pull origin main
+
+# Then restart
 touch palmcash/wsgi.py
 ```
 
 ### Method 2: Systemctl
 ```bash
 ssh iwnd349@ipanel2
+cd ~/www/palmcashloans.site
+
+# IMPORTANT: Pull latest code first (includes hotfix)
+git pull origin main
+
+# Then restart
 sudo systemctl restart palmcash
 ```
 
 ### Method 3: Supervisorctl
 ```bash
 ssh iwnd349@ipanel2
+cd ~/www/palmcashloans.site
+
+# IMPORTANT: Pull latest code first (includes hotfix)
+git pull origin main
+
+# Then restart
 sudo supervisorctl restart palmcash
 ```
 

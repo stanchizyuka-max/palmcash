@@ -393,10 +393,14 @@ class ApproveLoanApplicationView(LoginRequiredMixin, UpdateView):
                         approval_date=loan_app.created_at,  # Use backdated application date
                         approval_recorded_at=timezone.now(),  # System timestamp
                     )
-                    # Temporarily disable auto_now_add to set custom created_at
-                    loan._state.adding = False
-                    loan.created_at = loan_app.created_at  # Use backdated application date
+                    # Save first to get the loan created
                     loan.save()
+                    
+                    # Now update application_date to backdated date (bypassing auto_now_add)
+                    Loan.objects.filter(pk=loan.pk).update(
+                        application_date=loan_app.created_at,
+                        created_at=loan_app.created_at
+                    )
 
                     # For DAILY loans: Skip security deposit requirement
                     # For WEEKLY loans: Carry forward existing security or require new deposit
