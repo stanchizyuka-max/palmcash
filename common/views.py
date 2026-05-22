@@ -36,14 +36,18 @@ def start_acting_as_officer(request, officer_id):
     # Set session
     request.session['acting_as_officer_id'] = officer.id
     request.session['acting_as_officer_name'] = officer.get_full_name()
+    request.session.modified = True  # Ensure session is saved
     
     messages.success(
         request, 
         f"You are now acting as {officer.get_full_name()}. All actions will be recorded on their behalf."
     )
     
-    # Redirect to officer's dashboard or a specific page
-    next_url = request.GET.get('next', 'dashboard:dashboard')
+    # Redirect to officer's dashboard
+    next_url = request.GET.get('next', 'dashboard:loan_officer_dashboard')
+    if next_url == 'dashboard:dashboard':
+        # Force redirect to officer dashboard instead of generic dashboard
+        next_url = 'dashboard:loan_officer_dashboard'
     return redirect(next_url)
 
 
