@@ -12,6 +12,9 @@ class ActAsOfficerMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         """Add acting_as_officer to request if set in session"""
+        # Initialize to None for all requests
+        request.acting_as_officer = None
+        
         if request.user.is_authenticated:
             acting_as_officer_id = request.session.get('acting_as_officer_id')
             
@@ -30,30 +33,43 @@ class ActAsOfficerMiddleware(MiddlewareMixin):
                         # For managers, check same branch
                         if request.user.role == 'manager':
                             from clients.models import OfficerAssignment
-                            manager_branch = OfficerAssignment.objects.filter(
-                                officer=request.user
-                            ).first()
-                            officer_branch = OfficerAssignment.objects.filter(
+                            
+                            # Get manager's branch from managed_branch relationship
+                            try:
+                                manager_branch_name = request.user.managed_branch.name
+                            except:
+                                manager_branch_name = None
+                            
+                            # Get officer's branch from OfficerAssignment
+                            officer_assignment = OfficerAssignment.objects.filter(
                                 officer=acting_as_officer
                             ).first()
+                            officer_branch_name = officer_assignment.branch if officer_assignment else None
                             
-                            if manager_branch and officer_branch:
-                                if manager_branch.branch == officer_branch.branch:
-                                    request.acting_as_officer = acting_as_officer
-                                else:
-                                    # Different branch - clear session
+                            # Check if both have branches and they match
+                            if manager_branch_name and officer_branch_name and manager_branch_name == officer_branch_name:
+                                request.acting_as_officer = acting_as_officer
+                            else:
+                                # Different branch or missing branch - clear session
+                                if 'acting_as_officer_id' in request.session:
                                     del request.session['acting_as_officer_id']
+                                if 'acting_as_officer_name' in request.session:
+                                    del request.session['acting_as_officer_name']
                         else:
                             # Admin can act as any officer
                             request.acting_as_officer = acting_as_officer
                     else:
                         # Not a manager/admin - clear session
-                        del request.session['acting_as_officer_id']
+                        if 'acting_as_officer_id' in request.session:
+                            del request.session['acting_as_officer_id']
+                        if 'acting_as_officer_name' in request.session:
+                            del request.session['acting_as_officer_name']
                         
                 except User.DoesNotExist:
                     # Officer not found - clear session
-                    del request.session['acting_as_officer_id']
-            else:
-                request.acting_as_officer = None
+                    if 'acting_as_officer_id' in request.session:
+                        del request.session['acting_as_officer_id']
+                    if 'acting_as_officer_name' in request.session:
+                        del request.session['acting_as_officer_name']
         
         return None

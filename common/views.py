@@ -22,15 +22,21 @@ def start_acting_as_officer(request, officer_id):
     
     # Verify same branch for managers
     if request.user.role == 'manager':
-        manager_branch = OfficerAssignment.objects.filter(officer=request.user).first()
-        officer_branch = OfficerAssignment.objects.filter(officer=officer).first()
-        
-        if not manager_branch or not officer_branch:
-            messages.error(request, "Branch assignment not found.")
+        try:
+            manager_branch_name = request.user.managed_branch.name
+        except:
+            messages.error(request, "You don't have a branch assignment.")
             return redirect('dashboard:dashboard')
         
-        if manager_branch.branch != officer_branch.branch:
-            messages.error(request, f"You can only act as officers in your branch ({manager_branch.branch}).")
+        officer_assignment = OfficerAssignment.objects.filter(officer=officer).first()
+        officer_branch_name = officer_assignment.branch if officer_assignment else None
+        
+        if not officer_branch_name:
+            messages.error(request, f"{officer.get_full_name()} doesn't have a branch assignment.")
+            return redirect('dashboard:dashboard')
+        
+        if manager_branch_name != officer_branch_name:
+            messages.error(request, f"You can only act as officers in your branch ({manager_branch_name}).")
             return redirect('dashboard:dashboard')
     
     # Set session
