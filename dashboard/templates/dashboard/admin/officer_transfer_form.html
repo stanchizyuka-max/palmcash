@@ -1,0 +1,243 @@
+{% extends 'base_tailwind.html' %}
+{% load humanize %}
+
+{% block title %}Transfer Officer - {{ officer.full_name }}{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 42px;
+        padding-left: 12px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-dropdown {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+    }
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Transfer Loan Officer</h1>
+            <p class="mt-2 text-gray-600">Transfer {{ officer.full_name }} to a different branch</p>
+        </div>
+
+        <!-- Officer Information Card -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Officer Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Full Name</p>
+                    <p class="text-base font-medium text-gray-900">{{ officer.full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Email</p>
+                    <p class="text-base font-medium text-gray-900">{{ officer.email }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Phone Number</p>
+                    <p class="text-base font-medium text-gray-900">{{ officer.phone_number|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Username</p>
+                    <p class="text-base font-medium text-gray-900">{{ officer.username }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Current Branch</p>
+                    <p class="text-base font-medium text-gray-900">{{ current_branch }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Groups Managed</p>
+                    <p class="text-base font-medium text-gray-900">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {{ officer_groups.count }} Group{{ officer_groups.count|pluralize }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Groups List -->
+            {% if officer_groups %}
+            <div class="mt-6">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Managed Groups (will be transferred with officer):</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {% for group in officer_groups %}
+                    <div class="bg-gray-50 px-3 py-2 rounded text-sm text-gray-700">
+                        <i class="fas fa-users mr-2 text-gray-400"></i>{{ group.name }}
+                        <span class="text-gray-500 text-xs ml-2">({{ group.member_count }} members)</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Error Message -->
+        {% if error %}
+        <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-red-800">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Transfer Form -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Transfer Details</h2>
+            <form method="post" class="space-y-6" id="transferForm">
+                {% csrf_token %}
+
+                <div>
+                    <label for="new_branch" class="block text-sm font-medium text-gray-700 mb-2">Destination Branch *</label>
+                    <select id="new_branch" name="new_branch" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Select Branch --</option>
+                        {% for branch in branches %}
+                        {% if branch.name != current_branch %}
+                        <option value="{{ branch.name }}">
+                            {{ branch.name }} {% if branch.code %}({{ branch.code }}){% endif %}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">Reason for Transfer</label>
+                    <textarea id="reason" name="reason" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Explain the reason for this transfer (optional)..."></textarea>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'dashboard:admin_officer_transfer_list' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to List
+                    </a>
+                    <button type="button" onclick="showConfirmModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+                        <i class="fas fa-exchange-alt mr-2"></i>Transfer Officer
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Text -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-900 mb-2">📋 Transfer Information</h3>
+            <ul class="text-sm text-blue-800 list-disc list-inside space-y-1">
+                <li>Officer will be moved to the selected branch</li>
+                <li>All groups managed by this officer will be transferred to the new branch</li>
+                <li>Clients assigned to this officer remain assigned</li>
+                <li>All transfers are logged for audit purposes</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="hidden fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="fas fa-exchange-alt text-blue-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            Confirm Officer Transfer
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">
+                                Are you sure you want to transfer <strong>{{ officer.full_name }}</strong> to the selected branch?
+                            </p>
+                            <p class="text-sm text-gray-500 mt-2" id="modalBranchInfo"></p>
+                            {% if officer_groups %}
+                            <p class="text-sm text-gray-500 mt-2">
+                                <strong>{{ officer_groups.count }} group{{ officer_groups.count|pluralize }}</strong> will be transferred with this officer.
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="submitTransfer()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Confirm Transfer
+                </button>
+                <button type="button" onclick="hideConfirmModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmModal() {
+    const branchSelect = document.getElementById('new_branch');
+    
+    // Validate form
+    if (!branchSelect.value) {
+        alert('Please select a destination branch');
+        return;
+    }
+    
+    // Update modal with selected branch info
+    const selectedOption = branchSelect.options[branchSelect.selectedIndex];
+    const branchName = selectedOption.text;
+    document.getElementById('modalBranchInfo').textContent = `Destination: ${branchName}`;
+    
+    // Show modal
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function hideConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+
+function submitTransfer() {
+    document.getElementById('transferForm').submit();
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideConfirmModal();
+    }
+});
+</script>
+
+<!-- Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2 on branch dropdown
+    $('#new_branch').select2({
+        placeholder: '-- Select Branch --',
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
+
+{% endblock %}

@@ -4242,50 +4242,194 @@ def admin_officers_list(request):
 
 
 @login_required
-def admin_officer_transfer(request):
-    """Admin view: Transfer a loan officer to a different branch"""
+def admin_officer_transfer_list(request):
+    """STEP 1: Admin view - List all officers with search, filters, and pagination"""
     user = request.user
     
     if user.role != 'admin':
         return render(request, 'dashboard/access_denied.html')
     
-    # Get officer_id from query string if provided
-    selected_officer_id = request.GET.get('officer_id')
-    selected_officer = None
-    if selected_officer_id:
-        try:
-            selected_officer = User.objects.get(id=selected_officer_id, role='loan_officer')
-        except User.DoesNotExist:
-            pass
+    from django.db.models import Q, Count, Prefetch
+    from django.core.paginator import Paginator
+    
+    # Get all loan officers
+    officers_query = User.objects.filter(role='loan_officer', is_active=True).select_related(
+        'officer_assignment'
+    ).prefetch_related(
+        Prefetch('managed_groups', queryset=BorrowerGroup.objects.filter(is_active=True))
+    )
+    
+    # Apply search filter
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        officers_query = officers_query.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+    
+    # Apply branch filter
+    branch_filter = request.GET.get('branch', '').strip()
+    if branch_filter:
+        officers_query = officers_query.filter(officer_assignment__branch__iexact=branch_filter)
+    
+    # Get filter options
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    # Pagination
+    paginator = Paginator(officers_query, 25)  # 25 officers per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Annotate each officer with group count and client count
+    for officer in page_obj:
+        officer.group_count = officer.managed_groups.count()
+        officer.client_count = User.objects.filter(assigned_officer=officer, role='borrower', is_active=True).count()
+        officer.current_branch = officer.officer_assignment.branch if hasattr(officer, 'officer_assignment') else 'Unassigned'
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'branch_filter': branch_filter,
+        'branches': branches,
+        'total_officers': paginator.count,
+    }
+    
+    return render(request, 'dashboard/admin_officer_transfer_list.html', context)
+
+
+@login_required
+def admin_officer_transfer(request, officer_id=None):
+    """STEP 2: Admin view - Transfer a specific officer to a different branch"""
+    user = request.user
+    
+    if user.role != 'admin':
+        return render(request, 'dashboard/access_denied.html')
+    
+    # If no officer_id provided, redirect to list view
+    if not officer_id:
+        from django.shortcuts import redirect
+        return redirect('dashboard:admin_officer_transfer_list')
+    
+    # Get the specific officer
+    try:
+        officer = User.objects.select_related('officer_assignment').prefetch_related(
+            'managed_groups'
+        ).get(id=officer_id, role='loan_officer')
+    except User.DoesNotExist:
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        messages.error(request, 'Officer not found')
+        return redirect('dashboard:admin_officer_transfer_list')
+    
+    # Get current branch
+    current_branch = officer.officer_assignment.branch if hasattr(officer, 'officer_assignment') else 'Unassigned'
     
     if request.method == 'POST':
-        officer_id = request.POST.get('officer_id')
         new_branch = request.POST.get('new_branch')
-        reason = request.POST.get('reason')
+        reason = request.POST.get('reason', '')
+        
+        if not new_branch:
+            branches = Branch.objects.filter(is_active=True).order_by('name')
+            return render(request, 'dashboard/admin/officer_transfer_form.html', {
+                'error': 'Destination branch is required',
+                'officer': officer,
+                'current_branch': current_branch,
+                'branches': branches,
+            })
         
         try:
-            officer = User.objects.get(id=officer_id, role='loan_officer')
+            # Verify branch exists
+            dest_branch = Branch.objects.get(name=new_branch, is_active=True)
+        except Branch.DoesNotExist:
+            branches = Branch.objects.filter(is_active=True).order_by('name')
+            return render(request, 'dashboard/admin/officer_transfer_form.html', {
+                'error': 'Destination branch not found or inactive',
+                'officer': officer,
+                'current_branch': current_branch,
+                'branches': branches,
+            })
+        
+        # Check if already in that branch
+        if current_branch.lower() == new_branch.lower():
+            branches = Branch.objects.filter(is_active=True).order_by('name')
+            return render(request, 'dashboard/admin/officer_transfer_form.html', {
+                'error': f'Officer is already in {new_branch} branch',
+                'officer': officer,
+                'current_branch': current_branch,
+                'branches': branches,
+            })
+        
+        try:
+            # Get officer's groups before transfer
+            officer_groups = list(officer.managed_groups.filter(is_active=True).values_list('id', flat=True))
+            
             # Update officer's branch assignment
             if hasattr(officer, 'officer_assignment'):
                 officer.officer_assignment.branch = new_branch
                 officer.officer_assignment.save()
+            else:
+                # Create officer assignment if doesn't exist
+                from clients.models import OfficerAssignment
+                OfficerAssignment.objects.create(
+                    officer=officer,
+                    branch=new_branch
+                )
             
-            messages.success(request, f'{officer.full_name} has been transferred to {new_branch}')
-        except User.DoesNotExist:
-            messages.error(request, 'Officer not found')
-        
-        return redirect('dashboard:admin_officers_list')
+            # Update all officer's groups to new branch
+            BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True).update(branch=new_branch)
+            
+            # Create OfficerTransferLog
+            from clients.models import OfficerTransferLog
+            OfficerTransferLog.objects.create(
+                officer=officer,
+                previous_branch=current_branch,
+                new_branch=new_branch,
+                transferred_groups=officer_groups,
+                reason=reason,
+                performed_by=user
+            )
+            
+            # Create AdminAuditLog
+            AdminAuditLog.objects.create(
+                admin_user=user,
+                action='officer_transfer',
+                affected_user=officer,
+                description=f'Transferred officer {officer.full_name} from {current_branch} to {new_branch}. {len(officer_groups)} group(s) transferred.',
+                old_value=f'branch: {current_branch}',
+                new_value=f'branch: {new_branch}'
+            )
+            
+            # Success message
+            from django.shortcuts import redirect
+            from django.contrib import messages
+            messages.success(request, f'Successfully transferred {officer.full_name} to {new_branch}')
+            return redirect('dashboard:admin_officer_transfer_list')
+            
+        except Exception as e:
+            branches = Branch.objects.filter(is_active=True).order_by('name')
+            return render(request, 'dashboard/admin/officer_transfer_form.html', {
+                'error': f'Error transferring officer: {str(e)}',
+                'officer': officer,
+                'current_branch': current_branch,
+                'branches': branches,
+            })
     
-    officers = User.objects.filter(role='loan_officer')
-    branches = Branch.objects.all()
+    # GET request - show transfer form for this specific officer
+    branches = Branch.objects.filter(is_active=True).order_by('name')
+    
+    # Get officer's groups
+    officer_groups = officer.managed_groups.filter(is_active=True)
     
     context = {
-        'officers': officers,
+        'officer': officer,
+        'current_branch': current_branch,
         'branches': branches,
-        'selected_officer': selected_officer,
+        'officer_groups': officer_groups,
     }
-    
-    return render(request, 'dashboard/admin/officer_transfer.html', context)
+    return render(request, 'dashboard/admin/officer_transfer_form.html', context)
 
 
 @login_required

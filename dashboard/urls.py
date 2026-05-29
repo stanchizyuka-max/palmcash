@@ -69,7 +69,8 @@ urlpatterns = [
     
     # Admin Officer Management URLs
     path('admin/officers/', views.admin_officers_list, name='admin_officers_list'),
-    path('admin/officers/transfer/', views.admin_officer_transfer, name='admin_officer_transfer'),
+    path('admin/officers/transfer/', views.admin_officer_transfer_list, name='admin_officer_transfer_list'),
+    path('admin/officers/transfer/<int:officer_id>/', views.admin_officer_transfer, name='admin_officer_transfer'),
     path('admin/transfers/history/', views.admin_transfer_history, name='admin_transfer_history'),
     
     # Admin Client Transfer URLs
