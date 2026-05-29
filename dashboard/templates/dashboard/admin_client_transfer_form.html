@@ -3,6 +3,28 @@
 
 {% block title %}Transfer Client{% endblock %}
 
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 42px;
+        padding-left: 12px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -123,4 +145,27 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<!-- Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on client dropdown
+        $('#client_id').select2({
+            placeholder: '-- Select Client --',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Initialize Select2 on group dropdown
+        $('#destination_group').select2({
+            placeholder: '-- Select Group --',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}

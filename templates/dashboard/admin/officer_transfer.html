@@ -2,6 +2,28 @@
 
 {% block title %}Transfer Officer - Admin Dashboard{% endblock %}
 
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 42px;
+        padding-left: 16px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-secondary-50 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,7 +40,7 @@
                 
                 <div>
                     <label class="block text-sm font-medium text-secondary-700 mb-2">Select Officer *</label>
-                    <select name="officer_id" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <select id="officer_id" name="officer_id" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                         <option value="">-- Choose an officer --</option>
                         {% for officer in officers %}
                         <option value="{{ officer.id }}" {% if selected_officer.id == officer.id %}selected{% endif %}>{{ officer.full_name }} ({{ officer.email }})</option>
@@ -28,7 +50,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-secondary-700 mb-2">Transfer to Branch *</label>
-                    <select name="new_branch" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <select id="new_branch" name="new_branch" required class="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                         <option value="">-- Choose a branch --</option>
                         {% for branch in branches %}
                         <option value="{{ branch.name }}">{{ branch.name }}</option>
@@ -61,4 +83,27 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<!-- Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on officer dropdown
+        $('#officer_id').select2({
+            placeholder: '-- Choose an officer --',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Initialize Select2 on branch dropdown
+        $('#new_branch').select2({
+            placeholder: '-- Choose a branch --',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}
