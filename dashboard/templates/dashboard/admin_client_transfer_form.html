@@ -1,37 +1,82 @@
 {% extends 'base_tailwind.html' %}
 {% load humanize %}
 
-{% block title %}Transfer Client{% endblock %}
-
-{% block extra_css %}
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<style>
-    .select2-container--default .select2-selection--single {
-        height: 42px;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 42px;
-        padding-left: 12px;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 40px;
-    }
-    .select2-container {
-        width: 100% !important;
-    }
-</style>
-{% endblock %}
+{% block title %}Transfer Client - {{ client.full_name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Transfer Client</h1>
-            <p class="mt-2 text-gray-600">Transfer a client to a different borrower group</p>
+            <p class="mt-2 text-gray-600">Transfer {{ client.full_name }} to a different borrower group</p>
+        </div>
+
+        <!-- Client Information Card -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Client Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Full Name</p>
+                    <p class="text-base font-medium text-gray-900">{{ client.full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Phone Number</p>
+                    <p class="text-base font-medium text-gray-900">{{ client.phone_number|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">National ID</p>
+                    <p class="text-base font-medium text-gray-900">{{ client.national_id|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Email</p>
+                    <p class="text-base font-medium text-gray-900">{{ client.email|default:"Not provided" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Current Branch</p>
+                    <p class="text-base font-medium text-gray-900">
+                        {% if current_group %}
+                            {{ current_group.branch|default:"N/A" }}
+                        {% else %}
+                            <span class="text-gray-400">No group assigned</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Current Group</p>
+                    <p class="text-base font-medium text-gray-900">
+                        {% if current_group %}
+                            {{ current_group.name }}
+                        {% else %}
+                            <span class="text-gray-400">No group assigned</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Current Loan Officer</p>
+                    <p class="text-base font-medium text-gray-900">
+                        {% if client.assigned_officer %}
+                            {{ client.assigned_officer.full_name }}
+                        {% else %}
+                            <span class="text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Active Loans</p>
+                    <p class="text-base font-medium text-gray-900">
+                        {% if active_loans %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                {{ active_loans.count }} Active Loan{{ active_loans.count|pluralize }}
+                            </span>
+                        {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                No Active Loans
+                            </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Error Message -->
@@ -43,7 +88,7 @@
                 <p class="font-semibold text-red-900 mb-2">Active Loans:</p>
                 <ul class="list-disc list-inside text-sm text-red-800">
                     {% for loan in active_loans %}
-                    <li>Loan #{{ loan.id }} - K{{ loan.principal_amount }}</li>
+                    <li>Loan {{ loan.application_number }} - K{{ loan.principal_amount|floatformat:2|intcomma }}</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -70,17 +115,16 @@
             </div>
         </div>
 
-        <form method="post" action="{% url 'dashboard:admin_client_transfer' %}" style="margin-top:0">
+        <form method="post" style="margin-top:0">
             {% csrf_token %}
-            <input type="hidden" name="client_id" value="{{ client.id }}">
             <input type="hidden" name="destination_group" value="{{ dest_group.id }}">
             <input type="hidden" name="reason" value="Client transfer with loan reassignment">
             <input type="hidden" name="transfer_loans" value="yes">
             <div class="flex gap-3">
-                <button type="submit" style="background:#d97706;color:white;padding:10px 24px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:14px;">
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded">
                     <i class="fas fa-exchange-alt mr-2"></i>Transfer Client and Loans
                 </button>
-                <a href="{% url 'dashboard:admin_client_transfer' %}" style="background:#e5e7eb;color:#374151;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+                <a href="{% url 'dashboard:admin_client_transfer_list' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
                     Cancel
                 </a>
             </div>
@@ -89,29 +133,21 @@
 
         <!-- Transfer Form -->
         <div class="bg-white rounded-lg shadow p-6">
-            <form method="post" class="space-y-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-6">Transfer Details</h2>
+            <form method="post" class="space-y-6" id="transferForm">
                 {% csrf_token %}
-
-                <div>
-                    <label for="client_id" class="block text-sm font-medium text-gray-700 mb-2">Select Client *</label>
-                    <select id="client_id" name="client_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">-- Select Client --</option>
-                        {% for client in clients %}
-                        <option value="{{ client.id }}">{{ client.full_name }} ({{ client.email }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
 
                 <div>
                     <label for="destination_group" class="block text-sm font-medium text-gray-700 mb-2">Destination Group *</label>
                     <select id="destination_group" name="destination_group" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">-- Select Group --</option>
                         {% for group in groups %}
-                        <option value="{{ group.id }}">
-                            {{ group.name }} ({{ group.member_count }}/{% if group.max_members %}{{ group.max_members }}{% else %}Unlimited{% endif %} members)
+                        <option value="{{ group.id }}" data-officer="{{ group.assigned_officer.get_full_name|default:'Unassigned' }}" data-branch="{{ group.branch|default:'N/A' }}">
+                            {{ group.name }} ({{ group.member_count }}/{% if group.max_members %}{{ group.max_members }}{% else %}Unlimited{% endif %} members) - {{ group.branch|default:"N/A" }}
                         </option>
                         {% endfor %}
                     </select>
+                    <p class="mt-2 text-sm text-gray-500" id="groupInfo"></p>
                 </div>
 
                 <div>
@@ -121,11 +157,11 @@
 
                 <!-- Form Actions -->
                 <div class="flex justify-between pt-6 border-t border-gray-200">
-                    <a href="{% url 'dashboard:admin_client_transfer_history' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                        Cancel
+                    <a href="{% url 'dashboard:admin_client_transfer_list' %}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to List
                     </a>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                        Transfer Client
+                    <button type="button" onclick="showConfirmModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+                        <i class="fas fa-exchange-alt mr-2"></i>Transfer Client
                     </button>
                 </div>
             </form>
@@ -146,26 +182,96 @@
     </div>
 </div>
 
-{% block extra_js %}
-<!-- Select2 JS -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="hidden fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="fas fa-exchange-alt text-blue-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            Confirm Client Transfer
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">
+                                Are you sure you want to transfer <strong>{{ client.full_name }}</strong> to the selected group?
+                            </p>
+                            <p class="text-sm text-gray-500 mt-2" id="modalGroupInfo"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="submitTransfer()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Confirm Transfer
+                </button>
+                <button type="button" onclick="hideConfirmModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    $(document).ready(function() {
-        // Initialize Select2 on client dropdown
-        $('#client_id').select2({
-            placeholder: '-- Select Client --',
-            allowClear: true,
-            width: '100%'
-        });
-        
-        // Initialize Select2 on group dropdown
-        $('#destination_group').select2({
-            placeholder: '-- Select Group --',
-            allowClear: true,
-            width: '100%'
-        });
-    });
+// Update group info when selection changes
+document.getElementById('destination_group')?.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const officer = selectedOption.getAttribute('data-officer');
+    const branch = selectedOption.getAttribute('data-branch');
+    const groupInfo = document.getElementById('groupInfo');
+    
+    if (this.value) {
+        groupInfo.textContent = `Branch: ${branch} | Loan Officer: ${officer}`;
+    } else {
+        groupInfo.textContent = '';
+    }
+});
+
+function showConfirmModal() {
+    const form = document.getElementById('transferForm');
+    const groupSelect = document.getElementById('destination_group');
+    const reason = document.getElementById('reason');
+    
+    // Validate form
+    if (!groupSelect.value) {
+        alert('Please select a destination group');
+        return;
+    }
+    
+    if (!reason.value.trim()) {
+        alert('Please provide a reason for the transfer');
+        return;
+    }
+    
+    // Update modal with selected group info
+    const selectedOption = groupSelect.options[groupSelect.selectedIndex];
+    const groupName = selectedOption.text;
+    document.getElementById('modalGroupInfo').textContent = `Destination: ${groupName}`;
+    
+    // Show modal
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function hideConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+
+function submitTransfer() {
+    document.getElementById('transferForm').submit();
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideConfirmModal();
+    }
+});
 </script>
-{% endblock %}
+
 {% endblock %}

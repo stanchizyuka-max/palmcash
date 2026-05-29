@@ -73,7 +73,8 @@ urlpatterns = [
     path('admin/transfers/history/', views.admin_transfer_history, name='admin_transfer_history'),
     
     # Admin Client Transfer URLs
-    path('admin/clients/transfer/', views.admin_client_transfer, name='admin_client_transfer'),
+    path('admin/clients/transfer/', views.admin_client_transfer_list, name='admin_client_transfer_list'),
+    path('admin/clients/transfer/<int:client_id>/', views.admin_client_transfer, name='admin_client_transfer'),
     path('admin/clients/transfer/history/', views.admin_client_transfer_history, name='admin_client_transfer_history'),
     
     # Admin Group Assignment Override URLs

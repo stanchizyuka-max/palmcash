@@ -4369,59 +4369,184 @@ def _branch_clients_groups(user):
 
 
 @login_required
-def admin_client_transfer(request):
-    """Admin/Manager view: Transfer a client to a different group"""
+def admin_client_transfer_list(request):
+    """STEP 1: Admin/Manager view - List all clients with search, filters, and pagination"""
     user = request.user
     
     if user.role not in ['admin', 'manager']:
         return render(request, 'dashboard/access_denied.html')
     
+    from django.db.models import Q, Prefetch
+    from django.core.paginator import Paginator
+    
+    # Get base queryset scoped to user's branch
+    clients_query, _ = _branch_clients_groups(user)
+    
+    # Prefetch related data for efficiency
+    clients_query = clients_query.select_related(
+        'assigned_officer',
+        'assigned_officer__officer_assignment'
+    ).prefetch_related(
+        Prefetch('group_memberships', queryset=GroupMembership.objects.filter(is_active=True).select_related('group'))
+    )
+    
+    # Apply search filter
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        clients_query = clients_query.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(username__icontains=search_query) |
+            Q(phone_number__icontains=search_query) |
+            Q(national_id__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+    
+    # Apply branch filter (for admins only)
+    branch_filter = request.GET.get('branch', '').strip()
+    if branch_filter and user.role == 'admin':
+        clients_query = clients_query.filter(
+            Q(group_memberships__group__branch__iexact=branch_filter, group_memberships__is_active=True) |
+            Q(assigned_officer__officer_assignment__branch__iexact=branch_filter)
+        ).distinct()
+    
+    # Apply group filter
+    group_filter = request.GET.get('group', '').strip()
+    if group_filter:
+        clients_query = clients_query.filter(
+            group_memberships__group_id=group_filter,
+            group_memberships__is_active=True
+        ).distinct()
+    
+    # Apply loan officer filter
+    officer_filter = request.GET.get('officer', '').strip()
+    if officer_filter:
+        clients_query = clients_query.filter(assigned_officer_id=officer_filter)
+    
+    # Apply loan status filter
+    loan_status_filter = request.GET.get('loan_status', '').strip()
+    if loan_status_filter:
+        if loan_status_filter == 'active':
+            clients_query = clients_query.filter(loans__status='active').distinct()
+        elif loan_status_filter == 'no_loans':
+            clients_query = clients_query.exclude(loans__status__in=['active', 'pending', 'approved']).distinct()
+    
+    # Get filter options
+    if user.role == 'admin':
+        branches = Branch.objects.filter(is_active=True).order_by('name')
+    else:
+        branches = []
+    
+    if user.role == 'manager':
+        try:
+            manager_branch = user.managed_branch.name
+            groups = BorrowerGroup.objects.filter(branch__iexact=manager_branch, is_active=True).order_by('name')
+            officers = User.objects.filter(
+                role='loan_officer',
+                officer_assignment__branch__iexact=manager_branch,
+                is_active=True
+            ).order_by('first_name', 'last_name')
+        except:
+            groups = BorrowerGroup.objects.none()
+            officers = User.objects.none()
+    else:
+        groups = BorrowerGroup.objects.filter(is_active=True).order_by('name')
+        officers = User.objects.filter(role='loan_officer', is_active=True).order_by('first_name', 'last_name')
+    
+    # Pagination
+    paginator = Paginator(clients_query, 25)  # 25 clients per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Annotate each client with current group and active loan status
+    for client in page_obj:
+        # Get current group
+        active_membership = client.group_memberships.filter(is_active=True).first()
+        client.current_group = active_membership.group if active_membership else None
+        
+        # Get active loan count
+        client.active_loan_count = Loan.objects.filter(borrower=client, status='active').count()
+        client.has_active_loans = client.active_loan_count > 0
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'branch_filter': branch_filter,
+        'group_filter': group_filter,
+        'officer_filter': officer_filter,
+        'loan_status_filter': loan_status_filter,
+        'branches': branches,
+        'groups': groups,
+        'officers': officers,
+        'total_clients': paginator.count,
+    }
+    
+    return render(request, 'dashboard/admin_client_transfer_list.html', context)
+
+
+@login_required
+def admin_client_transfer(request, client_id=None):
+    """STEP 2: Admin/Manager view - Transfer a specific client to a different group"""
+    user = request.user
+    
+    if user.role not in ['admin', 'manager']:
+        return render(request, 'dashboard/access_denied.html')
+    
+    # If no client_id provided, redirect to list view
+    if not client_id:
+        from django.shortcuts import redirect
+        return redirect('dashboard:admin_client_transfer_list')
+    
+    # Get the specific client
+    try:
+        client = User.objects.select_related('assigned_officer').prefetch_related(
+            'group_memberships__group'
+        ).get(id=client_id, role='borrower')
+        
+        # Verify manager has access to this client
+        if user.role == 'manager':
+            try:
+                manager_branch = user.managed_branch.name
+                from django.db.models import Q
+                has_access = User.objects.filter(
+                    id=client_id,
+                    role='borrower'
+                ).filter(
+                    Q(group_memberships__group__branch__iexact=manager_branch, group_memberships__is_active=True) |
+                    Q(assigned_officer__officer_assignment__branch__iexact=manager_branch)
+                ).exists()
+                
+                if not has_access:
+                    return render(request, 'dashboard/access_denied.html', {
+                        'error': 'You do not have access to this client'
+                    })
+            except:
+                return render(request, 'dashboard/access_denied.html')
+    
+    except User.DoesNotExist:
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        messages.error(request, 'Client not found')
+        return redirect('dashboard:admin_client_transfer_list')
+    
+    # Get current group membership
+    try:
+        current_membership = GroupMembership.objects.get(borrower=client, is_active=True)
+        current_group = current_membership.group
+    except GroupMembership.DoesNotExist:
+        current_group = None
+    
     if request.method == 'POST':
         try:
-            client_id = request.POST.get('client_id')
             destination_group_id = request.POST.get('destination_group')
             reason = request.POST.get('reason')
             
-            if not client_id or not destination_group_id or not reason:
-                clients_query, groups_query = _branch_clients_groups(user)
+            if not destination_group_id or not reason:
+                _, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
-                    'error': 'Client, destination group, and reason are required',
-                    'clients': clients_query,
-                    'groups': groups_query,
-                })
-            
-            try:
-                client = User.objects.get(id=client_id, role='borrower')
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        if not (client.group_memberships.filter(group__branch__iexact=manager_branch, is_active=True).exists() or
-                                (client.assigned_officer and client.assigned_officer.officer_assignment.branch.lower() == manager_branch.lower())):
-                            raise User.DoesNotExist
-                    except User.DoesNotExist:
-                        raise
-                    except Exception:
-                        raise User.DoesNotExist
-            except User.DoesNotExist:
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
-                return render(request, 'dashboard/admin_client_transfer_form.html', {
-                    'error': 'Client not found',
-                    'clients': clients_query,
+                    'error': 'Destination group and reason are required',
+                    'client': client,
+                    'current_group': current_group,
                     'groups': groups_query,
                 })
             
@@ -4436,109 +4561,50 @@ def admin_client_transfer(request):
                     except:
                         raise BorrowerGroup.DoesNotExist
             except BorrowerGroup.DoesNotExist:
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
+                _, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Destination group not found',
-                    'clients': clients_query,
+                    'client': client,
+                    'current_group': current_group,
                     'groups': groups_query,
                 })
             
             if not dest_group.is_active:
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
+                _, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': 'Destination group is not active',
-                    'clients': clients_query,
+                    'client': client,
+                    'current_group': current_group,
                     'groups': groups_query,
                 })
             
             if dest_group.is_full:
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
+                _, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'error': f'Destination group is at capacity ({dest_group.member_count}/{dest_group.max_members})',
-                    'clients': clients_query,
+                    'client': client,
+                    'current_group': current_group,
                     'groups': groups_query,
                 })
-            
-            try:
-                current_membership = GroupMembership.objects.get(borrower=client, is_active=True)
-                previous_group = current_membership.group
-            except GroupMembership.DoesNotExist:
-                previous_group = None
             
             active_loans = Loan.objects.filter(borrower=client, status='active')
             pending_loans = Loan.objects.filter(borrower=client, status='pending')
             transferable_loans = Loan.objects.filter(borrower=client).exclude(status__in=['completed', 'rejected'])
             
             if transferable_loans.exists() and not request.POST.get('transfer_loans'):
-                clients_query = User.objects.filter(role='borrower')
-                groups_query = BorrowerGroup.objects.filter(is_active=True)
-                
-                if user.role == 'manager':
-                    try:
-                        manager_branch = user.managed_branch.name
-                        clients_query = clients_query.filter(
-                            Q(group_memberships__group__branch=manager_branch, group_memberships__is_active=True) |
-                            Q(assigned_officer__officerassignment__branch=manager_branch)
-                        ).distinct()
-                        groups_query = groups_query.filter(branch=manager_branch)
-                    except:
-                        clients_query = User.objects.none()
-                        groups_query = BorrowerGroup.objects.none()
-                
+                _, groups_query = _branch_clients_groups(user)
                 return render(request, 'dashboard/admin_client_transfer_form.html', {
                     'show_loan_transfer_confirm': True,
                     'client': client,
+                    'current_group': current_group,
                     'dest_group': dest_group,
                     'transferable_loans': transferable_loans,
                     'active_loans': active_loans,
                     'pending_loans': pending_loans,
-                    'clients': clients_query,
                     'groups': groups_query,
                 })
             
-            if previous_group:
+            if current_group:
                 current_membership.is_active = False
                 current_membership.save()
 
@@ -4582,7 +4648,7 @@ def admin_client_transfer(request):
             from clients.models import ClientTransferLog
             ClientTransferLog.objects.create(
                 client=client,
-                previous_group=previous_group,
+                previous_group=current_group,
                 new_group=dest_group,
                 reason=reason,
                 performed_by=user
@@ -4594,8 +4660,8 @@ def admin_client_transfer(request):
                 action='client_transfer',
                 affected_user=client,
                 affected_group=dest_group,
-                description=f'Transferred client {client.full_name} from {previous_group.name if previous_group else "no group"} to {dest_group.name}',
-                old_value=f'group: {previous_group.name if previous_group else "none"}',
+                description=f'Transferred client {client.full_name} from {current_group.name if current_group else "no group"} to {dest_group.name}',
+                old_value=f'group: {current_group.name if current_group else "none"}',
                 new_value=f'group: {dest_group.name}'
             )
             
@@ -4610,22 +4676,32 @@ def admin_client_transfer(request):
                     new_value=f'new_officer: {dest_group.assigned_officer.get_full_name() if dest_group.assigned_officer else "unassigned"}'
                 )
             
-            # Redirect to transfer history
+            # Redirect to transfer history with success message
             from django.shortcuts import redirect
-            return redirect('dashboard:admin_client_transfer_history')
+            from django.contrib import messages
+            messages.success(request, f'Successfully transferred {client.full_name} to {dest_group.name}')
+            return redirect('dashboard:admin_client_transfer_list')
             
         except Exception as e:
-            clients_query, groups_query = _branch_clients_groups(user)
+            _, groups_query = _branch_clients_groups(user)
             return render(request, 'dashboard/admin_client_transfer_form.html', {
                 'error': f'Error transferring client: {str(e)}',
-                'clients': clients_query,
+                'client': client,
+                'current_group': current_group,
                 'groups': groups_query,
             })
     
-    clients_query, groups_query = _branch_clients_groups(user)
+    # GET request - show transfer form for this specific client
+    _, groups_query = _branch_clients_groups(user)
+    
+    # Get active loans info
+    active_loans = Loan.objects.filter(borrower=client, status='active')
+    
     context = {
-        'clients': clients_query,
+        'client': client,
+        'current_group': current_group,
         'groups': groups_query,
+        'active_loans': active_loans,
     }
     return render(request, 'dashboard/admin_client_transfer_form.html', context)
 
