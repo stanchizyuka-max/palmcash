@@ -192,6 +192,60 @@
             </div>
         </div>
 
+        <!-- Pending Items Summary -->
+        {% if pending_sec_txns_total > 0 or pending_payments_count > 0 or pending_loan_approvals > 0 or pending_applications_count > 0 or pending_document_verifications > 0 %}
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl shadow-lg p-6 border-2 border-amber-300 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Action Required</h3>
+                        <p class="text-slate-600 text-sm">You have pending items that need your attention</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {% if pending_sec_txns_total > 0 %}
+                <a href="{% url 'dashboard:pending_approvals' %}" class="bg-white rounded-lg p-4 border-2 border-orange-200 hover:border-orange-400 transition text-center">
+                    <p class="text-2xl font-bold text-orange-600">{{ pending_sec_txns_total }}</p>
+                    <p class="text-xs text-slate-700 font-semibold mt-1">Security Txns</p>
+                </a>
+                {% endif %}
+                
+                {% if pending_payments_count > 0 %}
+                <a href="{% url 'payments:list' %}" class="bg-white rounded-lg p-4 border-2 border-yellow-200 hover:border-yellow-400 transition text-center">
+                    <p class="text-2xl font-bold text-yellow-600">{{ pending_payments_count }}</p>
+                    <p class="text-xs text-slate-700 font-semibold mt-1">Payments</p>
+                </a>
+                {% endif %}
+                
+                {% if pending_loan_approvals > 0 %}
+                <a href="{% url 'dashboard:pending_approvals' %}" class="bg-white rounded-lg p-4 border-2 border-indigo-200 hover:border-indigo-400 transition text-center">
+                    <p class="text-2xl font-bold text-indigo-600">{{ pending_loan_approvals }}</p>
+                    <p class="text-xs text-slate-700 font-semibold mt-1">Loan Approvals</p>
+                </a>
+                {% endif %}
+                
+                {% if pending_applications_count > 0 %}
+                <a href="{% url 'loans:application_list' %}" class="bg-white rounded-lg p-4 border-2 border-purple-200 hover:border-purple-400 transition text-center">
+                    <p class="text-2xl font-bold text-purple-600">{{ pending_applications_count }}</p>
+                    <p class="text-xs text-slate-700 font-semibold mt-1">Applications</p>
+                </a>
+                {% endif %}
+                
+                {% if pending_document_verifications > 0 %}
+                <div class="bg-white rounded-lg p-4 border-2 border-teal-200 text-center">
+                    <p class="text-2xl font-bold text-teal-600">{{ pending_document_verifications }}</p>
+                    <p class="text-xs text-slate-700 font-semibold mt-1">Documents</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Pending Approvals -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             <!-- Approvals Section -->
@@ -328,6 +382,80 @@
                         <p class="text-slate-600 text-xs font-semibold uppercase mt-1">Total</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Additional Pending Items -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Pending Loan Approvals -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center">
+                        <i class="fas fa-file-signature text-indigo-500 mr-2"></i>Loan Approvals
+                    </h3>
+                    {% if pending_loan_approvals > 0 %}
+                    <span class="bg-indigo-100 text-indigo-700 font-bold text-sm px-3 py-1 rounded-full">{{ pending_loan_approvals }}</span>
+                    {% endif %}
+                </div>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-6 text-center">
+                    <p class="text-5xl font-bold text-indigo-700">{{ pending_loan_approvals }}</p>
+                    <p class="text-indigo-600 text-sm mt-2 font-medium">loans awaiting manager approval</p>
+                </div>
+                {% if pending_loan_approvals > 0 %}
+                <div class="mt-4">
+                    <a href="{% url 'dashboard:pending_approvals' %}" class="block text-center px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 text-sm font-semibold">
+                        <i class="fas fa-check-circle mr-1"></i>Review & Approve
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pending Applications -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center">
+                        <i class="fas fa-file-alt text-purple-500 mr-2"></i>Applications
+                    </h3>
+                    {% if pending_applications_count > 0 %}
+                    <span class="bg-purple-100 text-purple-700 font-bold text-sm px-3 py-1 rounded-full">{{ pending_applications_count }}</span>
+                    {% endif %}
+                </div>
+                <div class="bg-purple-50 border border-purple-200 rounded-xl p-6 text-center">
+                    <p class="text-5xl font-bold text-purple-700">{{ pending_applications_count }}</p>
+                    <p class="text-purple-600 text-sm mt-2 font-medium">pending loan applications</p>
+                </div>
+                {% if pending_applications_count > 0 %}
+                <div class="mt-4">
+                    <a href="{% url 'loans:application_list' %}" class="block text-center px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm font-semibold">
+                        <i class="fas fa-eye mr-1"></i>View Applications
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pending Document Verifications -->
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center">
+                        <i class="fas fa-file-check text-teal-500 mr-2"></i>Documents
+                    </h3>
+                    {% if pending_document_verifications > 0 %}
+                    <span class="bg-teal-100 text-teal-700 font-bold text-sm px-3 py-1 rounded-full">{{ pending_document_verifications }}</span>
+                    {% endif %}
+                </div>
+                <div class="bg-teal-50 border border-teal-200 rounded-xl p-6 text-center">
+                    <p class="text-5xl font-bold text-teal-700">{{ pending_document_verifications }}</p>
+                    <p class="text-teal-600 text-sm mt-2 font-medium">documents awaiting verification</p>
+                </div>
+                {% if total_document_clients > 0 %}
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-slate-600">
+                        <span class="font-semibold text-teal-700">{{ verified_document_clients }}</span> of 
+                        <span class="font-semibold">{{ total_document_clients }}</span> verified 
+                        <span class="text-teal-600">({{ verification_rate }}%)</span>
+                    </p>
+                </div>
+                {% endif %}
             </div>
         </div>
 
