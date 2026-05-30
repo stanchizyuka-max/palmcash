@@ -37,20 +37,25 @@ def create_payment_collection(sender, instance, created, **kwargs):
 def update_payment_schedule(sender, instance, **kwargs):
     """
     Update PaymentSchedule when PaymentCollection is marked as completed
+    NOTE: This signal is kept for backward compatibility but payment schedule
+    distribution is primarily handled by distribute_payment() in services.py
     """
     if instance.status == 'completed' and instance.collected_amount > 0:
         try:
-            # Find the corresponding payment schedule
+            # Find the corresponding payment schedule by due date
             payment_schedule = PaymentSchedule.objects.filter(
                 loan=instance.loan,
                 due_date=instance.collection_date
             ).first()
             
+            # Only mark as paid if the full amount was collected
+            # Partial payments are handled by distribute_payment()
             if payment_schedule and not payment_schedule.is_paid:
-                # Mark the payment schedule as paid
-                payment_schedule.is_paid = True
-                payment_schedule.paid_date = instance.collection_date
-                payment_schedule.save()
+                if instance.collected_amount >= payment_schedule.total_amount:
+                    payment_schedule.is_paid = True
+                    payment_schedule.paid_date = instance.collection_date
+                    payment_schedule.amount_paid = payment_schedule.total_amount
+                    payment_schedule.save()
         except Exception as e:
             print(f"Error updating payment schedule: {e}")
 
@@ -59,6 +64,8 @@ def update_payment_schedule(sender, instance, **kwargs):
 def update_payment_collection_from_payment(sender, instance, created, **kwargs):
     """
     Update PaymentCollection when a Payment is completed
+    NOTE: Payment schedule distribution is handled by distribute_payment() in services.py
+    This signal only updates the PaymentCollection record for tracking purposes
     """
     if instance.status == 'completed':
         try:
@@ -87,16 +94,9 @@ def update_payment_collection_from_payment(sender, instance, created, **kwargs):
             
             collection.save()
             
-            # Update corresponding payment schedule
-            payment_schedule = PaymentSchedule.objects.filter(
-                loan=instance.loan,
-                due_date=collection_date
-            ).first()
-            
-            if payment_schedule and not payment_schedule.is_paid:
-                payment_schedule.is_paid = True
-                payment_schedule.paid_date = collection_date
-                payment_schedule.save()
+            # DO NOT mark payment schedules here - that's handled by distribute_payment()
+            # in payments/services.py which correctly distributes payments across schedules
+            # in order, handling partial payments and overpayments properly
                 
         except Exception as e:
             print(f"Error updating payment collection from payment: {e}")

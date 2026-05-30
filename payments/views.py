@@ -307,11 +307,35 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
         loan.save()
 
         # Record vault inflow for loan repayment
+        vault_error = None
         try:
             from loans.vault_services import record_payment_collection
-            record_payment_collection(loan, payment.amount, request.user)
+            vault_tx = record_payment_collection(loan, payment.amount, request.user)
+            if not vault_tx:
+                vault_error = "Vault transaction not created - branch may not be found"
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f"Vault recording failed for payment #{payment.id} "
+                    f"(Loan {loan.application_number}): {vault_error}"
+                )
         except Exception as e:
-            print(f"Vault record error: {e}")
+            vault_error = str(e)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Vault recording error for payment #{payment.id} "
+                f"(Loan {loan.application_number}): {e}",
+                exc_info=True
+            )
+        
+        # Alert user if vault recording failed
+        if vault_error:
+            messages.warning(
+                request,
+                f'Payment confirmed but vault recording failed: {vault_error}. '
+                f'Please contact admin to manually record this transaction.'
+            )
 
         # Update PaymentCollection for the payment date - mark as completed
         payment_date = payment.payment_date.date()
