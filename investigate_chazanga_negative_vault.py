@@ -59,11 +59,6 @@ print()
 print('BREAKDOWN BY TRANSACTION TYPE')
 print('-' * 80)
 
-transaction_types = vault_txns.values('transaction_type', 'direction').annotate(
-    count=Count('id'),
-    total=Sum('amount')
-).order_by('transaction_type')
-
 from django.db.models import Count
 transaction_types = vault_txns.values('transaction_type', 'direction').annotate(
     count=Count('id'),
