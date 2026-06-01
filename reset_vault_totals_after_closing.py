@@ -121,7 +121,9 @@ def reset_vault_totals():
             total_security = Decimal('0.00')
         
         print(f"\n💰 SECURITY DEPOSITS:")
-        print(f"   Active loans with security: {loans_with_security.count()}")
+        # Use len() if it's a list, .count() if it's a queryset
+        loan_count = len(loans_with_security) if isinstance(loans_with_security, list) else loans_with_security.count()
+        print(f"   Active loans with security: {loan_count}")
         print(f"   Total security held: K{total_security:>12,.2f}")
         
         # Update security deposit on both vaults
