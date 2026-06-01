@@ -103,7 +103,17 @@
                 </span>
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
-                <span class="font-bold text-slate-900">K{{ closing.amount|floatformat:2|intcomma }}</span>
+                <div class="space-y-1">
+                  <div class="font-bold text-slate-900">K{{ closing.amount|floatformat:2|intcomma }}</div>
+                  <div class="text-xs text-slate-500">
+                    {% if closing.daily_amount > 0 %}
+                    <div>Daily: K{{ closing.daily_amount|floatformat:2|intcomma }}</div>
+                    {% endif %}
+                    {% if closing.weekly_amount > 0 %}
+                    <div>Weekly: K{{ closing.weekly_amount|floatformat:2|intcomma }}</div>
+                    {% endif %}
+                  </div>
+                </div>
                 {% if not closing.balance_matches %}
                 <i class="fas fa-exclamation-triangle text-amber-500 ml-1 text-xs" title="Balance mismatch: Expected K{{ closing.calculated_balance|floatformat:2|intcomma }}"></i>
                 {% endif %}
@@ -115,7 +125,12 @@
                 <span class="text-red-700 font-semibold">-K{{ closing.outflows|floatformat:2|intcomma }}</span>
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
-                <span class="text-purple-700 font-semibold">K{{ closing.security_balance|floatformat:2|intcomma }}</span>
+                <div class="space-y-1">
+                  <div class="text-purple-700 font-semibold">K{{ closing.security_balance|floatformat:2|intcomma }}</div>
+                  {% if closing.security_amount > 0 %}
+                  <div class="text-xs text-purple-600">Reset: K{{ closing.security_amount|floatformat:2|intcomma }}</div>
+                  {% endif %}
+                </div>
               </td>
               <td class="py-3 px-4 text-right whitespace-nowrap">
                 <span class="text-teal-700 font-semibold">K{{ closing.savings_balance|floatformat:2|intcomma }}</span>

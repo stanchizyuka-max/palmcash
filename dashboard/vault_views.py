@@ -578,6 +578,7 @@ def vault_month_close(request):
     if request.method == 'POST':
         from django.contrib import messages
         from expenses.models import VaultTransaction
+        from loans.models import SecurityDeposit
         import uuid
 
         try:
@@ -599,6 +600,16 @@ def vault_month_close(request):
             if existing_closing:
                 messages.error(request, f'Month {closing_month} has already been closed. You cannot close the same month twice.')
                 return redirect('dashboard:vault_month_close')
+
+            # Calculate total security balance before reset
+            from django.db.models import Sum
+            security_deposits = SecurityDeposit.objects.filter(
+                loan__branch=branch,
+                is_verified=True
+            )
+            total_security_balance = security_deposits.aggregate(
+                total=Sum('paid_amount')
+            )['total'] or 0
 
             # 1. Record closing balance entry for Daily Vault (OUT — removes balance from vault)
             if daily_closing_balance > 0:
@@ -638,15 +649,37 @@ def vault_month_close(request):
                 weekly_vault.balance = 0
                 weekly_vault.save()
 
+            # 3. Record security closing and reset all security deposits to zero
+            if total_security_balance > 0:
+                VaultTransaction.objects.create(
+                    branch=branch.name,
+                    vault_type='daily',  # Securities are tracked in daily vault
+                    transaction_type='month_close',
+                    direction='out',
+                    amount=total_security_balance,
+                    balance_after=0,
+                    description=f'Month closing — {closing_month}. Security deposits closing balance: K{total_security_balance:,.2f}. {notes}'.strip(),
+                    reference_number=f'CLOSE-SECURITY-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                    recorded_by=request.user,
+                    transaction_date=timezone.now(),
+                )
+                
+                # Reset all security deposits to zero for this branch
+                security_deposits.update(paid_amount=0)
+
             messages.success(
                 request, 
-                f'Month {closing_month} closed. Vault balances reset to K0.00. '
-                f'Previous balances: Daily K{daily_closing_balance:,.2f}, Weekly K{weekly_closing_balance:,.2f}, Total K{total_closing_balance:,.2f}.'
+                f'Month {closing_month} closed successfully. '
+                f'Vault balances reset: Daily K{daily_closing_balance:,.2f}, Weekly K{weekly_closing_balance:,.2f}. '
+                f'Security deposits reset: K{total_security_balance:,.2f}. All balances now at K0.00.'
             )
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
-            messages.error(request, f'Error: {e}')
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Month close error: {e}', exc_info=True)
+            messages.error(request, f'Error closing month: {e}')
 
     return render(request, 'dashboard/vault_month_close.html', {
         'daily_vault': daily_vault,
@@ -690,39 +723,83 @@ def vault_month_history(request):
         transaction_type='month_close'
     ).select_related('recorded_by').order_by('-transaction_date')
 
-    # Extract month from description and calculate financial snapshot
-    closing_list = []
-    available_months = set()  # Track unique months for filter dropdown
+    # Group transactions by month (since we have separate transactions for daily, weekly, and security)
+    from collections import defaultdict
+    closing_groups = defaultdict(lambda: {
+        'daily': None,
+        'weekly': None,
+        'security': None,
+        'transaction_date': None,
+        'recorded_by': None,
+        'month': None,
+    })
     
     for closing in closings:
         # Extract month from description
         month_match = re.search(r'Month closing — ([\d-]+)', closing.description)
         month = month_match.group(1) if month_match else 'Unknown'
         
+        # Determine vault type from description
+        if 'Daily vault' in closing.description:
+            closing_groups[month]['daily'] = closing
+        elif 'Weekly vault' in closing.description:
+            closing_groups[month]['weekly'] = closing
+        elif 'Security deposits' in closing.description:
+            closing_groups[month]['security'] = closing
+        
+        # Set common fields (use the first transaction's data)
+        if not closing_groups[month]['transaction_date']:
+            closing_groups[month]['transaction_date'] = closing.transaction_date
+            closing_groups[month]['recorded_by'] = closing.recorded_by
+            closing_groups[month]['month'] = month
+
+    # Convert to list and calculate totals
+    available_months = set()
+    closing_list = []
+    
+    for month, group in closing_groups.items():
+        # Skip if month filter doesn't match
+        if filter_month and month != filter_month:
+            continue
+        
         # Add to available months
         if month != 'Unknown':
             available_months.add(month)
         
-        # Apply month filter
-        if filter_month and month != filter_month:
-            continue
+        # Calculate totals
+        daily_amount = group['daily'].amount if group['daily'] else Decimal('0')
+        weekly_amount = group['weekly'].amount if group['weekly'] else Decimal('0')
+        security_amount = group['security'].amount if group['security'] else Decimal('0')
+        total_amount = daily_amount + weekly_amount
         
-        # Extract notes (everything after the closing balance part)
-        notes_match = re.search(r'K[\d,]+\.\d{2}\.\s*(.+)', closing.description)
-        notes = notes_match.group(1).strip() if notes_match else ''
+        # Extract notes from any available transaction
+        notes = ''
+        for txn in [group['daily'], group['weekly'], group['security']]:
+            if txn:
+                notes_match = re.search(r'K[\d,]+\.\d{2}\.\s*(.+)', txn.description)
+                if notes_match:
+                    notes = notes_match.group(1).strip()
+                    break
         
-        # Calculate financial snapshot at time of closing
-        closing_date = closing.transaction_date
+        # Get reference numbers
+        references = []
+        if group['daily']:
+            references.append(group['daily'].reference_number)
+        if group['weekly']:
+            references.append(group['weekly'].reference_number)
+        if group['security']:
+            references.append(group['security'].reference_number)
+        
+        closing_date = group['transaction_date']
         
         # Find the PREVIOUS month closing to determine the period start
-        previous_closing = VaultTransaction.objects.filter(
-            branch=branch.name,
-            transaction_type='month_close',
-            transaction_date__lt=closing_date
-        ).order_by('-transaction_date').first()
+        previous_closing = None
+        for other_month, other_group in closing_groups.items():
+            if other_group['transaction_date'] and other_group['transaction_date'] < closing_date:
+                if not previous_closing or other_group['transaction_date'] > previous_closing:
+                    previous_closing = other_group['transaction_date']
         
-        # Period starts after previous closing, or from beginning if no previous closing
-        period_start = previous_closing.transaction_date if previous_closing else None
+        period_start = previous_closing
         
         # Calculate inflows and outflows for THIS PERIOD ONLY (between closings)
         if period_start:
@@ -738,6 +815,7 @@ def vault_month_history(request):
                 transaction_date__lte=closing_date
             ).exclude(transaction_type__in=['month_close', 'month_open'])
         
+        from django.db.models import Sum
         period_inflows = period_txns.filter(direction='in').aggregate(
             total=Sum('amount'))['total'] or Decimal('0')
         period_outflows = period_txns.filter(direction='out').aggregate(
@@ -746,7 +824,7 @@ def vault_month_history(request):
         # Calculated balance should match closing balance
         calculated_balance = period_inflows - period_outflows
         
-        # Security balance at time of closing
+        # Security balance at time of closing (cumulative)
         security_in = VaultTransaction.objects.filter(
             branch=branch.name,
             transaction_type='security_deposit',
@@ -786,20 +864,26 @@ def vault_month_history(request):
             savings_balance = Decimal('0')
         
         closing_list.append({
-            'transaction_date': closing.transaction_date,
+            'transaction_date': closing_date,
             'month': month,
-            'amount': closing.amount,
-            'recorded_by': closing.recorded_by,
+            'amount': total_amount,
+            'daily_amount': daily_amount,
+            'weekly_amount': weekly_amount,
+            'security_amount': security_amount,
+            'recorded_by': group['recorded_by'],
             'notes': notes,
-            'reference_number': closing.reference_number,
+            'reference_number': ', '.join(references),
             'inflows': period_inflows,
             'outflows': period_outflows,
             'calculated_balance': calculated_balance,
-            'balance_matches': abs(calculated_balance - closing.amount) < Decimal('0.01'),  # Allow for rounding
+            'balance_matches': abs(calculated_balance - total_amount) < Decimal('0.01'),  # Allow for rounding
             'security_balance': security_balance,
             'savings_balance': savings_balance,
             'period_start': period_start,
         })
+    
+    # Sort by date descending
+    closing_list.sort(key=lambda x: x['transaction_date'], reverse=True)
 
     # Calculate statistics
     if closing_list:
