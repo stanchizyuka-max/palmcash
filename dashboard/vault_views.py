@@ -602,12 +602,22 @@ def vault_month_close(request):
                 return redirect('dashboard:vault_month_close')
 
             # Calculate total security balance before reset
-            from django.db.models import Sum
+            from django.db.models import Sum, Q
             from loans.models import Loan
+            from accounts.models import User
             
-            # Get all loans for this branch (through loan officer assignment)
-            branch_loans = Loan.objects.filter(loan_officer__officer_assignment__branch=branch)
+            # Get officers in this branch (same logic as Securities page)
+            officers = User.objects.filter(
+                role='loan_officer',
+                officer_assignment__branch__iexact=branch.name,
+                is_active=True
+            ).distinct()
             
+            # Get all loans for officers in this branch (same logic as Securities page)
+            loans_query = Q(loan_officer__in=officers) | Q(borrower__group_memberships__group__assigned_officer__in=officers)
+            branch_loans = Loan.objects.filter(loans_query).distinct()
+            
+            # Get security deposits for these loans
             security_deposits = SecurityDeposit.objects.filter(
                 loan__in=branch_loans,
                 is_verified=True
