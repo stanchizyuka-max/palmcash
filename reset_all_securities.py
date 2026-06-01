@@ -43,8 +43,8 @@ from loans.models import Loan
 
 total_before = 0
 for branch in branches:
-    # Get all loans for this branch
-    branch_loans = Loan.objects.filter(branch=branch)
+    # Get all loans for this branch (through loan officer assignment)
+    branch_loans = Loan.objects.filter(loan_officer__officer_assignment__branch=branch)
     
     # Get security deposits for these loans
     securities = SecurityDeposit.objects.filter(
@@ -75,8 +75,8 @@ print("-" * 70)
 
 # Reset all security deposits
 for branch in branches:
-    # Get all loans for this branch
-    branch_loans = Loan.objects.filter(branch=branch)
+    # Get all loans for this branch (through loan officer assignment)
+    branch_loans = Loan.objects.filter(loan_officer__officer_assignment__branch=branch)
     
     securities = SecurityDeposit.objects.filter(
         loan__in=branch_loans,
@@ -96,8 +96,8 @@ print("-" * 70)
 
 total_after = 0
 for branch in branches:
-    # Get all loans for this branch
-    branch_loans = Loan.objects.filter(branch=branch)
+    # Get all loans for this branch (through loan officer assignment)
+    branch_loans = Loan.objects.filter(loan_officer__officer_assignment__branch=branch)
     
     securities = SecurityDeposit.objects.filter(
         loan__in=branch_loans,
