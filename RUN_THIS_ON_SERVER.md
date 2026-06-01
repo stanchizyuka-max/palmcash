@@ -18,16 +18,13 @@
 cd ~/www/palmcashloans.site
 git pull origin main
 
-# 2. Sync vault model balances with transactions
-python sync_vault_model_balances.py
+# 2. Fix month closing amounts (ROOT CAUSE FIX)
+python fix_month_closing_amounts.py
 
-# 3. Fix any remaining negative vault balances
-python fix_all_negative_vault_balances.py
-
-# 4. Recalculate inflows and outflows
+# 3. Recalculate inflows and outflows
 python recalculate_vault_inflows_outflows.py
 
-# 5. Restart application
+# 4. Restart application
 sudo systemctl restart palmcash
 ```
 
@@ -35,30 +32,28 @@ sudo systemctl restart palmcash
 
 ## ✅ Expected Results:
 
-The scripts will:
-1. **Fix negative balances:**
-   - Check ALL branches (Chazanga, KAMWALA SOUTH, KUKU, MANDEVU BRANCH)
-   - Find any negative vault balances (daily or weekly)
-   - Inject capital to bring them to K0.00
-   - Show summary of fixes made
+The script will:
+1. **Fix month closing amounts:**
+   - Find all month closing transactions from June 1, 2026
+   - Calculate the correct amount (balance before closing)
+   - Update transaction amounts to match
+   - Example: KUKU weekly closing was K17,213 but should be K16,233
 
-2. **Recalculate inflows/outflows:**
+2. **Recalculate all balances:**
+   - Recalculate balance_after for all transactions after month closing
+   - Update vault model balances to match
+   - All balances will be correct and positive (no negatives!)
+
+3. **Recalculate inflows/outflows:**
    - Count all IN transactions for each vault
    - Count all OUT transactions for each vault
    - Update the vault model totals
-   - Show before/after comparison
 
-**Expected Output:**
-```
-Fixed 2 negative vault(s):
-   • Chazanga - Daily Vault: K8,006.00
-   • MANDEVU BRANCH - Weekly Vault: K25.00
-
-Total capital injected: K8,031.00
-
-Updated X inflow/outflow values
-All vault totals recalculated from actual transactions
-```
+**Expected Final Balances:**
+- **KUKU:** K980 (4 payment collections after month closing)
+- **MANDEVU:** K140 (1 payment collection after month closing)
+- **KAMWALA SOUTH:** Positive balance from today's transactions
+- **Chazanga:** K350 (2 payment collections after month closing)
 
 ---
 
