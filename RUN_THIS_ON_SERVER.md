@@ -18,13 +18,16 @@
 cd ~/www/palmcashloans.site
 git pull origin main
 
-# 2. Fix all negative vault balances
+# 2. Sync vault model balances with transactions
+python sync_vault_model_balances.py
+
+# 3. Fix any remaining negative vault balances
 python fix_all_negative_vault_balances.py
 
-# 3. Recalculate inflows and outflows
+# 4. Recalculate inflows and outflows
 python recalculate_vault_inflows_outflows.py
 
-# 4. Restart application
+# 5. Restart application
 sudo systemctl restart palmcash
 ```
 
