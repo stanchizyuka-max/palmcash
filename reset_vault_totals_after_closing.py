@@ -106,13 +106,19 @@ def reset_vault_totals():
         
         # Calculate security deposits for this branch
         # Get all active loans for this branch with security deposits
-        loans_with_security = Loan.objects.filter(
-            borrower__officer__branch=branch,
-            status__in=['pending', 'approved', 'active', 'overdue'],
-            security_deposit__gt=0
-        )
-        
-        total_security = sum(loan.security_deposit for loan in loans_with_security)
+        try:
+            loans_with_security = Loan.objects.filter(
+                borrower__officer__branch=branch,
+                status__in=['pending', 'approved', 'active', 'overdue'],
+                security_deposit__gt=0
+            )
+            
+            total_security = sum(loan.security_deposit for loan in loans_with_security)
+        except Exception as e:
+            # If there's an error getting loans, just use 0 for security deposits
+            print(f"   ⚠️  Could not calculate security deposits: {e}")
+            loans_with_security = []
+            total_security = Decimal('0.00')
         
         print(f"\n💰 SECURITY DEPOSITS:")
         print(f"   Active loans with security: {loans_with_security.count()}")
