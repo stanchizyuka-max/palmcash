@@ -641,8 +641,10 @@ def vault_month_close(request):
                     transaction_date=timezone.now(),
                 )
                 
-                # Reset daily vault balance to zero
+                # Reset daily vault balance and totals to zero
                 daily_vault.balance = 0
+                daily_vault.total_inflows = 0
+                daily_vault.total_outflows = 0
                 daily_vault.save()
 
             # 2. Record closing balance entry for Weekly Vault (OUT — removes balance from vault)
@@ -660,8 +662,10 @@ def vault_month_close(request):
                     transaction_date=timezone.now(),
                 )
                 
-                # Reset weekly vault balance to zero
+                # Reset weekly vault balance and totals to zero
                 weekly_vault.balance = 0
+                weekly_vault.total_inflows = 0
+                weekly_vault.total_outflows = 0
                 weekly_vault.save()
 
             # 3. Record security closing and reset all security deposits to zero
@@ -714,6 +718,7 @@ def vault_month_close(request):
                 f'Vault balances reset: Daily K{daily_closing_balance:,.2f}, Weekly K{weekly_closing_balance:,.2f}. '
                 f'Security deposits reset: K{total_security_balance:,.2f}. '
                 f'Savings reset: K{savings_closing_balance:,.2f}. '
+                f'Inflows/Outflows counters reset. '
                 f'All balances now at K0.00.'
             )
             return redirect('dashboard:vault')
