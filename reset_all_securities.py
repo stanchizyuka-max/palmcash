@@ -39,10 +39,16 @@ branches = Branch.objects.filter(is_active=True)
 print("\n1. CURRENT SECURITY DEPOSITS BY BRANCH:")
 print("-" * 70)
 
+from loans.models import Loan
+
 total_before = 0
 for branch in branches:
+    # Get all loans for this branch
+    branch_loans = Loan.objects.filter(branch=branch)
+    
+    # Get security deposits for these loans
     securities = SecurityDeposit.objects.filter(
-        loan__branch=branch,
+        loan__in=branch_loans,
         is_verified=True,
         paid_amount__gt=0
     )
@@ -69,8 +75,11 @@ print("-" * 70)
 
 # Reset all security deposits
 for branch in branches:
+    # Get all loans for this branch
+    branch_loans = Loan.objects.filter(branch=branch)
+    
     securities = SecurityDeposit.objects.filter(
-        loan__branch=branch,
+        loan__in=branch_loans,
         is_verified=True,
         paid_amount__gt=0
     )
@@ -87,8 +96,11 @@ print("-" * 70)
 
 total_after = 0
 for branch in branches:
+    # Get all loans for this branch
+    branch_loans = Loan.objects.filter(branch=branch)
+    
     securities = SecurityDeposit.objects.filter(
-        loan__branch=branch,
+        loan__in=branch_loans,
         is_verified=True,
         paid_amount__gt=0
     )
