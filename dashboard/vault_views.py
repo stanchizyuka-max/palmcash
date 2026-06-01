@@ -101,6 +101,10 @@ def vault_dashboard(request):
     vault_type = request.GET.get('vault_type', '').strip()  # NEW: Vault type filter
     show_reversals = request.GET.get('show_reversals', 'all')  # NEW: Reversal filter
 
+    # Initialize logger first
+    import logging
+    logger = logging.getLogger(__name__)
+
     # NEW: If no date filter is set, default to showing only transactions after last month closing
     if not date_from and not date_to and branch:
         last_closing = VaultTransaction.objects.filter(
@@ -116,8 +120,6 @@ def vault_dashboard(request):
             logger.info(f"No date filter set - defaulting to transactions after last closing: {date_from}")
 
     # DEBUG: Log filter parameters
-    import logging
-    logger = logging.getLogger(__name__)
     logger.info(f"Vault filters - date_from: '{date_from}', date_to: '{date_to}', tx_type: '{tx_type}', direction: '{direction}', vault_type: '{vault_type}', show_reversals: '{show_reversals}'")
     logger.info(f"Initial queryset count: {qs.count()}")
 
