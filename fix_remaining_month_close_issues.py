@@ -5,6 +5,7 @@ This script:
 1. Resets all BranchSavings balances to K0.00
 2. Verifies vault inflows/outflows are correct (should show only post-closing transactions)
 3. Reports on security deposits (which come from vault transactions, not SecurityDeposit model)
+4. EXCLUDES all transactions made today to protect current operations
 """
 
 import os
@@ -14,6 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palmcash.settings')
 django.setup()
 
 from django.db.models import Sum, Q
+from django.utils import timezone
 from decimal import Decimal
 from clients.models import Branch
 from loans.models import BranchSavings, DailyVault, WeeklyVault
@@ -24,6 +26,13 @@ def main():
     print("=" * 80)
     print("FIXING REMAINING MONTH CLOSING ISSUES")
     print("=" * 80)
+    
+    # Get today's date range
+    today = timezone.now().date()
+    today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+    print(f"\nℹ️  Today's date: {today.strftime('%Y-%m-%d')}")
+    print(f"ℹ️  All transactions from today will be EXCLUDED from analysis")
+    print(f"ℹ️  This protects current day operations\n")
     
     branches = Branch.objects.filter(is_active=True).order_by('name')
     
@@ -67,17 +76,25 @@ def main():
             print(f"   ✅ Last closing: {last_closing.transaction_date.strftime('%Y-%m-%d %H:%M:%S')}")
             closing_date = last_closing.transaction_date
             
-            # Count transactions after closing
+            # Count transactions after closing BUT BEFORE today
             txns_after_closing = VaultTransaction.objects.filter(
                 branch=branch.name,
-                transaction_date__gt=closing_date
+                transaction_date__gt=closing_date,
+                transaction_date__lt=today_start  # EXCLUDE today's transactions
             ).exclude(transaction_type='month_close')
             
             count = txns_after_closing.count()
-            print(f"   📊 Transactions after closing: {count}")
+            print(f"   📊 Transactions after closing (before today): {count}")
+            
+            # Count today's transactions separately
+            txns_today = VaultTransaction.objects.filter(
+                branch=branch.name,
+                transaction_date__gte=today_start
+            ).count()
+            print(f"   📊 Transactions today: {txns_today} [NOT INCLUDED IN ANALYSIS]")
             
             if count > 0:
-                # Calculate inflows/outflows from transactions after closing
+                # Calculate inflows/outflows from transactions after closing BUT BEFORE today
                 totals = txns_after_closing.aggregate(
                     inflows=Sum('amount', filter=Q(direction='in')),
                     outflows=Sum('amount', filter=Q(direction='out'))
@@ -85,8 +102,8 @@ def main():
                 calc_inflows = totals['inflows'] or Decimal('0')
                 calc_outflows = totals['outflows'] or Decimal('0')
                 
-                print(f"   📈 Calculated Inflows (from txns): K{calc_inflows:,.2f}")
-                print(f"   📉 Calculated Outflows (from txns): K{calc_outflows:,.2f}")
+                print(f"   📈 Calculated Inflows (from txns, before today): K{calc_inflows:,.2f}")
+                print(f"   📉 Calculated Outflows (from txns, before today): K{calc_outflows:,.2f}")
                 
                 # Compare with vault counters
                 total_vault_inflows = daily_vault.total_inflows + weekly_vault.total_inflows
@@ -100,25 +117,37 @@ def main():
         else:
             print(f"   ⚠️  No month closing found for this branch")
         
-        # 4. Check security deposits (from vault transactions)
-        print("\n4. CHECKING SECURITY DEPOSITS (from vault transactions)...")
+        # 4. Check security deposits (from vault transactions, BEFORE today)
+        print("\n4. CHECKING SECURITY DEPOSITS (from vault transactions, BEFORE today)...")
         security_in = VaultTransaction.objects.filter(
             branch__iexact=branch.name,
             transaction_type='security_deposit',
-            direction='in'
+            direction='in',
+            transaction_date__lt=today_start  # EXCLUDE today
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         security_out = VaultTransaction.objects.filter(
             branch__iexact=branch.name,
             transaction_type__in=['security_return', 'security_used'],
-            direction='out'
+            direction='out',
+            transaction_date__lt=today_start  # EXCLUDE today
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         security_balance = security_in - security_out
         
-        print(f"   Security IN: K{security_in:,.2f}")
-        print(f"   Security OUT: K{security_out:,.2f}")
-        print(f"   Security Balance: K{security_balance:,.2f}")
+        # Check today's security transactions separately
+        security_in_today = VaultTransaction.objects.filter(
+            branch__iexact=branch.name,
+            transaction_type='security_deposit',
+            direction='in',
+            transaction_date__gte=today_start
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        print(f"   Security IN (before today): K{security_in:,.2f}")
+        print(f"   Security OUT (before today): K{security_out:,.2f}")
+        print(f"   Security Balance (before today): K{security_balance:,.2f}")
+        if security_in_today > 0:
+            print(f"   Security IN (today): K{security_in_today:,.2f} [NOT INCLUDED]")
         
         if security_balance > 0:
             print(f"   ℹ️  Security balance comes from vault transactions (not SecurityDeposit model)")

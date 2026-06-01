@@ -2,11 +2,12 @@
 """
 Recalculate vault inflows/outflows based on transactions AFTER the last month closing.
 This resets the counters to show only current month activity, not cumulative totals.
+EXCLUDES transactions made today to protect current operations.
 
 The script:
 1. Finds the last month closing date for each branch
-2. Calculates inflows/outflows from transactions AFTER that date
-3. Updates the vault totals to reflect only current month activity
+2. Calculates inflows/outflows from transactions AFTER that date BUT BEFORE today
+3. Updates the vault totals to reflect only current month activity (excluding today)
 4. Keeps all transactions intact - only updates the counters
 """
 
@@ -35,17 +36,25 @@ from loans.models import DailyVault, WeeklyVault
 from expenses.models import VaultTransaction
 from clients.models import Branch
 from django.db.models import Sum
+from django.utils import timezone
 from decimal import Decimal
+from datetime import datetime
 
 print("=" * 70)
 print("RECALCULATE VAULT TOTALS AFTER MONTH CLOSING")
 print("=" * 70)
 
+# Get today's date range
+today = timezone.now().date()
+today_start = timezone.make_aware(datetime.combine(today, datetime.min.time()))
+
 print("\nThis script will:")
 print("1. Find the last month closing date for each branch")
-print("2. Calculate inflows/outflows from transactions AFTER that date")
-print("3. Update vault totals to show only current month activity")
+print("2. Calculate inflows/outflows from transactions AFTER that date BUT BEFORE today")
+print("3. Update vault totals to show only current month activity (excluding today)")
 print("4. Keep all transactions intact")
+print(f"\nℹ️  Today's date: {today.strftime('%Y-%m-%d')}")
+print(f"ℹ️  All transactions from today will be EXCLUDED to protect current operations")
 
 # Get all branches
 branches = Branch.objects.filter(is_active=True).order_by('name')
@@ -66,27 +75,36 @@ for branch in branches:
     if last_closing:
         closing_date = last_closing.transaction_date
         print(f"   Last month closed: {closing_date.strftime('%Y-%m-%d %H:%M')}")
-        print(f"   Recalculating from transactions AFTER this date...")
+        print(f"   Recalculating from transactions AFTER this date BUT BEFORE today...")
     else:
         closing_date = None
-        print(f"   ⚠️  No month closing found - will calculate from ALL transactions")
+        print(f"   ⚠️  No month closing found - will calculate from ALL transactions (before today)")
     
     # Process Daily Vault
     try:
         daily_vault = DailyVault.objects.get(branch=branch)
         
-        # Get transactions after last closing
+        # Get transactions after last closing BUT BEFORE today
         if closing_date:
             daily_txns = VaultTransaction.objects.filter(
                 branch=branch.name,
                 vault_type='daily',
-                transaction_date__gt=closing_date
+                transaction_date__gt=closing_date,
+                transaction_date__lt=today_start  # EXCLUDE today
             ).exclude(transaction_type='month_close')
         else:
             daily_txns = VaultTransaction.objects.filter(
                 branch=branch.name,
-                vault_type='daily'
+                vault_type='daily',
+                transaction_date__lt=today_start  # EXCLUDE today
             ).exclude(transaction_type='month_close')
+        
+        # Count today's transactions for reporting
+        daily_txns_today = VaultTransaction.objects.filter(
+            branch=branch.name,
+            vault_type='daily',
+            transaction_date__gte=today_start
+        ).count()
         
         # Calculate inflows and outflows
         daily_inflows = daily_txns.filter(direction='in').aggregate(
@@ -98,6 +116,8 @@ for branch in branches:
         print(f"\n   📅 Daily Vault:")
         print(f"      Before: Inflows K{daily_vault.total_inflows:,.2f}, Outflows K{daily_vault.total_outflows:,.2f}")
         print(f"      After:  Inflows K{daily_inflows:,.2f}, Outflows K{daily_outflows:,.2f}")
+        if daily_txns_today > 0:
+            print(f"      ℹ️  {daily_txns_today} transaction(s) from today NOT included")
         
         # Update vault
         daily_vault.total_inflows = daily_inflows
@@ -113,18 +133,27 @@ for branch in branches:
     try:
         weekly_vault = WeeklyVault.objects.get(branch=branch)
         
-        # Get transactions after last closing
+        # Get transactions after last closing BUT BEFORE today
         if closing_date:
             weekly_txns = VaultTransaction.objects.filter(
                 branch=branch.name,
                 vault_type='weekly',
-                transaction_date__gt=closing_date
+                transaction_date__gt=closing_date,
+                transaction_date__lt=today_start  # EXCLUDE today
             ).exclude(transaction_type='month_close')
         else:
             weekly_txns = VaultTransaction.objects.filter(
                 branch=branch.name,
-                vault_type='weekly'
+                vault_type='weekly',
+                transaction_date__lt=today_start  # EXCLUDE today
             ).exclude(transaction_type='month_close')
+        
+        # Count today's transactions for reporting
+        weekly_txns_today = VaultTransaction.objects.filter(
+            branch=branch.name,
+            vault_type='weekly',
+            transaction_date__gte=today_start
+        ).count()
         
         # Calculate inflows and outflows
         weekly_inflows = weekly_txns.filter(direction='in').aggregate(
@@ -136,6 +165,8 @@ for branch in branches:
         print(f"\n   📆 Weekly Vault:")
         print(f"      Before: Inflows K{weekly_vault.total_inflows:,.2f}, Outflows K{weekly_vault.total_outflows:,.2f}")
         print(f"      After:  Inflows K{weekly_inflows:,.2f}, Outflows K{weekly_outflows:,.2f}")
+        if weekly_txns_today > 0:
+            print(f"      ℹ️  {weekly_txns_today} transaction(s) from today NOT included")
         
         # Update vault
         weekly_vault.total_inflows = weekly_inflows
@@ -173,6 +204,8 @@ for branch in branches:
 print("\n" + "=" * 70)
 print("✅ COMPLETE")
 print("=" * 70)
-print("\nVault totals now reflect only transactions AFTER the last month closing.")
+print("\nVault totals now reflect only transactions AFTER the last month closing")
+print("(excluding today's transactions to protect current operations).")
 print("All transaction records remain intact in the database.")
+print("\nℹ️  Today's transactions will be included in the next calculation.")
 print("\nRefresh your vault page to see the updated totals!")
