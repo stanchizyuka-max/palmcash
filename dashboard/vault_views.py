@@ -550,13 +550,14 @@ def vault_collection(request):
 @login_required
 def vault_month_close(request):
     """Close the current month — record closing balance and reset vault to zero."""
+    from clients.models import Branch
+    
     if request.user.role not in ['manager', 'admin']:
         return redirect('dashboard:dashboard')
 
     branch = _get_manager_branch(request.user) if request.user.role == 'manager' else None
 
     if request.user.role == 'admin':
-        from clients.models import Branch
         branch_name = request.GET.get('branch') or request.POST.get('branch')
         if branch_name:
             branch = Branch.objects.filter(name=branch_name).first()
@@ -652,6 +653,7 @@ def vault_month_close(request):
         'weekly_vault': weekly_vault,
         'branch': branch,
         'current_month': current_month,
+        'all_branches': Branch.objects.filter(is_active=True).order_by('name') if request.user.role == 'admin' else None,
     })
 
 
