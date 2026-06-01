@@ -128,6 +128,10 @@ def reset_vault_totals():
         print(f"   Total security held: K{total_security:>12,.2f}")
         print(f"   (Security deposits are tracked in loan records, not vault models)")
         
+        # Get vault objects for summary
+        daily_vault = DailyVault.objects.filter(branch=branch).first()
+        weekly_vault = WeeklyVault.objects.filter(branch=branch).first()
+        
         # Add to summary
         daily_balance = daily_vault.balance if daily_vault else Decimal('0.00')
         weekly_balance = weekly_vault.balance if weekly_vault else Decimal('0.00')
