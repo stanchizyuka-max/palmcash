@@ -21,7 +21,10 @@ git pull origin main
 # 2. Fix all negative vault balances
 python fix_all_negative_vault_balances.py
 
-# 3. Restart application
+# 3. Recalculate inflows and outflows
+python recalculate_vault_inflows_outflows.py
+
+# 4. Restart application
 sudo systemctl restart palmcash
 ```
 
@@ -29,11 +32,18 @@ sudo systemctl restart palmcash
 
 ## ✅ Expected Results:
 
-The script will:
-- Check ALL branches (Chazanga, KAMWALA SOUTH, KUKU, MANDEVU BRANCH)
-- Find any negative vault balances (daily or weekly)
-- Inject capital to bring them to K0.00
-- Show summary of fixes made
+The scripts will:
+1. **Fix negative balances:**
+   - Check ALL branches (Chazanga, KAMWALA SOUTH, KUKU, MANDEVU BRANCH)
+   - Find any negative vault balances (daily or weekly)
+   - Inject capital to bring them to K0.00
+   - Show summary of fixes made
+
+2. **Recalculate inflows/outflows:**
+   - Count all IN transactions for each vault
+   - Count all OUT transactions for each vault
+   - Update the vault model totals
+   - Show before/after comparison
 
 **Expected Output:**
 ```
@@ -42,6 +52,9 @@ Fixed 2 negative vault(s):
    • MANDEVU BRANCH - Weekly Vault: K25.00
 
 Total capital injected: K8,031.00
+
+Updated X inflow/outflow values
+All vault totals recalculated from actual transactions
 ```
 
 ---
@@ -49,14 +62,19 @@ Total capital injected: K8,031.00
 ## 🔍 After Running:
 
 1. **Hard refresh browsers:** Ctrl + Shift + R (all users)
-2. **Check vault pages** - all balances should be K0.00 or positive
+2. **Check vault pages:**
+   - All balances should be K0.00 or positive
+   - Total Inflows should match sum of all IN transactions
+   - Total Outflows should match sum of all OUT transactions
 3. **Check transaction history** - Balance After column should flow correctly
 
 ---
 
 ## 📞 If Issues:
 
-The script is safe to run multiple times. It will only inject capital where needed.
+Both scripts are safe to run multiple times. They will:
+- Only inject capital where needed
+- Only update inflows/outflows if they're incorrect
 
 ---
 
