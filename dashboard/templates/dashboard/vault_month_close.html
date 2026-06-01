@@ -8,9 +8,14 @@
       <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
         <i class="fas fa-calendar-check text-indigo-600"></i> Close Month
       </h1>
-      <a href="{% url 'dashboard:vault' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
-        <i class="fas fa-arrow-left mr-1"></i>Back to Vault
-      </a>
+      <div class="flex gap-2">
+        <a href="{% url 'dashboard:vault_month_history' %}" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200">
+          <i class="fas fa-history mr-1"></i>View History
+        </a>
+        <a href="{% url 'dashboard:vault' %}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">
+          <i class="fas fa-arrow-left mr-1"></i>Back to Vault
+        </a>
+      </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
