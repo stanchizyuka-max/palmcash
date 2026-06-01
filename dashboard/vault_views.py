@@ -563,9 +563,13 @@ def vault_month_close(request):
         if not branch:
             branch = Branch.objects.filter(is_active=True).first()
 
-    vault = None
+    # Get both vaults for dual-vault system
+    daily_vault = None
+    weekly_vault = None
     if branch:
-        vault, _ = BranchVault.objects.get_or_create(branch=branch)
+        from loans.models import DailyVault, WeeklyVault
+        daily_vault, _ = DailyVault.objects.get_or_create(branch=branch)
+        weekly_vault, _ = WeeklyVault.objects.get_or_create(branch=branch)
 
     from datetime import date
     current_month = date.today().strftime('%Y-%m')
@@ -578,7 +582,11 @@ def vault_month_close(request):
         try:
             closing_month = request.POST.get('closing_month', current_month)
             notes = request.POST.get('notes', '')
-            closing_balance = vault.balance
+            
+            # Get closing balances for both vaults
+            daily_closing_balance = daily_vault.balance if daily_vault else 0
+            weekly_closing_balance = weekly_vault.balance if weekly_vault else 0
+            total_closing_balance = daily_closing_balance + weekly_closing_balance
 
             # Check if this month has already been closed
             existing_closing = VaultTransaction.objects.filter(
@@ -591,31 +599,57 @@ def vault_month_close(request):
                 messages.error(request, f'Month {closing_month} has already been closed. You cannot close the same month twice.')
                 return redirect('dashboard:vault_month_close')
 
-            # 1. Record closing balance entry (OUT — removes balance from vault)
-            VaultTransaction.objects.create(
-                branch=branch.name,
-                transaction_type='month_close',
-                direction='out',
-                amount=closing_balance,
-                balance_after=0,
-                description=f'Month closing — {closing_month}. Closing balance: K{closing_balance:,.2f}. {notes}'.strip(),
-                reference_number=f'CLOSE-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
-                recorded_by=request.user,
-                transaction_date=timezone.now(),
+            # 1. Record closing balance entry for Daily Vault (OUT — removes balance from vault)
+            if daily_closing_balance > 0:
+                VaultTransaction.objects.create(
+                    branch=branch.name,
+                    vault_type='daily',
+                    transaction_type='month_close',
+                    direction='out',
+                    amount=daily_closing_balance,
+                    balance_after=0,
+                    description=f'Month closing — {closing_month}. Daily vault closing balance: K{daily_closing_balance:,.2f}. {notes}'.strip(),
+                    reference_number=f'CLOSE-DAILY-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                    recorded_by=request.user,
+                    transaction_date=timezone.now(),
+                )
+                
+                # Reset daily vault balance to zero
+                daily_vault.balance = 0
+                daily_vault.save()
+
+            # 2. Record closing balance entry for Weekly Vault (OUT — removes balance from vault)
+            if weekly_closing_balance > 0:
+                VaultTransaction.objects.create(
+                    branch=branch.name,
+                    vault_type='weekly',
+                    transaction_type='month_close',
+                    direction='out',
+                    amount=weekly_closing_balance,
+                    balance_after=0,
+                    description=f'Month closing — {closing_month}. Weekly vault closing balance: K{weekly_closing_balance:,.2f}. {notes}'.strip(),
+                    reference_number=f'CLOSE-WEEKLY-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                    recorded_by=request.user,
+                    transaction_date=timezone.now(),
+                )
+                
+                # Reset weekly vault balance to zero
+                weekly_vault.balance = 0
+                weekly_vault.save()
+
+            messages.success(
+                request, 
+                f'Month {closing_month} closed. Vault balances reset to K0.00. '
+                f'Previous balances: Daily K{daily_closing_balance:,.2f}, Weekly K{weekly_closing_balance:,.2f}, Total K{total_closing_balance:,.2f}.'
             )
-
-            # 2. Reset vault balance to zero (new month starts fresh)
-            vault.balance = 0
-            vault.save()
-
-            messages.success(request, f'Month {closing_month} closed. Vault balance reset to K0.00. Previous balance was K{closing_balance:,.2f}.')
             return redirect('dashboard:vault')
         except Exception as e:
             from django.contrib import messages
             messages.error(request, f'Error: {e}')
 
     return render(request, 'dashboard/vault_month_close.html', {
-        'vault': vault,
+        'daily_vault': daily_vault,
+        'weekly_vault': weekly_vault,
         'branch': branch,
         'current_month': current_month,
     })
