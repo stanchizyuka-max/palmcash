@@ -105,7 +105,8 @@ def reset_vault_totals():
             branch_outflows += outflows
         
         # Calculate security deposits for this branch
-        # Get all active loans for this branch with security deposits
+        # Security deposits are tracked separately, not in vault models
+        # Just display the information
         try:
             loans_with_security = Loan.objects.filter(
                 borrower__officer__branch=branch,
@@ -125,18 +126,7 @@ def reset_vault_totals():
         loan_count = len(loans_with_security) if isinstance(loans_with_security, list) else loans_with_security.count()
         print(f"   Active loans with security: {loan_count}")
         print(f"   Total security held: K{total_security:>12,.2f}")
-        
-        # Update security deposit on both vaults
-        daily_vault = DailyVault.objects.filter(branch=branch).first()
-        weekly_vault = WeeklyVault.objects.filter(branch=branch).first()
-        
-        if daily_vault:
-            daily_vault.security_deposits = total_security
-            daily_vault.save(update_fields=['security_deposits'])
-        
-        if weekly_vault:
-            weekly_vault.security_deposits = total_security
-            weekly_vault.save(update_fields=['security_deposits'])
+        print(f"   (Security deposits are tracked in loan records, not vault models)")
         
         # Add to summary
         daily_balance = daily_vault.balance if daily_vault else Decimal('0.00')
