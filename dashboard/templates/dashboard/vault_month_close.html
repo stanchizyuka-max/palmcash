@@ -62,11 +62,16 @@
             <p class="text-2xl font-bold text-purple-900">K{{ weekly_vault.balance|default:"0"|floatformat:2|intcomma }}</p>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-3 gap-4">
           <div class="bg-amber-50 rounded-lg p-4 border border-amber-200 text-center">
             <p class="text-xs text-amber-600 uppercase font-semibold mb-1">Security Deposits</p>
             <p class="text-xl font-bold text-amber-900">Will Reset to K0.00</p>
             <p class="text-xs text-amber-600 mt-1">All security deposits will be reset</p>
+          </div>
+          <div class="bg-teal-50 rounded-lg p-4 border border-teal-200 text-center">
+            <p class="text-xs text-teal-600 uppercase font-semibold mb-1">Savings Balance</p>
+            <p class="text-xl font-bold text-teal-900">Will Reset to K0.00</p>
+            <p class="text-xs text-teal-600 mt-1">Savings will be reset</p>
           </div>
           <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-center">
             <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Total Vault</p>
@@ -97,12 +102,12 @@
         </div>
         <div class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
           <i class="fas fa-info-circle mr-1"></i>
-          This will close <strong>both Daily and Weekly vaults</strong> and <strong>reset all security deposits</strong> to K0.00.
+          This will close <strong>both Daily and Weekly vaults</strong>, <strong>reset all security deposits</strong>, and <strong>reset savings balance</strong> to K0.00.
         </div>
         <button type="submit"
-          onclick="return confirm('Close this month and reset vault balances + security deposits to zero? This cannot be undone.')"
+          onclick="return confirm('Close this month and reset ALL balances (vaults + securities + savings) to zero? This cannot be undone.')"
           class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 text-sm">
-          <i class="fas fa-lock mr-1"></i>Close Month & Reset Vaults + Securities
+          <i class="fas fa-lock mr-1"></i>Close Month & Reset Everything
         </button>
       </form>
       {% else %}

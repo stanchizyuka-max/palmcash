@@ -682,11 +682,39 @@ def vault_month_close(request):
                 # Reset all security deposits to zero for this branch
                 security_deposits.update(paid_amount=0)
 
+            # 4. Record savings closing and reset savings balance to zero
+            from loans.models import BranchSavings
+            try:
+                savings = BranchSavings.objects.get(branch=branch)
+                savings_closing_balance = savings.balance
+                
+                if savings_closing_balance > 0:
+                    VaultTransaction.objects.create(
+                        branch=branch.name,
+                        vault_type='daily',  # Savings tracked in daily vault
+                        transaction_type='month_close',
+                        direction='out',
+                        amount=savings_closing_balance,
+                        balance_after=0,
+                        description=f'Month closing — {closing_month}. Savings closing balance: K{savings_closing_balance:,.2f}. {notes}'.strip(),
+                        reference_number=f'CLOSE-SAVINGS-{closing_month}-{uuid.uuid4().hex[:4].upper()}',
+                        recorded_by=request.user,
+                        transaction_date=timezone.now(),
+                    )
+                    
+                    # Reset savings balance to zero
+                    savings.balance = 0
+                    savings.save()
+            except BranchSavings.DoesNotExist:
+                savings_closing_balance = 0
+
             messages.success(
                 request, 
                 f'Month {closing_month} closed successfully. '
                 f'Vault balances reset: Daily K{daily_closing_balance:,.2f}, Weekly K{weekly_closing_balance:,.2f}. '
-                f'Security deposits reset: K{total_security_balance:,.2f}. All balances now at K0.00.'
+                f'Security deposits reset: K{total_security_balance:,.2f}. '
+                f'Savings reset: K{savings_closing_balance:,.2f}. '
+                f'All balances now at K0.00.'
             )
             return redirect('dashboard:vault')
         except Exception as e:
