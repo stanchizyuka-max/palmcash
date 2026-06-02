@@ -40,17 +40,12 @@ def check_payment_data():
     if payments_today.count() > 0:
         print("\n✅ Payment data exists! We can rebuild vault transactions.")
         
-        # Show summary by branch
-        from django.db.models import Sum, Count
-        by_branch = payments_today.values('loan__borrower__officer__branch__name').annotate(
-            count=Count('id'),
-            total=Sum('amount')
-        )
+        # Show summary
+        print(f"\nFound {payments_today.count()} payment(s) for June 1, 2026")
         
-        print("\nPayments by branch:")
-        for item in by_branch:
-            branch_name = item['loan__borrower__officer__branch__name'] or 'Unknown'
-            print(f"   {branch_name}: {item['count']} payment(s), Total: K{item['total']:,.2f}")
+        from django.db.models import Sum
+        total_amount = payments_today.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        print(f"Total amount: K{total_amount:,.2f}")
         
         return True
     else:
@@ -76,17 +71,22 @@ def rebuild_vault_transactions():
     for payment in payments_today:
         # Get loan details
         loan = payment.loan
-        if not loan or not loan.borrower or not loan.borrower.officer or not loan.borrower.officer.branch:
-            print(f"⚠️  Skipping payment #{payment.id} - missing loan/borrower/branch info")
+        if not loan or not loan.borrower:
+            print(f"⚠️  Skipping payment #{payment.id} - missing loan/borrower info")
             continue
         
-        branch = loan.borrower.officer.branch
+        # Get branch name from borrower
+        branch_name = loan.borrower.get_branch()
+        if not branch_name or branch_name in ['Unassigned', 'N/A', 'All Branches']:
+            print(f"⚠️  Skipping payment #{payment.id} - borrower {loan.borrower.username} has no valid branch")
+            continue
+        
         vault_type = 'daily' if loan.loan_type == 'daily' else 'weekly'
         
         # Check if transaction already exists
         existing = VaultTransaction.objects.filter(
             payment=payment,
-            branch__iexact=branch.name,
+            branch__iexact=branch_name,
             vault_type=vault_type,
             transaction_type='payment_collection'
         ).first()
@@ -101,7 +101,7 @@ def rebuild_vault_transactions():
             tx = VaultTransaction.objects.create(
                 transaction_type='payment_collection',
                 direction='in',
-                branch=branch.name,
+                branch=branch_name,
                 vault_type=vault_type,
                 amount=payment.amount,
                 balance_after=Decimal('0.00'),  # Will recalculate later
@@ -109,12 +109,12 @@ def rebuild_vault_transactions():
                 reference_number=f'PMT-{payment.id}-{uuid.uuid4().hex[:4].upper()}',
                 loan=loan,
                 payment=payment,
-                recorded_by=payment.recorded_by,
-                approved_by=payment.recorded_by,
+                recorded_by=payment.processed_by,
+                approved_by=payment.processed_by,
                 transaction_date=tx_time,
             )
             created_count += 1
-            print(f"✅ Created: {branch.name} - {vault_type.upper()} - K{payment.amount:,.2f} - {loan.application_number}")
+            print(f"✅ Created: {branch_name} - {vault_type.upper()} - K{payment.amount:,.2f} - {loan.application_number}")
         except Exception as e:
             print(f"❌ Error creating transaction for payment #{payment.id}: {e}")
     
