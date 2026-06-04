@@ -213,9 +213,72 @@ def vault_dashboard(request):
         ('processing_fee', 'Processing Fee'),
     ]
 
+    # NEW: Calculate monthly summary (opening balance vs current month activity)
+    monthly_summary = None
+    if branch:
+        from datetime import datetime
+        from django.utils import timezone as tz
+        from decimal import Decimal
+        
+        # Get the current month's first day
+        today = tz.now()
+        current_month_start = tz.make_aware(datetime(today.year, today.month, 1, 0, 0, 0))
+        
+        # Find the last month closing transaction
+        last_closing = VaultTransaction.objects.filter(
+            branch__iexact=branch.name,
+            transaction_type='month_close',
+            transaction_date__gte=current_month_start
+        ).order_by('transaction_date').first()
+        
+        if last_closing:
+            # We have a month closing for this month
+            opening_balance = last_closing.amount
+            opening_date = last_closing.transaction_date
+            
+            # Get all transactions AFTER the month closing (current month activity)
+            current_month_txs = VaultTransaction.objects.filter(
+                branch__iexact=branch.name,
+                transaction_date__gt=opening_date
+            ).exclude(
+                transaction_type='month_close'  # Exclude month closing itself
+            )
+            
+            # Calculate current month's inflows and outflows
+            month_totals = current_month_txs.aggregate(
+                inflows=Sum('amount', filter=Q(direction='in')),
+                outflows=Sum('amount', filter=Q(direction='out'))
+            )
+            
+            current_month_in = month_totals['inflows'] or Decimal('0')
+            current_month_out = month_totals['outflows'] or Decimal('0')
+            current_month_net = current_month_in - current_month_out
+            
+            # Current balance should be opening + net change
+            current_balance = vault_balances.get('total', Decimal('0'))
+            
+            monthly_summary = {
+                'has_month_closing': True,
+                'opening_balance': opening_balance,
+                'opening_date': opening_date,
+                'current_month_in': current_month_in,
+                'current_month_out': current_month_out,
+                'current_month_net': current_month_net,
+                'current_balance': current_balance,
+                'month_name': opening_date.strftime('%B %Y'),
+                'calculated_balance': opening_balance + current_month_net,
+            }
+        else:
+            # No month closing found, just show current balance
+            monthly_summary = {
+                'has_month_closing': False,
+                'current_balance': vault_balances.get('total', Decimal('0')),
+            }
+
     return render(request, 'dashboard/vault.html', {
         'branch': branch,  # FIXED: Pass branch instead of vault
         'vault_balances': vault_balances,  # NEW: Dual-vault balances
+        'monthly_summary': monthly_summary,  # NEW: Monthly breakdown
         'page_obj': page,
         'total_in': total_in,
         'total_out': total_out,

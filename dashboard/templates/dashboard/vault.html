@@ -103,6 +103,114 @@
       </div>
     </div>
 
+    <!-- NEW: Monthly Summary Box -->
+    {% if monthly_summary and monthly_summary.has_month_closing %}
+    <div class="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-xl shadow-lg border-2 border-emerald-300 p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-slate-900">
+          <i class="fas fa-calendar-alt text-emerald-600 mr-2"></i>
+          Monthly Summary - {{ monthly_summary.month_name }}
+        </h2>
+        <span class="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-bold">
+          <i class="fas fa-info-circle mr-1"></i>Opening Balance Tracked
+        </span>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Opening Balance -->
+        <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Opening Balance</p>
+          <p class="text-xs text-slate-400 mb-2">{{ monthly_summary.opening_date|date:"M d, Y" }}</p>
+          <p class="text-2xl font-bold text-blue-700">K{{ monthly_summary.opening_balance|floatformat:2|intcomma }}</p>
+          <p class="text-xs text-slate-500 mt-1">Cash from last month</p>
+        </div>
+        
+        <!-- Current Month Activity -->
+        <div class="bg-white rounded-lg p-4 border-l-4 border-purple-500">
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-1">This Month's Activity</p>
+          <p class="text-xs text-slate-400 mb-2">Since {{ monthly_summary.opening_date|date:"M d" }}</p>
+          <div class="space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600">Collections:</span>
+              <span class="text-sm font-bold text-green-600">+K{{ monthly_summary.current_month_in|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600">Paid Out:</span>
+              <span class="text-sm font-bold text-red-600">-K{{ monthly_summary.current_month_out|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="border-t border-slate-200 pt-1 mt-1">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-700">Net Change:</span>
+                <span class="text-lg font-bold {% if monthly_summary.current_month_net >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                  K{{ monthly_summary.current_month_net|floatformat:2|intcomma }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Calculation -->
+        <div class="bg-white rounded-lg p-4 border-l-4 border-emerald-500">
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Calculation</p>
+          <p class="text-xs text-slate-400 mb-2">Opening + Activity</p>
+          <div class="space-y-1 text-sm text-slate-700">
+            <div class="flex justify-between">
+              <span>Opening:</span>
+              <span class="font-semibold">K{{ monthly_summary.opening_balance|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>+ Net Change:</span>
+              <span class="font-semibold {% if monthly_summary.current_month_net >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                K{{ monthly_summary.current_month_net|floatformat:2|intcomma }}
+              </span>
+            </div>
+            <div class="border-t-2 border-slate-300 pt-1 mt-1 flex justify-between">
+              <span class="font-bold">Should Be:</span>
+              <span class="text-lg font-bold text-emerald-600">K{{ monthly_summary.calculated_balance|floatformat:2|intcomma }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Current Balance -->
+        <div class="bg-white rounded-lg p-4 border-l-4 border-slate-700">
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-1">Current Balance</p>
+          <p class="text-xs text-slate-400 mb-2">Actual vault total</p>
+          <p class="text-3xl font-bold text-slate-900">K{{ monthly_summary.current_balance|floatformat:2|intcomma }}</p>
+          {% if monthly_summary.current_balance == monthly_summary.calculated_balance %}
+          <p class="text-xs text-green-600 font-semibold mt-2">
+            <i class="fas fa-check-circle mr-1"></i>Balanced ✓
+          </p>
+          {% else %}
+          <p class="text-xs text-orange-600 font-semibold mt-2">
+            <i class="fas fa-exclamation-circle mr-1"></i>Difference: K{{ monthly_summary.current_balance|add:"-"|add:monthly_summary.calculated_balance|floatformat:2|intcomma }}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Explanation Box -->
+      <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start">
+          <i class="fas fa-lightbulb text-blue-600 mt-1 mr-3"></i>
+          <div>
+            <p class="text-sm font-semibold text-blue-900 mb-1">Understanding Your Vault Balance:</p>
+            <p class="text-xs text-blue-800">
+              The <strong>Opening Balance (K{{ monthly_summary.opening_balance|floatformat:2|intcomma }})</strong> is cash from last month that's still in your vault. 
+              This month you collected <strong class="text-green-700">+K{{ monthly_summary.current_month_in|floatformat:2|intcomma }}</strong> 
+              and paid out <strong class="text-red-700">-K{{ monthly_summary.current_month_out|floatformat:2|intcomma }}</strong>, 
+              giving you a net change of <strong>K{{ monthly_summary.current_month_net|floatformat:2|intcomma }}</strong>. 
+              Your current total is <strong>K{{ monthly_summary.current_balance|floatformat:2|intcomma }}</strong>.
+            </p>
+            <p class="text-xs text-blue-700 mt-2">
+              <i class="fas fa-chart-line mr-1"></i>
+              To see <strong>only this month's performance</strong> (without opening balance), use the <strong>Activity Report</strong> instead.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Filters -->
     <form method="get" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">

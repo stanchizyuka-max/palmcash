@@ -1,0 +1,292 @@
+================================================================================
+           UNDERSTANDING VAULT BALANCES AFTER MONTH CLOSING
+================================================================================
+
+THE QUESTION:
+-------------
+"After closing the month, why don't vaults start at K0?"
+"Where is this money coming from?"
+
+THE ANSWER:
+-----------
+The money is REAL CASH from May that's still in the vault!
+
+Month closing = Creating a record (accounting)
+Month closing ≠ Removing physical cash
+
+
+================================================================================
+                        WHAT ACTUALLY HAPPENED
+================================================================================
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│  MAY 31, 2026 - NIGHT (10:38 PM)                                           │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  You count the cash in KAMWALA SOUTH vault:                               │
+│                                                                             │
+│      💰💰💰💰💰💰💰💰💰💰 = K14,590                                      │
+│                                                                             │
+│  You click "Close Month" → System records: "May ends with K14,590"       │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+                              ⬇️ Calendar changes
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│  JUNE 1, 2026 - MORNING (8:00 AM)                                         │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  You open the same vault:                                                  │
+│                                                                             │
+│      💰💰💰💰💰💰💰💰💰💰 = K14,590                                      │
+│                                                                             │
+│  THE MONEY IS STILL THERE! It didn't vanish overnight!                    │
+│                                                                             │
+│  This K14,590 is now called "Opening Balance for June"                    │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+                        ⬇️ June 1-3: Operations
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│  JUNE 3, 2026 - NOW                                                        │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Collections from borrowers in June:                                       │
+│                                                                             │
+│      💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰 = K15,210                          │
+│                                                                             │
+│  Total cash in vault today:                                                │
+│                                                                             │
+│      May cash:  💰💰💰💰💰💰💰💰💰💰 = K14,590                          │
+│      June cash: 💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰 = K15,210              │
+│      ──────────────────────────────────────────────────                    │
+│      TOTAL:     💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰 = K29,800  │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                    TWO DIFFERENT QUESTIONS YOU CAN ASK
+================================================================================
+
+┌──────────────────────────────────────┬─────────────────────────────────────┐
+│  QUESTION 1                          │  QUESTION 2                         │
+├──────────────────────────────────────┼─────────────────────────────────────┤
+│  "How much CASH is in the vault?"    │  "What did we MAKE in June?"        │
+│                                      │                                     │
+│  ➜ VAULT BALANCE PAGE                │  ➜ ACTIVITY REPORT                  │
+│                                      │                                     │
+│  KAMWALA SOUTH:                      │  June 1-3, 2026:                    │
+│    Daily:   K200                     │                                     │
+│    Weekly:  K29,800                  │  Collections:    K11,791 ←────┐    │
+│    ─────────────────                 │  Disbursements:  K14,000       │    │
+│    TOTAL:   K30,000                  │  Net:           -K2,209        │    │
+│                                      │  Activities:     147           │    │
+│  (Includes May + June)               │  Clients:        88            │    │
+│                                      │                                │    │
+│                                      │  (ONLY June - no opening!)  ◄──┘    │
+│                                      │                                     │
+│  For: Security, reconciliation       │  For: Performance tracking          │
+└──────────────────────────────────────┴─────────────────────────────────────┘
+
+           ⬆️                                        ⬆️
+      What you're seeing                    What you want to track!
+
+
+================================================================================
+                    WHAT YOU WANT TO TRACK: "WHAT JUNE BRINGS IN"
+================================================================================
+
+✅ USE THE ACTIVITY REPORT!
+
+Steps:
+  1. Dashboard → Activity Report
+  2. Set dates: Jun 1 - Jun 30
+  3. Select branch
+
+Shows:
+  ╔════════════════════════════════════════╗
+  ║   ACTIVITY REPORT: JUNE 2026           ║
+  ╠════════════════════════════════════════╣
+  ║                                        ║
+  ║  Collections:        K11,791 ←─────────── What June brought IN
+  ║  Disbursements:      K14,000 ←─────────── What June paid OUT
+  ║  ───────────────────────────           ║
+  ║  Net for June:       -K2,209 ←─────────── June's performance
+  ║                                        ║
+  ║  Activities:         147               ║
+  ║  Clients:            88                ║
+  ║  Collection Rate:    94%               ║
+  ║                                        ║
+  ║  ✅ ONLY June transactions             ║
+  ║  ✅ NO opening balance from May        ║
+  ║  ✅ Pure monthly performance           ║
+  ║                                        ║
+  ╚════════════════════════════════════════╝
+
+This is what you want! ⬆️
+
+
+================================================================================
+                        BREAKING DOWN KAMWALA VAULT
+================================================================================
+
+Current Balance: K29,800
+
+Where it comes from:
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Opening Balance (May 31):         K14,590.00                             │
+│  ──────────────────────────────────────────────────────────────           │
+│    (This is cash from May operations)                                      │
+│    (It was physically in the vault)                                        │
+│    (It didn't disappear on June 1)                                         │
+│                                                                             │
+│                                                                             │
+│  JUNE ACTIVITY (Jun 1-3):                                                  │
+│    + Collections                   +K15,210.00                             │
+│    - Disbursements                 -K0.00                                  │
+│    - Expenses                      -K0.00                                  │
+│    ──────────────────────────────────────                                 │
+│    June Net Change:                +K15,210.00  ←───── This is "what      │
+│                                                         June brought in"   │
+│                                                                             │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  CURRENT BALANCE:                   K29,800.00                             │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                            SIMPLE WALLET ANALOGY
+================================================================================
+
+Your personal wallet:
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│  May 31 night:     Wallet has K500                                        │
+│                    Month ends                                              │
+│                                                                             │
+│  June 1 morning:   Wallet STILL has K500                                  │
+│                    (It didn't disappear because calendar changed!)         │
+│                                                                             │
+│  June 1-3:         You earn K300 (salary)                                 │
+│                    You spend K100 (expenses)                               │
+│                                                                             │
+│  June 3:           Wallet balance = K500 + K300 - K100 = K700            │
+│                    June earnings = K300 (not K700!)                        │
+└────────────────────────────────────────────────────────────────────────────┘
+
+Vault works the SAME way:
+  - Vault balance = Total cash (includes May)
+  - June earnings = Activity Report (only June)
+
+
+================================================================================
+                        WHY BOTH NUMBERS ARE NEEDED
+================================================================================
+
+SCENARIO: Catching Theft
+────────────────────────
+
+WITHOUT opening balance tracking:
+  ✗ June collections: K10,000
+  ✗ Vault has: K9,000
+  ✗ You think: "Close enough..."
+  ✗ You MISS the theft!
+
+WITH opening balance tracking:
+  ✓ May 31 closing: K14,590
+  ✓ June collections: K10,000
+  ✓ Expected balance: K24,590
+  ✓ Actual balance: K9,000
+  ✓ MISSING: K15,590 ← THEFT DETECTED! 🚨
+
+This is why ALL businesses track opening balances:
+  • Banks
+  • Shops
+  • Supermarkets
+  • Everyone!
+
+
+================================================================================
+                              SUMMARY
+================================================================================
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ❓ QUESTION:   "Why don't vaults start at K0 after month close?"         │
+│                                                                             │
+│  ✅ ANSWER:     Physical cash from May is still in the vault.             │
+│                 Month closing = accounting record (not cash removal)       │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────    │
+│                                                                             │
+│  🎯 TO TRACK:   "What each month brings in"                               │
+│                                                                             │
+│  ✅ SOLUTION:   Use ACTIVITY REPORT (Jun 1-30)                            │
+│                 Shows: Collections K11,791                                 │
+│                        Disbursements K14,000                               │
+│                        Net -K2,209                                         │
+│                 (Only June - no opening balance!)                          │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────    │
+│                                                                             │
+│  📊 TWO NUMBERS:                                                           │
+│                                                                             │
+│     Vault Balance      = Total cash (May + June)    = K29,800            │
+│     Activity Report    = June only                  = K11,791 collected   │
+│                                                                             │
+│     Both are correct! They measure different things.                       │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                            ACTION ITEMS
+================================================================================
+
+✅ TODAY:
+   1. Use Activity Report with dates Jun 1-30
+   2. This shows "what June brings in"
+   3. Collections: K11,791 ← This is the number you want!
+
+✅ UNDERSTAND:
+   • Vault Balance = Opening + Monthly Activity (for security)
+   • Activity Report = Monthly Activity only (for performance)
+   • Both are needed, both are correct
+
+✅ REMEMBER:
+   • Month closing = Accounting record
+   • Month closing ≠ Physical cash removal
+   • Cash from May doesn't disappear
+
+
+================================================================================
+                        THE BOTTOM LINE
+================================================================================
+
+    You already have what you need!
+
+    The ACTIVITY REPORT shows "what each month brings in"
+    without including opening balances.
+
+    Just use it with the correct date range (Jun 1 - Jun 30).
+
+    ✅ Your system is working correctly.
+    ✅ Your numbers are accurate.
+    ✅ This is standard accounting practice worldwide.
+
+
+================================================================================
+
+Questions? See:
+  • FOR_EMPLOYER_ONE_PAGE.md (simple explanation)
+  • QUICK_REFERENCE_FOR_EMPLOYER.md (detailed reference)
+  • Run: python show_monthly_performance.py (detailed breakdown)
+
+================================================================================
