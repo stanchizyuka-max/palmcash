@@ -861,16 +861,28 @@ class BulkCollectionView(LoginRequiredMixin, View):
 
         today = date.today()
 
-        # Filter groups based on officer
+        # Filter groups based on officer or manager's branch
         if officer:
             groups = BorrowerGroup.objects.filter(
                 assigned_officer=officer, is_active=True
             ).prefetch_related('members__borrower')
         else:
-            # Show all groups for manager's branch
-            groups = BorrowerGroup.objects.filter(
-                is_active=True
-            ).prefetch_related('members__borrower')
+            # Manager/admin viewing - filter by their branch
+            if request.user.role == 'manager':
+                # Manager: show only their branch's groups
+                try:
+                    manager_branch = request.user.managed_branch
+                    groups = BorrowerGroup.objects.filter(
+                        branch=manager_branch, is_active=True
+                    ).prefetch_related('members__borrower')
+                except Exception:
+                    # No branch assigned, show nothing
+                    groups = BorrowerGroup.objects.none()
+            else:
+                # Admin: show all groups
+                groups = BorrowerGroup.objects.filter(
+                    is_active=True
+                ).prefetch_related('members__borrower')
 
         group_rows = []
         for group in groups:
@@ -963,9 +975,27 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
 
     def get(self, request, group_id):
         from clients.models import BorrowerGroup
+        from django.db.models import Q
+        
         acting_as_officer = getattr(request, 'acting_as_officer', None)
-        officer = acting_as_officer if acting_as_officer else request.user
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
+        
+        if acting_as_officer:
+            # Manager acting as officer - filter by officer
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=acting_as_officer)
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own groups
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        elif request.user.role == 'manager':
+            # Manager viewing their branch's groups
+            try:
+                manager_branch = request.user.managed_branch
+                group = get_object_or_404(BorrowerGroup, pk=group_id, branch=manager_branch)
+            except Exception:
+                return redirect('payments:bulk_collection')
+        else:
+            # Admin can view any group
+            group = get_object_or_404(BorrowerGroup, pk=group_id)
+        
         rows = self._get_rows(group)
         return render(request, self.template_name, {'group': group, 'rows': rows})
 
@@ -974,10 +1004,31 @@ class BulkCollectionGroupView(LoginRequiredMixin, View):
         from loans.models import Loan
         from decimal import Decimal, InvalidOperation
         from datetime import date, datetime as dt
+        from django.db.models import Q
 
         acting_as_officer = getattr(request, 'acting_as_officer', None)
-        officer = acting_as_officer if acting_as_officer else request.user
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
+        
+        if acting_as_officer:
+            # Manager acting as officer - filter by officer
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=acting_as_officer)
+            officer = acting_as_officer
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own groups
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+            officer = request.user
+        elif request.user.role == 'manager':
+            # Manager viewing their branch's groups
+            try:
+                manager_branch = request.user.managed_branch
+                group = get_object_or_404(BorrowerGroup, pk=group_id, branch=manager_branch)
+                officer = request.user
+            except Exception:
+                return redirect('payments:bulk_collection')
+        else:
+            # Admin can view any group
+            group = get_object_or_404(BorrowerGroup, pk=group_id)
+            officer = request.user
+        
         today = date.today()
         recorded = 0
         skipped = 0
@@ -1065,8 +1116,24 @@ class DefaultCollectionView(LoginRequiredMixin, View):
         from decimal import Decimal
 
         acting_as_officer = getattr(request, 'acting_as_officer', None)
-        officer = acting_as_officer if acting_as_officer else request.user
-        groups = BorrowerGroup.objects.filter(assigned_officer=officer, is_active=True)
+        
+        # Filter groups based on user role
+        if acting_as_officer:
+            # Manager acting as officer
+            groups = BorrowerGroup.objects.filter(assigned_officer=acting_as_officer, is_active=True)
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own groups
+            groups = BorrowerGroup.objects.filter(assigned_officer=request.user, is_active=True)
+        elif request.user.role == 'manager':
+            # Manager viewing their branch's groups
+            try:
+                manager_branch = request.user.managed_branch
+                groups = BorrowerGroup.objects.filter(branch=manager_branch, is_active=True)
+            except Exception:
+                groups = BorrowerGroup.objects.none()
+        else:
+            # Admin viewing all groups
+            groups = BorrowerGroup.objects.filter(is_active=True)
 
         group_rows = []
         for group in groups:
@@ -1131,9 +1198,26 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
 
     def get(self, request, group_id):
         from clients.models import BorrowerGroup
+        
         acting_as_officer = getattr(request, 'acting_as_officer', None)
-        officer = acting_as_officer if acting_as_officer else request.user
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
+        
+        if acting_as_officer:
+            # Manager acting as officer
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=acting_as_officer)
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own groups
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+        elif request.user.role == 'manager':
+            # Manager viewing their branch's groups
+            try:
+                manager_branch = request.user.managed_branch
+                group = get_object_or_404(BorrowerGroup, pk=group_id, branch=manager_branch)
+            except Exception:
+                return redirect('payments:default_collection')
+        else:
+            # Admin can view any group
+            group = get_object_or_404(BorrowerGroup, pk=group_id)
+        
         loans = self._get_defaulted_loans(group)
         return render(request, self.template_name, {'group': group, 'loans': loans})
 
@@ -1145,8 +1229,28 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
         import datetime
 
         acting_as_officer = getattr(request, 'acting_as_officer', None)
-        officer = acting_as_officer if acting_as_officer else request.user
-        group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=officer)
+        
+        if acting_as_officer:
+            # Manager acting as officer
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=acting_as_officer)
+            officer = acting_as_officer
+        elif request.user.role == 'loan_officer':
+            # Officer viewing their own groups
+            group = get_object_or_404(BorrowerGroup, pk=group_id, assigned_officer=request.user)
+            officer = request.user
+        elif request.user.role == 'manager':
+            # Manager viewing their branch's groups
+            try:
+                manager_branch = request.user.managed_branch
+                group = get_object_or_404(BorrowerGroup, pk=group_id, branch=manager_branch)
+                officer = request.user
+            except Exception:
+                return redirect('payments:default_collection')
+        else:
+            # Admin can view any group
+            group = get_object_or_404(BorrowerGroup, pk=group_id)
+            officer = request.user
+        
         today = datetime.date.today()
         recorded = 0
         skipped = 0
