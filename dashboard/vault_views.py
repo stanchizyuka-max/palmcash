@@ -233,7 +233,9 @@ def vault_dashboard(request):
         
         if last_closing:
             # We have a month closing for this month
-            opening_balance = last_closing.amount
+            # IMPORTANT: After month close, opening balance is ALWAYS K0
+            # The month closing OUT transactions reset everything to zero
+            opening_balance = Decimal('0')
             opening_date = last_closing.transaction_date
             
             # Get all transactions AFTER the month closing (current month activity)
@@ -254,19 +256,19 @@ def vault_dashboard(request):
             current_month_out = month_totals['outflows'] or Decimal('0')
             current_month_net = current_month_in - current_month_out
             
-            # Current balance should be opening + net change
+            # Current balance should be 0 + net change (no carryforward!)
             current_balance = vault_balances.get('total', Decimal('0'))
             
             monthly_summary = {
                 'has_month_closing': True,
-                'opening_balance': opening_balance,
+                'opening_balance': opening_balance,  # Always K0 after month close
                 'opening_date': opening_date,
                 'current_month_in': current_month_in,
                 'current_month_out': current_month_out,
                 'current_month_net': current_month_net,
                 'current_balance': current_balance,
                 'month_name': opening_date.strftime('%B %Y'),
-                'calculated_balance': opening_balance + current_month_net,
+                'calculated_balance': current_month_net,  # Should equal current_balance
             }
         else:
             # No month closing found, just show current balance
