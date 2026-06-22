@@ -139,54 +139,54 @@
             <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center">
                 <i class="fas fa-bolt text-blue-600 mr-2"></i>Quick Actions
             </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <a href="{% url 'clients:drilldown_root' %}" class="flex flex-col items-center p-4 bg-cyan-50 rounded-lg border-2 border-cyan-200 hover:border-cyan-400 transition hover:shadow-md">
-                    <i class="fas fa-users text-cyan-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-cyan-900 text-sm text-center">View My Clients</span>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <a href="{% url 'clients:drilldown_root' %}" class="flex flex-col items-center p-3 sm:p-4 bg-cyan-50 rounded-lg border-2 border-cyan-200 hover:border-cyan-400 transition hover:shadow-md">
+                    <i class="fas fa-users text-cyan-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-cyan-900 text-xs sm:text-sm text-center">View My Clients</span>
                 </a>
-                <a href="{% url 'clients:register_borrower' %}" class="flex flex-col items-center p-4 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-400 transition hover:shadow-md">
-                    <i class="fas fa-user-plus text-green-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-green-900 text-sm text-center">Register Borrower</span>
+                <a href="{% url 'clients:register_borrower' %}" class="flex flex-col items-center p-3 sm:p-4 bg-green-50 rounded-lg border-2 border-green-200 hover:border-green-400 transition hover:shadow-md">
+                    <i class="fas fa-user-plus text-green-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-green-900 text-xs sm:text-sm text-center">Register Borrower</span>
                 </a>
-                <a href="{% url 'loans:submit_application' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
-                    <i class="fas fa-file-invoice-dollar text-blue-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-blue-900 text-sm text-center">New Loan Application</span>
+                <a href="{% url 'loans:submit_application' %}" class="flex flex-col items-center p-3 sm:p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
+                    <i class="fas fa-file-invoice-dollar text-blue-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-xs sm:text-sm text-center">New Loan Application</span>
                 </a>
-                <a href="{% url 'clients:group_create' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
-                    <i class="fas fa-layer-group text-blue-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-blue-900 text-sm text-center">Create Group</span>
+                <a href="{% url 'clients:group_create' %}" class="flex flex-col items-center p-3 sm:p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
+                    <i class="fas fa-layer-group text-blue-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-xs sm:text-sm text-center">Create Group</span>
                 </a>
-                <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-md">
-                    <i class="fas fa-credit-card text-orange-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-orange-900 text-sm text-center">Record Payment</span>
+                <a href="{% url 'payments:list' %}" class="flex flex-col items-center p-3 sm:p-4 bg-orange-50 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-md">
+                    <i class="fas fa-credit-card text-orange-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-orange-900 text-xs sm:text-sm text-center">Record Payment</span>
                 </a>
-                <a href="{% url 'dashboard:officer_applications' %}" class="flex flex-col items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-md">
-                    <i class="fas fa-file-invoice text-orange-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-orange-900 text-sm text-center">My Applications</span>
+                <a href="{% url 'dashboard:officer_applications' %}" class="flex flex-col items-center p-3 sm:p-4 bg-orange-50 rounded-lg border-2 border-orange-200 hover:border-orange-400 transition hover:shadow-md">
+                    <i class="fas fa-file-invoice text-orange-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-orange-900 text-xs sm:text-sm text-center">My Applications</span>
                 </a>
-                <a href="{% url 'payments:bulk_collection' %}" class="flex flex-col items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 transition hover:shadow-md">
-                    <i class="fas fa-list-check text-emerald-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-emerald-900 text-sm text-center">Bulk Collection</span>
+                <a href="{% url 'payments:bulk_collection' %}" class="flex flex-col items-center p-3 sm:p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200 hover:border-emerald-400 transition hover:shadow-md">
+                    <i class="fas fa-list-check text-emerald-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-emerald-900 text-xs sm:text-sm text-center">Bulk Collection</span>
                 </a>
-                <a href="{% url 'payments:default_collection' %}" class="flex flex-col items-center p-4 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-400 transition hover:shadow-md">
-                    <i class="fas fa-exclamation-circle text-red-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-red-900 text-sm text-center">Default Collection</span>
+                <a href="{% url 'payments:default_collection' %}" class="flex flex-col items-center p-3 sm:p-4 bg-red-50 rounded-lg border-2 border-red-200 hover:border-red-400 transition hover:shadow-md">
+                    <i class="fas fa-exclamation-circle text-red-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-red-900 text-xs sm:text-sm text-center">Default Collection</span>
                 </a>
-                <a href="{% url 'dashboard:report_security_transactions' %}" class="flex flex-col items-center p-4 bg-teal-50 rounded-lg border-2 border-teal-200 hover:border-teal-400 transition hover:shadow-md">
-                    <i class="fas fa-chart-bar text-teal-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-teal-900 text-sm text-center">Reports</span>
+                <a href="{% url 'dashboard:report_security_transactions' %}" class="flex flex-col items-center p-3 sm:p-4 bg-teal-50 rounded-lg border-2 border-teal-200 hover:border-teal-400 transition hover:shadow-md">
+                    <i class="fas fa-chart-bar text-teal-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-teal-900 text-xs sm:text-sm text-center">Reports</span>
                 </a>
-                <a href="{% url 'payments:history' %}" class="flex flex-col items-center p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 transition hover:shadow-md">
-                    <i class="fas fa-history text-indigo-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-indigo-900 text-sm text-center">History</span>
+                <a href="{% url 'payments:history' %}" class="flex flex-col items-center p-3 sm:p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 transition hover:shadow-md">
+                    <i class="fas fa-history text-indigo-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-indigo-900 text-xs sm:text-sm text-center">History</span>
                 </a>
-                <a href="{% url 'dashboard:officer_performance_report' %}" class="flex flex-col items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
-                    <i class="fas fa-chart-line text-blue-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-blue-900 text-sm text-center">My Performance</span>
+                <a href="{% url 'dashboard:officer_performance_report' %}" class="flex flex-col items-center p-3 sm:p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition hover:shadow-md">
+                    <i class="fas fa-chart-line text-blue-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-blue-900 text-xs sm:text-sm text-center">My Performance</span>
                 </a>
-                <a href="{% url 'dashboard:officer_processing_fees' %}" class="flex flex-col items-center p-4 bg-violet-50 rounded-lg border-2 border-violet-200 hover:border-violet-400 transition hover:shadow-md">
-                    <i class="fas fa-coins text-violet-600 text-2xl mb-2"></i>
-                    <span class="font-semibold text-violet-900 text-sm text-center">Processing Fees</span>
+                <a href="{% url 'dashboard:officer_processing_fees' %}" class="flex flex-col items-center p-3 sm:p-4 bg-violet-50 rounded-lg border-2 border-violet-200 hover:border-violet-400 transition hover:shadow-md">
+                    <i class="fas fa-coins text-violet-600 text-xl sm:text-2xl mb-1 sm:mb-2"></i>
+                    <span class="font-semibold text-violet-900 text-xs sm:text-sm text-center">Processing Fees</span>
                 </a>
             </div>
         </div>
