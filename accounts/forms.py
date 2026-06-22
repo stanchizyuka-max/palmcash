@@ -77,6 +77,13 @@ class BorrowerRegistrationForm(forms.ModelForm):
         help_text="Enter phone number starting with 05, 07, or 09"
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set max date dynamically for date_of_birth to prevent future dates
+        from datetime import date
+        if 'date_of_birth' in self.fields:
+            self.fields['date_of_birth'].widget.attrs['max'] = date.today().isoformat()
+
     class Meta:
         model = User
         fields = [
@@ -95,6 +102,16 @@ class BorrowerRegistrationForm(forms.ModelForm):
 
 class BorrowerDetailsForm(forms.ModelForm):
     """Step 2: Full borrower details"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set max date dynamically for guarantor DOB fields to prevent future dates
+        from datetime import date
+        today = date.today().isoformat()
+        if 'guarantor1_dob' in self.fields:
+            self.fields['guarantor1_dob'].widget.attrs['max'] = today
+        if 'guarantor2_dob' in self.fields:
+            self.fields['guarantor2_dob'].widget.attrs['max'] = today
 
     class Meta:
         model = User

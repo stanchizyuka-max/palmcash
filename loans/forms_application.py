@@ -11,10 +11,15 @@ class LoanApplicationForm(forms.ModelForm):
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-            'max': date.today().isoformat(),  # Prevent future dates
+            # max attribute will be set dynamically in __init__
         }),
         help_text='Date when the application was actually made'
     )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set max date dynamically to today's date when form is instantiated
+        self.fields['application_date'].widget.attrs['max'] = date.today().isoformat()
     
     class Meta:
         model = LoanApplication
