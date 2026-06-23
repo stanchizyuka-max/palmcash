@@ -74,9 +74,29 @@ def _get_branch_for_loan(loan, fallback_user=None):
         logger = logging.getLogger(__name__)
         logger.error(f"Error getting branch for loan {loan.application_number}: {e}", exc_info=True)
     
-    # Fallback: use the verifying manager's branch
-    if fallback_user and hasattr(fallback_user, 'managed_branch') and fallback_user.managed_branch:
-        return fallback_user.managed_branch
+    # Fallback: use the fallback_user's branch
+    if fallback_user:
+        try:
+            from clients.models import Branch
+            
+            # Check if fallback_user is a loan officer with officer_assignment
+            if hasattr(fallback_user, 'officer_assignment') and fallback_user.officer_assignment:
+                branch_ref = fallback_user.officer_assignment.branch
+                
+                if isinstance(branch_ref, Branch):
+                    return branch_ref
+                elif isinstance(branch_ref, str) and branch_ref:
+                    branch = Branch.objects.filter(name__iexact=branch_ref).first()
+                    if branch:
+                        return branch
+            
+            # Check if fallback_user is a manager with managed_branch
+            elif hasattr(fallback_user, 'managed_branch') and fallback_user.managed_branch:
+                return fallback_user.managed_branch
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting branch from fallback_user: {e}", exc_info=True)
     
     # Log if we couldn't find a branch
     import logging
