@@ -616,7 +616,9 @@ class DisburseLoanView(LoginRequiredMixin, View):
             # Check vault has sufficient balance for disbursement
             try:
                 from loans.vault_services import get_vault_balance, _get_branch_for_loan
-                branch = _get_branch_for_loan(loan, fallback_user=request.user)
+                # When acting as an officer, use the officer's branch, not the manager's
+                fallback_user = acting_as_officer if acting_as_officer else request.user
+                branch = _get_branch_for_loan(loan, fallback_user=fallback_user)
                 if not branch:
                     messages.error(request, 'Cannot disburse — branch not found for this loan. Please ensure the loan officer is assigned to a branch.')
                     return redirect('loans:detail', pk=pk)
@@ -716,7 +718,9 @@ class DisburseLoanView(LoginRequiredMixin, View):
             # This is critical - if vault recording fails, disbursement should not proceed
             try:
                 from .vault_services import record_loan_disbursement
-                vault_tx = record_loan_disbursement(loan, request.user)
+                # When acting as an officer, use the officer for vault operations
+                disbursing_user = acting_as_officer if acting_as_officer else request.user
+                vault_tx = record_loan_disbursement(loan, disbursing_user)
                 
                 if not vault_tx:
                     # Vault recording returned None - this means it failed
