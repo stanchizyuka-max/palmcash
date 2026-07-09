@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('loans', '0098_loanapplication_processing_fee_and_more'),  # Update this to your latest migration
+        ('loans', '0019_add_branch_savings'),  # Point to latest actual migration
     ]
 
     operations = [
