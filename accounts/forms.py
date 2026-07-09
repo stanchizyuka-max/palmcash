@@ -11,22 +11,22 @@ def validate_zambian_phone(value):
     """
     Validate Zambian phone numbers.
     Accepts Zambian mobile formats:
-    - 095, 096, 097 (Zamtel, MTN, Airtel)
-    - 076, 077 (Zamtel, MTN)
-    - 055, 057 (Zamtel, Airtel - new prefixes)
+    - 05X (050-059): Various carriers
+    - 07X (070-079): Zamtel, MTN, Airtel
+    - 09X (090-099): Zamtel, MTN, Airtel
     Also accepts with country code: +260 or 260
     """
     # Remove spaces, dashes, and parentheses
     cleaned = re.sub(r'[\s\-\(\)]', '', str(value))
     
-    # Zambian mobile prefixes: 095, 096, 097, 076, 077, 055, 057
+    # Zambian mobile prefixes: 05X, 07X, 09X
     # Pattern explanation:
-    # ^0(95|96|97|76|77|55|57)\d{7}$ - starts with 0, then valid prefix, then 7 more digits
+    # ^0[579]\d{8}$ - starts with 0, then 5/7/9, then 8 more digits (total 10 digits)
     patterns = [
-        r'^0(95|96|97|76|77|55|57)\d{7}$',        # 0955123456, 0965123456, 0975123456, 0765123456, 0775123456, 0555123456, 0575123456
-        r'^(95|96|97|76|77|55|57)\d{7}$',         # 955123456 (without leading 0)
-        r'^\+260(95|96|97|76|77|55|57)\d{7}$',    # +260955123456
-        r'^260(95|96|97|76|77|55|57)\d{7}$',      # 260955123456
+        r'^0[579]\d{8}$',        # 0551234567, 0771234567, 0951234567
+        r'^[579]\d{8}$',         # 551234567 (without leading 0)
+        r'^\+260[579]\d{8}$',    # +260551234567
+        r'^260[579]\d{8}$',      # 260551234567
     ]
     
     for pattern in patterns:
@@ -34,8 +34,8 @@ def validate_zambian_phone(value):
             return cleaned
     
     raise ValidationError(
-        'Invalid phone number. Please enter a valid Zambian mobile number. '
-        'Examples: 0955123456, 0965123456, 0975123456, 0765123456, 0775123456, 0555123456, 0575123456'
+        'Invalid phone number. Please enter a valid Zambian mobile number starting with 05, 07, or 09. '
+        'Examples: 0551234567, 0771234567, 0951234567'
     )
 
 
@@ -71,7 +71,7 @@ class BorrowerRegistrationForm(forms.ModelForm):
         required=True,
         validators=[validate_zambian_phone],
         widget=forms.TextInput(attrs={
-            'placeholder': 'e.g. 0955123456, 0977123456', 
+            'placeholder': 'e.g. 0551234567, 0771234567, 0951234567', 
             'class': 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500'
         }),
         help_text="Enter phone number starting with 05, 07, or 09"
@@ -242,7 +242,7 @@ class LoanOfficerRegistrationForm(UserCreationForm):
         required=True, 
         validators=[validate_zambian_phone],
         widget=forms.TextInput(attrs={
-            'placeholder': 'e.g. 0955123456, 0977123456', 
+            'placeholder': 'e.g. 0551234567, 0771234567, 0951234567', 
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
         }),
         help_text="Enter phone number starting with 05, 07, or 09"
