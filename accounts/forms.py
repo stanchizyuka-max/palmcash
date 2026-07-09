@@ -31,8 +31,9 @@ def validate_zambian_phone(value):
     
     for pattern in patterns:
         if re.match(pattern, cleaned):
-            return cleaned
+            return  # Valid - return nothing
     
+    # If no pattern matched, raise error
     raise ValidationError(
         'Invalid phone number. Please enter a valid Zambian mobile number starting with 05, 07, or 09. '
         'Examples: 0551234567, 0771234567, 0951234567'
