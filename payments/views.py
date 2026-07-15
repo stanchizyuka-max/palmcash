@@ -347,6 +347,24 @@ class ConfirmPaymentView(LoginRequiredMixin, View):
             payment_collection.status = 'completed'
             payment_collection.save()
         
+        # Update DefaultCollection if this was a default collection payment
+        try:
+            from .models import DefaultCollection
+            default_collection = DefaultCollection.objects.filter(
+                loan=loan,
+                collection_date=payment_date,
+                amount_paid=payment.amount
+            ).order_by('-created_at').first()
+            
+            if default_collection:
+                # Update balance_after now that payment is confirmed
+                default_collection.balance_after = loan.balance_remaining or 0
+                default_collection.save(update_fields=['balance_after'])
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating DefaultCollection: {e}")
+        
         # Update PaymentCollection — one entry per installment paid (handles overdue + overpayment)
         paid_schedules = PaymentSchedule.objects.filter(
             loan=loan,
@@ -1279,89 +1297,56 @@ class DefaultCollectionGroupView(LoginRequiredMixin, View):
             except Loan.DoesNotExist:
                 continue
 
-            balance_before = loan.balance_remaining or Decimal('0')
-            amount_applied = min(amount, balance_before)
-            balance_after = balance_before - amount_applied
+            # Add audit trail if manager is acting as officer
+            notes = f'[DEFAULT COLLECTION — {group.name}]'
+            if acting_as_officer:
+                notes += f' | Action by {request.user.get_full_name()} on behalf of {officer.get_full_name()}'
+            
+            # Create payment record with pending status - awaiting manager approval
+            payment = Payment.objects.create(
+                loan=loan,
+                amount=amount,
+                payment_method=method,
+                payment_date=datetime.datetime.combine(today, datetime.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
+                processed_by=request.user,
+                status='pending',  # Requires manager approval
+                notes=notes,
+            )
 
-            # Update loan
-            loan.amount_paid += amount_applied
-            loan.balance_remaining = balance_after
-            if balance_after <= 0:
-                loan.status = 'completed'
-            loan.save(update_fields=['amount_paid', 'balance_remaining', 'status', 'updated_at'])
+            # Link to oldest unpaid schedule
+            oldest_unpaid = PaymentSchedule.objects.filter(loan=loan, is_paid=False).order_by('due_date').first()
+            if oldest_unpaid:
+                payment.payment_schedule = oldest_unpaid
+                payment.save(update_fields=['payment_schedule'])
 
-            # Record default collection
+            # Update PaymentCollection but don't mark as completed yet
+            expected = oldest_unpaid.total_amount - oldest_unpaid.amount_paid if oldest_unpaid else loan.payment_amount
+            collection, _ = PaymentCollection.objects.get_or_create(
+                loan=loan,
+                collection_date=today,
+                defaults={'expected_amount': expected, 'collected_amount': 0, 'status': 'scheduled'}
+            )
+            collection.collected_amount = min(amount, collection.expected_amount)
+            collection.collected_by=request.user
+            collection.actual_collection_date = timezone.now()
+            collection.is_partial = collection.collected_amount < collection.expected_amount
+            collection.save()
+
+            # Record default collection metadata (but don't update loan until confirmed)
             DefaultCollection.objects.create(
                 loan=loan,
-                amount_paid=amount_applied,
-                balance_before=balance_before,
-                balance_after=balance_after,
+                amount_paid=amount,
+                balance_before=loan.balance_remaining or Decimal('0'),
+                balance_after=loan.balance_remaining or Decimal('0'),  # Will be updated on confirmation
                 payment_method=method,
-                notes=f'[DEFAULT COLLECTION — {group.name}]',
+                notes=notes,
                 recorded_by=request.user,
                 collection_date=today,
             )
 
-            # Record vault transaction
-            try:
-                from expenses.models import VaultTransaction
-                from clients.models import Branch
-                import uuid
-                
-                # Get officer's branch
-                officer_branch = None
-                branch_name = None
-                if hasattr(request.user, 'officer_assignment'):
-                    branch_name = request.user.officer_assignment.branch
-                    officer_branch = Branch.objects.filter(name=branch_name).first()
-                
-                if officer_branch and branch_name:
-                    # FIXED: Use dual vault system - determine vault type from loan
-                    from loans.models import WeeklyVault, DailyVault
-                    
-                    # Determine which vault based on loan type
-                    vault_type = 'weekly' if loan.loan_type == 'weekly' else 'daily'
-                    VaultModel = WeeklyVault if vault_type == 'weekly' else DailyVault
-                    
-                    # Get or create vault
-                    vault, _ = VaultModel.objects.get_or_create(branch=officer_branch)
-                    
-                    # Update vault balance
-                    vault.balance += amount_applied
-                    vault.last_transaction_date = today
-                    vault.total_inflows += amount_applied
-                    new_balance = vault.balance
-                    vault.save(update_fields=['balance', 'last_transaction_date', 'total_inflows', 'updated_at'])
-                    
-                    # Generate unique reference number
-                    reference = f"DC-{today.strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
-                    
-                    VaultTransaction.objects.create(
-                        branch=branch_name,
-                        transaction_type='payment_collection',
-                        direction='in',
-                        vault_type=vault_type,  # FIXED: Specify vault type
-                        amount=amount_applied,
-                        balance_after=new_balance,
-                        description=f'Default collection from {loan.borrower.get_full_name()} - Loan {loan.application_number}',
-                        reference_number=reference,
-                        loan=loan,
-                        recorded_by=request.user,
-                        transaction_date=today,
-                    )
-            except Exception as e:
-                # Log error but don't fail the collection
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f'Failed to record vault transaction for default collection: {e}')
-
-            # Also distribute to payment schedule
-            from payments.services import distribute_payment
-            distribute_payment(loan, amount_applied, today)
-
             recorded += 1
 
-        messages.success(request, f'{recorded} default payment(s) recorded for {group.name}. {skipped} skipped.')
+        messages.success(request, f'{recorded} default payment(s) recorded for {group.name} — awaiting manager confirmation. {skipped} skipped.')
         return redirect('payments:default_collection')
 
 
