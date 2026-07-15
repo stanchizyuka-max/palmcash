@@ -7,17 +7,17 @@
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="flex justify-between items-start">
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-user-circle text-blue-600 mr-3"></i>
-                        Borrower Details - {{ borrower.get_full_name }}
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-user-circle text-blue-600 mr-2 sm:mr-3"></i>
+                        <span class="break-words">Borrower Details</span>
                     </h1>
-                    <p class="text-gray-600 mt-1">Review borrower information before submitting loan application</p>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-1">{{ borrower.get_full_name }}</p>
                 </div>
-                <a href="{% url 'loans:submit_application' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Borrowers
+                <a href="{% url 'loans:submit_application' %}" class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-center text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
                 </a>
             </div>
         </div>
@@ -181,11 +181,11 @@
                             <i class="fas fa-cogs mr-3"></i>Quick Actions
                         </h2>
                     </div>
-                    <div class="p-6 space-y-3">
-                        <a href="{% url 'loans:submit_application_form' %}?borrower={{ borrower.id }}" class="w-full inline-flex items-center justify-center px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <div class="p-4 sm:p-6 space-y-3">
+                        <a href="{% url 'loans:submit_application_form' %}?borrower={{ borrower.id }}" class="w-full inline-flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm">
                             <i class="fas fa-file-invoice mr-2"></i>Submit Loan Application
                         </a>
-                        <a href="{% url 'loans:submit_application' %}" class="w-full inline-flex items-center justify-center px-4 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        <a href="{% url 'loans:submit_application' %}" class="w-full inline-flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors duration-200 text-sm">
                             <i class="fas fa-arrow-left mr-2"></i>Back to Borrowers
                         </a>
                     </div>
