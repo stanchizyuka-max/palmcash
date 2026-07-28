@@ -1182,88 +1182,24 @@ def manager_dashboard(request):
         role='borrower',
     ).distinct().count()
     
-    # Today's collections - include ALL payment types CREATED TODAY
+    # Today's collections - use same logic as officer dashboard for consistency
     today = date.today()
-    from django.utils import timezone
-    today_start = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
-    today_end = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max.time()))
     
-    # Method 1: Sum from Payment model (actual payment records created today)
-    from payments.models import Payment
-    today_payments = Payment.objects.filter(
-        loan__loan_officer__officer_assignment__branch=branch.name,
-        created_at__gte=today_start,
-        created_at__lte=today_end,
-        status='completed'
-    )
-    payments_total = today_payments.aggregate(total=Sum('amount'))['total'] or 0
-    
-    # Method 2: Sum from PaymentCollection model (collections created today)
-    today_collections_all = PaymentCollection.objects.filter(
-        loan__loan_officer__officer_assignment__branch=branch.name,
-        created_at__gte=today_start,
-        created_at__lte=today_end
-    ).distinct()
-    collections_total = sum(c.collected_amount for c in today_collections_all) or 0
-    
-    # Method 3: Sum from MultiSchedulePayment model (bulk payments created today)
-    from payments.models import MultiSchedulePayment
-    today_multi_payments = MultiSchedulePayment.objects.filter(
-        loan__loan_officer__officer_assignment__branch=branch.name,
-        created_at__gte=today_start,
-        created_at__lte=today_end,
-        status='approved'
-    )
-    multi_payments_total = today_multi_payments.aggregate(total=Sum('total_amount'))['total'] or 0
-    
-    # Combine all payment sources (avoid double counting)
-    # Check if Payment and PaymentCollection overlap (same loans)
-    payment_loan_ids = set(today_payments.values_list('loan_id', flat=True))
-    collection_loan_ids = set(today_collections_all.values_list('loan_id', flat=True))
-    overlap_loan_ids = payment_loan_ids & collection_loan_ids
-    
-    if overlap_loan_ids:
-        # For overlapping loans, use the higher amount to avoid double-counting
-        overlap_payment_total = Payment.objects.filter(
-            loan_id__in=overlap_loan_ids,
-            created_at__gte=today_start,
-            created_at__lte=today_end,
-            status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        overlap_collection_total = sum(
-            c.collected_amount for c in today_collections_all.filter(loan_id__in=overlap_loan_ids)
-        ) or 0
-        
-        # Non-overlapping amounts
-        non_overlap_payment = Payment.objects.filter(
-            loan_id__in=payment_loan_ids - overlap_loan_ids,
-            created_at__gte=today_start,
-            created_at__lte=today_end,
-            status='completed'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
-        non_overlap_collection = sum(
-            c.collected_amount for c in today_collections_all.filter(loan_id__in=collection_loan_ids - overlap_loan_ids)
-        ) or 0
-        
-        today_collected = (
-            max(overlap_payment_total, overlap_collection_total) +
-            non_overlap_payment +
-            non_overlap_collection +
-            multi_payments_total
-        )
-    else:
-        # No overlap - simply add all sources
-        today_collected = payments_total + collections_total + multi_payments_total
-    
-    # For EXPECTED: Only count active loans from PaymentCollection
+    # For EXPECTED: Only count active loans from PaymentCollection for today
     today_collections_active = PaymentCollection.objects.filter(
         loan__loan_officer__officer_assignment__branch=branch.name,
         collection_date=today,
         loan__status='active'
     ).distinct()
     today_expected = sum(c.expected_amount for c in today_collections_active) or 0
+    
+    # For COLLECTED: Count collections for today (both active and completed loans)
+    # This includes both approved and pending collections
+    today_collections_all = PaymentCollection.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        collection_date=today
+    ).distinct()
+    today_collected = sum(c.collected_amount for c in today_collections_all) or 0
     
     collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
     today_pending = max(0, today_expected - today_collected)
