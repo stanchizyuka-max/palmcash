@@ -6226,6 +6226,31 @@ def _render_manager_dashboard_for_branch(request, branch, manager):
         loan__loan_officer__officer_assignment__branch=branch.name
     ).count()
 
+    # Today's collections - same calculation as manager_dashboard
+    today_collections_active = PaymentCollection.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        collection_date=today,
+        loan__status='active'
+    ).distinct()
+    today_expected = sum(c.expected_amount for c in today_collections_active) or 0
+    
+    # For COLLECTED: Only count APPROVED payments (status='completed')
+    from payments.models import Payment
+    from django.utils import timezone
+    today_start = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+    today_end = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.max.time()))
+    
+    today_approved_payments = Payment.objects.filter(
+        loan__loan_officer__officer_assignment__branch=branch.name,
+        payment_date__gte=today_start,
+        payment_date__lte=today_end,
+        status='completed'  # Only approved payments
+    )
+    today_collected = today_approved_payments.aggregate(total=Sum('amount'))['total'] or 0
+    
+    collection_rate = (today_collected / today_expected * 100) if today_expected > 0 else 0
+    today_pending = max(0, today_expected - today_collected)
+
     context = {
         'branch': branch,
         'viewing_as_admin': True,
@@ -6234,9 +6259,10 @@ def _render_manager_dashboard_for_branch(request, branch, manager):
         'officers_count': officers.count(),
         'groups_count': groups.count(),
         'clients_count': clients_count,
-        'today_expected': 0,
-        'today_collected': 0,
-        'collection_rate': 0,
+        'today_expected': today_expected,
+        'today_collected': today_collected,
+        'today_pending': today_pending,
+        'collection_rate': round(collection_rate, 1),
         'pending_security': pending_security,
         'pending_topups': 0,
         'pending_returns': 0,
